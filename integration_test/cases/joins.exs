@@ -77,6 +77,26 @@ defmodule Ecto.Integration.JoinsTest do
     assert [{^p1, ^c1}, {^p2, ^c1}] = TestRepo.all(query)
   end
 
+  test "join with cte" do
+    p1 = TestRepo.insert!(%Post{title: "1"})
+    p2 = TestRepo.insert!(%Post{title: "2"})
+
+    p1_id = p1.id
+
+    query =
+      from(p in Post,
+        join:
+          c in fragment(
+            "WITH bogus AS (SELECT ? as temp) SELECT temp as post_id FROM bogus",
+            ^p1_id
+          ),
+        on: c.post_id == p.id,
+        select: {p}
+      )
+
+    assert [{^p1}] = TestRepo.all(query)
+  end
+
   test "named joins" do
     _p = TestRepo.insert!(%Post{title: "1"})
     p2 = TestRepo.insert!(%Post{title: "2"})
