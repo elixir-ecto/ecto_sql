@@ -360,7 +360,7 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def __before_compile__(adapter, _env) do
-    case Application.get_env(:ecto_sql, :json_library) do
+    case Application.get_env(:ecto, :json_library) do
       nil ->
         :ok
 
