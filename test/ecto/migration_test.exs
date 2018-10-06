@@ -268,6 +268,15 @@ defmodule Ecto.MigrationTest do
     end
   end
 
+  test "forward: column modifications invoke type validations" do
+    assert_raise ArgumentError, ~r"Ecto.DateTime is not a valid database type", fn ->
+      alter table(:posts) do
+        modify(:hello, Ecto.DateTime)
+      end
+      flush()
+    end
+  end
+
   test "forward: rename column" do
     result = rename(table(:posts), :given_name, to: :first_name)
     flush()
