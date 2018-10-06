@@ -6,11 +6,11 @@ defmodule Mix.EctoSQL do
   """
   @spec ensure_started(Ecto.Repo.t, Keyword.t) :: {:ok, pid | nil, [atom]}
   def ensure_started(repo, opts) do
-    {:ok, started} = Application.ensure_all_started(:ecto)
+    {:ok, started} = Application.ensure_all_started(:ecto_sql)
 
-    # If we starting Ecto just now, assume
+    # If we starting EctoSQL just now, assume
     # logger has not been properly booted yet.
-    if :ecto in started && Process.whereis(Logger) do
+    if :ecto_sql in started && Process.whereis(Logger) do
       backends = Application.get_env(:logger, :backends, [])
       try do
         Logger.App.stop
