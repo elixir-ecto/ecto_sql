@@ -298,7 +298,10 @@ defmodule Ecto.Integration.RepoTest do
       base_post
       |> cast(%{"text" => "foo.bar"}, ~w(text)a)
       |> optimistic_lock(:lock_version, incrementer)
-    TestRepo.update!(changeset_ok)
+
+    updated = TestRepo.update!(changeset_ok)
+    assert updated.text == "foo.bar"
+    assert updated.lock_version == 1
   end
 
   test "optimistic locking in delete operation with nil field" do
@@ -317,6 +320,8 @@ defmodule Ecto.Integration.RepoTest do
 
     changeset_ok = optimistic_lock(base_post, :lock_version, incrementer)
     TestRepo.delete!(changeset_ok)
+
+    refute TestRepo.get(Comment, base_post.id)
   end
 
   @tag :unique_constraint
