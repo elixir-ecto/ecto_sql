@@ -84,6 +84,9 @@ if Code.ensure_loaded?(Postgrex) do
         {:ok, _, _} = ok ->
           ok
 
+        {:error, %Postgrex.QueryError{} = err} ->
+          {:reset, err}
+
         {:error, %Postgrex.Error{postgres: %{code: :feature_not_supported}} = err} ->
           {:reset, err}
 

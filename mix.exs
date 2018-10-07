@@ -51,12 +51,9 @@ defmodule EctoSQL.MixProject do
       {:jason, ">= 0.0.0", only: :test},
 
       # Drivers
-      {:db_connection, "~> 2.0.0-dev",
-       github: "elixir-ecto/db_connection", ref: "90501f2", override: true},
-      {:postgrex, "~> 0.14.0-dev",
-       optional: true, github: "elixir-ecto/postgrex", ref: "2874de4"},
-      {:mariaex, "~> 0.9.0-dev",
-       optional: true, github: "xerions/mariaex", ref: "eac3104"},
+      {:db_connection, "~> 2.0-rc.0"},
+      {:postgrex, "~> 0.14.0-rc.0"},
+      {:mariaex, "~> 0.9.0-dev", optional: true, github: "josevalim/mariaex", ref: "069b55c"},
 
       # Docs
       {:ex_doc, "~> 0.19", only: :docs},
