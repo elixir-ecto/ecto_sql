@@ -148,7 +148,7 @@ defmodule Ecto.Adapters.SQL do
                  {kind, conflict_params, _} = on_conflict, returning, opts) do
         {fields, values} = :lists.unzip(params)
         sql = @conn.insert(prefix, source, fields, [fields], on_conflict, returning)
-        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, {:insert, source, []}, values ++ conflict_params, kind, returning, opts)
+        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :insert, source, [], values ++ conflict_params, kind, returning, opts)
       end
 
       @doc false
@@ -156,14 +156,14 @@ defmodule Ecto.Adapters.SQL do
         {fields, field_values} = :lists.unzip(fields)
         filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
         sql = @conn.update(prefix, source, fields, params, returning)
-        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, {:update, source, params}, field_values ++ filter_values, :raise, returning, opts)
+        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :update, source, params, field_values ++ filter_values, :raise, returning, opts)
       end
 
       @doc false
       def delete(adapter_meta, %{source: source, prefix: prefix}, params, opts) do
         filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
         sql = @conn.delete(prefix, source, params, [])
-        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, {:delete, source, params}, filter_values, :raise, [], opts)
+        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :delete, source, params, filter_values, :raise, [], opts)
       end
 
       ## Transaction
@@ -615,10 +615,10 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
-  def struct(adapter_meta, conn, sql, info, values, on_conflict, returning, opts) do
-    {operation, source, params} = info
+  def struct(adapter_meta, conn, sql, operation, source, params, values, on_conflict, returning, opts) do
+    cache_statement = "ecto_#{operation}_#{source}"
 
-    case query(adapter_meta, sql, values, opts) do
+    case query(adapter_meta, sql, values, [cache_statement: cache_statement] ++ opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->
         {:ok, []}
 
