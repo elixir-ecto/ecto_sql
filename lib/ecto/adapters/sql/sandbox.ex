@@ -238,12 +238,17 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   `Ecto.Adapters.SQL.Sandbox.checkout/2` instead of setting a longer timeout
   globally in your config.
 
-  ### Deferred triggers
+  ### Deferred constraints
 
-  Deferred triggers are triggers that are deferred until the transaction
-  terminates. Since the SQL Sandbox runs the whole test inside a transaction
-  and emulates transaction calls with savepoints, deferred triggers do not
-  work with the SQL sandbox.
+  Some databases allow to defer constraint validation to the transaction
+  commit time, instead of the particular statement execution time. This 
+  feature, for instance, allows for a cyclic foreign key referencing.
+  Since the SQL Sandbox mode rolls back transactions, tests might report
+  false positives because deferred constraints are never checked by the
+  database. To manually force deferred constraints validation when using
+  PostgreSQL use the following line right at the end of your test case:
+      
+      Repo.query!("SET CONSTRAINTS ALL IMMEDIATE")
 
   ### Database locks and deadlocks
 
