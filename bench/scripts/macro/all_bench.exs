@@ -40,7 +40,7 @@ file = Path.join(path, "all.json")
 
 Benchee.run(
   jobs,
-  formatters: [Benchee.Formatters.JSON],
+  formatters: [Benchee.Formatters.JSON, Benchee.Formatters.Console],
   formatter_options: [json: [file: file]],
   time: 10
 )
