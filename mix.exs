@@ -52,7 +52,7 @@ defmodule EctoSQL.MixProject do
 
       # Drivers
       {:db_connection, "~> 2.0-rc.0"},
-      {:postgrex, "~> 0.14.0-rc.0"},
+      {:postgrex, "~> 0.14.0-rc.0", optional: true},
       {:mariaex, "~> 0.9.0-dev", optional: true, github: "josevalim/mariaex", ref: "069b55c"},
 
       # Docs
