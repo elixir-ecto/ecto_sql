@@ -74,33 +74,33 @@ defmodule Ecto.Adapters.SQL do
       @conn __MODULE__.Connection
       @adapter unquote(adapter)
 
-      @doc false
+      @impl true
       defmacro __before_compile__(env) do
         Ecto.Adapters.SQL.__before_compile__(@adapter, env)
       end
 
-      @doc false
+      @impl true
       def ensure_all_started(config, type) do
         Ecto.Adapters.SQL.ensure_all_started(@adapter, config, type)
       end
 
-      @doc false
+      @impl true
       def init(config) do
         Ecto.Adapters.SQL.init(@conn, @adapter, config)
       end
 
-      @doc false
+      @impl true
       def checkout(meta, opts, fun) do
         Ecto.Adapters.SQL.checkout(meta, opts, fun)
       end
 
-      @doc false
+      @impl true
       def loaders({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
       def loaders({:map, _} = type, _),   do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
       def loaders(:binary_id, type),      do: [Ecto.UUID, type]
       def loaders(_, type),               do: [type]
 
-      @doc false
+      @impl true
       def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
       def dumpers({:map, _} = type, _),   do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
       def dumpers(:binary_id, type),      do: [type, Ecto.UUID]
@@ -108,7 +108,7 @@ defmodule Ecto.Adapters.SQL do
 
       ## Query
 
-      @doc false
+      @impl true
       def prepare(:all, query) do
         {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.all(query))}}
       end
@@ -121,29 +121,29 @@ defmodule Ecto.Adapters.SQL do
         {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.delete_all(query))}}
       end
 
-      @doc false
+      @impl true
       def execute(adapter_meta, query_meta, query, params, opts) do
         Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, opts)
       end
 
-      @doc false
+      @impl true
       def stream(adapter_meta, query_meta, query, params, opts) do
         Ecto.Adapters.SQL.stream(adapter_meta, query_meta, query, params, opts)
       end
 
       ## Schema
 
-      @doc false
+      @impl true
       def autogenerate(:id),        do: nil
       def autogenerate(:embed_id),  do: Ecto.UUID.generate()
       def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
 
-      @doc false
+      @impl true
       def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, opts) do
         Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, opts)
       end
 
-      @doc false
+      @impl true
       def insert(adapter_meta, %{source: source, prefix: prefix}, params,
                  {kind, conflict_params, _} = on_conflict, returning, opts) do
         {fields, values} = :lists.unzip(params)
@@ -159,7 +159,7 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :update, source, params, field_values ++ filter_values, :raise, returning, opts)
       end
 
-      @doc false
+      @impl true
       def delete(adapter_meta, %{source: source, prefix: prefix}, params, opts) do
         filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
         sql = @conn.delete(prefix, source, params, [])
@@ -168,29 +168,29 @@ defmodule Ecto.Adapters.SQL do
 
       ## Transaction
 
-      @doc false
+      @impl true
       def transaction(meta, opts, fun) do
         Ecto.Adapters.SQL.transaction(meta, opts, fun)
       end
 
-      @doc false
+      @impl true
       def in_transaction?(meta) do
         Ecto.Adapters.SQL.in_transaction?(meta)
       end
 
-      @doc false
+      @impl true
       def rollback(meta, value) do
         Ecto.Adapters.SQL.rollback(meta, value)
       end
 
       ## Migration
 
-      @doc false
+      @impl true
       def execute_ddl(meta, definition, opts) do
         Ecto.Adapters.SQL.execute_ddl(meta, @conn, definition, opts)
       end
 
-      @doc false
+      @impl true
       def lock_for_migrations(meta, query, opts, fun) do
         Ecto.Adapters.SQL.lock_for_migrations(meta, query, opts, fun)
       end
