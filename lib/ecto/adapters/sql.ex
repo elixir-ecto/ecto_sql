@@ -74,7 +74,7 @@ defmodule Ecto.Adapters.SQL do
       @conn __MODULE__.Connection
       @adapter unquote(adapter)
 
-      @doc false
+      @impl true
       defmacro __before_compile__(env) do
         Ecto.Adapters.SQL.__before_compile__(@adapter, env)
       end
@@ -151,7 +151,7 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :insert, source, [], values ++ conflict_params, kind, returning, opts)
       end
 
-      @doc false
+      @impl true
       def update(adapter_meta, %{source: source, prefix: prefix}, fields, params, returning, opts) do
         {fields, field_values} = :lists.unzip(fields)
         filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
