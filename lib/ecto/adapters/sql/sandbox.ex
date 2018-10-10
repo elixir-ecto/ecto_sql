@@ -488,7 +488,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       cannot configure sandbox with pool #{inspect opts[:pool]}.
       To use the SQL Sandbox, configure your repository pool as:
 
-            pool: #{inspect __MODULE__}
+          pool: #{inspect __MODULE__}
       """
     end
 

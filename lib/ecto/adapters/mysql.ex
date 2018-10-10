@@ -14,13 +14,20 @@ defmodule Ecto.Adapters.MySQL do
 
   ### Connection options
 
-    * `:pool` - The connection pool module, defaults to `DBConnection.ConnectionPool`
-    * `:pool_timeout` - The default timeout to use on pool calls, defaults to `5000`
-    * `:timeout` - The default timeout to use on queries, defaults to `15000`
     * `:hostname` - Server hostname
+    * `:socket_dir` - Connect to MySQL via UNIX sockets in the given directory
+      The socket name is derived based on the port. This is the preferred method
+      for configuring sockets and it takes precedence over the hostname. If you are
+      connecting to a socket outside of the Postgres convention, use `:socket` instead;
+    * `:socket` - Connect to MySQL via UNIX sockets in the given path.
+      This option takes precedence over the `:hostname` and `:socket_dir`
     * `:port` - Server port (default: 3306)
     * `:username` - Username
     * `:password` - User password
+    * `:database` - the database to connect to
+    * `:pool` - The connection pool module, defaults to `DBConnection.ConnectionPool`
+    * `:pool_timeout` - The default timeout to use on pool calls, defaults to `5000`
+    * `:timeout` - The default timeout to use on queries, defaults to `15000`
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
     * `:parameters` - Keyword list of connection parameters
