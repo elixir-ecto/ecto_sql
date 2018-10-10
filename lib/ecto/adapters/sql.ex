@@ -75,6 +75,7 @@ defmodule Ecto.Adapters.SQL do
       @adapter unquote(adapter)
 
       @doc false
+      @impl true
       defmacro __before_compile__(env) do
         Ecto.Adapters.SQL.__before_compile__(@adapter, env)
       end
@@ -85,11 +86,13 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @doc false
+      @impl true
       def init(config) do
         Ecto.Adapters.SQL.init(@conn, @adapter, config)
       end
 
       @doc false
+      @impl true
       def checkout(meta, opts, fun) do
         Ecto.Adapters.SQL.checkout(meta, opts, fun)
       end
@@ -127,6 +130,7 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @doc false
+      @impl true
       def stream(adapter_meta, query_meta, query, params, opts) do
         Ecto.Adapters.SQL.stream(adapter_meta, query_meta, query, params, opts)
       end
@@ -169,16 +173,19 @@ defmodule Ecto.Adapters.SQL do
       ## Transaction
 
       @doc false
+      @impl true
       def transaction(meta, opts, fun) do
         Ecto.Adapters.SQL.transaction(meta, opts, fun)
       end
 
       @doc false
+      @impl true
       def in_transaction?(meta) do
         Ecto.Adapters.SQL.in_transaction?(meta)
       end
 
       @doc false
+      @impl true
       def rollback(meta, value) do
         Ecto.Adapters.SQL.rollback(meta, value)
       end
