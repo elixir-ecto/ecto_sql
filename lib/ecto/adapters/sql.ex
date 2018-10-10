@@ -74,7 +74,6 @@ defmodule Ecto.Adapters.SQL do
       @conn __MODULE__.Connection
       @adapter unquote(adapter)
 
-      @impl true
       defmacro __before_compile__(env) do
         Ecto.Adapters.SQL.__before_compile__(@adapter, env)
       end
