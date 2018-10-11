@@ -44,8 +44,6 @@ defmodule Ecto.Migrator do
 
   ## Options
 
-    * `:log` - the level to use for logging. Defaults to `:info`.
-      Can be any of `Logger.level/0` values or `false`.
     * `:prefix` - the prefix to run the migrations on
 
   """
@@ -63,8 +61,10 @@ defmodule Ecto.Migrator do
 
   ## Options
 
-    * `:log` - the level to use for logging. Defaults to `:info`.
-      Can be any of `Logger.level/0` values or `false`.
+    * `:log` - the level to use for logging of migration instructions.
+      Defaults to `:info`. Can be any of `Logger.level/0` values or a boolean.
+    * `:log_sql` - the level to use for logging of SQL instructions.
+      Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
     * `:strict_version_order` - abort when applying a migration with old timestamp
   """
@@ -131,7 +131,9 @@ defmodule Ecto.Migrator do
   ## Options
 
     * `:log` - the level to use for logging. Defaults to `:info`.
-      Can be any of `Logger.level/0` values or `false`.
+      Can be any of `Logger.level/0` values or a boolean.
+    * `:log_sql` - the level to use for logging of SQL instructions.
+      Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
 
   """
@@ -228,7 +230,7 @@ defmodule Ecto.Migrator do
     * `:step` - runs the specific number of migrations
     * `:to` - runs all until the supplied version is reached
     * `:log` - the level to use for logging. Defaults to `:info`.
-      Can be any of `Logger.level/0` values or `false`.
+      Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
 
   """

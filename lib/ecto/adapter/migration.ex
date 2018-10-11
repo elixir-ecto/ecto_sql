@@ -52,7 +52,7 @@ defmodule Ecto.Adapter.Migration do
       finish, `:infinity` will wait indefinitely (default: 15000);
     * `:pool_timeout` - The time in milliseconds to wait for calls to the pool
       to finish, `:infinity` will wait indefinitely (default: 5000);
-    * `:log` - When false, does not log begin/commit/rollback queries
+
   """
   @callback execute_ddl(adapter_meta, command, options :: Keyword.t()) ::
               {:ok, [{Logger.level, Logger.message, Logger.metadata}]}

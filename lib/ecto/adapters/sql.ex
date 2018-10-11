@@ -748,8 +748,10 @@ defmodule Ecto.Adapters.SQL do
     total = (query_time || 0) + (decode_time || 0) + (queue_time || 0)
     Telemetry.execute(event_name, total, entry)
 
-    if level = Keyword.get(opts, :log, log) do
-      Ecto.LogEntry.log(entry, level)
+    case Keyword.get(opts, :log, log) do
+      true -> Ecto.LogEntry.log(entry, log)
+      false -> :ok
+      level -> Ecto.LogEntry.log(entry, level)
     end
 
     Enum.reduce(loggers, entry, fn

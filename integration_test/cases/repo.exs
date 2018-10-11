@@ -1294,7 +1294,17 @@ defmodule Ecto.Integration.RepoTest do
   test "log entry with custom log level" do
     assert ExUnit.CaptureLog.capture_log(fn ->
              TestRepo.insert!(%Post{title: "1"}, [log: :error])
-           end) != ""
+           end) =~ "[error]"
+
+    # We cannot assert on the result because it depends on the suite log level
+    ExUnit.CaptureLog.capture_log(fn ->
+      TestRepo.insert!(%Post{title: "1"}, [log: true])
+    end)
+
+    # But this assertion is always true
+    assert ExUnit.CaptureLog.capture_log(fn ->
+      TestRepo.insert!(%Post{title: "1"}, [log: false])
+    end) == ""
   end
 
   describe "upsert via insert" do
