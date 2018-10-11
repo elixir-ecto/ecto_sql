@@ -90,7 +90,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
           migrator.(repo, :down, opts)
         end
 
-      pid && repo.stop(pid)
+      pid && repo.stop()
       restart_apps_if_migrated(apps, migrated)
     end
   end
