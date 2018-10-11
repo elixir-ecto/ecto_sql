@@ -5,7 +5,8 @@ Logger.configure(level: :info)
 # but that is not yet supported in travis.
 ExUnit.start exclude: [:array_type, :read_after_writes, :returning, :modify_column,
                        :strict_savepoint, :create_index_if_not_exists, :aggregate_filters,
-                       :transaction_isolation, :rename_column, :with_conflict_target]
+                       :transaction_isolation, :rename_column, :with_conflict_target,
+                       :map_boolean_in_expression]
 
 # Configure Ecto for support and tests
 Application.put_env(:ecto, :primary_key_type, :id)
