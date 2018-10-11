@@ -1,5 +1,3 @@
-Code.require_file "../../../integration_test/support/types.exs", __DIR__
-
 defmodule Ecto.Adapters.PostgresTest do
   use ExUnit.Case, async: true
 
@@ -378,11 +376,8 @@ defmodule Ecto.Adapters.PostgresTest do
     query = Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
     assert all(query) == ~s{SELECT $1::uuid FROM "schema" AS s0}
 
-    query = Schema |> select([], type(^1, Custom.Permalink)) |> plan()
-    assert all(query) == ~s{SELECT $1::bigint FROM "schema" AS s0}
-
-    query = Schema |> select([], type(^[1,2,3], {:array, Custom.Permalink})) |> plan()
-    assert all(query) == ~s{SELECT $1::bigint[] FROM "schema" AS s0}
+    query = Schema |> select([], type(^["601d74e4-a8d3-4b6e-8365-eddb4c893327"], {:array, Ecto.UUID})) |> plan()
+    assert all(query) == ~s{SELECT $1::uuid[] FROM "schema" AS s0}
   end
 
   test "nested expressions" do

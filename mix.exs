@@ -82,7 +82,7 @@ defmodule EctoSQL.MixProject do
       links: %{"GitHub" => "https://github.com/elixir-ecto/ecto_sql"},
       files:
         ~w(.formatter.exs mix.exs README.md CHANGELOG.md lib) ++
-          ~w(integration_test/cases integration_test/sql integration_test/support)
+          ~w(integration_test/sql integration_test/support)
     ]
   end
 

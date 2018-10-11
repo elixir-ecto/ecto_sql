@@ -1,12 +1,9 @@
-Code.require_file "../support/types.exs", __DIR__
-
 defmodule Ecto.Integration.UpsertAllTest do
   use Ecto.Integration.Case
 
   alias Ecto.Integration.TestRepo
   import Ecto.Query
   alias Ecto.Integration.Post
-
 
   test "on conflict raise" do
     post = [title: "first", uuid: "6fa459ea-ee8a-3ca4-894e-db77e160355e"]

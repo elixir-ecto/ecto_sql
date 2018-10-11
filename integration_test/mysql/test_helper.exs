@@ -8,9 +8,9 @@ ExUnit.start exclude: [:array_type, :read_after_writes, :returning, :modify_colu
                        :transaction_isolation, :rename_column, :with_conflict_target]
 
 # Configure Ecto for support and tests
+Application.put_env(:ecto, :primary_key_type, :id)
+Application.put_env(:ecto, :async_integration_tests, false)
 Application.put_env(:ecto_sql, :lock_for_update, "FOR UPDATE")
-Application.put_env(:ecto_sql, :primary_key_type, :id)
-Application.put_env(:ecto_sql, :async_integration_tests, false)
 
 # Configure MySQL connection
 Application.put_env(:ecto_sql, :mysql_test_url,
@@ -18,8 +18,9 @@ Application.put_env(:ecto_sql, :mysql_test_url,
 )
 
 # Load support files
-Code.require_file "../support/repo.exs", __DIR__
-Code.require_file "../support/schemas.exs", __DIR__
+ecto = Mix.Project.deps_paths[:ecto]
+Code.require_file "#{ecto}/integration_test/support/repo.exs", __DIR__
+Code.require_file "#{ecto}/integration_test/support/schemas.exs", __DIR__
 Code.require_file "../support/migration.exs", __DIR__
 
 # Pool repo for async, safe tests
@@ -43,6 +44,10 @@ Application.put_env(:ecto_sql, PoolRepo,
 
 defmodule Ecto.Integration.PoolRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MySQL
+
+  def tmp_path do
+    Path.expand("../../tmp", __DIR__)
+  end
 
   def create_prefix(prefix) do
     "create database #{prefix}"

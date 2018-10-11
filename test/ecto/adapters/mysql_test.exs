@@ -1,5 +1,3 @@
-Code.require_file "../../../integration_test/support/types.exs", __DIR__
-
 defmodule Ecto.Adapters.MySQLTest do
   use ExUnit.Case, async: true
 
