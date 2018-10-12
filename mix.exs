@@ -45,7 +45,7 @@ defmodule EctoSQL.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.0.0-dev", ecto_opts()},
-      {:telemetry, "~> 0.1.0"},
+      {:telemetry, "~> 0.2.0"},
 
       # Bring something in for JSON
       {:jason, ">= 0.0.0", only: :test},

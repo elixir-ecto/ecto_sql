@@ -13,8 +13,8 @@ Application.put_env(:ecto_sql, :pg_test_url,
 
 # Load support files
 ecto = Mix.Project.deps_paths[:ecto]
-Code.require_file "#{ecto}/integration_test/support/repo.exs", __DIR__
 Code.require_file "#{ecto}/integration_test/support/schemas.exs", __DIR__
+Code.require_file "../support/repo.exs", __DIR__
 Code.require_file "../support/migration.exs", __DIR__
 
 # Pool repo for async, safe tests
