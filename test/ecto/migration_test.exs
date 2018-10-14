@@ -65,9 +65,9 @@ defmodule Ecto.MigrationTest do
   end
 
   test "raises if given multiple 'where' clauses for an index" do
-    assert_raise(ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       index(:posts, [:title], where: "status = 'published'", where: "deleted = 'false'")
-    end)
+    end
   end
 
   test "creates a reference" do
@@ -269,14 +269,13 @@ defmodule Ecto.MigrationTest do
   end
 
   test "forward: alter datetime column invoke argument error" do
-    assert_raise ArgumentError,
-                 "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead",
-                 fn ->
-                   alter table(:posts) do
-                     modify :created_at, :datetime
-                   end
-                   flush()
-                 end
+    msg = "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead"
+
+    assert_raise ArgumentError, msg, fn ->
+      alter table(:posts) do
+        modify :created_at, :datetime
+      end
+    end
   end
 
   test "forward: column modifications invoke type validations" do
