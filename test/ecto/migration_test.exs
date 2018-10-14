@@ -309,13 +309,6 @@ defmodule Ecto.MigrationTest do
     assert result == table(:posts)
   end
 
-  test "forward: drops if exists returns parameter if parameter does not exist" do
-    result = drop_if_exists table(:posts)
-    flush()
-    assert {:drop_if_exists, %Table{}} = last_command()
-    assert result == table(:posts)
-  end
-
   test "forward: creates an index" do
     create index(:posts, [:title])
     flush()
