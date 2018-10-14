@@ -268,6 +268,17 @@ defmodule Ecto.MigrationTest do
     end
   end
 
+  test "forward: alter datetime column invoke argument error" do
+    assert_raise ArgumentError,
+                 "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead",
+                 fn ->
+                   alter table(:posts) do
+                     modify :created_at, :datetime
+                   end
+                   flush()
+                 end
+  end
+
   test "forward: column modifications invoke type validations" do
     assert_raise ArgumentError, ~r"Ecto.DateTime is not a valid database type", fn ->
       alter table(:posts) do
