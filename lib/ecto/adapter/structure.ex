@@ -1,4 +1,4 @@
-defmodule Ecto.Adapter.Structure  do
+defmodule Ecto.Adapter.Structure do
   @moduledoc """
   Specifies the adapter structure (dump/load) API.
   """
