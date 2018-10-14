@@ -200,7 +200,7 @@ defmodule Ecto.Migration.Runner do
     else
       raise Ecto.MigrationError, message:
         "cannot reverse migration command: #{command command}. " <>
-        "You will need to explicitly define up/1 and down/1 in your migration"
+        "You will need to explicitly define up/0 and down/0 in your migration"
     end
   end
 
