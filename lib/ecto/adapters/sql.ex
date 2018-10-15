@@ -478,7 +478,7 @@ defmodule Ecto.Adapters.SQL do
       type, value ->
         case Ecto.Type.cast(type, value) do
           {:ok, _} = ok -> ok
-          _ -> error
+          _ -> :error
         end
     end)
   end
