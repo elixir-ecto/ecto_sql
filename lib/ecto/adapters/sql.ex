@@ -472,8 +472,14 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def load_embed(type, value) do
     Ecto.Type.load(type, value, fn
-      {:embed, _} = type, value -> load_embed(type, value)
-      type, value -> Ecto.Type.cast(type, value)
+      {:embed, _} = type, value ->
+        load_embed(type, value)
+
+      type, value ->
+        case Ecto.Type.cast(type, value) do
+          {:ok, _} = ok -> ok
+          _ -> error
+        end
     end)
   end
 
