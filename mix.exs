@@ -1,7 +1,7 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.0.0-dev"
+  @version "3.0.0-rc.0"
   @adapters ~w(pg mysql)
 
   def project do
@@ -44,16 +44,16 @@ defmodule EctoSQL.MixProject do
 
   defp deps do
     [
-      {:ecto, "~> 3.0.0-dev", ecto_opts()},
+      {:ecto, "~> 3.0.0-rc.0", ecto_opts()},
       {:telemetry, "~> 0.2.0"},
-
-      # Bring something in for JSON
-      {:jason, ">= 0.0.0", only: :test},
 
       # Drivers
       {:db_connection, "~> 2.0-rc.0"},
       {:postgrex, "~> 0.14.0-rc.0", optional: true},
       {:mariaex, "~> 0.9.0-rc.0", optional: true},
+
+      # Bring something in for JSON during tests
+      {:jason, ">= 0.0.0", only: :test},
 
       # Docs
       {:ex_doc, "~> 0.19", only: :docs},
@@ -68,7 +68,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       [path: path]
     else
-      [github: "elixir-lang/ecto"]
+      []
     end
   end
 
