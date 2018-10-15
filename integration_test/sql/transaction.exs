@@ -211,24 +211,24 @@ defmodule Ecto.Integration.TransactionTest do
   test "log begin, commit and rollback" do
     register_telemetry()
     PoolRepo.transaction(fn ->
-      assert_received %Ecto.LogEntry{params: [], result: {:ok, _}} = entry
+      assert_received %{params: [], result: {:ok, _}} = entry
       assert is_integer(entry.query_time) and entry.query_time >= 0
       assert is_integer(entry.queue_time) and entry.queue_time >= 0
 
-      refute_received %Ecto.LogEntry{}
+      refute_received %{}
       register_telemetry()
     end)
 
-    assert_received %Ecto.LogEntry{params: [], result: {:ok, _}} = entry
+    assert_received %{params: [], result: {:ok, _}} = entry
     assert is_integer(entry.query_time) and entry.query_time >= 0
     assert is_nil(entry.queue_time)
 
     assert PoolRepo.transaction(fn ->
-      refute_received %Ecto.LogEntry{}
+      refute_received %{}
       register_telemetry()
       PoolRepo.rollback(:log_rollback)
     end) == {:error, :log_rollback}
-    assert_received %Ecto.LogEntry{params: [], result: {:ok, _}} = entry
+    assert_received %{params: [], result: {:ok, _}} = entry
     assert is_integer(entry.query_time) and entry.query_time >= 0
     assert is_nil(entry.queue_time)
   end
@@ -238,7 +238,7 @@ defmodule Ecto.Integration.TransactionTest do
       register_telemetry()
       assert [] = PoolRepo.all(Trans)
 
-      assert_received %Ecto.LogEntry{params: [], result: {:ok, _}} = entry
+      assert_received %{params: [], result: {:ok, _}} = entry
       assert is_integer(entry.query_time) and entry.query_time >= 0
       assert is_integer(entry.decode_time) and entry.query_time >= 0
       assert is_nil(entry.queue_time)

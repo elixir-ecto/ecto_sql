@@ -739,14 +739,13 @@ defmodule Ecto.Adapters.SQL do
     caller_pid = Keyword.get(opts, :caller, self())
     query_string = String.Chars.to_string(query)
 
-    entry = %Ecto.LogEntry{
+    entry = %{
       query_time: query_time,
       decode_time: decode_time,
       queue_time: queue_time,
       result: log_result(result),
       params: params,
       query: query_string,
-      ansi_color: sql_color(query_string),
       source: source,
       caller_pid: caller_pid
     }
@@ -755,9 +754,9 @@ defmodule Ecto.Adapters.SQL do
     Telemetry.execute(event_name, total, entry)
 
     case Keyword.get(opts, :log, log) do
-      true -> Ecto.LogEntry.log(entry, log)
+      true -> Ecto.LogEntry.log(entry, log, ansi_color: sql_color(query_string))
       false -> :ok
-      level -> Ecto.LogEntry.log(entry, level)
+      level -> Ecto.LogEntry.log(entry, level, ansi_color: sql_color(query_string))
     end
 
     Enum.reduce(loggers, entry, fn

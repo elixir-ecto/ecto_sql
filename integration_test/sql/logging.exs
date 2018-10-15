@@ -6,7 +6,7 @@ defmodule Ecto.Integration.LoggingTest do
 
   test "log entry logged on query" do
     log = fn latency, entry ->
-      assert %Ecto.LogEntry{result: {:ok, _}} = entry
+      assert %{result: {:ok, _}} = entry
       assert latency == entry.query_time + entry.decode_time + entry.queue_time
       send(self(), :logged)
     end
