@@ -103,53 +103,53 @@ defmodule Ecto.MigratorTest do
       :ok = up(TestRepo, 10, ChangeMigration)
     end
 
-    assert output =~ "== Running Ecto.MigratorTest.ChangeMigration.change/0 forward"
+    assert output =~ "== Running 10 Ecto.MigratorTest.ChangeMigration.change/0 forward"
     assert output =~ "create table posts"
     assert output =~ "create index posts_title_index"
-    assert output =~ ~r"== Migrated in \d.\ds"
+    assert output =~ ~r"== Migrated 10 in \d.\ds"
 
     output = capture_log fn ->
       :ok = down(TestRepo, 10, ChangeMigration)
     end
 
-    assert output =~ "== Running Ecto.MigratorTest.ChangeMigration.change/0 backward"
+    assert output =~ "== Running 10 Ecto.MigratorTest.ChangeMigration.change/0 backward"
     assert output =~ "drop table posts"
     assert output =~ "drop index posts_title_index"
-    assert output =~ ~r"== Migrated in \d.\ds"
+    assert output =~ ~r"== Migrated 10 in \d.\ds"
 
     output = capture_log fn ->
       :ok = up(TestRepo, 11, ChangeMigrationPrefix)
     end
 
-    assert output =~ "== Running Ecto.MigratorTest.ChangeMigrationPrefix.change/0 forward"
+    assert output =~ "== Running 11 Ecto.MigratorTest.ChangeMigrationPrefix.change/0 forward"
     assert output =~ "create table foo.comments"
     assert output =~ "create index foo.posts_title_index"
-    assert output =~ ~r"== Migrated in \d.\ds"
+    assert output =~ ~r"== Migrated 11 in \d.\ds"
 
     output = capture_log fn ->
       :ok = down(TestRepo, 11, ChangeMigrationPrefix)
     end
 
-    assert output =~ "== Running Ecto.MigratorTest.ChangeMigrationPrefix.change/0 backward"
+    assert output =~ "== Running 11 Ecto.MigratorTest.ChangeMigrationPrefix.change/0 backward"
     assert output =~ "drop table foo.comments"
     assert output =~ "drop index foo.posts_title_index"
-    assert output =~ ~r"== Migrated in \d.\ds"
+    assert output =~ ~r"== Migrated 11 in \d.\ds"
 
     output = capture_log fn ->
       :ok = up(TestRepo, 12, UpDownMigration)
     end
 
-    assert output =~ "== Running Ecto.MigratorTest.UpDownMigration.up/0 forward"
+    assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.up/0 forward"
     assert output =~ "alter table posts"
-    assert output =~ ~r"== Migrated in \d.\ds"
+    assert output =~ ~r"== Migrated 12 in \d.\ds"
 
     output = capture_log fn ->
       :ok = down(TestRepo, 12, UpDownMigration)
     end
 
-    assert output =~ "== Running Ecto.MigratorTest.UpDownMigration.down/0 forward"
+    assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.down/0 forward"
     assert output =~ "execute \"foo\""
-    assert output =~ ~r"== Migrated in \d.\ds"
+    assert output =~ ~r"== Migrated 12 in \d.\ds"
   end
 
   test "up raises error in strict mode" do

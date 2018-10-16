@@ -13,7 +13,7 @@ defmodule Ecto.Migration.Runner do
   @doc """
   Runs the given migration.
   """
-  def run(repo, module, direction, operation, migrator_direction, opts) do
+  def run(repo, version, module, direction, operation, migrator_direction, opts) do
     level = Keyword.get(opts, :log, :info)
     sql = Keyword.get(opts, :log_sql, false)
     log = %{level: level, sql: sql}
@@ -22,11 +22,11 @@ defmodule Ecto.Migration.Runner do
     {:ok, runner} = Supervisor.start_child(Ecto.Migration.Supervisor, args)
     metadata(runner, opts)
 
-    log(level, "== Running #{inspect module}.#{operation}/0 #{direction}")
+    log(level, "== Running #{version} #{inspect module}.#{operation}/0 #{direction}")
     {time1, _} = :timer.tc(module, operation, [])
     {time2, _} = :timer.tc(&flush/0, [])
     time = time1 + time2
-    log(level, "== Migrated in #{inspect(div(time, 100_000) / 10)}s")
+    log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
 
     stop()
   end

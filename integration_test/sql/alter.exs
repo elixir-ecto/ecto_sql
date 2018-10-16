@@ -38,7 +38,7 @@ defmodule Ecto.Integration.AlterTest do
   import Ecto.Query, only: [from: 1, from: 2]
 
   defp run(direction, repo, module) do
-    Ecto.Migration.Runner.run(repo, module, :forward, direction, direction, log: false)
+    Ecto.Migration.Runner.run(repo, 1, module, :forward, direction, direction, log: false)
   end
 
   test "reset cache on returning query after alter column type" do
