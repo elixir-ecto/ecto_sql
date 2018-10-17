@@ -356,6 +356,10 @@ if Code.ensure_loaded?(Mariaex) do
       ["ORDER BY " | intersperse_map(fields, ", ", &order_by_expr(&1, sources, query))]
     end
 
+    defp window_expr({:frame, {:fragment, _, _} = fragment}, sources, query) do
+      expr(fragment, sources, query)
+    end
+
     defp order_by(%{order_bys: []}, _sources), do: []
     defp order_by(%{order_bys: order_bys} = query, sources) do
       [" ORDER BY " |
