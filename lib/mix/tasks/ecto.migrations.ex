@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
         repo_status = migrations.(repo)
 
-        pid && repo.stop(pid)
+        pid && repo.stop()
 
         """
 
