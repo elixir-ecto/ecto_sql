@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
       end
     end
 
-    def stop(_pid) do
+    def stop() do
       :ok
     end
 
