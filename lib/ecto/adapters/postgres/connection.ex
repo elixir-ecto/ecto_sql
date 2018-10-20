@@ -100,13 +100,14 @@ if Code.ensure_loaded?(Postgrex) do
       Postgrex.stream(conn, sql, params, opts)
     end
 
-    alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr}
+    alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr, WithQueryExpr}
 
     @impl true
     def all(query) do
       sources = create_names(query)
       {select_distinct, order_by_distinct} = distinct(query.distinct, sources, query)
 
+      cte = cte(query)
       from = from(query, sources)
       select = select(query, select_distinct, sources)
       join = join(query, sources)
@@ -120,7 +121,7 @@ if Code.ensure_loaded?(Postgrex) do
       offset = offset(query, sources)
       lock = lock(query.lock)
 
-      [select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
+      [cte, select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
     end
 
     @impl true
@@ -289,6 +290,16 @@ if Code.ensure_loaded?(Postgrex) do
     defp from(%{from: %{source: source}} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
       [" FROM ", from, " AS " | name]
+    end
+
+    defp cte(%{with: nil}), do: []
+
+    defp cte(%{with: %WithExpr{recursive: recursive, queries: [_ | _] = queries}}) do
+      ["WITH ", recursive && "RECURSIVE " || "", intersperse_map(queries, ", ", &cte_expr/1), " "]
+    end
+
+    defp cte_expr(%WithQueryExpr{query: query, as: as}) do
+      [quote_name(as), " AS (", all(query), ")"]
     end
 
     defp update_fields(%{updates: updates} = query, sources) do

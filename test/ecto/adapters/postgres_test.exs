@@ -96,6 +96,37 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT s0."x", s0."z" FROM (SELECT p0."x" AS "x", p0."y" AS "z" FROM "posts" AS p0) AS s0}
   end
 
+  test "CTE" do
+    initial_query =
+      "categories"
+      |> where([c], is_nil(c.parent_id))
+      |> select([c], %{id: c.id, depth: fragment("1")})
+
+    iteration_query =
+      "categories"
+      |> join(:inner, [c], t in "tree", on: t.id == c.parent_id)
+      |> select([c, t], %{id: c.id, depth: fragment("? + 1", t.depth)})
+
+    cte_query = initial_query |> union_all(iteration_query)
+
+    query =
+      Schema
+      |> cte(cte_query, as: "tree", recursive: true)
+      |> join(:inner, [r], t in "tree", on: t.id == r.category_id)
+      |> select([r, t], %{x: r.x, category_id: t.id, depth: type(t.depth, :integer)})
+      |> plan()
+
+    assert all(query) ==
+      ~s{WITH RECURSIVE "tree" AS } <>
+      ~s{(SELECT c0."id" AS "id", 1 AS "depth" FROM "categories" AS c0 WHERE (c0."parent_id" IS NULL) } <>
+      ~s{UNION ALL } <>
+      ~s{(SELECT c0."id", t1."depth" + 1 FROM "categories" AS c0 } <>
+      ~s{INNER JOIN "tree" AS t1 ON t1."id" = c0."parent_id")) } <>
+      ~s{SELECT s0."x", t1."id", t1."depth"::bigint } <>
+      ~s{FROM "schema" AS s0 } <>
+      ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
+  end
+
   test "select" do
     query = Schema |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT s0."x", s0."y" FROM "schema" AS s0}
