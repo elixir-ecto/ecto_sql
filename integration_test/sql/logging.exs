@@ -4,8 +4,9 @@ defmodule Ecto.Integration.LoggingTest do
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Post
 
-  test "log entry logged on query" do
-    log = fn latency, entry ->
+  test "log entry is sent to telemetry" do
+    log = fn event_name, latency, entry ->
+      assert Enum.at(event_name, -1) == :query
       assert %{result: {:ok, _}} = entry
       assert latency == entry.query_time + entry.decode_time + entry.queue_time
       send(self(), :logged)
@@ -14,6 +15,24 @@ defmodule Ecto.Integration.LoggingTest do
     Process.put(:telemetry, log)
     _ = TestRepo.all(Post)
     assert_received :logged
+  end
+
+  test "log entry sent under another event name" do
+    log = fn [:custom], latency, entry ->
+      assert %{result: {:ok, _}} = entry
+      assert latency == entry.query_time + entry.decode_time + entry.queue_time
+      send(self(), :logged)
+    end
+
+    Process.put(:telemetry, log)
+    _ = TestRepo.all(Post, telemetry_event: [:custom])
+    assert_received :logged
+  end
+
+  test "log entry is not sent to telemetry under nil event name" do
+    Process.put(:telemetry, fn _, _ -> raise "never called" end)
+    _ = TestRepo.all(Post, telemetry_event: nil)
+    refute_received :logged
   end
 
   test "log entry with custom log level" do

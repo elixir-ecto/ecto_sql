@@ -1,7 +1,7 @@
 defmodule Ecto.Adapters.SQL do
   @moduledoc """
   This application provides functionality for working with
-  SQL databases.
+  SQL databases in `Ecto`.
 
   ## Built-in adapters
 
@@ -751,7 +751,10 @@ defmodule Ecto.Adapters.SQL do
     }
 
     total = (query_time || 0) + (decode_time || 0) + (queue_time || 0)
-    Telemetry.execute(event_name, total, entry)
+
+    if event_name = Keyword.get(opts, :telemetry_event, event_name) do
+      Telemetry.execute(event_name, total, entry)
+    end
 
     case Keyword.get(opts, :log, log) do
       true -> Ecto.LogEntry.log(entry, log, ansi_color: sql_color(query_string))

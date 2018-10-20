@@ -205,7 +205,7 @@ defmodule Ecto.Integration.TransactionTest do
   ## Logging
 
   defp register_telemetry() do
-    Process.put(:telemetry, fn _, event -> send(self(), event) end)
+    Process.put(:telemetry, fn _, _, event -> send(self(), event) end)
   end
 
   test "log begin, commit and rollback" do
