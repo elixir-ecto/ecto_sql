@@ -585,6 +585,14 @@ defmodule Ecto.Adapters.MySQLTest do
       query = query |> plan()
       assert all(query) == ~s{SELECT count(s0.`x`) OVER (PARTITION BY s0.`x`, s0.`z` ORDER BY s0.`x`) FROM `schema` AS s0}
     end
+
+    test "frame clause" do
+      query = Schema
+              |> select([r], count(r.x) |> over(partition_by: [r.x, r.z], order_by: r.x, frame: fragment("ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING")))
+
+      query = query |> plan()
+      assert all(query) == ~s{SELECT count(s0.`x`) OVER (PARTITION BY s0.`x`, s0.`z` ORDER BY s0.`x` ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING) FROM `schema` AS s0}
+    end
   end
 
   ## Joins

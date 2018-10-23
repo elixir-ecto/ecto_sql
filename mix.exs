@@ -68,7 +68,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       [path: path]
     else
-      []
+      [github: "elixir-lang/ecto"]
     end
   end
 

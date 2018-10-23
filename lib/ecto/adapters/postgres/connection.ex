@@ -401,6 +401,10 @@ if Code.ensure_loaded?(Postgrex) do
       ["ORDER BY " | intersperse_map(fields, ", ", &order_by_expr(&1, sources, query))]
     end
 
+    defp window_expr({:frame, {:fragment, _, _} = fragment}, sources, query) do
+      expr(fragment, sources, query)
+    end
+
     defp order_by(%{order_bys: []}, _distinct, _sources), do: []
     defp order_by(%{order_bys: order_bys} = query, distinct, sources) do
       order_bys = Enum.flat_map(order_bys, & &1.expr)
