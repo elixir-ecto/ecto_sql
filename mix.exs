@@ -44,7 +44,7 @@ defmodule EctoSQL.MixProject do
 
   defp deps do
     [
-      {:ecto, github: "elixir-lang/ecto"},
+      {:ecto, "~> 3.0.0-rc.1", ecto_opts()},
       {:telemetry, "~> 0.2.0"},
 
       # Drivers
@@ -68,7 +68,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       [path: path]
     else
-      []
+      [github: "elixir-lang/ecto"]
     end
   end
 
