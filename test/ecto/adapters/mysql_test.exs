@@ -164,7 +164,7 @@ defmodule Ecto.Adapters.MySQLTest do
     union_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     union_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
-    query = base_query |> union(union_query1) |> union(union_query2) |> plan()
+    query = base_query |> union(^union_query1) |> union(^union_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
@@ -172,7 +172,7 @@ defmodule Ecto.Adapters.MySQLTest do
                ~s{UNION (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
                ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
 
-    query = base_query |> union_all(union_query1) |> union_all(union_query2) |> plan()
+    query = base_query |> union_all(^union_query1) |> union_all(^union_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
@@ -186,7 +186,7 @@ defmodule Ecto.Adapters.MySQLTest do
     except_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     except_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
-    query = base_query |> except(except_query1) |> except(except_query2) |> plan()
+    query = base_query |> except(^except_query1) |> except(^except_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
@@ -194,7 +194,7 @@ defmodule Ecto.Adapters.MySQLTest do
                ~s{EXCEPT (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
                ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
 
-    query = base_query |> except_all(except_query1) |> except_all(except_query2) |> plan()
+    query = base_query |> except_all(^except_query1) |> except_all(^except_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
@@ -208,7 +208,7 @@ defmodule Ecto.Adapters.MySQLTest do
     intersect_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     intersect_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
-    query = base_query |> intersect(intersect_query1) |> intersect(intersect_query2) |> plan()
+    query = base_query |> intersect(^intersect_query1) |> intersect(^intersect_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
@@ -217,7 +217,7 @@ defmodule Ecto.Adapters.MySQLTest do
                ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
 
     query =
-      base_query |> intersect_all(intersect_query1) |> intersect_all(intersect_query2) |> plan()
+      base_query |> intersect_all(^intersect_query1) |> intersect_all(^intersect_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
@@ -413,6 +413,9 @@ defmodule Ecto.Adapters.MySQLTest do
   end
 
   test "interpolated values" do
+    union = "schema1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^3))
+    union_all = "schema2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^4))
+
     query = Schema
             |> select([m], {m.id, ^0})
             |> join(:inner, [], Schema2, on: fragment("?", ^true))
@@ -423,8 +426,8 @@ defmodule Ecto.Adapters.MySQLTest do
             |> having([], fragment("?", ^false))
             |> group_by([], fragment("?", ^1))
             |> group_by([], fragment("?", ^2))
-            |> union("schema1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^3)))
-            |> union_all("schema2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^4)))
+            |> union(^union)
+            |> union_all(^union_all)
             |> order_by([], fragment("?", ^5))
             |> order_by([], ^:x)
             |> limit([], ^6)
