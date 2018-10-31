@@ -171,9 +171,8 @@ defmodule Ecto.Migrator do
   end
 
   defp run_maybe_in_transaction(repo, module, fun) do
-    Task.async(fn ->
-      do_run_maybe_in_transaction(repo, module, fun)
-    end)
+    fn -> do_run_maybe_in_transaction(repo, module, fun) end
+    |> Task.async()
     |> Task.await(:infinity)
   end
 
@@ -182,7 +181,7 @@ defmodule Ecto.Migrator do
       module.__migration__[:disable_ddl_transaction] ->
         fun.()
       repo.__adapter__.supports_ddl_transaction? ->
-        {:ok, result} = repo.transaction(fun, [log: false, timeout: :infinity])
+        {:ok, result} = repo.transaction(fun, log: false, timeout: :infinity)
         result
       true ->
         fun.()
@@ -206,23 +205,39 @@ defmodule Ecto.Migrator do
 
       Ecto.Migrator.run(repo, Ecto.Migrator.migrations_path(repo), direction, opts)
 
+  See `run/4` for more information.
   """
   @spec run(Ecto.Repo.t, atom, Keyword.t) :: [integer]
   def run(repo, direction, opts) do
     run(repo, migrations_path(repo), direction, opts)
   end
 
-  @doc """
+  @doc ~S"""
   Apply migrations to a repository with a given strategy.
 
-  The second argument identifies where the migrations are sourced from. A file
-  path may be passed, in which case the migrations will be loaded from this
-  during the migration process. The other option is to pass a list of tuples
-  that identify the version number and migration modules to be run, for example:
+  The second argument identifies where the migrations are sourced from.
+  A binary representing a directory may be passed, in which case we will
+  load all files following the "#{VERSION}_#{NAME}.exs" schema. The
+  `migration_source` may also be a list of a list of tuples that identify
+  the version number and migration modules to be run, for example:
 
       Ecto.Migrator.run(Repo, [{0, MyApp.Migration1}, {1, MyApp.Migration2}, ...], :up, opts)
 
-  A strategy must be given as an option.
+  A strategy (which is one of `:all`, `:step` or `:to`) must be given as
+  an option.
+
+  ## Execution model
+
+  In order to run migrations, at least two database connections are
+  necessary. One is used to lock the "schema_migrations" table and
+  the other one to effectively run the migrations. This allows multiple
+  nodes to run migrations at the same time, but guarantee that only one
+  of them will effectively migrate the database.
+
+  A downside of this approach is that migrations cannot run dynamically
+  during test under the `Ecto.Adapters.SQL.Sandbox`, as the sandbox has
+  to share a single connection across processes to guarantee the changes
+  can be reverted.
 
   ## Options
 
