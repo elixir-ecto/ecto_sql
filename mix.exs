@@ -1,7 +1,7 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.0.0-rc.1"
+  @version "3.0.0"
   @adapters ~w(pg mysql)
 
   def project do
@@ -50,7 +50,7 @@ defmodule EctoSQL.MixProject do
       # Drivers
       {:db_connection, "~> 2.0"},
       {:postgrex, "~> 0.14.0", optional: true},
-      {:mariaex, "~> 0.9.0-rc", optional: true},
+      {:mariaex, "~> 0.9.0", optional: true},
 
       # Bring something in for JSON during tests
       {:jason, ">= 0.0.0", only: :test},
