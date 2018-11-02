@@ -761,8 +761,12 @@ if Code.ensure_loaded?(Mariaex) do
     defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
       null    = Keyword.get(opts, :null)
-      [default_expr(default), null_expr(null)]
+      auto_increment = Keyword.get(opts, :auto_increment)
+      [default_expr(default), null_expr(null), auto_increment_expr(auto_increment)]
     end
+
+    defp auto_increment_expr(true), do: " auto_increment"
+    defp auto_increment_expr(_), do: []
 
     defp null_expr(false), do: " NOT NULL"
     defp null_expr(true), do: " NULL"

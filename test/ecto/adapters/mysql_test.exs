@@ -831,6 +831,13 @@ defmodule Ecto.Adapters.MySQLTest do
            [~s|CREATE TABLE `posts` (`id` bigint unsigned not null auto_increment, PRIMARY KEY (`id`)) ENGINE = MYISAM|]
   end
 
+  test "create table with a auto_increment column" do
+    create = {:create, table(:posts, primary_key: false),
+               [{:add, :id, :id, [null: false, auto_increment: true, primary_key: true]}]}
+    assert execute_ddl(create) ==
+           [~s|CREATE TABLE `posts` (`id` integer NOT NULL auto_increment, PRIMARY KEY (`id`)) ENGINE = INNODB|]
+  end
+
   test "create table with references" do
     create = {:create, table(:posts),
                [{:add, :id, :serial, [primary_key: true]},
