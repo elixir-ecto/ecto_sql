@@ -347,13 +347,19 @@ defmodule Ecto.Adapters.MySQL do
     port     = opts[:port] || System.get_env("MYSQL_TCP_PORT") || "3306"
     protocol = opts[:cli_protocol] || System.get_env("MYSQL_CLI_PROTOCOL") || "tcp"
 
+    user_args =
+      if username = opts[:username] do
+        ["--user", username]
+      else
+        []
+      end
+
     args =
       [
-        "--user", opts[:username],
         "--host", host,
         "--port", to_string(port),
         "--protocol", protocol
-      ] ++ opt_args
+      ] ++ user_args ++ opt_args
 
     System.cmd(cmd, args, env: env, stderr_to_stdout: true)
   end
