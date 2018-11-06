@@ -736,7 +736,6 @@ defmodule Ecto.Adapters.SQL do
     } = entry
 
     source = Keyword.get(opts, :source)
-    caller_pid = Keyword.get(opts, :caller, self())
     query_string = String.Chars.to_string(query)
 
     entry = %{
@@ -746,8 +745,7 @@ defmodule Ecto.Adapters.SQL do
       result: log_result(result),
       params: params,
       query: query_string,
-      source: source,
-      caller_pid: caller_pid
+      source: source
     }
 
     total = (query_time || 0) + (decode_time || 0) + (queue_time || 0)
