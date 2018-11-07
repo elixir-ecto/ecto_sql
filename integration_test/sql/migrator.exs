@@ -4,7 +4,7 @@ defmodule Ecto.Integration.MigratorTest do
   use Ecto.Integration.Case
 
   import Support.FileHelpers
-  import Ecto.Migrator, only: [migrated_versions: 1]
+  import ExUnit.CaptureLog
 
   alias Ecto.Integration.PoolRepo
   alias Ecto.Migration.SchemaMigration
@@ -14,15 +14,38 @@ defmodule Ecto.Integration.MigratorTest do
     :ok
   end
 
+  defmodule AnotherSchemaMigration do
+    use Ecto.Migration
+
+    def change do
+      execute PoolRepo.create_prefix("bad_schema_migrations"),
+              PoolRepo.drop_prefix("bad_schema_migrations")
+
+      create table(:schema_migrations, prefix: "bad_schema_migrations") do
+        add :version, :string
+        add :inserted_at, :integer
+      end
+    end
+  end
+
+  defmodule BrokenLinkMigration do
+    use Ecto.Migration
+
+    def change do
+      Task.start_link(fn -> raise "oops" end)
+      Process.sleep(:infinity)
+    end
+  end
+
   defmodule GoodMigration do
     use Ecto.Migration
 
     def up do
-      :ok
+      create table(:good_migration)
     end
 
     def down do
-      :ok
+      drop table(:good_migration)
     end
   end
 
@@ -36,17 +59,13 @@ defmodule Ecto.Integration.MigratorTest do
 
   import Ecto.Migrator
 
-  test "schema migration" do
-    up(PoolRepo, 30, GoodMigration, log: false)
-
-    [migration] = PoolRepo.all(SchemaMigration)
-    assert migration.version == 30
-    assert migration.inserted_at
-  end
-
   test "migrations up and down" do
     assert migrated_versions(PoolRepo) == []
     assert up(PoolRepo, 31, GoodMigration, log: false) == :ok
+
+    [migration] = PoolRepo.all(SchemaMigration)
+    assert migration.version == 31
+    assert migration.inserted_at
 
     assert migrated_versions(PoolRepo) == [31]
     assert up(PoolRepo, 31, GoodMigration, log: false) == :already_up
@@ -57,8 +76,35 @@ defmodule Ecto.Integration.MigratorTest do
     assert migrated_versions(PoolRepo) == []
   end
 
-  test "bad migration" do
+  test "does not commit migration if insert into schema migration fails" do
+    # First we create a new schema migration table in another prefix
+    assert up(PoolRepo, 33, AnotherSchemaMigration, log: false) == :ok
+    assert migrated_versions(PoolRepo) == [33]
+
+    assert capture_log(fn ->
+      catch_error(up(PoolRepo, 34, GoodMigration, log: false, prefix: "bad_schema_migrations"))
+      catch_error(PoolRepo.all("good_migration"))
+      catch_error(PoolRepo.all("good_migration", prefix: "bad_schema_migrations"))
+    end) =~ "Could not update schema migrations"
+
+    assert down(PoolRepo, 33, AnotherSchemaMigration, log: false) == :ok
+  end
+
+  test "bad execute migration" do
     assert catch_error(up(PoolRepo, 31, BadMigration, log: false))
+  end
+
+  test "broken link migration" do
+    Process.flag(:trap_exit, true)
+
+    assert capture_log(fn ->
+      {:ok, pid} = Task.start_link(fn -> up(PoolRepo, 31, BrokenLinkMigration, log: false) end)
+      assert_receive {:EXIT, ^pid, _}
+    end) =~ "oops"
+
+    assert capture_log(fn ->
+      catch_exit(up(PoolRepo, 31, BrokenLinkMigration, log: false))
+    end) =~ "oops"
   end
 
   test "run up to/step migration" do
@@ -139,7 +185,6 @@ defmodule Ecto.Integration.MigratorTest do
     File.write! "#{num}_migration_#{num}.exs", """
     defmodule #{module} do
       use Ecto.Migration
-
 
       def up do
         update &[#{num}|&1]

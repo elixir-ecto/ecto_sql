@@ -108,21 +108,12 @@ defmodule Ecto.Migrator do
   end
 
   defp do_up(repo, version, module, opts) do
-    run_maybe_in_transaction(repo, module, fn ->
+    async_migrate_maybe_in_transaction(repo, version, module, :up, opts, fn ->
       attempt(repo, version, module, :forward, :up, :up, opts)
         || attempt(repo, version, module, :forward, :change, :up, opts)
         || {:error, Ecto.MigrationError.exception(
             "#{inspect module} does not implement a `up/0` or `change/0` function")}
     end)
-    |> case do
-      :ok ->
-        verbose_schema_migration repo, "update schema migrations", fn ->
-          SchemaMigration.up(repo, version, opts[:prefix])
-        end
-        :ok
-      error ->
-        error
-    end
   end
 
   @doc """
@@ -153,41 +144,65 @@ defmodule Ecto.Migrator do
   end
 
   defp do_down(repo, version, module, opts) do
-    run_maybe_in_transaction(repo, module, fn ->
+    async_migrate_maybe_in_transaction(repo, version, module, :down, opts, fn ->
       attempt(repo, version, module, :forward, :down, :down, opts)
         || attempt(repo, version, module, :backward, :change, :down, opts)
         || {:error, Ecto.MigrationError.exception(
             "#{inspect module} does not implement a `down/0` or `change/0` function")}
     end)
-    |> case do
-      :ok ->
-        verbose_schema_migration repo, "update schema migrations", fn ->
-          SchemaMigration.down(repo, version, opts[:prefix])
-        end
-        :ok
-      error ->
-        error
+  end
+
+  defp async_migrate_maybe_in_transaction(repo, version, module, direction, opts, fun) do
+    parent = self()
+    ref = make_ref()
+
+    %{pid: pid} = task =
+      Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, module, fun) end)
+
+    try do
+      receive do
+        {^ref, :ok} ->
+          verbose_schema_migration repo, "update schema migrations", fn ->
+            apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
+          end
+
+        {^ref, _} ->
+          :ok
+
+        {:EXIT, ^pid, _} ->
+          :ok
+      end
+    catch
+      kind, error ->
+        Task.shutdown(task, :brutal_kill)
+        :erlang.raise(kind, error, System.stacktrace())
+    else
+      _ ->
+        send(task.pid, ref)
+        Task.await(task)
     end
   end
 
-  defp run_maybe_in_transaction(repo, module, fun) do
-    fn -> do_run_maybe_in_transaction(repo, module, fun) end
-    |> Task.async()
-    |> Task.await(:infinity)
-  end
+  defp run_maybe_in_transaction(parent, ref, repo, module, fun) do
+    if module.__migration__[:disable_ddl_transaction] ||
+         not repo.__adapter__.supports_ddl_transaction? do
+      send_and_receive(parent, ref, fun.())
+    else
+      {:ok, result} =
+        repo.transaction(
+          fn -> send_and_receive(parent, ref, fun.()) end,
+          log: false, timeout: :infinity
+        )
 
-  defp do_run_maybe_in_transaction(repo, module, fun) do
-    cond do
-      module.__migration__[:disable_ddl_transaction] ->
-        fun.()
-      repo.__adapter__.supports_ddl_transaction? ->
-        {:ok, result} = repo.transaction(fun, log: false, timeout: :infinity)
-        result
-      true ->
-        fun.()
+      result
     end
   catch kind, reason ->
-    {kind, reason, System.stacktrace}
+    send_and_receive(parent, ref, {kind, reason, System.stacktrace})
+  end
+
+  defp send_and_receive(parent, ref, value) do
+    send parent, {ref, value}
+    receive do: (^ref -> value)
   end
 
   defp attempt(repo, version, module, direction, operation, reference, opts) do
