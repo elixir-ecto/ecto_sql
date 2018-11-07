@@ -179,7 +179,7 @@ defmodule Ecto.Migrator do
     else
       _ ->
         send(task.pid, ref)
-        Task.await(task)
+        Task.await(task, :infinity)
     end
   end
 
