@@ -18,6 +18,9 @@ before_install:
   - wget --quiet -O - http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo apt-key add -
   - sudo apt-get update -qq
   - sudo apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::="--force-confnew" install postgresql-$PGVERSION postgresql-contrib-$PGVERSION
+after_install:
+  - sudo mysql_upgrade -u root -p --force
+  - sudo service mysqld --full-restart
 sudo: required
 dist: trusty
 cache: apt
