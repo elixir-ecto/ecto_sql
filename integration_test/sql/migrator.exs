@@ -5,6 +5,7 @@ defmodule Ecto.Integration.MigratorTest do
 
   import Support.FileHelpers
   import ExUnit.CaptureLog
+  import Ecto.Migrator
 
   alias Ecto.Integration.PoolRepo
   alias Ecto.Migration.SchemaMigration
@@ -56,8 +57,6 @@ defmodule Ecto.Integration.MigratorTest do
       execute "CREATE WHAT"
     end
   end
-
-  import Ecto.Migrator
 
   test "migrations up and down" do
     assert migrated_versions(PoolRepo) == []

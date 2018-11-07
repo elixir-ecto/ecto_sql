@@ -157,7 +157,7 @@ defmodule Ecto.Migrator do
     ref = make_ref()
     task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, module, fun) end)
 
-    if migrated_successfully?(ref, task) do
+    if migrated_successfully?(ref, task.pid) do
       try do
         # The table with schema migrations can only be updated from
         # the parent process because it has a lock on the table
@@ -175,7 +175,7 @@ defmodule Ecto.Migrator do
     Task.await(task, :infinity)
   end
 
-  defp migrated_successfully?(ref, %{pid: pid}) do
+  defp migrated_successfully?(ref, pid) do
     receive do
       {^ref, :ok} -> true
       {^ref, _} -> false
