@@ -9,7 +9,6 @@ addons:
       - mysql-5.7-trusty
     packages:
       - mysql-server
-      - mysql-client-core
       - mysql-client
 before_install:
   - sudo service postgresql stop
