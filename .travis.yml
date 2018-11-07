@@ -5,6 +5,8 @@ otp_release:
   - 20.2
 addons:
   apt:
+    sources:
+      - mysql-5.7-trusty
     packages:
       - mysql-server-5.7
       - mysql-client-core-5.7
