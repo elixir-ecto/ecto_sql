@@ -155,31 +155,31 @@ defmodule Ecto.Migrator do
   defp async_migrate_maybe_in_transaction(repo, version, module, direction, opts, fun) do
     parent = self()
     ref = make_ref()
+    task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, module, fun) end)
 
-    %{pid: pid} = task =
-      Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, module, fun) end)
-
-    try do
-      receive do
-        {^ref, :ok} ->
-          verbose_schema_migration repo, "update schema migrations", fn ->
-            apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
-          end
-
-        {^ref, _} ->
-          :ok
-
-        {:EXIT, ^pid, _} ->
-          :ok
+    if migrated_successfully?(ref, task) do
+      try do
+        # The table with schema migrations can only be updated from
+        # the parent process because it has a lock on the table
+        verbose_schema_migration repo, "update schema migrations", fn ->
+          apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
+        end
+      catch
+        kind, error ->
+          Task.shutdown(task, :brutal_kill)
+          :erlang.raise(kind, error, System.stacktrace())
       end
-    catch
-      kind, error ->
-        Task.shutdown(task, :brutal_kill)
-        :erlang.raise(kind, error, System.stacktrace())
-    else
-      _ ->
-        send(task.pid, ref)
-        Task.await(task, :infinity)
+    end
+
+    send(task.pid, ref)
+    Task.await(task, :infinity)
+  end
+
+  defp migrated_successfully?(ref, %{pid: pid}) do
+    receive do
+      {^ref, :ok} -> true
+      {^ref, _} -> false
+      {:EXIT, ^pid, _} -> false
     end
   end
 
