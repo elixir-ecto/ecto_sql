@@ -5,10 +5,11 @@ otp_release:
   - 20.2
 addons:
   apt:
+    sources:
+      - mysql-5.7-trusty
     packages:
-      - mysql-server-5.6
-      - mysql-client-core-5.6
-      - mysql-client-5.6
+      - mysql-server
+      - mysql-client
 before_install:
   - sudo service postgresql stop
   - sudo apt-get -y -qq --purge remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common
@@ -44,6 +45,8 @@ before_script:
   - echo "host all postgrex_md5_pw 127.0.0.1/32 md5" | sudo tee -a /etc/postgresql/$PGVERSION/main/pg_hba.conf
   - echo "host all postgrex_cleartext_pw 127.0.0.1/32 password" | sudo tee -a /etc/postgresql/$PGVERSION/main/pg_hba.conf
   - sudo service postgresql restart
+  - sudo mysql_upgrade
+  - sudo service mysql --full-restart
 notifications:
   recipients:
     - jose.valim@plataformatec.com.br
