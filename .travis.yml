@@ -6,9 +6,9 @@ otp_release:
 addons:
   apt:
     packages:
-      - mysql-server-5.6
-      - mysql-client-core-5.6
-      - mysql-client-5.6
+      - mysql-server-5.7
+      - mysql-client-core-5.7
+      - mysql-client-5.7
 before_install:
   - sudo service postgresql stop
   - sudo apt-get -y -qq --purge remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common
