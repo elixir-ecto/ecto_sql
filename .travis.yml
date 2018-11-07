@@ -46,7 +46,7 @@ before_script:
   - echo "host all postgrex_cleartext_pw 127.0.0.1/32 password" | sudo tee -a /etc/postgresql/$PGVERSION/main/pg_hba.conf
   - sudo service postgresql restart
   - sudo mysql_upgrade
-  - sudo service mysqld --full-restart
+  - sudo service mysql --full-restart
 notifications:
   recipients:
     - jose.valim@plataformatec.com.br
