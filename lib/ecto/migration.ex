@@ -155,7 +155,7 @@ defmodule Ecto.Migration do
 
       def up do
         create index("posts", [:name], comment: "Index Comment")
-        create constraint("products", "price_must_be_positive", check: "price > 0", comment: "Index Comment")
+        create constraint("products", "price_must_be_positive", check: "price > 0", comment: "Constraint Comment")
         create table("weather", prefix: "north_america", comment: "Table Comment") do
           add :city, :string, size: 40, comment: "Column Comment"
           timestamps()
