@@ -67,12 +67,13 @@ if Code.ensure_loaded?(MyXQL) do
 
     ## Query
 
-    alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr}
+    alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
 
     @impl true
     def all(query) do
       sources = create_names(query)
 
+      cte = cte(query, sources)
       from = from(query, sources)
       select = select(query, sources)
       join = join(query, sources)
@@ -86,7 +87,7 @@ if Code.ensure_loaded?(MyXQL) do
       offset = offset(query, sources)
       lock = lock(query.lock)
 
-      [select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
+      [cte, select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
     end
 
     @impl true
@@ -240,6 +241,22 @@ if Code.ensure_loaded?(MyXQL) do
       {from, name} = get_source(query, sources, 0, source)
       [" FROM ", from, " AS ", name | Enum.map(hints, &[?\s | &1])]
     end
+
+    defp cte(%{with_ctes: nil}, _), do: []
+    defp cte(%{with_ctes: %WithExpr{queries: []}}, _), do: []
+
+    defp cte(%{with_ctes: %WithExpr{recursive: recursive, queries: queries}} = query, sources) do
+      recursive_opt = if recursive, do: "RECURSIVE ", else: ""
+      ctes = intersperse_map(queries, ", ", &cte_expr(&1, sources, query))
+      ["WITH ", recursive_opt, ctes, " "]
+    end
+
+    defp cte_expr({name, cte}, sources, query) do
+      [quote_name(name), " AS ", cte_query(cte, sources, query)]
+    end
+
+    defp cte_query(%Ecto.Query{} = query, _, _), do: ["(", all(query), ")"]
+    defp cte_query(%QueryExpr{expr: expr}, sources, query), do: expr(expr, sources, query)
 
     defp update_fields(type, %{updates: updates} = query, sources) do
      fields = for(%{expr: expr} <- updates,

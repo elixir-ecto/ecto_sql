@@ -93,6 +93,95 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT s0.`x`, s0.`z` FROM (SELECT p0.`x` AS `x`, p0.`y` AS `z` FROM `posts` AS p0) AS s0}
   end
 
+  test "CTE" do
+    initial_query =
+      "categories"
+      |> where([c], is_nil(c.parent_id))
+      |> select([c], %{id: c.id, depth: fragment("1")})
+
+    iteration_query =
+      "categories"
+      |> join(:inner, [c], t in "tree", on: t.id == c.parent_id)
+      |> select([c, t], %{id: c.id, depth: fragment("? + 1", t.depth)})
+
+    cte_query = initial_query |> union_all(^iteration_query)
+
+    query =
+      Schema
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: ^cte_query)
+      |> join(:inner, [r], t in "tree", on: t.id == r.category_id)
+      |> select([r, t], %{x: r.x, category_id: t.id, depth: type(t.depth, :integer)})
+      |> plan()
+
+    assert all(query) ==
+      ~s{WITH RECURSIVE `tree` AS } <>
+      ~s{(SELECT c0.`id` AS `id`, 1 AS `depth` FROM `categories` AS c0 WHERE (c0.`parent_id` IS NULL) } <>
+      ~s{UNION ALL } <>
+      ~s{(SELECT c0.`id`, t1.`depth` + 1 FROM `categories` AS c0 } <>
+      ~s{INNER JOIN `tree` AS t1 ON t1.`id` = c0.`parent_id`)) } <>
+      ~s{SELECT s0.`x`, t1.`id`, CAST(t1.`depth` AS unsigned) } <>
+      ~s{FROM `schema` AS s0 } <>
+      ~s{INNER JOIN `tree` AS t1 ON t1.`id` = s0.`category_id`}
+  end
+
+  @raw_sql_cte """
+  SELECT * FROM categories WHERE c.parent_id IS NULL
+  UNION ALL
+  SELECT * FROM categories AS c, category_tree AS ct WHERE ct.id = c.parent_id
+  """
+
+  test "reference CTE in union" do
+    comments_scope_query =
+      "comments"
+      |> where([c], is_nil(c.deleted_at))
+      |> select([c], %{entity_id: c.entity_id, text: c.text})
+
+    posts_query =
+      "posts"
+      |> join(:inner, [p], c in "comments_scope", on: c.entity_id == p.guid)
+      |> select([p, c], [p.title, c.text])
+
+    videos_query =
+      "videos"
+      |> join(:inner, [v], c in "comments_scope", on: c.entity_id == v.guid)
+      |> select([v, c], [v.title, c.text])
+
+    query =
+      posts_query
+      |> union_all(^videos_query)
+      |> with_cte("comments_scope", as: ^comments_scope_query)
+      |> plan()
+
+    assert all(query) ==
+      ~s{WITH `comments_scope` AS (} <>
+      ~s{SELECT c0.`entity_id` AS `entity_id`, c0.`text` AS `text` } <>
+      ~s{FROM `comments` AS c0 WHERE (c0.`deleted_at` IS NULL)) } <>
+      ~s{SELECT p0.`title`, c1.`text` } <>
+      ~s{FROM `posts` AS p0 } <>
+      ~s{INNER JOIN `comments_scope` AS c1 ON c1.`entity_id` = p0.`guid` } <>
+      ~s{UNION ALL } <>
+      ~s{(SELECT v0.`title`, c1.`text` } <>
+      ~s{FROM `videos` AS v0 } <>
+      ~s{INNER JOIN `comments_scope` AS c1 ON c1.`entity_id` = v0.`guid`)}
+  end
+
+  test "fragment CTE" do
+    query =
+      Schema
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: fragment(@raw_sql_cte))
+      |> join(:inner, [p], c in "tree", on: c.id == p.category_id)
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) ==
+      ~s{WITH RECURSIVE `tree` AS (#{@raw_sql_cte}) } <>
+      ~s{SELECT s0.`x` } <>
+      ~s{FROM `schema` AS s0 } <>
+      ~s{INNER JOIN `tree` AS t1 ON t1.`id` = s0.`category_id`}
+  end
+
   test "select" do
     query = Schema |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT s0.`x`, s0.`y` FROM `schema` AS s0}
@@ -413,10 +502,13 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "interpolated values" do
-    union = "schema1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^3))
-    union_all = "schema2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^4))
+    cte1 = "schema1" |> select([m], %{id: m.id, smth: ^true}) |> where([], fragment("?", ^1))
+    union = "schema1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^5))
+    union_all = "schema2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^6))
 
     query = Schema
+            |> with_cte("cte1", as: ^cte1)
+            |> with_cte("cte2", as: fragment("SELECT * FROM schema WHERE ?", ^2))
             |> select([m], {m.id, ^0})
             |> join(:inner, [], Schema2, on: fragment("?", ^true))
             |> join(:inner, [], Schema2, on: fragment("?", ^false))
@@ -424,16 +516,18 @@ defmodule Ecto.Adapters.MyXQLTest do
             |> where([], fragment("?", ^false))
             |> having([], fragment("?", ^true))
             |> having([], fragment("?", ^false))
-            |> group_by([], fragment("?", ^1))
-            |> group_by([], fragment("?", ^2))
+            |> group_by([], fragment("?", ^3))
+            |> group_by([], fragment("?", ^4))
             |> union(^union)
             |> union_all(^union_all)
-            |> order_by([], fragment("?", ^5))
-            |> limit([], ^6)
-            |> offset([], ^7)
+            |> order_by([], fragment("?", ^7))
+            |> limit([], ^8)
+            |> offset([], ^9)
             |> plan()
 
     result =
+      "WITH `cte1` AS (SELECT s0.`id` AS `id`, ? AS `smth` FROM `schema1` AS s0 WHERE (?)), " <>
+      "`cte2` AS (SELECT * FROM schema WHERE ?) " <>
       "SELECT s0.`id`, ? FROM `schema` AS s0 INNER JOIN `schema2` AS s1 ON ? " <>
       "INNER JOIN `schema2` AS s2 ON ? WHERE (?) AND (?) " <>
       "GROUP BY ?, ? HAVING (?) AND (?) " <>
