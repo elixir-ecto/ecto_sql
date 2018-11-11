@@ -39,7 +39,7 @@ defmodule Mix.EctoSQL do
   @doc """
   Ensures the given repository's migrations path exists on the file system.
   """
-  @spec ensure_migrations_path(Ecto.Repo.t) :: Ecto.Repo.t
+  @spec ensure_migrations_path(Ecto.Repo.t) :: String.t
   def ensure_migrations_path(repo) do
     path = Path.join(source_repo_priv(repo), "migrations")
 
