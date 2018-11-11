@@ -31,17 +31,15 @@ defmodule Mix.Tasks.Ecto.Migrations do
   """
 
   @doc false
-  def run(args, migrations \\ &Ecto.Migrator.migrations/1, puts \\ &IO.puts/1) do
+  def run(args, migrations \\ &Ecto.Migrator.migrations/2, puts \\ &IO.puts/1) do
     repos = parse_repo(args)
 
     result =
       Enum.map(repos, fn repo ->
         ensure_repo(repo, args)
-        ensure_migrations_path(repo)
+        path = ensure_migrations_path(repo)
         {:ok, pid, _} = ensure_started(repo, all: true)
-
-        repo_status = migrations.(repo)
-
+        repo_status = migrations.(repo, path)
         pid && repo.stop()
 
         """

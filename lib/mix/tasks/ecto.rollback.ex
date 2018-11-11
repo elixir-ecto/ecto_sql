@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
   """
 
   @doc false
-  def run(args, migrator \\ &Ecto.Migrator.run/3) do
+  def run(args, migrator \\ &Ecto.Migrator.run/4) do
     repos = parse_repo(args)
 
     {opts, _, _} = OptionParser.parse args,
@@ -79,15 +79,15 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     Enum.each repos, fn repo ->
       ensure_repo(repo, args)
-      ensure_migrations_path(repo)
+      path = ensure_migrations_path(repo)
       {:ok, pid, apps} = ensure_started(repo, opts)
 
       pool = repo.config[:pool]
       migrated =
         if function_exported?(pool, :unboxed_run, 2) do
-          pool.unboxed_run(repo, fn -> migrator.(repo, :down, opts) end)
+          pool.unboxed_run(repo, fn -> migrator.(repo, path, :down, opts) end)
         else
-          migrator.(repo, :down, opts)
+          migrator.(repo, path, :down, opts)
         end
 
       pid && repo.stop()

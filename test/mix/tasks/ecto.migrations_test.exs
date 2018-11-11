@@ -35,11 +35,10 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
     end
   end
 
-
   test "migrations displays the up and down status for the default repo" do
     Application.put_env(:ecto_sql, :ecto_repos, [Repo])
 
-    migrations = fn _ ->
+    migrations = fn _, _ ->
       [
         {:up,   0,              "up_migration_0"},
         {:up,   20160000000001, "up_migration_1"},
@@ -67,7 +66,7 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
   end
 
   test "migrations displays the up and down status for any given repo" do
-    migrations = fn _ ->
+    migrations = fn _, _ ->
       [
         {:up,   20160000000001, "up_migration_1"},
         {:down, 20160000000002, "down_migration_1"}
@@ -85,5 +84,17 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
       """
 
     run ["-r", to_string(Repo)], migrations, fn i -> assert(i == expected_output) end
+  end
+
+  test "migrations does not run from _build" do
+    Application.put_env(:ecto_sql, :ecto_repos, [Repo])
+
+    migrations = fn repo, path ->
+      assert repo == Repo
+      refute path =~ ~r/_build/
+      []
+    end
+
+    run [], migrations, fn _ -> :ok end
   end
 end

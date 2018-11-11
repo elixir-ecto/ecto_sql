@@ -41,11 +41,13 @@ defmodule Mix.EctoSQL do
   """
   @spec ensure_migrations_path(Ecto.Repo.t) :: Ecto.Repo.t
   def ensure_migrations_path(repo) do
-    with false <- Mix.Project.umbrella?,
-         path = Path.join(source_repo_priv(repo), "migrations"),
-         false <- File.dir?(path),
-         do: raise_missing_migrations(Path.relative_to_cwd(path), repo)
-    repo
+    path = Path.join(source_repo_priv(repo), "migrations")
+
+    if not Mix.Project.umbrella? and not File.dir?(path) do
+      raise_missing_migrations(Path.relative_to_cwd(path), repo)
+    end
+
+    path
   end
 
   defp raise_missing_migrations(path, repo) do

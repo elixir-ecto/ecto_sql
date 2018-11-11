@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
   """
 
   @doc false
-  def run(args, migrator \\ &Ecto.Migrator.run/3) do
+  def run(args, migrator \\ &Ecto.Migrator.run/4) do
     repos = parse_repo(args)
 
     {opts, _, _} = OptionParser.parse args,
@@ -83,15 +83,15 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     Enum.each repos, fn repo ->
       ensure_repo(repo, args)
-      ensure_migrations_path(repo)
+      path = ensure_migrations_path(repo)
       {:ok, pid, apps} = ensure_started(repo, opts)
 
       pool = repo.config[:pool]
       migrated =
         if function_exported?(pool, :unboxed_run, 2) do
-          pool.unboxed_run(repo, fn -> migrator.(repo, :up, opts) end)
+          pool.unboxed_run(repo, fn -> migrator.(repo, path, :up, opts) end)
         else
-          migrator.(repo, :up, opts)
+          migrator.(repo, path, :up, opts)
         end
 
       pid && repo.stop()
