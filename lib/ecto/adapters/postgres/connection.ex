@@ -206,6 +206,10 @@ if Code.ensure_loaded?(Postgrex) do
       intersperse_reduce(values, ?,, counter, fn
         nil, counter ->
           {"DEFAULT", counter}
+
+        {%Ecto.Query{} = query, params}, counter ->
+          {[?(, all(query), ?)], counter + length(params)}
+
         _, counter ->
           {[?$ | Integer.to_string(counter)], counter + 1}
       end)
