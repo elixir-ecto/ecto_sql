@@ -17,5 +17,8 @@
 
 Include code samples, errors and stacktraces if appropriate.
 
+If you can, please provide an example repository that reproduces the error, that maintainers could clone and check locally. This will speed-up the process tremendously - it's very likely you'll be asked to provide one anyway.
+
 ### Expected behavior
 
+Describe expected behaviour
