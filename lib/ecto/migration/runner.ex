@@ -210,6 +210,8 @@ defmodule Ecto.Migration.Runner do
     do: {:drop_if_exists, index}
   defp reverse({:drop, %Index{} = index}),
     do: {:create, index}
+  defp reverse({:drop_if_exists, %Index{} = index}),
+    do: {:create_if_not_exists, index}
 
   defp reverse({:create, %Table{} = table, _columns}),
     do: {:drop, table}
@@ -225,6 +227,8 @@ defmodule Ecto.Migration.Runner do
     end
   end
 
+  # It is not a good idea to reverse constraints because
+  # we can't guarantee data integrity when applying them back.
   defp reverse({:create_if_not_exists, %Constraint{} = constraint}),
     do: {:drop_if_exists, constraint}
   defp reverse({:create, %Constraint{} = constraint}),
