@@ -697,8 +697,9 @@ if Code.ensure_loaded?(Mariaex) do
         " TO ", quote_table(new_table.prefix, new_table.name)]]
     end
 
-    def execute_ddl({:rename, _table, _current_column, _new_column}) do
-      error!(nil, "MySQL adapter does not support renaming columns")
+    def execute_ddl({:rename, %Table{} = table, current_column, new_column}) do
+      [["ALTER TABLE ", quote_table(table.prefix, table.name), " RENAME COLUMN ",
+        quote_name(current_column), " TO ", quote_name(new_column)]]
     end
 
     def execute_ddl(string) when is_binary(string), do: [string]
