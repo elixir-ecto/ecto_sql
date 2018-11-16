@@ -15,11 +15,11 @@ defmodule Ecto.Integration.SandboxTest do
     end
 
     test "raises if repo is not using sandbox" do
-      assert_raise RuntimeError, ~r"cannot configure sandbox with pool DBConnection", fn ->
+      assert_raise RuntimeError, ~r"cannot invoke sandbox operation with pool DBConnection", fn ->
         Sandbox.mode(PoolRepo, :manual)
       end
 
-      assert_raise RuntimeError, ~r"cannot configure sandbox with pool DBConnection", fn ->
+      assert_raise RuntimeError, ~r"cannot invoke sandbox operation with pool DBConnection", fn ->
         Sandbox.checkout(PoolRepo)
       end
     end

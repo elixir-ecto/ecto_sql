@@ -241,13 +241,13 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   ### Deferred constraints
 
   Some databases allow to defer constraint validation to the transaction
-  commit time, instead of the particular statement execution time. This 
+  commit time, instead of the particular statement execution time. This
   feature, for instance, allows for a cyclic foreign key referencing.
   Since the SQL Sandbox mode rolls back transactions, tests might report
   false positives because deferred constraints are never checked by the
   database. To manually force deferred constraints validation when using
   PostgreSQL use the following line right at the end of your test case:
-      
+
       Repo.query!("SET CONSTRAINTS ALL IMMEDIATE")
 
   ### Database locks and deadlocks
@@ -387,7 +387,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   def mode(repo, mode)
       when is_atom(repo) and mode in [:auto, :manual]
       when is_atom(repo) and elem(mode, 0) == :shared and is_pid(elem(mode, 1)) do
-    %{pid: pool, opts: opts} = proxy_pool(repo)
+    %{pid: pool, opts: opts} = lookup_meta!(repo)
     DBConnection.Ownership.ownership_mode(pool, mode, opts)
   end
 
@@ -414,11 +414,16 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   """
   def checkout(repo, opts \\ []) when is_atom(repo) do
-    %{pid: pool, opts: pool_opts} =
+    %{pid: pool, opts: pool_opts} = lookup_meta!(repo)
+
+    pool_opts =
       if Keyword.get(opts, :sandbox, true) do
-        proxy_pool(repo)
+        [
+          post_checkout: &post_checkout(&1, &2, opts),
+          pre_checkin: &pre_checkin(&1, &2, &3, opts)
+        ] ++ pool_opts
       else
-        Ecto.Adapter.lookup_meta(repo)
+        pool_opts
       end
 
     pool_opts_overrides = Keyword.take(opts, [:ownership_timeout])
@@ -454,7 +459,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   Checks in the connection back into the sandbox pool.
   """
   def checkin(repo, _opts \\ []) when is_atom(repo) do
-    %{pid: pool, opts: opts} = Ecto.Adapter.lookup_meta(repo)
+    %{pid: pool, opts: opts} = lookup_meta!(repo)
     DBConnection.Ownership.ownership_checkin(pool, opts)
   end
 
@@ -462,7 +467,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   Allows the `allow` process to use the same connection as `parent`.
   """
   def allow(repo, parent, allow, _opts \\ []) when is_atom(repo) do
-    %{pid: pool, opts: opts} = Ecto.Adapter.lookup_meta(repo)
+    %{pid: pool, opts: opts} = lookup_meta!(repo)
     DBConnection.Ownership.ownership_allow(pool, parent, allow, opts)
   end
 
@@ -480,24 +485,19 @@ defmodule Ecto.Adapters.SQL.Sandbox do
     end
   end
 
-  defp proxy_pool(repo) do
-    %{opts: opts} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
+  defp lookup_meta!(repo) do
+    %{opts: opts} = meta = Ecto.Adapter.lookup_meta(repo)
 
     if opts[:pool] != DBConnection.Ownership do
       raise """
-      cannot configure sandbox with pool #{inspect opts[:pool]}.
+      cannot invoke sandbox operation with pool #{inspect opts[:pool]}.
       To use the SQL Sandbox, configure your repository pool as:
 
           pool: #{inspect __MODULE__}
       """
     end
 
-    callbacks = [
-      post_checkout: &post_checkout(&1, &2, opts),
-      pre_checkin: &pre_checkin(&1, &2, &3, opts)
-    ]
-
-    %{adapter_meta | opts: callbacks ++ opts}
+    meta
   end
 
   defp post_checkout(conn_mod, conn_state, opts) do
