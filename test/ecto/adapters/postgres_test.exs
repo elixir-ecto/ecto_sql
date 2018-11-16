@@ -1427,6 +1427,16 @@ defmodule Ecto.Adapters.PostgresTest do
       [~s|ALTER TABLE "foo"."products" DROP CONSTRAINT "price_must_be_positive"|]
   end
 
+  test "drop_if_exists constraint" do
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive")}
+    assert execute_ddl(drop) ==
+      [~s|ALTER TABLE "products" DROP CONSTRAINT IF EXISTS "price_must_be_positive"|]
+
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo")}
+    assert execute_ddl(drop) ==
+      [~s|ALTER TABLE "foo"."products" DROP CONSTRAINT IF EXISTS "price_must_be_positive"|]
+  end
+
   test "rename table" do
     rename = {:rename, table(:posts), table(:new_posts)}
     assert execute_ddl(rename) == [~s|ALTER TABLE "posts" RENAME TO "new_posts"|]

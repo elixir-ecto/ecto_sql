@@ -318,6 +318,8 @@ defmodule Ecto.Migration.Runner do
     do: "create exclude constraint #{constraint.name} on table #{quote_name(constraint.prefix, constraint.table)}"
   defp command({:drop, %Constraint{} = constraint}),
     do: "drop constraint #{constraint.name} from table #{quote_name(constraint.prefix, constraint.table)}"
+  defp command({:drop_if_exists, %Constraint{} = constraint}),
+    do: "drop constraint if exists #{constraint.name} from table #{quote_name(constraint.prefix, constraint.table)}"
 
   defp quote_name(nil, name), do: quote_name(name)
   defp quote_name(prefix, name), do: quote_name(prefix) <> "." <> quote_name(name)
