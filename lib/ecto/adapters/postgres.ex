@@ -74,7 +74,7 @@ defmodule Ecto.Adapters.Postgres do
   to the database, you can use the `:after_connect` configuration. For
   example, in your repository configuration you can add:
 
-    after_connect: {Postgrex, :query!, ["SET search_path TO global_prefix", []]}
+      after_connect: {Postgrex, :query!, ["SET search_path TO global_prefix", []]}
 
   You can also specify your own module that will receive the Postgrex
   connection as argument.
