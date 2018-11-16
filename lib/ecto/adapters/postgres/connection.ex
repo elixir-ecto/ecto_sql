@@ -774,6 +774,11 @@ if Code.ensure_loaded?(Postgrex) do
         " DROP CONSTRAINT ", quote_name(constraint.name)]]
     end
 
+    def execute_ddl({:drop_if_exists, %Constraint{} = constraint}) do
+      [["ALTER TABLE ", quote_table(constraint.prefix, constraint.table),
+        " DROP CONSTRAINT IF EXISTS ", quote_name(constraint.name)]]
+    end
+
     def execute_ddl(string) when is_binary(string), do: [string]
 
     def execute_ddl(keyword) when is_list(keyword),

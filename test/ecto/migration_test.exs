@@ -351,6 +351,12 @@ defmodule Ecto.MigrationTest do
     assert {:drop, %Constraint{}} = last_command()
   end
 
+  test "forward: drops a constraint if constraint exists" do
+    drop_if_exists constraint(:posts, :price)
+    flush()
+    assert {:drop_if_exists, %Constraint{}} = last_command()
+  end
+
   test "forward: renames a table" do
     result = rename(table(:posts), to: table(:new_posts))
     flush()
@@ -393,7 +399,7 @@ defmodule Ecto.MigrationTest do
 
     {_, table, _} = last_command()
     assert table.prefix == "foo"
-  end  
+  end
 
   @tag repo_config: [migration_default_prefix: "baz"]
   test "forward: create a table with prefix from configuration" do
@@ -663,6 +669,13 @@ defmodule Ecto.MigrationTest do
     drop index(:posts, [:title])
     flush()
     assert {:create, %Index{}} = last_command()
+  end
+
+  test "backward: drops a constraint" do
+    assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
+      drop_if_exists constraint(:posts, :price)
+      flush()
+    end
   end
 
   test "backward: renames a table" do

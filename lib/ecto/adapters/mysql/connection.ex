@@ -689,6 +689,9 @@ if Code.ensure_loaded?(Mariaex) do
     def execute_ddl({:drop, %Constraint{}}),
       do: error!(nil, "MySQL adapter does not support constraints")
 
+    def execute_ddl({:drop_if_exists, %Constraint{}}),
+      do: error!(nil, "MySQL adapter does not support constraints")
+
     def execute_ddl({:drop_if_exists, %Index{}}),
       do: error!(nil, "MySQL adapter does not support drop if exists for index")
 

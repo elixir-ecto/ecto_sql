@@ -998,6 +998,18 @@ defmodule Ecto.Adapters.MySQLTest do
     assert execute_ddl(drop) == [~s|DROP TABLE `foo`.`posts`|]
   end
 
+  test "drop constraint" do
+    assert_raise ArgumentError, ~r/MySQL adapter does not support constraints/, fn ->
+      execute_ddl({:drop, constraint(:products, "price_must_be_positive", prefix: :foo)})
+    end
+  end
+
+  test "drop_if_exists constraint" do
+    assert_raise ArgumentError, ~r/MySQL adapter does not support constraints/, fn ->
+      execute_ddl({:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: :foo)})
+    end
+  end
+
   test "alter table" do
     alter = {:alter, table(:posts),
                [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
