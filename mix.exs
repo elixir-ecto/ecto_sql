@@ -1,7 +1,7 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.0.0"
+  @version "3.0.1"
   @adapters ~w(pg mysql)
 
   def project do
@@ -44,13 +44,13 @@ defmodule EctoSQL.MixProject do
 
   defp deps do
     [
-      {:ecto, "~> 3.0.0", ecto_opts()},
+      {:ecto, "~> 3.0.2", ecto_opts()},
       {:telemetry, "~> 0.2.0"},
 
       # Drivers
       {:db_connection, "~> 2.0"},
       {:postgrex, "~> 0.14.0", optional: true},
-      {:mariaex, "~> 0.9.0", optional: true},
+      {:mariaex, "~> 0.9.1", optional: true},
 
       # Bring something in for JSON during tests
       {:jason, ">= 0.0.0", only: :test},
