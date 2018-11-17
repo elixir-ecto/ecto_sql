@@ -515,6 +515,22 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       {:ok, _, conn_state} ->
         {:ok, conn_mod, conn_state}
 
+      {:idle, _conn_state} ->
+        raise """
+        Ecto SQL sandbox transaction was already committed/rolled back.
+
+        The sandbox works by running each test in a transaction and closing the\
+        transaction afterwards. However, the transaction has already terminated.\
+        Your test code is likely committing or rolling back transactions manually,\
+        either by invoking procedures or running custom SQL commands.
+
+        One option is to manually checkout a connection without a sandbox:
+
+            Ecto.Adapters.SQL.Sandbox.checkout(repo, sandbox: false)
+
+        But remember you will have to undo any database changes performed by such tests.
+        """
+
       {_error_or_disconnect, err, conn_state} ->
         {:disconnect, err, conn_mod, conn_state}
     end
