@@ -183,6 +183,7 @@ if Code.ensure_loaded?(Mariaex) do
     end
 
     defp insert_all_value(nil), do: "DEFAULT"
+    defp insert_all_value({%Ecto.Query{} = query, _params}), do: [?(, all(query), ?)]
     defp insert_all_value(_),   do: '?'
 
     @impl true
