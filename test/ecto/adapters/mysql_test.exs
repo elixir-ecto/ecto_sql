@@ -756,6 +756,12 @@ defmodule Ecto.Adapters.MySQLTest do
     end
   end
 
+  test "insert with query" do
+    select_query = from("schema", select: [:id]) |> plan(:all)
+    query = insert(nil, "schema", [:x, :y, :z], [[:x, {select_query, 2}, :z], [nil, nil, {select_query, 1}]], {:raise, [], []}, [])
+    assert query == ~s{INSERT INTO `schema` (`x`,`y`,`z`) VALUES (?,(SELECT s0.`id` FROM `schema` AS s0),?),(DEFAULT,DEFAULT,(SELECT s0.`id` FROM `schema` AS s0))}
+  end
+
   test "update" do
     query = update(nil, "schema", [:id], [x: 1, y: 2], [])
     assert query == ~s{UPDATE `schema` SET `id` = ? WHERE `x` = ? AND `y` = ?}

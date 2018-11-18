@@ -511,7 +511,7 @@ defmodule Ecto.Adapters.SQL do
       Enum.map_reduce header, params, fn key, acc ->
         case :lists.keyfind(key, 1, fields) do
           {^key, {%Ecto.Query{} = query, query_params}} ->
-            {{query, query_params}, Enum.reverse(query_params) ++ acc}
+            {{query, length(query_params)}, Enum.reverse(query_params) ++ acc}
 
           {^key, value} ->
             {key, [value | acc]}

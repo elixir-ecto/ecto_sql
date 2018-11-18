@@ -207,8 +207,8 @@ if Code.ensure_loaded?(Postgrex) do
         nil, counter ->
           {"DEFAULT", counter}
 
-        {%Ecto.Query{} = query, params}, counter ->
-          {[?(, all(query), ?)], counter + length(params)}
+        {%Ecto.Query{} = query, params_counter}, counter ->
+          {[?(, all(query), ?)], counter + params_counter}
 
         _, counter ->
           {[?$ | Integer.to_string(counter)], counter + 1}
