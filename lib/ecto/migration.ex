@@ -660,8 +660,9 @@ defmodule Ecto.Migration do
   @doc """
   Gets the migrator repo.
   """
+  @spec repo :: Ecto.Repo.t
   def repo do
-    Runner.repo
+    Runner.repo()
   end
 
   @doc """
