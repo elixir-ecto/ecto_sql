@@ -127,7 +127,7 @@ if Code.ensure_loaded?(Mariaex) do
     end
 
     @impl true
-    def delete_all(%{select: nil} = query) do
+    def delete_all(query) do
       if query.select do
         error!(nil, ":select is not supported in delete_all by MySQL")
       end
