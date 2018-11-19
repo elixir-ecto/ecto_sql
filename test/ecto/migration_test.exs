@@ -31,6 +31,10 @@ defmodule Ecto.MigrationTest do
     assert direction() == :up
   end
 
+  test "allows repo to be retrieved" do
+    assert repo() == TestRepo
+  end
+
   @tag prefix: "foo"
   test "allows prefix to be retrieved" do
     assert prefix() == "foo"

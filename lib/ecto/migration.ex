@@ -658,6 +658,13 @@ defmodule Ecto.Migration do
   end
 
   @doc """
+  Gets the migrator repo.
+  """
+  def repo do
+    Runner.repo
+  end
+
+  @doc """
   Gets the migrator prefix.
   """
   def prefix do
