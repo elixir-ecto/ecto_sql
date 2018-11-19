@@ -802,7 +802,7 @@ defmodule Ecto.Adapters.SQL do
 
   defp reset_conn(pool, conn) do
     if conn do
-      Process.put(key(pool), conn)
+      put_conn(pool, conn)
     else
       Process.delete(key(pool))
     end
