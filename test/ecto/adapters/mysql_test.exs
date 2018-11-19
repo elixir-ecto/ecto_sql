@@ -474,6 +474,11 @@ defmodule Ecto.Adapters.MySQLTest do
     assert update_all(query) ==
            ~s{UPDATE `schema` AS s0, `schema2` AS s1 } <>
            ~s{SET s0.`x` = 0 WHERE (s0.`x` = s1.`z`) AND (s0.`x` = 123)}
+
+    assert_raise ArgumentError, ":select is not supported in update_all by MySQL", fn ->
+      query = from(e in Schema, where: e.x == 123, select: e.x)
+      update_all(query)
+    end
   end
 
   test "update all with prefix" do
@@ -500,6 +505,11 @@ defmodule Ecto.Adapters.MySQLTest do
     assert delete_all(query) ==
            ~s{DELETE s0.* FROM `schema` AS s0 } <>
            ~s{INNER JOIN `schema2` AS s1 ON s0.`x` = s1.`z` WHERE (s0.`x` = 123)}
+
+    assert_raise ArgumentError, ":select is not supported in delete_all by MySQL", fn ->
+      query = from(e in Schema, where: e.x == 123, select: e.x)
+      delete_all(query)
+    end
   end
 
   test "delete all with prefix" do
@@ -733,6 +743,10 @@ defmodule Ecto.Adapters.MySQLTest do
 
     query = insert("prefix", "schema", [], [[]], {:raise, [], []}, [])
     assert query == ~s{INSERT INTO `prefix`.`schema` () VALUES ()}
+
+    assert_raise ArgumentError, ":returning is not supported in insert/insert_all by MySQL", fn ->
+      insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [:x, :y])
+    end
   end
 
   test "insert with on duplicate key" do
