@@ -922,6 +922,13 @@ defmodule Ecto.Adapters.PostgresTest do
     assert query == ~s{INSERT INTO "schema" ("x","y") VALUES ($1,$2) ON CONFLICT (\"id\") DO UPDATE SET "x" = EXCLUDED."x","y" = EXCLUDED."y"}
   end
 
+  test "insert with query" do
+    query = from("schema", select: [:id]) |> plan(:all)
+    query = insert(nil, "schema", [:x, :y, :z], [[:x, {query, 3}, :z], [nil, {query, 2}, :z]], {:raise, [], []}, [:id])
+
+    assert query == ~s{INSERT INTO "schema" ("x","y","z") VALUES ($1,(SELECT s0."id" FROM "schema" AS s0),$5),(DEFAULT,(SELECT s0."id" FROM "schema" AS s0),$8) RETURNING "id"}
+  end
+
   test "update" do
     query = update(nil, "schema", [:x, :y], [id: 1], [])
     assert query == ~s{UPDATE "schema" SET "x" = $1, "y" = $2 WHERE "id" = $3}
