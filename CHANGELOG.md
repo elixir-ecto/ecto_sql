@@ -1,5 +1,12 @@
 # Changelog for v3.0
 
+## v3.0.2 (2018-11-20)
+
+## Enhancements
+
+  * [query] Support Ecto.Query in insert_all values
+  * [migration] Add `Ecto.Migration.repo/0`
+
 ## v3.0.1 (2018-11-17)
 
 ## Enhancements
