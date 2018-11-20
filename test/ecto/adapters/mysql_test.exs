@@ -160,7 +160,7 @@ defmodule Ecto.Adapters.MySQLTest do
   end
 
   test "union and union all" do
-    base_query = Schema |> select([r], r.x) |> order_by([r], r.x) |> offset(10) |> limit(5)
+    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
     union_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     union_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
@@ -170,7 +170,7 @@ defmodule Ecto.Adapters.MySQLTest do
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
                ~s{UNION (SELECT s0.`y` FROM `schema` AS s0 ORDER BY s0.`y` LIMIT 40 OFFSET 20) } <>
                ~s{UNION (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
+               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
 
     query = base_query |> union_all(^union_query1) |> union_all(^union_query2) |> plan()
 
@@ -178,11 +178,11 @@ defmodule Ecto.Adapters.MySQLTest do
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
                ~s{UNION ALL (SELECT s0.`y` FROM `schema` AS s0 ORDER BY s0.`y` LIMIT 40 OFFSET 20) } <>
                ~s{UNION ALL (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
+               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
   end
 
   test "except and except all" do
-    base_query = Schema |> select([r], r.x) |> order_by([r], r.x) |> offset(10) |> limit(5)
+    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
     except_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     except_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
@@ -192,7 +192,7 @@ defmodule Ecto.Adapters.MySQLTest do
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
                ~s{EXCEPT (SELECT s0.`y` FROM `schema` AS s0 ORDER BY s0.`y` LIMIT 40 OFFSET 20) } <>
                ~s{EXCEPT (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
+               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
 
     query = base_query |> except_all(^except_query1) |> except_all(^except_query2) |> plan()
 
@@ -200,11 +200,11 @@ defmodule Ecto.Adapters.MySQLTest do
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
                ~s{EXCEPT ALL (SELECT s0.`y` FROM `schema` AS s0 ORDER BY s0.`y` LIMIT 40 OFFSET 20) } <>
                ~s{EXCEPT ALL (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
+               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
   end
 
   test "intersect and intersect all" do
-    base_query = Schema |> select([r], r.x) |> order_by([r], r.x) |> offset(10) |> limit(5)
+    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
     intersect_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     intersect_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
@@ -214,7 +214,7 @@ defmodule Ecto.Adapters.MySQLTest do
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
                ~s{INTERSECT (SELECT s0.`y` FROM `schema` AS s0 ORDER BY s0.`y` LIMIT 40 OFFSET 20) } <>
                ~s{INTERSECT (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
+               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
 
     query =
       base_query |> intersect_all(^intersect_query1) |> intersect_all(^intersect_query2) |> plan()
@@ -223,7 +223,7 @@ defmodule Ecto.Adapters.MySQLTest do
              ~s{SELECT s0.`x` FROM `schema` AS s0 } <>
                ~s{INTERSECT ALL (SELECT s0.`y` FROM `schema` AS s0 ORDER BY s0.`y` LIMIT 40 OFFSET 20) } <>
                ~s{INTERSECT ALL (SELECT s0.`z` FROM `schema` AS s0 ORDER BY s0.`z` LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY s0.`x` LIMIT 5 OFFSET 10}
+               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
   end
 
   test "limit and offset" do
@@ -429,7 +429,6 @@ defmodule Ecto.Adapters.MySQLTest do
             |> union(^union)
             |> union_all(^union_all)
             |> order_by([], fragment("?", ^5))
-            |> order_by([], ^:x)
             |> limit([], ^6)
             |> offset([], ^7)
             |> plan()
@@ -440,7 +439,7 @@ defmodule Ecto.Adapters.MySQLTest do
       "GROUP BY ?, ? HAVING (?) AND (?) " <>
       "UNION (SELECT s0.`id`, ? FROM `schema1` AS s0 WHERE (?)) " <>
       "UNION ALL (SELECT s0.`id`, ? FROM `schema2` AS s0 WHERE (?)) " <>
-      "ORDER BY ?, s0.`x` LIMIT ? OFFSET ?"
+      "ORDER BY ? LIMIT ? OFFSET ?"
 
     assert all(query) == String.trim(result)
   end
