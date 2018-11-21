@@ -259,8 +259,6 @@ defmodule Ecto.Adapters.SQL do
 
     * `:timeout` - The time in milliseconds to wait for a query to finish,
       `:infinity` will wait indefinitely (default: 15_000)
-    * `:pool_timeout` - The time in milliseconds to wait for a call to the pool
-      to finish, `:infinity` will wait indefinitely (default: 5_000)
     * `:log` - When false, does not log the query
     * `:max_rows` - The number of rows to load from the database as we stream
 
@@ -308,9 +306,6 @@ defmodule Ecto.Adapters.SQL do
 
     * `:timeout` - The time in milliseconds to wait for a query to finish,
       `:infinity` will wait indefinitely. (default: 15_000)
-    * `:pool_timeout` - The time in milliseconds to wait for a call to the pool
-      to finish, `:infinity` will wait indefinitely. (default: 5_000)
-
     * `:log` - When false, does not log the query
 
   ## Examples
@@ -443,7 +438,7 @@ defmodule Ecto.Adapters.SQL do
     telemetry = {log, loggers, telemetry_prefix ++ [:query]}
 
     config = adapter_config(config)
-    opts = Keyword.take(config, [:timeout, :pool, :pool_size, :pool_timeout])
+    opts = Keyword.take(config, [:timeout, :pool, :pool_size])
     meta = %{telemetry: telemetry, sql: connection, opts: opts}
     {:ok, connection.child_spec(config), meta}
   end

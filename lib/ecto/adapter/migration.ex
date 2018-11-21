@@ -50,8 +50,6 @@ defmodule Ecto.Adapter.Migration do
 
     * `:timeout` - The time in milliseconds to wait for the query call to
       finish, `:infinity` will wait indefinitely (default: 15000);
-    * `:pool_timeout` - The time in milliseconds to wait for calls to the pool
-      to finish, `:infinity` will wait indefinitely (default: 5000);
 
   """
   @callback execute_ddl(adapter_meta, command, options :: Keyword.t()) ::

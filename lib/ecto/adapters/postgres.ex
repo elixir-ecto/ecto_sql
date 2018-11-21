@@ -37,7 +37,6 @@ defmodule Ecto.Adapters.Postgres do
     * `:maintenance_database` - Specifies the name of the database to connect to when
       creating or dropping the database. Defaults to `"postgres"`
     * `:pool` - The connection pool module, defaults to `DBConnection.ConnectionPool`
-    * `:pool_timeout` - The default timeout to use on pool calls, defaults to `5000`
     * `:timeout` - The default timeout to use on queries, defaults to `15000`
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
