@@ -47,7 +47,7 @@ defmodule Ecto.Adapters.SQL.Connection do
               Enum.t
 
   @doc """
-  Receives the exception returned by `query/4`.
+  Receives the exception returned by `c:query/4`.
 
   The constraints are in the keyword list and must return the
   constraint type, like `:unique`, and the constraint name as

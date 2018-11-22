@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
   """
 
-  @doc false
+  @impl true
   def run(args, migrations \\ &Ecto.Migrator.migrations/2, puts \\ &IO.puts/1) do
     repos = parse_repo(args)
 

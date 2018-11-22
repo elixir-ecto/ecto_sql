@@ -2,7 +2,7 @@ defmodule Ecto.Adapters.MySQL do
   @moduledoc """
   Adapter module for MySQL.
 
-  It uses `mariaex` for communicating to the database.
+  It uses `Mariaex` for communicating to the database.
   Currently it supports old MySQL versions but upcoming
   Ecto releases will require 5.7+.
 
