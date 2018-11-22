@@ -438,6 +438,15 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp adapter_config(config) do
+    if Keyword.has_key?(config, :pool_timeout) do
+      message = """
+      :pool_timeout option no longer has an effect and has been replaced with an improved queuing system.
+      See \"Queue config\" in DBConnection.start_link/2 documentation for more information.
+      """
+
+      IO.warn(message)
+    end
+
     config
     |> Keyword.delete(:name)
     |> Keyword.update(:pool, DBConnection.ConnectionPool, &normalize_pool/1)
