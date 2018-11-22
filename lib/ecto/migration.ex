@@ -39,7 +39,7 @@ defmodule Ecto.Migration do
 
   Ecto provides some mix tasks to help developers work with migrations:
 
-    * `mix ecto.gen.migration add_weather_table` - generates a
+    * `mix ecto.gen.migration` - generates a
       migration that the user can fill in with particular commands
     * `mix ecto.migrate` - migrates a repository
     * `mix ecto.rollback` - rolls back a particular migration

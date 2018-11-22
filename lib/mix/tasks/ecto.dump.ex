@@ -42,6 +42,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-q`, `--quiet` - run the command quietly
   """
 
+  @impl true
   def run(args) do
     {opts, _, _} =
       OptionParser.parse args, switches: @switches, aliases: @aliases

@@ -48,6 +48,7 @@ defmodule Mix.Tasks.Ecto.Load do
 
   """
 
+  @impl true
   def run(args) do
     {opts, _, _} =
       OptionParser.parse args, switches: @switches, aliases: @aliases

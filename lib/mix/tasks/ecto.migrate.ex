@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
   """
 
-  @doc false
+  @impl true
   def run(args, migrator \\ &Ecto.Migrator.run/4) do
     repos = parse_repo(args)
 

@@ -22,12 +22,9 @@ defmodule Ecto.Adapters.SQL do
 
   To interface with migrations, developers typically use mix tasks:
 
-    * [`mix ecto.migrations`](`Mix.Tasks.Ecto.Migrations`) -
-      lists all available migrations and their status
-    * [`mix ecto.migrate`](`Mix.Tasks.Ecto.Migrate`) -
-      runs a migration
-    * [`mix ecto.rollback`](`Mix.Tasks.Ecto.Rollback`) -
-      rolls back a previously run migration
+    * `mix ecto.migrations` - lists all available migrations and their status
+    * `mix ecto.migrate` - runs a migration
+    * `mix ecto.rollback` - rolls back a previously run migration
 
   If you want to run migrations programatically, see `Ecto.Migrator`.
 
@@ -43,14 +40,11 @@ defmodule Ecto.Adapters.SQL do
   structure and make it reproducible from within Ecto. This can be
   achieved with two Mix tasks:
 
-    * [`mix ecto.load`](`Mix.Tasks.Ecto.Load`) -
-      loads an existing structure into the database
-    * [`mix ecto.rollback`](`Mix.Tasks.Ecto.Rollback`) -
-      dumps the existing database structure to the filesystem
+    * `mix ecto.load` - loads an existing structure into the database
+    * `mix ecto.rollback` - dumps the existing database structure to the filesystem
 
-  For creating and dropping databases, see [`mix ecto.create`](`Mix.Tasks.Ecto.Create`)
-  and [`mix ecto.drop`](`Mix.Tasks.Ecto.Drop`) that are included as part
-  of Ecto.
+  For creating and dropping databases, see `mix ecto.create`
+  and `mix ecto.drop` that are included as part of Ecto.
 
   ## Custom adapters
 

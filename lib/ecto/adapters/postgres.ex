@@ -2,7 +2,7 @@ defmodule Ecto.Adapters.Postgres do
   @moduledoc """
   Adapter module for PostgreSQL.
 
-  It uses `postgrex` for communicating to the database.
+  It uses `Postgrex` for communicating to the database.
 
   ## Features
 

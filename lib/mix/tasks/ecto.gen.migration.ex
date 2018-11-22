@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
   @switches [change: :string]
 
-  @doc false
+  @impl true
   def run(args) do
     no_umbrella!("ecto.gen.migration")
     repos = parse_repo(args)
