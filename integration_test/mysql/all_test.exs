@@ -6,6 +6,11 @@ Code.require_file "#{ecto}/integration_test/cases/preload.exs", __DIR__
 Code.require_file "#{ecto}/integration_test/cases/repo.exs", __DIR__
 Code.require_file "#{ecto}/integration_test/cases/type.exs", __DIR__
 
+# TODO:
+# if TestHelper.mysql_8?() do
+#   Code.require_file "#{ecto}/integration_test/cases/windows.exs", __DIR__
+# end
+
 Code.require_file "../sql/alter.exs", __DIR__
 Code.require_file "../sql/lock.exs", __DIR__
 Code.require_file "../sql/logging.exs", __DIR__

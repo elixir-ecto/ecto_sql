@@ -1,12 +1,30 @@
 Logger.configure(level: :info)
 
-# :modify_column is supported on MySQL 5.7
-# windows.exs is supported on MySQL 8.0
-# but that is not yet supported in travis.
-ExUnit.start exclude: [:array_type, :read_after_writes, :returning, :modify_column,
-                       :strict_savepoint, :create_index_if_not_exists, :aggregate_filters,
-                       :transaction_isolation, :rename_column, :with_conflict_target,
-                       :map_boolean_in_expression]
+defmodule TestHelper do
+  def mysql_8?() do
+    case System.get_env("MYSQLVERSION") do
+      "8." <> _ -> true
+      _ -> false
+    end
+  end
+end
+
+excludes = [
+  :array_type,
+  :read_after_writes,
+  :returning,
+  :strict_savepoint,
+  :create_index_if_not_exists,
+  :aggregate_filters,
+  :transaction_isolation,
+  :rename_column,
+  :with_conflict_target,
+  :map_boolean_in_expression
+]
+
+excludes = if TestHelper.mysql_8?(), do: excludes -- [:rename_column], else: excludes
+
+ExUnit.start exclude: excludes
 
 # Configure Ecto for support and tests
 Application.put_env(:ecto, :primary_key_type, :id)
