@@ -1,31 +1,5 @@
 Logger.configure(level: :info)
 
-defmodule TestHelper do
-  def mysql_8?() do
-    case System.get_env("MYSQLVERSION") do
-      "8." <> _ -> true
-      _ -> false
-    end
-  end
-end
-
-excludes = [
-  :array_type,
-  :read_after_writes,
-  :returning,
-  :strict_savepoint,
-  :create_index_if_not_exists,
-  :aggregate_filters,
-  :transaction_isolation,
-  :rename_column,
-  :with_conflict_target,
-  :map_boolean_in_expression
-]
-
-excludes = if TestHelper.mysql_8?(), do: excludes -- [:rename_column], else: excludes
-
-ExUnit.start exclude: excludes
-
 # Configure Ecto for support and tests
 Application.put_env(:ecto, :primary_key_type, :id)
 Application.put_env(:ecto, :async_integration_tests, false)
@@ -91,8 +65,38 @@ end
 _   = Ecto.Adapters.MySQL.storage_down(TestRepo.config)
 :ok = Ecto.Adapters.MySQL.storage_up(TestRepo.config)
 
-{:ok, _pid} = TestRepo.start_link
-{:ok, _pid} = PoolRepo.start_link
+{:ok, _pid} = TestRepo.start_link()
+{:ok, _pid} = PoolRepo.start_link()
+
+%{rows: [[version]]} = TestRepo.query!("SELECT @@version", [])
+
+version =
+  case Regex.named_captures(~r/(?<major>[0-9]*)(\.(?<minor>[0-9]*))?.*/, version) do
+    %{"major" => major, "minor" => minor} -> "#{major}.#{minor}.0"
+    %{"major" => major} -> "#{major}.0.0"
+    _other -> version
+  end
+
+excludes = [
+  :array_type,
+  :read_after_writes,
+  :returning,
+  :strict_savepoint,
+  :create_index_if_not_exists,
+  :aggregate_filters,
+  :transaction_isolation,
+  :with_conflict_target,
+  :map_boolean_in_expression
+]
+
+if Version.match?(version, ">= 8.0.0") do
+  ExUnit.configure(exclude: excludes)
+else
+  ExUnit.configure(exclude: [:rename_column | excludes])
+end
+
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)
 Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
 Process.flag(:trap_exit, true)
+
+ExUnit.start()

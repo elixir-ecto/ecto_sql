@@ -1,5 +1,4 @@
 Logger.configure(level: :info)
-ExUnit.start
 
 # Configure Ecto for support and tests
 Application.put_env(:ecto, :primary_key_type, :id)
@@ -67,8 +66,8 @@ end
 _   = Ecto.Adapters.Postgres.storage_down(TestRepo.config)
 :ok = Ecto.Adapters.Postgres.storage_up(TestRepo.config)
 
-{:ok, _pid} = TestRepo.start_link
-{:ok, _pid} = PoolRepo.start_link
+{:ok, _pid} = TestRepo.start_link()
+{:ok, _pid} = PoolRepo.start_link()
 
 %{rows: [[version]]} = TestRepo.query!("SHOW server_version", [])
 
@@ -89,3 +88,5 @@ end
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)
 Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
 Process.flag(:trap_exit, true)
+
+ExUnit.start()
