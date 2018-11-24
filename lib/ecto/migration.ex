@@ -194,6 +194,9 @@ defmodule Ecto.Migration do
 
   """
 
+  @callback after_begin() :: term
+  @callback before_commit() :: term
+
   defmodule Index do
     @moduledoc """
     Used internally by adapters.
@@ -278,6 +281,12 @@ defmodule Ecto.Migration do
       import Ecto.Migration
       @disable_ddl_transaction false
       @before_compile Ecto.Migration
+
+      def after_begin(), do: :ok
+
+      def before_commit(), do: :ok
+
+      defoverridable after_begin: 0, before_commit: 0
     end
   end
 

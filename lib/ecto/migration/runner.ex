@@ -23,7 +23,9 @@ defmodule Ecto.Migration.Runner do
     metadata(runner, opts)
 
     log(level, "== Running #{version} #{inspect module}.#{operation}/0 #{direction}")
-    {time1, _} = :timer.tc(module, operation, [])
+    {time1, _} = :timer.tc(fn ->
+      perform_operation(module, operation)
+    end)
     {time2, _} = :timer.tc(&flush/0, [])
     time = time1 + time2
     log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
@@ -263,6 +265,19 @@ defmodule Ecto.Migration.Runner do
   end
 
   ## Helpers
+
+  defp perform_operation(module, operation) do
+    if module.__migration__[:disable_ddl_transaction] do
+      apply(module, operation, [])
+    else
+      try do
+        module.after_begin()
+        apply(module, operation, [])
+      after
+        module.before_commit()
+      end
+    end
+  end
 
   defp runner do
     case Process.get(:ecto_migration) do
