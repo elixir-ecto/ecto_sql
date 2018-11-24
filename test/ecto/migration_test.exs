@@ -80,7 +80,9 @@ defmodule Ecto.MigrationTest do
     assert references("posts") ==
            %Reference{table: "posts", column: :id, type: :bigserial}
     assert references(:posts, type: :uuid, column: :other) ==
-           %Reference{table: "posts", column: :other, type: :uuid}
+           %Reference{table: "posts", column: :other, type: :uuid, prefix: nil}
+    assert references(:posts, type: :uuid, column: :other, prefix: :blog) ==
+           %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
   end
 
   test "creates a constraint" do

@@ -828,14 +828,14 @@ if Code.ensure_loaded?(Mariaex) do
     defp constraint_expr(%Reference{} = ref, table, name),
       do: [", ADD CONSTRAINT ", reference_name(ref, table, name),
            " FOREIGN KEY (", quote_name(name), ?),
-           " REFERENCES ", quote_table(table.prefix, ref.table),
+           " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
            ?(, quote_name(ref.column), ?),
            reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
 
     defp reference_expr(%Reference{} = ref, table, name),
       do: [", CONSTRAINT ", reference_name(ref, table, name),
            " FOREIGN KEY (", quote_name(name), ?),
-           " REFERENCES ", quote_table(table.prefix, ref.table),
+           " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
            ?(, quote_name(ref.column), ?),
            reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
 

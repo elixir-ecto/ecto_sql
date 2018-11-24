@@ -988,13 +988,13 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp reference_expr(%Reference{} = ref, table, name),
       do: [" CONSTRAINT ", reference_name(ref, table, name), " REFERENCES ",
-           quote_table(table.prefix, ref.table), ?(, quote_name(ref.column), ?),
+           quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
            reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
 
     defp constraint_expr(%Reference{} = ref, table, name),
       do: [", ADD CONSTRAINT ", reference_name(ref, table, name), ?\s,
-           "FOREIGN KEY (", quote_name(name),
-           ") REFERENCES ", quote_table(table.prefix, ref.table), ?(, quote_name(ref.column), ?),
+           "FOREIGN KEY (", quote_name(name), ") REFERENCES ",
+           quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
            reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
 
     defp drop_constraint_expr(%Reference{} = ref, table, name),

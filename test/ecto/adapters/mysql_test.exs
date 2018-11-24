@@ -857,7 +857,8 @@ defmodule Ecto.Adapters.MySQLTest do
                 {:add, :category_1, %Reference{table: :categories, name: :foo_bar}, []},
                 {:add, :category_2, %Reference{table: :categories, on_delete: :nothing}, []},
                 {:add, :category_3, %Reference{table: :categories, on_delete: :delete_all}, [null: false]},
-                {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []}]}
+                {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
+                {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all}, []}]}
 
     assert execute_ddl(create) == ["""
     CREATE TABLE `posts` (`id` bigint unsigned not null auto_increment,
@@ -871,6 +872,8 @@ defmodule Ecto.Adapters.MySQLTest do
     CONSTRAINT `posts_category_3_fkey` FOREIGN KEY (`category_3`) REFERENCES `categories`(`id`) ON DELETE CASCADE,
     `category_4` BIGINT UNSIGNED,
     CONSTRAINT `posts_category_4_fkey` FOREIGN KEY (`category_4`) REFERENCES `categories`(`id`) ON DELETE SET NULL,
+    `category_5` BIGINT UNSIGNED,
+    CONSTRAINT `posts_category_5_fkey` FOREIGN KEY (`category_5`) REFERENCES `foo`.`categories`(`id`) ON DELETE SET NULL,
     PRIMARY KEY (`id`)) ENGINE = INNODB
     """ |> remove_newlines]
   end
