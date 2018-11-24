@@ -1160,6 +1160,16 @@ defmodule Ecto.Adapters.MySQLTest do
     assert execute_ddl(rename) == [~s|RENAME TABLE `foo`.`posts` TO `foo`.`new_posts`|]
   end
 
+  test "rename column" do
+    rename = {:rename, table(:posts), :given_name, :first_name}
+    assert execute_ddl(rename) == [~s|ALTER TABLE `posts` RENAME COLUMN `given_name` TO `first_name`|]
+  end
+
+  test "rename column in prefixed table" do
+    rename = {:rename, table(:posts, prefix: :foo), :given_name, :first_name}
+    assert execute_ddl(rename) == [~s|ALTER TABLE `foo`.`posts` RENAME COLUMN `given_name` TO `first_name`|]
+  end
+
   # Unsupported types and clauses
 
   test "lateral join with fragment" do
