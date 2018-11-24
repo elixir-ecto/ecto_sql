@@ -81,7 +81,6 @@ excludes = [
   :array_type,
   :read_after_writes,
   :returning,
-  :strict_savepoint,
   :create_index_if_not_exists,
   :aggregate_filters,
   :transaction_isolation,
