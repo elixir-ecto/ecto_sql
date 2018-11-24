@@ -242,8 +242,8 @@ defmodule Ecto.Migration do
 
     To define a reference in a migration, see `Ecto.Migration.references/2`.
     """
-    defstruct name: nil, table: nil, column: :id, type: :bigserial, on_delete: :nothing, on_update: :nothing
-    @type t :: %__MODULE__{table: String.t, column: atom, type: atom, on_delete: atom, on_update: atom}
+    defstruct name: nil, prefix: nil, table: nil, column: :id, type: :bigserial, on_delete: :nothing, on_update: :nothing
+    @type t :: %__MODULE__{table: String.t, prefix: atom | nil, column: atom, type: atom, on_delete: atom, on_update: atom}
   end
 
   defmodule Constraint do
@@ -889,6 +889,8 @@ defmodule Ecto.Migration do
     * `:name` - The name of the underlying reference, which defaults to
       "#{table}_#{column}_fkey".
     * `:column` - The foreign key column name, which defaults to `:id`.
+    * `:prefix` - The prefix for the reference. Defaults to the reference
+      of the table if present, or `nil`.
     * `:type` - The foreign key type, which defaults to `:bigserial`.
     * `:on_delete` - What to do if the referenced entry is deleted. May be
       `:nothing` (default), `:delete_all`, `:nilify_all`, or `:restrict`.
