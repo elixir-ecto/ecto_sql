@@ -21,4 +21,4 @@ If you can, please provide an example repository that reproduces the error that 
 
 ### Expected behavior
 
-Describe expected behaviour
+Describe expected behavior.
