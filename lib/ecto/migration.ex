@@ -194,8 +194,9 @@ defmodule Ecto.Migration do
 
   """
 
-  @optional_callback after_begin() :: term
-  @optional_callback before_commit() :: term
+  @callback after_begin() :: term
+  @callback before_commit() :: term
+  @optional_callbacks after_begin: 0, before_commit: 0
 
   defmodule Index do
     @moduledoc """

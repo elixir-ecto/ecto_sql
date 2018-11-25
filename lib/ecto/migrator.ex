@@ -190,7 +190,19 @@ defmodule Ecto.Migrator do
     else
       {:ok, result} =
         repo.transaction(
-          fn -> send_and_receive(parent, ref, fun.()) end,
+          fn ->
+            if function_exported?(module, :after_begin, 0) do
+              module.after_begin()
+            end
+
+            result = send_and_receive(parent, ref, fun.())
+
+            if function_exported?(module, :before_commit, 0) do
+              module.before_commit()
+            end
+
+            result
+          end,
           log: false, timeout: :infinity
         )
 
