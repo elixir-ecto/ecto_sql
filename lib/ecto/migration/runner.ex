@@ -270,12 +270,17 @@ defmodule Ecto.Migration.Runner do
     if module.__migration__[:disable_ddl_transaction] do
       apply(module, operation, [])
     else
-      try do
+      if function_exported?(module, :after_begin, 0) do
         module.after_begin()
-        apply(module, operation, [])
-      after
+      end
+
+      result = apply(module, operation, [])
+
+      if function_exported?(module, :before_commit, 0) do
         module.before_commit()
       end
+
+      result
     end
   end
 
