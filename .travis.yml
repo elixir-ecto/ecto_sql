@@ -22,10 +22,8 @@ before_install:
 
   - sudo chmod 777 -R /var/run/mysqld
   - docker run --name mysql-$MYSQLVERSION -p 3306:3306 --volume /var/run/mysqld:/var/run/mysqld -e MYSQL_ALLOW_EMPTY_PASSWORD=1 -d mysql:$MYSQLVERSION --default-authentication-plugin=mysql_native_password
-  # wait for container to start
-  - sleep 20
   - mysql --version
-  - mysql -uroot -e "select @@version;"
+  - until mysql -u root -e "SELECT @@version;"; do sleep 1; done
 sudo: required
 dist: trusty
 cache: apt
