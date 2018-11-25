@@ -36,7 +36,7 @@ matrix:
 env:
   global:
     - PGVERSION=9.6
-    - MYSQLVERSION=8.0.13
+    - MYSQLVERSION=8.0
   matrix:
     - ECTO_ADAPTER=none
     - ECTO_ADAPTER=pg PGVERSION=9.2
