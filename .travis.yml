@@ -8,8 +8,9 @@ addons:
     sources:
       - mysql-5.7-trusty
     packages:
-      - mysql-server
       - mysql-client
+services:
+  - docker
 before_install:
   - sudo service postgresql stop
   - sudo apt-get -y -qq --purge remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common
@@ -18,6 +19,11 @@ before_install:
   - wget --quiet -O - http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo apt-key add -
   - sudo apt-get update -qq
   - sudo apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::="--force-confnew" install postgresql-$PGVERSION postgresql-contrib-$PGVERSION
+
+  - sudo chmod 777 -R /var/run/mysqld
+  - docker run --name mysql-$MYSQLVERSION -p 3306:3306 --volume /var/run/mysqld:/var/run/mysqld -e MYSQL_ALLOW_EMPTY_PASSWORD=1 -d mysql:$MYSQLVERSION --default-authentication-plugin=mysql_native_password
+  - mysql --version
+  - until mysql -u root -e "SELECT @@version;"; do sleep 1; done
 sudo: required
 dist: trusty
 cache: apt
@@ -30,11 +36,13 @@ matrix:
 env:
   global:
     - PGVERSION=9.6
+    - MYSQLVERSION=8.0
   matrix:
     - ECTO_ADAPTER=none
     - ECTO_ADAPTER=pg PGVERSION=9.2
     - ECTO_ADAPTER=pg
     - ECTO_ADAPTER=mysql
+    - ECTO_ADAPTER=mysql MYSQLVERSION=5.7
 install:
   - mix local.hex --force
   - mix local.rebar --force
@@ -45,8 +53,6 @@ before_script:
   - echo "host all postgrex_md5_pw 127.0.0.1/32 md5" | sudo tee -a /etc/postgresql/$PGVERSION/main/pg_hba.conf
   - echo "host all postgrex_cleartext_pw 127.0.0.1/32 password" | sudo tee -a /etc/postgresql/$PGVERSION/main/pg_hba.conf
   - sudo service postgresql restart
-  - sudo mysql_upgrade
-  - sudo service mysql --full-restart
 notifications:
   recipients:
     - jose.valim@plataformatec.com.br
