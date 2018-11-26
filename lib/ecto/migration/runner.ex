@@ -267,15 +267,7 @@ defmodule Ecto.Migration.Runner do
   ## Helpers
 
   defp perform_operation(repo, module, operation) do
-    # TODO: Test adapter can never trigger this case, so how do we test it?
-    in_transaction? =
-      try do
-        repo.in_transaction?()
-      rescue
-        _ -> false
-      end
-
-    if in_transaction? do
+    if repo.in_transaction?() do
       if function_exported?(module, :after_begin, 0) do
         module.after_begin()
       end
