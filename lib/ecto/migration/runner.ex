@@ -23,9 +23,7 @@ defmodule Ecto.Migration.Runner do
     metadata(runner, opts)
 
     log(level, "== Running #{version} #{inspect module}.#{operation}/0 #{direction}")
-    {time1, _} = :timer.tc(fn ->
-      perform_operation(repo, module, operation)
-    end)
+    {time1, _} = :timer.tc(fn -> perform_operation(repo, module, operation) end)
     {time2, _} = :timer.tc(&flush/0, [])
     time = time1 + time2
     log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
