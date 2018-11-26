@@ -1233,7 +1233,9 @@ defmodule Ecto.Adapters.PostgresTest do
               {:modify, :status, :string, from: :integer},
               {:modify, :user_id, :integer, from: %Reference{table: :users}},
               {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
-              {:remove, :summary}]}
+              {:remove, :summary},
+              {:remove, :body, :text, []},
+              {:remove, :space_id, %Reference{table: :author}, []}]}
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE "posts"
@@ -1253,7 +1255,10 @@ defmodule Ecto.Adapters.PostgresTest do
     DROP CONSTRAINT "posts_group_id_fkey",
     ALTER COLUMN "group_id" TYPE bigint,
     ADD CONSTRAINT "posts_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "groups"("gid"),
-    DROP COLUMN "summary"
+    DROP COLUMN "summary",
+    DROP COLUMN "body",
+    DROP CONSTRAINT "posts_space_id_fkey",
+    DROP COLUMN "space_id"
     """ |> remove_newlines]
   end
 

@@ -862,7 +862,9 @@ defmodule Ecto.Migration do
   Removes a column in a reversible way when altering a table.
 
   `type` and `opts` are exactly the same as in `add/3`, and
-  they are only used when the command is reversed.
+  they are used when the command is reversed.
+
+  If the `type` value is a `%Reference{}`, it is used to remove the constraint.
 
   ## Examples
 
@@ -872,6 +874,7 @@ defmodule Ecto.Migration do
 
   """
   def remove(column, type, opts \\ []) when is_atom(column) do
+    validate_type!(type)
     Runner.subcommand {:remove, column, type, opts}
   end
 
