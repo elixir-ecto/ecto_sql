@@ -487,7 +487,7 @@ defmodule Ecto.MigratorTest do
       assert log =~ "before_commit_down"
     end
 
-    test "are not run when the migration is disabled" do
+    test "are not run when the transaction is disabled" do
       log = capture_log(fn ->
         assert up(TestRepo, 10, MigrationWithCallbacksAndNoTransaction) == :ok
       end)

@@ -23,7 +23,9 @@ defmodule Ecto.Migration.Runner do
     metadata(runner, opts)
 
     log(level, "== Running #{version} #{inspect module}.#{operation}/0 #{direction}")
-    {time1, _} = :timer.tc(module, operation, [])
+    {time1, _} = :timer.tc(fn ->
+      perform_operation(repo, module, operation)
+    end)
     {time2, _} = :timer.tc(&flush/0, [])
     time = time1 + time2
     log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
@@ -263,6 +265,32 @@ defmodule Ecto.Migration.Runner do
   end
 
   ## Helpers
+
+  defp perform_operation(repo, module, operation) do
+    # TODO: Test adapter can never trigger this case, so how do we test it?
+    in_transaction? =
+      try do
+        repo.in_transaction?()
+      rescue
+        _ -> false
+      end
+
+    if in_transaction? do
+      if function_exported?(module, :after_begin, 0) do
+        module.after_begin()
+      end
+
+      result = apply(module, operation, [])
+
+      if function_exported?(module, :before_commit, 0) do
+        module.before_commit()
+      end
+
+      result
+    else
+      apply(module, operation, [])
+    end
+  end
 
   defp runner do
     case Process.get(:ecto_migration) do
