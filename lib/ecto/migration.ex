@@ -872,6 +872,7 @@ defmodule Ecto.Migration do
 
   """
   def remove(column, type, opts \\ []) when is_atom(column) do
+    validate_type!(type)
     Runner.subcommand {:remove, column, type, opts}
   end
 
