@@ -16,7 +16,9 @@ defmodule EctoSQL.MixProject do
           MyXQL,
           Ecto.Adapters.MyXQL.Connection,
           Postgrex,
-          Ecto.Adapters.Postgres.Connection
+          Ecto.Adapters.Postgres.Connection,
+          Tds,
+          Ecto.Adapters.MsSql.Connection
         ]
       ],
 
