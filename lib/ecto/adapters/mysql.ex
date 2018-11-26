@@ -113,7 +113,9 @@ defmodule Ecto.Adapters.MySQL do
   """
 
   # Inherit all behaviour from Ecto.Adapters.SQL
-  use Ecto.Adapters.SQL, :mariaex
+  use Ecto.Adapters.SQL,
+    driver: :mariaex,
+    migration_lock: "FOR UPDATE"
 
   # And provide a custom storage implementation
   @behaviour Ecto.Adapter.Storage
