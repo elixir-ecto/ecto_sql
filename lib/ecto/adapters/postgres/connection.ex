@@ -880,6 +880,10 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_change(_table, {:remove, name}), do: ["DROP COLUMN ", quote_name(name)]
+    defp column_change(table, {:remove, name, %Reference{} = ref, _opts}) do
+      [drop_constraint_expr(ref, table, name), "DROP COLUMN ", quote_name(name)]
+    end
+    defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP COLUMN ", quote_name(name)]
 
     defp modify_null(name, opts) do
       case Keyword.get(opts, :null) do

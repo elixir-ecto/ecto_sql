@@ -255,6 +255,7 @@ defmodule Ecto.MigrationTest do
       add :summary, :text
       modify :title, :text
       remove :views
+      remove :status, :string
     end
     flush()
 
@@ -262,7 +263,8 @@ defmodule Ecto.MigrationTest do
            {:alter, %Table{name: "posts"},
               [{:add, :summary, :text, []},
                {:modify, :title, :text, []},
-               {:remove, :views}]}
+               {:remove, :views},
+               {:remove, :status, :string, []}]}
   end
 
   test "forward: removing a reference column (remove/3 called)" do

@@ -1042,7 +1042,9 @@ defmodule Ecto.Adapters.MySQLTest do
                 {:modify, :status, :string, from: :integer},
                 {:modify, :user_id, :integer, from: %Reference{table: :users}},
                 {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
-                {:remove, :summary}]}
+                {:remove, :summary},
+                {:remove, :body, :text, []},
+                {:remove, :space_id, %Reference{table: :author}, []}]}
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE `posts` ADD `title` varchar(100) DEFAULT 'Untitled' NOT NULL,
@@ -1057,7 +1059,10 @@ defmodule Ecto.Adapters.MySQLTest do
     DROP FOREIGN KEY `posts_group_id_fkey`,
     MODIFY `group_id` BIGINT UNSIGNED,
     ADD CONSTRAINT `posts_group_id_fkey` FOREIGN KEY (`group_id`) REFERENCES `groups`(`gid`),
-    DROP `summary`
+    DROP `summary`,
+    DROP `body`,
+    DROP FOREIGN KEY `posts_space_id_fkey`,
+    DROP `space_id`
     """ |> remove_newlines]
   end
 
