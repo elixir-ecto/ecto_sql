@@ -14,7 +14,6 @@ defmodule EctoSQL.TestAdapter do
 
   def checkout(_, _, _), do: raise "not implemented"
   def delete(_, _, _, _), do: raise "not implemented"
-  def in_transaction?(_), do: raise "not implemented"
   def insert_all(_, _, _, _, _, _, _), do: raise "not implemented"
   def rollback(_, _), do: raise "not implemented"
   def stream(_, _, _, _, _), do: raise "not implemented"
@@ -47,9 +46,15 @@ defmodule EctoSQL.TestAdapter do
     {:ok, []}
   end
 
+  def in_transaction?(_), do: Process.get(:in_transaction?) || false
+
   def transaction(_mod, _opts, fun) do
+    Process.put(:in_transaction?, true)
     send test_process(), {:transaction, fun}
+
     {:ok, fun.()}
+  after
+    Process.put(:in_transaction?, false)
   end
 
   ## Migrations
