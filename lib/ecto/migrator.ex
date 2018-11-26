@@ -189,7 +189,8 @@ defmodule Ecto.Migrator do
       send_and_receive(parent, ref, fun.())
     else
       {:ok, result} =
-        repo.transaction(fn -> send_and_receive(parent, ref, fun.()) end,
+        repo.transaction(
+          fn -> send_and_receive(parent, ref, fun.()) end,
           log: false, timeout: :infinity
         )
 
