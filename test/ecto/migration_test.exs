@@ -265,6 +265,14 @@ defmodule Ecto.MigrationTest do
                {:remove, :views}]}
   end
 
+  test "forward: removing a reference column (remove/3 called)" do
+    alter table(:posts) do
+      remove :author_id, references(:authors), []
+    end
+    flush()
+    assert {:alter, %Table{name: "posts"}, [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+  end
+
   test "forward: alter numeric column without specifying precision" do
     assert_raise ArgumentError, "column cost is missing precision option", fn ->
       alter table(:posts) do
@@ -643,6 +651,14 @@ defmodule Ecto.MigrationTest do
     end
     flush()
     assert {:alter, %Table{name: "posts"}, [{:add, :title, :string, []}]} = last_command()
+  end
+
+  test "backward: removing a reference column (remove/3 called)" do
+    alter table(:posts) do
+      remove :author_id, references(:authors), []
+    end
+    flush()
+    assert {:alter, %Table{name: "posts"}, [{:add, :author_id, %Reference{table: "authors"}, []}]} = last_command()
   end
 
   test "backward: rename column" do
