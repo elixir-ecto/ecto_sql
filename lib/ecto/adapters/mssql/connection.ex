@@ -17,11 +17,9 @@ if Code.ensure_loaded?(Tds) do
     """
     @spec connect(opts :: Keyword.t()) :: {module, Keyword.t()}
     def connect(opts) do
-      opts =
-        opts
-        |> Keyword.put_new(:port, @default_port)
-
-      Tds.Protocol.connect(opts)
+      opts
+      |> Keyword.put_new(:port, @default_port)
+      |> Tds.Protocol.connect()
     end
 
     @doc false
@@ -148,7 +146,7 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
-    defp prepare_param(%Tagged{value: _, tag: Tds.UUID} = p),
+    defp prepare_param(%Tagged{value: _, tag: Tds.Types.UUID} = p),
       do: prepare_param(%{p | type: :uuid})
 
     # any binary
@@ -190,8 +188,8 @@ if Code.ensure_loaded?(Tds) do
     defp prepare_raw_param({_, :varchar} = value), do: value
     defp prepare_raw_param(value), do: {value, nil}
 
-    defp json_library do
-      Application.get_env(:ecto, :json_library)
+    defp json_library() do
+      Application.get_env(:tds, :json_library)
     end
 
     ## Query

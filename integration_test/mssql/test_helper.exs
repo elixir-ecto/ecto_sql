@@ -8,7 +8,6 @@ ExUnit.start exclude: [:assigns_id_type, :array_type, :case_sensitive,
 Application.put_env(:ecto, :primary_key_type, :id)
 Application.put_env(:ecto, :async_integration_tests, false)
 Application.put_env(:ecto_sql, :lock_for_update, "FOR UPDATE")
-Application.put_env(:ecto_sql, :migration_lock, nil)
 
 # Load support files
 ecto = Mix.Project.deps_paths[:ecto]
@@ -21,13 +20,11 @@ alias Ecto.Integration.TestRepo
 Application.put_env(
   :ecto_sql,
   TestRepo,
-  migration_lock: nil, # todo: remove this once cursors are implemented in TDS
   hostname: System.get_env("SQL_HOSTNAME") || "localhost",
   username: System.get_env("SQL_USERNAME") || "sa",
   password: System.get_env("SQL_PASSWORD") || "some!Password",
   database: "ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 11,
   set_allow_snapshot_isolation: :on,
   filter_null_on_unique_indexes: true
 )
@@ -41,13 +38,11 @@ alias Ecto.Integration.PoolRepo
 Application.put_env(
   :ecto_sql,
   PoolRepo,
-  migration_lock: nil, # todo: remove this once cursors are implemented in TDS
   adapter: Ecto.Adapters.MsSql,
   hostname: System.get_env("SQL_HOSTNAME") || "localhost",
   username: System.get_env("SQL_USERNAME") || "sa",
   password: System.get_env("SQL_PASSWORD") || "some!Password",
   database: "ecto_test",
-  pool_size: 11,
   set_allow_snapshot_isolation: :on
 )
 
@@ -82,4 +77,3 @@ _   = Ecto.Adapters.MsSql.storage_down(TestRepo.config)
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)
 Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
 Process.flag(:trap_exit, true)
-
