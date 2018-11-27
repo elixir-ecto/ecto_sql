@@ -108,11 +108,11 @@ defmodule Ecto.MigratorTest do
   defmodule EmptyModule do
   end
 
-  defmodule TestSchemaRepo do
+  defmodule MigrationSourceRepo do
     use Ecto.Repo, otp_app: :ecto_sql, adapter: EctoSQL.TestAdapter
   end
 
-  Application.put_env(:ecto_sql, TestSchemaRepo, [migration_source: "my_schema_migrations"])
+  Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
 
   setup do
     Process.put(:migrated_versions, [1, 2, 3])
@@ -129,7 +129,7 @@ defmodule Ecto.MigratorTest do
 
   test "custom schema migrations table is right" do
     assert SchemaMigration.get_source(TestRepo) == "schema_migrations"
-    assert SchemaMigration.get_source(TestSchemaRepo) == "my_schema_migrations"
+    assert SchemaMigration.get_source(MigrationSourceRepo) == "my_schema_migrations"
   end
 
   test "logs migrations" do
@@ -467,6 +467,10 @@ defmodule Ecto.MigratorTest do
   end
 
   describe "migration callbacks" do
+    setup do
+      put_test_adapter_config(supports_ddl_transaction?: true)
+    end
+
     test "both run when in a transaction going up" do
       log = capture_log(fn ->
         assert up(TestRepo, 10, MigrationWithCallbacks) == :ok
