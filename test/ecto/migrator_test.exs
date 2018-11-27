@@ -67,6 +67,40 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  defmodule MigrationWithCallbacks do
+    use Ecto.Migration
+
+    def after_begin() do
+      execute "after_begin", "after_begin_down"
+    end
+
+    def before_commit() do
+      execute "before_commit", "before_commit_down"
+    end
+
+    def change do
+      create index(:posts, [:foo])
+    end
+  end
+
+  defmodule MigrationWithCallbacksAndNoTransaction do
+    use Ecto.Migration
+
+    @disable_ddl_transaction true
+
+    def after_begin() do
+      execute "after_begin", "after_begin_down"
+    end
+
+    def before_commit() do
+      execute "before_commit", "before_commit_down"
+    end
+
+    def change do
+      create index(:posts, [:foo])
+    end
+  end
+
   defmodule InvalidMigration do
     use Ecto.Migration
   end
@@ -429,6 +463,37 @@ defmodule Ecto.MigratorTest do
 
     test "version migrations stop even if asked to exceed available" do
       assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 15, log: false) == [13, 14]
+    end
+  end
+
+  describe "migration callbacks" do
+    test "both run when in a transaction going up" do
+      log = capture_log(fn ->
+        assert up(TestRepo, 10, MigrationWithCallbacks) == :ok
+      end)
+
+      assert log =~ "after_begin"
+      assert log =~ "before_commit"
+    end
+
+    test "are both run in a transaction going down" do
+      assert up(TestRepo, 10, MigrationWithCallbacks, log: false) == :ok
+
+      log = capture_log(fn ->
+        assert down(TestRepo, 10, MigrationWithCallbacks) == :ok
+      end)
+
+      assert log =~ "after_begin_down"
+      assert log =~ "before_commit_down"
+    end
+
+    test "are not run when the transaction is disabled" do
+      log = capture_log(fn ->
+        assert up(TestRepo, 10, MigrationWithCallbacksAndNoTransaction) == :ok
+      end)
+
+      refute log =~ "after_begin"
+      refute log =~ "before_commit"
     end
   end
 end

@@ -34,6 +34,29 @@ defmodule Ecto.Adapters.SQL do
   test in a transaction, making sure the tests are isolated and can
   run concurrently. See `Ecto.Adapters.SQL.Sandbox` for more information.
 
+  ## Transaction Callbacks
+
+  There are use cases that dictate adding some common behavior after beginning a
+  migration transaction, or before commiting that transaction. For instance, one
+  might desire to set a `lock_timeout` for each lock in the transaction.
+
+  Another way these might be leveraged is by defining a custom migration module
+  so that these callbacks will run for *all* of your migrations, if you have special
+  requirements.
+
+      defmodule MyApp.Migration do
+        defmacro __using__(_) do
+          use Ecto.Migration
+
+          def after_begin() do
+            execute "SET lock_timeout TO '5s'", "SET lock_timeout TO '10s'"
+          end
+        end
+      end
+
+  Then in your migrations you can `use MyApp.Migration` to share this behavior
+  among all your migrations.
+
   ## Structure load and dumping
 
   If you have an existing database, you may want to dump its existing
