@@ -46,8 +46,7 @@ defmodule Ecto.Adapters.MySQL do
 
       socket_options: [recbuf: 8192, sndbuf: 8192]
 
-  We also recommend developers to consult the
-  [Mariaex documentation](https://hexdocs.pm/mariaex/Mariaex.html#start_link/1)
+  We also recommend developers to consult the `Mariaex.start_link/1` documentation
   for a complete listing of all supported options.
 
   ### Storage options

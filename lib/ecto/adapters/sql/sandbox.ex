@@ -229,8 +229,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       config :my_app, MyApp.Repo,
         ownership_timeout: NEW_TIMEOUT_IN_MILLISECONDS
 
-  The `:ownership_timeout` option is part of
-  [`DBConnection.Ownership`](https://hexdocs.pm/db_connection/DBConnection.Ownership.html)
+  The `:ownership_timeout` option is part of `DBConnection.Ownership`
   and defaults to 60000ms. Timeouts are given as integers in milliseconds.
 
   Alternately, if this is an issue for only a handful of long-running tests,
