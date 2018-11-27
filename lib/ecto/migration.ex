@@ -194,7 +194,20 @@ defmodule Ecto.Migration do
 
   """
 
+  @doc """
+  Migration code to run immediately after the transaction is opened.
+
+  Keep in mind that it is treated like any normal migration code, and should
+  consider both the up *and* down cases of the migration.
+  """
   @callback after_begin() :: term
+
+  @doc """
+  Migration code to run immediately before the transaction is closed.
+
+  Keep in mind that it is treated like any normal migration code, and should
+  consider both the up *and* down cases of the migration.
+  """
   @callback before_commit() :: term
   @optional_callbacks after_begin: 0, before_commit: 0
 
