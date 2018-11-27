@@ -146,6 +146,9 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
+    defp prepare_param(%Tagged{value: _, tag: Tds.Types.VarChar} = p),
+      do: prepare_param(%{p | type: :varchar})
+
     defp prepare_param(%Tagged{value: _, tag: Tds.Types.UUID} = p),
       do: prepare_param(%{p | type: :uuid})
 
@@ -162,10 +165,26 @@ if Code.ensure_loaded?(Tds) do
       {value, :decimal}
     end
 
+    defp prepare_param(%NaiveDateTime{}=value) do
+      {value, :datetime}
+    end
+
+    defp prepare_param(%DateTime{}=value) do
+      {value, :datetime2}
+    end
+
+    defp prepare_param(%Date{}=value) do
+      {value, :date}
+    end
+
+    defp prepare_param(%Time{}=value) do
+      {value, :time}
+    end
+
     defp prepare_param(%{__struct__: module} = _value) do
       # just in case dumpers/loaders are not defined for the this struct
       raise Tds.Error,
-            "Tds is unable to convert struct #{inspect({module})} into supported MsSql types"
+            "Tds is unable to convert struct `#{inspect(module)}` into supported MsSql types"
     end
 
     defp prepare_param(%{} = value), do: {json_library().encode!(value), :string}

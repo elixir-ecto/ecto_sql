@@ -53,16 +53,18 @@ defmodule Ecto.Adapters.MsSql do
 
   """
   require Tds
-  use Ecto.Adapters.SQL, :tds
+  use Ecto.Adapters.SQL,
+    driver: :tds,
+    migration_lock: nil
+
   @behaviour Ecto.Adapter.Storage
 
   ## Custom MSSQL types
 
   @doc false
-  def autogenerate(:binary_id) do
-    Tds.Types.UUID.bingenerate()
-  end
-  def autogenerate(type), do: super(type)
+  def autogenerate(:binary_id), do: Tds.Types.UUID.bingenerate()
+  def autogenerate(:embed_id),  do: Tds.Types.UUID.generate()
+  def autogenerate(type),       do: super(type)
 
   @doc false
   def loaders({:embed, _} = type, _), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
@@ -72,8 +74,9 @@ defmodule Ecto.Adapters.MsSql do
   def loaders(:binary_id, type),      do: [&Tds.Types.UUID.load/1, type]
   def loaders(_, type),               do: [type]
 
-  def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+  def dumpers(:uuid, type),           do: [type, &Tds.Types.UUID.dump/1]
   def dumpers(:binary_id, type),      do: [type, &Tds.Types.UUID.dump/1]
+  def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
   def dumpers(_, type),               do: [type]
 
   defp bool_decode(<<0>>),                do: {:ok, false}
@@ -85,7 +88,7 @@ defmodule Ecto.Adapters.MsSql do
   defp json_decode(x) when is_binary(x),  do: {:ok, json_library().decode!(x)}
   defp json_decode(x),                    do: {:ok, x}
 
-  defp json_library(), do: Application.get_env(:ecto, :json_library)
+  defp json_library(), do: Application.get_env(:tds, :json_library)
 
   # Storage API
   @doc false
