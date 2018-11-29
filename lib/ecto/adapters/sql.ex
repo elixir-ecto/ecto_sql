@@ -698,18 +698,20 @@ defmodule Ecto.Adapters.SQL do
   def lock_for_migrations(meta, query, opts, migration_lock, fun) do
     %{opts: adapter_opts} = meta
 
-    if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
-      raise_pool_size_error()
+    if lock = Keyword.get(adapter_opts, :migration_lock, migration_lock) do
+      if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
+        raise_pool_size_error()
+      end
+
+      {:ok, result} =
+        transaction(meta, opts ++ [log: false, timeout: :infinity], fn ->
+          query |> Map.put(:lock, lock) |> fun.()
+        end)
+
+      result
+    else
+      fun.(query)
     end
-
-    {:ok, result} =
-      transaction(meta, opts ++ [log: false, timeout: :infinity], fn ->
-        query
-        |> Map.put(:lock, Keyword.get(adapter_opts, :migration_lock, migration_lock))
-        |> fun.()
-      end)
-
-    result
   end
 
   defp raise_pool_size_error do

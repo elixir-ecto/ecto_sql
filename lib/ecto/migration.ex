@@ -202,8 +202,11 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_timestamps: [type: :utc_datetime]
 
-    * `:migration_lock` - By default, Ecto will lock the migration table to handle
-      concurrent migrators using `FOR UPDATE`, but you can configure it via:
+    * `:migration_lock` - By default, Ecto will lock the migration table. This allows
+      multiple nodes to attempt to run migrations at the same time but only one will
+      succeed. However, this does not play well with other features, such as the
+      `:concurrently` option in PostgreSQL indexes. You can disable the `migration_lock`
+      by setting it to `nil`:
 
           config :app, App.Repo, migration_lock: nil
 
@@ -560,8 +563,12 @@ defmodule Ecto.Migration do
   to `true` when the index is created/dropped.
 
   **Note**: in order for the `:concurrently` option to work, the migration must
-  not be run inside a transaction. See the `Ecto.Migration` docs for more
-  information on running migrations outside of a transaction.
+  not be run inside a transaction. This means you need to set both
+  `@disable_ddl_transaction true` and set the `:migration_lock` repository
+  configuration to nil. For those reasons, we do recommend to run migrations
+  with concurrent indexes in isolation and disable those features only temporarily.
+  See the `Ecto.Migration` docs for more information on running migrations outside
+  of a transaction.
 
   ## Index types
 
