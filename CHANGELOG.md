@@ -1,5 +1,18 @@
 # Changelog for v3.0
 
+## v3.0.3 (2018-11-29)
+
+## Enhancements
+
+  * [migration] Support `after_begin` and `before_commit` migration callbacks
+  * [migration] Add `:prefix` option to `references/2`
+
+## Bug fixes
+
+  * [migration] Do not start a transaction for migrated versions if there is no `:migration_lock`
+  * [migration] Fix removing an reference column inside alter table
+  * [migration] Warn on removed `:pool_timeout` option
+
 ## v3.0.2 (2018-11-20)
 
 ## Enhancements
