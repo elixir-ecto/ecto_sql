@@ -127,22 +127,9 @@ defmodule Ecto.Migration do
 
   For PostgreSQL, Ecto always runs migrations inside a transaction, but that's not
   always desired: for example, you cannot create/drop indexes concurrently inside
-  a transaction (see the [PostgreSQL docs](http://www.postgresql.org/docs/9.2/static/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY)).
-
-  Migrations can be forced to run outside a transaction by setting the
-  `@disable_ddl_transaction` module attribute to `true`:
-
-      defmodule MyRepo.Migrations.CreateIndexes do
-        use Ecto.Migration
-        @disable_ddl_transaction true
-
-        def change do
-          create index("posts", [:slug], concurrently: true)
-        end
-      end
-
-  Since running migrations outside a transaction can be dangerous, consider
-  performing very few operations in such migrations.
+  a transaction. Migrations can be forced to run outside a transaction by setting
+  the `@disable_ddl_transaction` module attribute to `true`. See the section about
+  concurrent in `index/3` for more information.
 
   ### Transaction Callbacks
 
@@ -559,16 +546,34 @@ defmodule Ecto.Migration do
 
   PostgreSQL supports adding/dropping indexes concurrently (see the
   [docs](http://www.postgresql.org/docs/9.4/static/sql-createindex.html)).
-  In order to take advantage of this, the `:concurrently` option needs to be set
-  to `true` when the index is created/dropped.
+  However, this feature does not work well with the transactions used by
+  Ecto to guarantee integrity during migrations.
 
-  **Note**: in order for the `:concurrently` option to work, the migration must
-  not be run inside a transaction. This means you need to set both
-  `@disable_ddl_transaction true` and set the `:migration_lock` repository
-  configuration to nil. For those reasons, we do recommend to run migrations
-  with concurrent indexes in isolation and disable those features only temporarily.
-  See the `Ecto.Migration` docs for more information on running migrations outside
-  of a transaction.
+  Therefore, to migrate indexes concurrently, you need to set
+  `@disable_ddl_transaction` in the migration to true, disabling the
+  guarantee that all of the changes in the migration will happen at
+  once:
+
+      defmodule MyRepo.Migrations.CreateIndexes do
+        use Ecto.Migration
+        @disable_ddl_transaction true
+
+        def change do
+          create index("posts", [:slug], concurrently: true)
+        end
+      end
+
+  And you also need to disable the migration lock for that repository:
+
+      config :my_app, MyApp.Repo, migration_lock: nil
+
+  The migration lock is used to guarantee that only one node in a cluster
+  can run migrations. Two nodes may attempt to race each other.
+
+  Since running migrations outside a transaction can be dangerous,
+  consider performing very few operations in migrations that add concurrent
+  indexes. We recommend to run migrations with concurrent indexes in isolation
+  and disable those features only temporarily.
 
   ## Index types
 
