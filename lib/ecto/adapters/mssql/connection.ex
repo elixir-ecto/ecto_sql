@@ -322,8 +322,12 @@ if Code.ensure_loaded?(Tds) do
         end)
 
       {filters, _count} =
-        Enum.map_reduce(filters, count, fn field, acc ->
-          {"#{quote_name(field)} = @#{acc}", acc + 1}
+        Enum.map_reduce(filters, count, fn
+          {field, nil}, acc ->
+            {"#{quote_name(field)} IS NULL", acc + 1}
+
+          {field, _value}, acc ->
+            {"#{quote_name(field)} = @#{acc}", acc + 1}
         end)
 
       "UPDATE #{quote_table(prefix, table)} SET " <>
@@ -333,8 +337,12 @@ if Code.ensure_loaded?(Tds) do
 
     def delete(prefix, table, filters, returning) do
       {filters, _} =
-        Enum.map_reduce(filters, 1, fn field, acc ->
-          {"#{quote_name(field)} = @#{acc}", acc + 1}
+        Enum.map_reduce(filters, 1, fn
+          {field, nil}, acc ->
+            {"#{quote_name(field)} IS NULL", acc + 1}
+
+          {field, _value}, acc ->
+            {"#{quote_name(field)} = @#{acc}", acc + 1}
         end)
 
       "DELETE FROM #{quote_table(prefix, table)}" <>
