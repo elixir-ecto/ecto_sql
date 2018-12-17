@@ -3,7 +3,7 @@ defmodule Ecto.Integration.Migration do
 
   def change do
     create table(:users, comment: "users table") do
-      add :name, :text, comment: "name column"
+      add :name, :string, comment: "name column"
       add :custom_id, :uuid
       timestamps()
     end
@@ -82,8 +82,9 @@ defmodule Ecto.Integration.Migration do
     end
 
     create table(:orders) do
+      add :instructions, :text
       add :item, :map
-      add :comment_id, references(:comments)
+      add :permalink_id, references(:permalinks)
     end
 
     unless :array_type in ExUnit.configuration[:exclude] do

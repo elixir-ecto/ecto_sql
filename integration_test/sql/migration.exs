@@ -1,7 +1,7 @@
 defmodule Ecto.Integration.MigrationTest do
   use ExUnit.Case, async: true
 
-  alias Ecto.Integration.PoolRepo
+  alias Ecto.Integration.{TestRepo, PoolRepo}
 
   defmodule CreateMigration do
     use Ecto.Migration
@@ -249,7 +249,7 @@ defmodule Ecto.Integration.MigrationTest do
     @prefix "ecto_prefix_test"
 
     def up do
-      execute PoolRepo.create_prefix(@prefix)
+      execute TestRepo.create_prefix(@prefix)
       create table(:first, prefix: @prefix)
       create table(:second, prefix: @prefix) do
         add :first_id, references(:first)
@@ -259,7 +259,7 @@ defmodule Ecto.Integration.MigrationTest do
     def down do
       drop table(:second, prefix: @prefix)
       drop table(:first, prefix: @prefix)
-      execute PoolRepo.drop_prefix(@prefix)
+      execute TestRepo.drop_prefix(@prefix)
     end
   end
 

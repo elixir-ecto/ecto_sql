@@ -7,7 +7,7 @@ defmodule Ecto.Integration.MigratorTest do
   import ExUnit.CaptureLog
   import Ecto.Migrator
 
-  alias Ecto.Integration.PoolRepo
+  alias Ecto.Integration.{TestRepo, PoolRepo}
   alias Ecto.Migration.SchemaMigration
 
   setup do
@@ -19,8 +19,8 @@ defmodule Ecto.Integration.MigratorTest do
     use Ecto.Migration
 
     def change do
-      execute PoolRepo.create_prefix("bad_schema_migrations"),
-              PoolRepo.drop_prefix("bad_schema_migrations")
+      execute TestRepo.create_prefix("bad_schema_migrations"),
+              TestRepo.drop_prefix("bad_schema_migrations")
 
       create table(:schema_migrations, prefix: "bad_schema_migrations") do
         add :version, :string
