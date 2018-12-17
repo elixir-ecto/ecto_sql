@@ -71,11 +71,10 @@ defmodule Ecto.Adapters.MsSql do
   def loaders({:map, _}, type),       do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
   def loaders(:map, type),            do: [&json_decode/1, type]
   def loaders(:boolean, type),        do: [&bool_decode/1, type]
-  def loaders(:binary_id, type),      do: [&Tds.Types.UUID.load/1, type]
+  def loaders(:binary_id, type),      do: [Tds.Types.UUID, type]
   def loaders(_, type),               do: [type]
 
-  def dumpers(:uuid, type),           do: [type, &Tds.Types.UUID.dump/1]
-  def dumpers(:binary_id, type),      do: [type, &Tds.Types.UUID.dump/1]
+  def dumpers(:binary_id, type),      do: [type, Tds.Types.UUID]
   def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
   def dumpers(_, type),               do: [type]
 
