@@ -74,8 +74,9 @@ defmodule Ecto.Adapters.MsSql do
   def loaders(:binary_id, type),      do: [Tds.Types.UUID, type]
   def loaders(_, type),               do: [type]
 
+  def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
+  def dumpers({:map, _} , type),      do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
   def dumpers(:binary_id, type),      do: [type, Tds.Types.UUID]
-  def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
   def dumpers(_, type),               do: [type]
 
   defp bool_decode(<<0>>),                do: {:ok, false}
@@ -87,7 +88,9 @@ defmodule Ecto.Adapters.MsSql do
   defp json_decode(x) when is_binary(x),  do: {:ok, json_library().decode!(x)}
   defp json_decode(x),                    do: {:ok, x}
 
-  defp json_library(), do: Application.get_env(:tds, :json_library)
+  defp json_encode(x),                    do: {:ok, json_library().encode!(x)}
+
+  defp json_library(), do: Application.get_env(:tds, :json_library) || Jason
 
   # Storage API
   @doc false
