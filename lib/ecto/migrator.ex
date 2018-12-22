@@ -313,8 +313,9 @@ defmodule Ecto.Migrator do
   defp lock_for_migrations(repo, opts, fun) do
     query = SchemaMigration.versions(repo, opts[:prefix])
     meta = Ecto.Adapter.lookup_meta(repo)
+    callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
 
-    case repo.__adapter__.lock_for_migrations(meta, query, opts, &fun.(repo.all(&1))) do
+    case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
       {kind, reason, stacktrace} ->
         :erlang.raise(kind, reason, stacktrace)
 
