@@ -14,7 +14,7 @@ defmodule Ecto.Adapters.MsSqlTest do
       field :x, :integer
       field :y, :integer
       field :z, :integer
-      field :w, {:array, :integer}
+      field :w, :decimal
 
       has_many :comments, Ecto.Adapters.MsSqlTest.Model2,
         references: :x,
@@ -101,6 +101,20 @@ defmodule Ecto.Adapters.MsSqlTest do
     assert SQL.all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
   end
 
+  test "select with operation" do
+    query = Model |> select([r], r.x * 2) |> plan
+    assert SQL.all(query) == ~s{SELECT m0.[x] * 2 FROM [model] AS m0}
+
+    query = Model |> select([r], r.x / 2) |> plan
+    assert SQL.all(query) == ~s{SELECT m0.[x] / 2 FROM [model] AS m0}
+
+    query = Model |> select([r], r.x + 2) |> plan
+    assert SQL.all(query) == ~s{SELECT m0.[x] + 2 FROM [model] AS m0}
+
+    query = Model |> select([r], r.x - 2) |> plan
+    assert SQL.all(query) == ~s{SELECT m0.[x] - 2 FROM [model] AS m0}
+  end
+
   test "distinct" do
     query = Model |> distinct([r], true) |> select([r], {r.x, r.y}) |> plan
     assert SQL.all(query) == ~s{SELECT DISTINCT m0.[x], m0.[y] FROM [model] AS m0}
@@ -125,7 +139,7 @@ defmodule Ecto.Adapters.MsSqlTest do
       Model |> where([r], r.x == 42) |> where([r], r.y != 43) |> select([r], r.x) |> plan
 
     assert SQL.all(query) ==
-             ~s{SELECT m0.[x] FROM [model] AS m0 WHERE (m0.[x] = 42) AND (m0.[y] != 43)}
+             ~s{SELECT m0.[x] FROM [model] AS m0 WHERE (m0.[x] = 42) AND (m0.[y] <> 43)}
   end
 
   test "order by" do
@@ -185,7 +199,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     assert SQL.all(query) == ~s{SELECT m0.[x] = 2 FROM [model] AS m0}
 
     query = Model |> select([r], r.x != 2) |> plan
-    assert SQL.all(query) == ~s{SELECT m0.[x] != 2 FROM [model] AS m0}
+    assert SQL.all(query) == ~s{SELECT m0.[x] <> 2 FROM [model] AS m0}
 
     query = Model |> select([r], r.x <= 2) |> plan
     assert SQL.all(query) == ~s{SELECT m0.[x] <= 2 FROM [model] AS m0}
@@ -572,8 +586,7 @@ defmodule Ecto.Adapters.MsSqlTest do
 
   # # DDL
 
-  import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3,
-                                constraint: 3]
+  import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3]
 
   test "executing a string during migration" do
     assert SQL.execute_ddl("example") == ["example"]

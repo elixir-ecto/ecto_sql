@@ -352,16 +352,9 @@ if Code.ensure_loaded?(Tds) do
     ## Query generation
 
     binary_ops = [
-      ==: "=",
-      !=: "!=",
-      <=: "<=",
-      >=: ">=",
-      <: "<",
-      >: ">",
-      and: "AND",
-      or: "OR",
-      ilike: "LIKE",
-      like: "LIKE"
+      ==: "=", !=: "<>", <=: "<=", >=: ">=", <: "<", >: ">",
+      +: "+", -: "-", *: "*", /: "/",
+      and: "AND", or: "OR", ilike: "LIKE", like: "LIKE"
     ]
 
     @binary_ops Keyword.keys(binary_ops)
@@ -662,7 +655,7 @@ if Code.ensure_loaded?(Tds) do
 
       error!(
         query,
-        "TDS Adapter does not support selecting all fields from #{table} without a schema. " <>
+        "MSSQL adapter does not support selecting all fields from #{table} without a schema. " <>
           "Please specify a schema or specify exactly which fields you want in projection"
       )
     end
@@ -673,7 +666,7 @@ if Code.ensure_loaded?(Tds) do
       if is_nil(schema) and is_nil(fields) do
         error!(
           query,
-          "TDS adapter requires a schema module when using selector #{inspect(name)} but " <>
+          "MSSQL adapter requires a schema module when using selector #{inspect(name)} but " <>
             "none was given. Please specify schema " <>
             "or specify exactly which fields from #{inspect(name)} you what in projection"
         )
@@ -715,12 +708,16 @@ if Code.ensure_loaded?(Tds) do
       "NOT (" <> expr(expr, sources, query) <> ")"
     end
 
+    defp expr({:filter, _, _}, _sources, query) do
+      error!(query, "MSSQL adapter does not support aggregate filters")
+    end
+
     defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
       all(query)
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
-      error!(query, "TDS adapter does not support keyword or interpolated fragments")
+      error!(query, "MSSQL adapter does not support keyword or interpolated fragments")
     end
 
     defp expr({:fragment, _, parts}, sources, query) do
@@ -967,7 +964,7 @@ if Code.ensure_loaded?(Tds) do
       prefix = index.prefix
 
       if index.using do
-        error!(nil, "TDS adapter does not support using in indexes.")
+        error!(nil, "MSSQL adapter does not support using in indexes.")
       end
 
       [
@@ -995,10 +992,10 @@ if Code.ensure_loaded?(Tds) do
     end
 
     def execute_ddl({:create, %Constraint{check: check}}) when is_binary(check),
-      do: error!(nil, "TDS adapter does not support check constraints")
+      do: error!(nil, "MSSQL adapter does not support check constraints")
 
     def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
-      do: error!(nil, "TDS adapter does not support exclusion constraints")
+      do: error!(nil, "MSSQL adapter does not support exclusion constraints")
 
     def execute_ddl({command, %Index{} = index}) when command in [:drop, :drop_if_exists] do
       prefix = index.prefix
@@ -1020,7 +1017,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     def execute_ddl({:drop, %Constraint{}}),
-      do: error!(nil, "TDS adapter does not support constraints")
+      do: error!(nil, "MSSQL adapter does not support constraints")
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
       [
@@ -1051,7 +1048,7 @@ if Code.ensure_loaded?(Tds) do
     def execute_ddl(string) when is_binary(string), do: [string]
 
     def execute_ddl(keyword) when is_list(keyword),
-      do: error!(nil, "TDS adapter does not support keyword lists in execute")
+      do: error!(nil, "MSSQL adapter does not support keyword lists in execute")
 
     defp pk_definitions(columns, prefix) do
       pks = for {_, name, _, opts} <- columns, opts[:primary_key], do: name
@@ -1236,7 +1233,7 @@ if Code.ensure_loaded?(Tds) do
     defp options_expr(nil), do: []
 
     defp options_expr(keyword) when is_list(keyword),
-      do: error!(nil, "TDS adapter does not support keyword lists in :options")
+      do: error!(nil, "MSSQL adapter does not support keyword lists in :options")
 
     defp options_expr(options), do: [" ", to_string(options)]
 

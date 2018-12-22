@@ -2,18 +2,19 @@ Logger.configure(level: :info)
 
 ExUnit.start(
   exclude: [
+    :aggregate_filters,
     # :assigns_id_type,
     :array_type,
     # :case_sensitive,
-    # :modify_foreign_key_on_update,
-    # :modify_foreign_key_on_delete,
+    :modify_foreign_key_on_update,
+    :modify_foreign_key_on_delete,
     # :uses_usec,
     # :lock_for_update,
     # :with_conflict_target,
     # :with_conflict_ignore
   ]
 )
-
+Application.put_env(:tds, :json_library, Jason)
 Application.put_env(:ecto, :primary_key_type, :id)
 Application.put_env(:ecto, :async_integration_tests, false)
 Application.put_env(:ecto_sql, :lock_for_update, "FOR UPDATE")
@@ -24,19 +25,12 @@ Application.put_env(
   "ecto://" <> (System.get_env("MSSQL_URL") || "sa:some!Password@localhost")
 )
 
-defmodule Ecto.Integration.AdapterTypes do
-  def uuid, do: Tds.Types.UUID
-end
-
-# Load support files
-ecto = Mix.Project.deps_paths()[:ecto]
-Code.require_file("#{ecto}/integration_test/support/schemas.exs", __DIR__)
-Code.require_file("../support/repo.exs", __DIR__)
-Code.require_file("../support/migration.exs", __DIR__)
-
 alias Ecto.Integration.TestRepo
 
 Application.put_env(:ecto_sql, :lock_for_update, "(UPDLOCK)")
+# Load support files
+ecto = Mix.Project.deps_paths()[:ecto]
+Code.require_file("../support/repo.exs", __DIR__)
 
 Application.put_env(
   :ecto_sql,
@@ -47,7 +41,25 @@ Application.put_env(
 
 defmodule Ecto.Integration.TestRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MsSql
+
+  def uuid, do: Tds.Types.UUID
+
+  def create_prefix(prefix) do
+    """
+    CREATE SCHEMA #{prefix};
+    """
+  end
+
+  def drop_prefix(prefix) do
+    """
+    DROP SCHEMA #{prefix};
+    """
+  end
 end
+
+
+Code.require_file("#{ecto}/integration_test/support/schemas.exs", __DIR__)
+Code.require_file("../support/migration.exs", __DIR__)
 
 alias Ecto.Integration.PoolRepo
 
