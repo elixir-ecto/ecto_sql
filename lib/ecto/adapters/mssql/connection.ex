@@ -328,6 +328,9 @@ if Code.ensure_loaded?(Tds) do
 
           {field, _value}, acc ->
             {"#{quote_name(field)} = @#{acc}", acc + 1}
+
+          field, acc ->
+            {"#{quote_name(field)} = @#{acc}", acc + 1}
         end)
 
       "UPDATE #{quote_table(prefix, table)} SET " <>
@@ -342,6 +345,9 @@ if Code.ensure_loaded?(Tds) do
             {"#{quote_name(field)} IS NULL", acc + 1}
 
           {field, _value}, acc ->
+            {"#{quote_name(field)} = @#{acc}", acc + 1}
+
+          field, acc ->
             {"#{quote_name(field)} = @#{acc}", acc + 1}
         end)
 
