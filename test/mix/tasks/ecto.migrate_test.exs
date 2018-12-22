@@ -107,6 +107,17 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
     assert Process.get(:started)
   end
 
+  test "runs the migrator with --step" do
+    run ["-r", to_string(Repo), "-n", "1"], fn repo, path, direction, opts ->
+      assert repo == Repo
+      refute path =~ ~r/_build/
+      assert direction == :up
+      assert opts == [step: 1]
+      []
+    end
+    assert Process.get(:started)
+  end
+
   test "raises when migrations path does not exist" do
     File.rm_rf!(@migrations_path)
     assert_raise Mix.Error, fn ->
