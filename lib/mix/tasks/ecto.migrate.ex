@@ -5,6 +5,25 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
   @shortdoc "Runs the repository migrations"
 
+  @aliases [
+    n: :step,
+    r: :repo
+  ]
+
+  @switches [
+    all: :boolean,
+    step: :integer,
+    to: :integer,
+    quiet: :boolean,
+    prefix: :string,
+    pool_size: :integer,
+    log_sql: :boolean,
+    strict_version_order: :boolean,
+    repo: [:keep, :string],
+    no_compile: :boolean,
+    no_deps_check: :boolean
+  ]
+
   @moduledoc """
   Runs the pending migrations for the given repository.
 
@@ -58,18 +77,15 @@ defmodule Mix.Tasks.Ecto.Migrate do
     * `--pool-size` - the pool size if the repository is started only for the task (defaults to 1)
     * `--log-sql` - log the raw sql migrations are running
     * `--strict-version-order` - abort when applying a migration with old timestamp
+    * `--no-compile` - does not compile applications before migrating
+    * `--no-deps-check` - does not check depedendencies before migrating
 
   """
 
   @impl true
   def run(args, migrator \\ &Ecto.Migrator.run/4) do
     repos = parse_repo(args)
-
-    {opts, _, _} = OptionParser.parse args,
-      switches: [all: :boolean, step: :integer, to: :integer, quiet: :boolean,
-                 prefix: :string, pool_size: :integer, log_sql: :boolean,
-                 strict_version_order: :boolean],
-      aliases: [n: :step]
+    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
 
     opts =
       if opts[:to] || opts[:step] || opts[:all],

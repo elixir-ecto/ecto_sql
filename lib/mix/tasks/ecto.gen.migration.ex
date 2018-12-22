@@ -8,6 +8,17 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
   @shortdoc "Generates a new migration for the repo"
 
+  @aliases [
+    r: :repo
+  ]
+
+  @switches [
+    change: :string,
+    repo: [:string, :keep],
+    no_compile: :boolean,
+    no_deps_check: :boolean
+  ]
+
   @moduledoc """
   Generates a migration.
 
@@ -33,10 +44,10 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   ## Command line options
 
     * `-r`, `--repo` - the repo to generate migration for
+    * `--no-compile` - does not compile applications before running
+    * `--no-deps-check` - does not check depedendencies before running
 
   """
-
-  @switches [change: :string]
 
   @impl true
   def run(args) do
@@ -44,8 +55,8 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
     repos = parse_repo(args)
 
     Enum.map repos, fn repo ->
-      case OptionParser.parse(args, switches: @switches) do
-        {opts, [name], _} ->
+      case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
+        {opts, [name]} ->
           ensure_repo(repo, args)
           path = Path.join(source_repo_priv(repo), "migrations")
           base_name = "#{underscore(name)}.exs"
@@ -66,7 +77,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
           file
 
-        {_, _, _} ->
+        {_, _} ->
           Mix.raise "expected ecto.gen.migration to receive the migration file name, " <>
                     "got: #{inspect Enum.join(args, " ")}"
       end

@@ -27,6 +27,8 @@ defmodule Mix.Tasks.Ecto.Migrations do
   ## Command line options
 
     * `-r`, `--repo` - the repo to obtain the status for
+    * `--no-compile` - does not compile applications before running
+    * `--no-deps-check` - does not check depedendencies before running
 
   """
 

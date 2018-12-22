@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Ecto.RollbackTest do
   end
 
   test "runs the migrator after starting repo" do
-    run ["-r", to_string(Repo), "--no-start"], fn _, _, _, _ ->
+    run ["-r", to_string(Repo)], fn _, _, _, _ ->
       Process.put(:migrated, true)
       []
     end
@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Ecto.RollbackTest do
   end
 
   test "runs the migrator with already started repo" do
-    run ["-r", to_string(StartedRepo), "--no-start"], fn _, _, _, _ ->
+    run ["-r", to_string(StartedRepo)], fn _, _, _, _ ->
       Process.put(:migrated, true)
       []
     end

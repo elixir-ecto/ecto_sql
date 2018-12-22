@@ -8,12 +8,16 @@ defmodule Mix.Tasks.Ecto.Dump do
 
   @aliases [
     d: :dump_path,
-    q: :quiet
+    q: :quiet,
+    r: :repo
   ]
 
   @switches [
     dump_path: :string,
-    quiet: :boolean
+    quiet: :boolean,
+    repo: [:string, :keep],
+    no_compile: :boolean,
+    no_deps_check: :boolean
   ]
 
   @moduledoc """
@@ -40,13 +44,13 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-r`, `--repo` - the repo to load the structure info from
     * `-d`, `--dump-path` - the path of the dump file to create
     * `-q`, `--quiet` - run the command quietly
+    * `--no-compile` - does not compile applications before dumping
+    * `--no-deps-check` - does not check depedendencies before dumping
   """
 
   @impl true
   def run(args) do
-    {opts, _, _} =
-      OptionParser.parse args, switches: @switches, aliases: @aliases
-
+    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
     opts = Keyword.merge(@default_opts, opts)
 
     Enum.each parse_repo(args), fn repo ->

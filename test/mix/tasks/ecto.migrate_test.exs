@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
 
   test "runs the migrator with app_repo config" do
     Application.put_env(:ecto_sql, :ecto_repos, [Repo])
-    run ["--no-start"], fn _, _, _, _ ->
+    run [], fn _, _, _, _ ->
       Process.put(:migrated, true)
       []
     end
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
   end
 
   test "runs the migrator after starting repo" do
-    run ["-r", to_string(Repo), "--no-start"], fn _, _, _, _ ->
+    run ["-r", to_string(Repo)], fn _, _, _, _ ->
       Process.put(:migrated, true)
       []
     end
@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
   end
 
   test "runs the migrator with the already started repo" do
-    run ["-r", to_string(StartedRepo), "--no-start"], fn _, _, _, _ ->
+    run ["-r", to_string(StartedRepo)], fn _, _, _, _ ->
       Process.put(:migrated, true)
       []
     end
@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
   end
 
   test "runs the migrator with two repos" do
-    run ["-r", to_string(Repo), "-r", to_string(StartedRepo), "--no-start"], fn _, _, _, _ ->
+    run ["-r", to_string(Repo), "-r", to_string(StartedRepo)], fn _, _, _, _ ->
       Process.put(:migrated, true)
       []
     end
@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
       assert repo == Repo
       refute path =~ ~r/_build/
       assert direction == :up
-      assert opts == [step: 1]
+      assert opts == [repo: "Elixir.Mix.Tasks.Ecto.MigrateTest.Repo", step: 1]
       []
     end
     assert Process.get(:started)

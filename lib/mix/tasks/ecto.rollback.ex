@@ -5,6 +5,25 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
   @shortdoc "Rolls back the repository migrations"
 
+  @aliases [
+    r: :repo,
+    n: :step
+  ]
+
+  @switches [
+    all: :boolean,
+    step: :integer,
+    to: :integer,
+    start: :boolean,
+    quiet: :boolean,
+    prefix: :string,
+    pool_size: :integer,
+    log_sql: :boolean,
+    repo: [:keep, :string],
+    no_compile: :boolean,
+    no_deps_check: :boolean
+  ]
+
   @moduledoc """
   Reverts applied migrations in the given repository.
 
@@ -55,17 +74,15 @@ defmodule Mix.Tasks.Ecto.Rollback do
     * `--prefix` - the prefix to run migrations on
     * `--pool-size` - the pool size if the repository is started only for the task (defaults to 1)
     * `--log-sql` - log the raw sql migrations are running
+    * `--no-compile` - does not compile applications before rolling back
+    * `--no-deps-check` - does not check depedendencies before rolling back
 
   """
 
   @impl true
   def run(args, migrator \\ &Ecto.Migrator.run/4) do
     repos = parse_repo(args)
-
-    {opts, _, _} = OptionParser.parse args,
-      switches: [all: :boolean, step: :integer, to: :integer, start: :boolean,
-                 quiet: :boolean, prefix: :string, pool_size: :integer, log_sql: :boolean],
-      aliases: [n: :step]
+    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
 
     opts =
       if opts[:to] || opts[:step] || opts[:all],

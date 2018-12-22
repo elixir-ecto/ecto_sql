@@ -9,13 +9,17 @@ defmodule Mix.Tasks.Ecto.Load do
   @aliases [
     d: :dump_path,
     f: :force,
-    q: :quiet
+    q: :quiet,
+    r: :repo
   ]
 
   @switches [
     dump_path: :string,
     force: :boolean,
-    quiet: :boolean
+    quiet: :boolean,
+    repo: [:string, :keep],
+    no_compile: :boolean,
+    no_deps_check: :boolean
   ]
 
   @moduledoc """
@@ -45,14 +49,14 @@ defmodule Mix.Tasks.Ecto.Load do
     * `-f`, `--force` - do not ask for confirmation when loading data.
       Configuration is asked only when `:start_permanent` is set to true
       (typically in production)
+    * `--no-compile` - does not compile applications before loading
+    * `--no-deps-check` - does not check depedendencies before loading
 
   """
 
   @impl true
   def run(args) do
-    {opts, _, _} =
-      OptionParser.parse args, switches: @switches, aliases: @aliases
-
+    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
     opts = Keyword.merge(@default_opts, opts)
 
     Enum.each parse_repo(args), fn repo ->
