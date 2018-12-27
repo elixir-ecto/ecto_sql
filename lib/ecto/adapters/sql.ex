@@ -41,7 +41,7 @@ defmodule Ecto.Adapters.SQL do
   achieved with two Mix tasks:
 
     * `mix ecto.load` - loads an existing structure into the database
-    * `mix ecto.rollback` - dumps the existing database structure to the filesystem
+    * `mix ecto.dump` - dumps the existing database structure to the filesystem
 
   For creating and dropping databases, see `mix ecto.create`
   and `mix ecto.drop` that are included as part of Ecto.
