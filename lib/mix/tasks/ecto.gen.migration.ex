@@ -9,12 +9,14 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   @shortdoc "Generates a new migration for the repo"
 
   @aliases [
-    r: :repo
+    r: :repo,
+    d: :subdir
   ]
 
   @switches [
     change: :string,
     repo: [:string, :keep],
+    subdir: :string,
     no_compile: :boolean,
     no_deps_check: :boolean
   ]
@@ -29,6 +31,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
       mix ecto.gen.migration add_posts_table
       mix ecto.gen.migration add_posts_table -r Custom.Repo
+      mix ecto.gen.migration add_posts_table -d blog
 
   The generated migration filename will be prefixed with the current
   timestamp in UTC which is used for versioning and ordering.
@@ -44,6 +47,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   ## Command line options
 
     * `-r`, `--repo` - the repo to generate migration for
+    * `-d`, `--subdir` - the subdirectory within the migration folder
     * `--no-compile` - does not compile applications before running
     * `--no-deps-check` - does not check depedendencies before running
 
@@ -58,7 +62,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
         {opts, [name]} ->
           ensure_repo(repo, args)
-          path = Path.join(source_repo_priv(repo), "migrations")
+          path = Path.join([source_repo_priv(repo), "migrations", opts[:subdir] || ""])
           base_name = "#{underscore(name)}.exs"
           file = Path.join(path, "#{timestamp()}_#{base_name}")
           unless File.dir?(path), do: create_directory path

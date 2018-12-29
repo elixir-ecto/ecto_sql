@@ -33,6 +33,15 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
     end
   end
 
+  test "generates a new migration within a subdirectory" do
+    [path] = run ["-r", to_string(Repo), "my_migration2", "-d", "mydomain"]
+    assert Path.dirname(path) == Path.join(@migrations_path, "mydomain")
+    assert Path.basename(path) =~ ~r/^\d{14}_my_migration2\.exs$/
+    assert_file path, fn file ->
+      assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.MyMigration2 do"
+    end
+  end
+
   test "underscores the filename when generating a migration" do
     run ["-r", to_string(Repo), "MyMigration"]
     assert [name] = File.ls!(@migrations_path)
