@@ -1,4 +1,5 @@
 defmodule Telemetry do
+  # TODO: Remove this deprecated module.
   @moduledoc false
 
   def attach(name, event, mod, fun, config) do
