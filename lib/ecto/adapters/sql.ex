@@ -454,8 +454,9 @@ defmodule Ecto.Adapters.SQL do
       """
     end
 
-    log = Keyword.get(config, :log, :debug)
+    # TODO: Remove deprecated loggers configuration
     loggers = Keyword.get(config, :loggers, [])
+    log = Keyword.get(config, :log, :debug)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {log, loggers, telemetry_prefix ++ [:query]}
 
