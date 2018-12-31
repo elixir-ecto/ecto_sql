@@ -773,6 +773,7 @@ defmodule Ecto.Adapters.SQL do
     query_string = String.Chars.to_string(query)
 
     entry = %{
+      type: :ecto_sql_query,
       query_time: query_time,
       decode_time: decode_time,
       queue_time: queue_time,
