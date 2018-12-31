@@ -9,7 +9,8 @@ defmodule Ecto.Integration.Repo do
                    |> Kernel.++([:query])
 
       def init(_, opts) do
-        Telemetry.attach_many(__MODULE__, [[:custom], @query_event], Ecto.Integration.Repo, :handle_event, :ok)
+        fun = &Ecto.Integration.Repo.handle_event/4
+        :telemetry.attach_many(__MODULE__, [[:custom], @query_event], fun, :ok)
         {:ok, opts}
       end
     end

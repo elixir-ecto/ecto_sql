@@ -1,3 +1,19 @@
+defmodule Telemetry do
+  @moduledoc false
+
+  def attach(name, event, mod, fun, config) do
+    IO.warn "Telemetry.attach(name, event, mod, fun, config) is deprecated in favor of " <>
+              ":telemetry.attach(name, event, &mod.fun/4, config)"
+    :telemetry.attach(name, event, &apply(mod, fun, [&1, &2, &3, &4]), config)
+  end
+
+  def attach_many(name, events, mod, fun, config) do
+    IO.warn "Telemetry.attach_many(name, events, mod, fun, config) is deprecated in favor of " <>
+              ":telemetry.attach_many(name, events, &mod.fun/4, config)"
+    :telemetry.attach_many(name, events, &apply(mod, fun, [&1, &2, &3, &4]), config)
+  end
+end
+
 defmodule Ecto.Adapters.SQL do
   @moduledoc """
   This application provides functionality for working with
@@ -767,7 +783,7 @@ defmodule Ecto.Adapters.SQL do
     total = (query_time || 0) + (decode_time || 0) + (queue_time || 0)
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
-      Telemetry.execute(event_name, total, entry)
+      :telemetry.execute(event_name, total, entry)
     end
 
     case Keyword.get(opts, :log, log) do
