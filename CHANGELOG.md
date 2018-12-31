@@ -1,13 +1,28 @@
 # Changelog for v3.0
 
+## v3.0.4 (2018-12-31)
+
+### Enhancements
+
+  * Bump telemetry dependency
+  * Perform strict argument parsing in `ecto.migrate`, `ecto.rollback`, `ecto.load` and `ecto.dump`
+
+### Bug fixes
+
+  * Do not log migration versions query
+
+### Deprecations
+
+  * `Telemetry.attach/5` and `Telemetry.attach_many/5` are deprecated in favor of `:telemetry.attach/5` and `:telemetry.attach_many/5`
+
 ## v3.0.3 (2018-11-29)
 
-## Enhancements
+### Enhancements
 
   * [migration] Support `after_begin` and `before_commit` migration callbacks
   * [migration] Add `:prefix` option to `references/2`
 
-## Bug fixes
+### Bug fixes
 
   * [migration] Do not start a transaction for migrated versions if there is no `:migration_lock`
   * [migration] Fix removing an reference column inside alter table
@@ -15,18 +30,18 @@
 
 ## v3.0.2 (2018-11-20)
 
-## Enhancements
+### Enhancements
 
   * [query] Support Ecto.Query in insert_all values
   * [migration] Add `Ecto.Migration.repo/0`
 
 ## v3.0.1 (2018-11-17)
 
-## Enhancements
+### Enhancements
 
   * [migrations] Support `drop_if_exists` for constraints
 
-## Bug fixes
+### Bug fixes
 
   * [migrations] Only commit migration transaction if migration can be inserted into the DB
   * [migrations] Do not run migrations from `_build` when using Mix

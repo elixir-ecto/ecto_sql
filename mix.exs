@@ -1,7 +1,7 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.0.3"
+  @version "3.0.4"
   @adapters ~w(pg mysql)
 
   def project do
@@ -44,7 +44,7 @@ defmodule EctoSQL.MixProject do
 
   defp deps do
     [
-      {:ecto, "~> 3.0.6-dev", ecto_opts()},
+      {:ecto, "~> 3.0.6", ecto_opts()},
       {:telemetry, "~> 0.3.0"},
 
       # Drivers
@@ -68,7 +68,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       [path: path]
     else
-      [github: "elixir-ecto/ecto"]
+      []
     end
   end
 
