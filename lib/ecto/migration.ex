@@ -70,9 +70,9 @@ defmodule Ecto.Migration do
   However, note that not all commands are reversible. Trying to rollback
   a non-reversible command will raise an `Ecto.MigrationError`.
 
-  A notable command in this regard is `execute/2`, which is reversible in `change/0` by accepting a pair
-  of plain SQL strings. The first is run on forward migrations (`up/0`)
-  and the second when rolling back (`down/0`).
+  A notable command in this regard is `execute/2`, which is reversible in
+  `change/0` by accepting a pair of plain SQL strings. The first is run on
+  forward migrations (`up/0`) and the second when rolling back (`down/0`).
 
   If `up/0` and `down/0` are implemented in a migration, they take precedence, and
   `change/0` isn't invoked.
