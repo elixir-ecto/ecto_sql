@@ -61,7 +61,6 @@ defmodule Mix.Tasks.Ecto.Rollback do
       mix ecto.rollback -n 3
       mix ecto.rollback --step 3
 
-      mix ecto.rollback -v 20080906120000
       mix ecto.rollback --to 20080906120000
 
   ## Command line options
