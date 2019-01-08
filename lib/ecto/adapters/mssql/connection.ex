@@ -191,7 +191,7 @@ if Code.ensure_loaded?(Tds) do
     defp prepare_param(value), do: prepare_raw_param(value)
 
     defp prepare_raw_param(value) when is_binary(value) do
-      type = if String.valid?(value), do: :string, else: :binary
+      type = if String.printable?(value), do: :string, else: :binary
       {value, type}
     end
 
@@ -1247,21 +1247,7 @@ if Code.ensure_loaded?(Tds) do
       size = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)
       scale = Keyword.get(opts, :scale)
-      type_name = ecto_to_db(type)
-
-      cond do
-        size ->
-          [type_name, "(", to_string(size), ")"]
-
-        precision ->
-          [type_name, "(", to_string(precision), ",", to_string(scale || 0), ")"]
-
-        type == :string ->
-          [type_name, "(255)"]
-
-        true ->
-          type_name
-      end
+      ecto_to_db(type, size, precision, scale)
     end
 
     defp constraint_expr(%Reference{} = ref, table, name) do
@@ -1378,27 +1364,46 @@ if Code.ensure_loaded?(Tds) do
       |> :binary.replace("'", "''", [:global])
     end
 
-    # defp ecto_cast_to_db(type, query), do: ecto_to_db(type, query)
-
-    defp ecto_to_db(type, query \\ nil)
-    defp ecto_to_db({:array, _}, query), do: error!(query, "Array type is not supported by TDS")
-    defp ecto_to_db(:id, _query), do: "bigint"
-    defp ecto_to_db(:serial, _query), do: "int IDENTITY(1,1)"
-    defp ecto_to_db(:bigserial, _query), do: "bigint IDENTITY(1,1)"
-    defp ecto_to_db(:binary_id, _query), do: "uniqueidentifier"
-    defp ecto_to_db(:boolean, _query), do: "bit"
-    defp ecto_to_db(:string, _query), do: "nvarchar"
-    defp ecto_to_db(:float, _query), do: "float"
-    defp ecto_to_db(:binary, _query), do: "varbinary"
-    defp ecto_to_db(:uuid, _query), do: "uniqueidentifier"
-    defp ecto_to_db(:map, _query), do: "nvarchar(max)"
-    defp ecto_to_db({:map, _}, _query), do: "nvarchar(max)"
-    defp ecto_to_db(:time_usec, _query),           do: "time"
-    defp ecto_to_db(:utc_datetime, _query), do: "datetime2"
-    defp ecto_to_db(:utc_datetime_usec, _query), do: "datetime2"
-    defp ecto_to_db(:naive_datetime, _query), do: "datetime"
-    defp ecto_to_db(:naive_datetime_usec, _query), do: "datetime2"
-    defp ecto_to_db(other, _query), do: Atom.to_string(other)
+    defp ecto_to_db(type, size, precision, scale, query \\ nil)
+    defp ecto_to_db({:array, _}, _, _, _, query),
+      do: error!(query, "Array type is not supported by TDS")
+    defp ecto_to_db(:id, _, _, _, _),                   do: "bigint"
+    defp ecto_to_db(:serial, _, _, _, _),               do: "int IDENTITY(1,1)"
+    defp ecto_to_db(:bigserial, _, _, _, _),            do: "bigint IDENTITY(1,1)"
+    defp ecto_to_db(:binary_id, _, _, _, _),            do: "uniqueidentifier"
+    defp ecto_to_db(:boolean, _, _, _, _),              do: "bit"
+    defp ecto_to_db(:string, size, _, _, _)
+      when is_integer(size) and size > 0,               do: "nvarchar(#{size})"
+    defp ecto_to_db(:string, :max, _, _, _),            do: "nvarchar(max)"
+    defp ecto_to_db(:string, _, _, _, _),               do: "nvarchar(255)"
+    defp ecto_to_db(:float, _, _, _, _),                do: "float"
+    defp ecto_to_db(:binary, size, _, _, _)
+      when is_integer(size) and size > 0,               do: "varbinary(#{size})"
+    defp ecto_to_db(:binary, :max, _, _, _),            do: "varbinary(max)"
+    defp ecto_to_db(:binary, nil, _, _, _),             do: "varbinary(2000)"
+    defp ecto_to_db(:uuid, _, _, _, _),                 do: "uniqueidentifier"
+    defp ecto_to_db(:map, size, _, _, _)
+      when is_integer(size) and size > 0,               do: "nvarchar(#{size})"
+    defp ecto_to_db(:map, :max, _, _, _),               do: "nvarchar(max)"
+    defp ecto_to_db(:map, _, _, _, _),                  do: "nvarchar(2000)"
+    defp ecto_to_db({:map, _}, size, _, _, _)
+      when is_integer(size) and size > 0,               do: "nvarchar(#{size})"
+    defp ecto_to_db({:map, _}, :max, _, _, _),          do: "nvarchar(max)"
+    defp ecto_to_db({:map, _}, _, _, _, _),             do: "nvarchar(2000)"
+    defp ecto_to_db(:time_usec, _, _, _, _),            do: "time"
+    defp ecto_to_db(:utc_datetime, _, _, _, _),         do: "datetime"
+    defp ecto_to_db(:utc_datetime_usec, _, _, _, _),    do: "datetime2"
+    defp ecto_to_db(:naive_datetime, _, _, _, _),       do: "datetime"
+    defp ecto_to_db(:naive_datetime_usec, _, _, _, _),  do: "datetime2"
+    defp ecto_to_db(other, size, _, _, _) when is_integer(size) do
+      "#{Atom.to_string(other)}(#{size})"
+    end
+    defp ecto_to_db(other, _, precision, scale, _) when is_integer(precision) do
+      "#{Atom.to_string(other)}(#{precision},#{scale || 0})"
+    end
+    defp ecto_to_db(other, nil, nil, nil, _) do
+      Atom.to_string(other)
+    end
 
     defp assemble(list) do
       list
