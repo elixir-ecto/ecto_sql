@@ -352,12 +352,14 @@ defmodule Ecto.Migrator do
   end
 
   defp pending_in_direction(versions, migration_source, :up) do
-    migrations_for(migration_source)
+    migration_source
+    |> migrations_for()
     |> Enum.filter(fn {version, _name, _file} -> not (version in versions) end)
   end
 
   defp pending_in_direction(versions, migration_source, :down) do
-    migrations_for(migration_source)
+    migration_source
+    |> migrations_for()
     |> Enum.filter(fn {version, _name, _file} -> version in versions end)
     |> Enum.reverse
   end
@@ -384,8 +386,8 @@ defmodule Ecto.Migrator do
   defp versions_without_file(versions, migration_source) do
     versions_with_file =
       migration_source
-      |> migrations_for
-      |> Enum.map(&elem(&1, 0))
+      |> migrations_for()
+      |> Enum.map(fn {version, _, _} -> version end)
 
     versions -- versions_with_file
   end
@@ -401,7 +403,7 @@ defmodule Ecto.Migrator do
 
   # This function will match specific version/modules passed into `Migrator.run`.
   defp migrations_for(migration_source) when is_list(migration_source) do
-    Enum.map migration_source, fn({version, module}) -> {version, module, :existing_module} end
+    Enum.map migration_source, fn {version, module} -> {version, module, module} end
   end
 
   defp extract_migration_info(file) do
@@ -429,15 +431,16 @@ defmodule Ecto.Migrator do
   end
 
   defp do_migrate(migrations, direction, repo, opts) do
-    Enum.reduce_while migrations, [], fn {version, name_or_mod, file}, versions ->
-      with {:ok, mod} <- extract_module(file, name_or_mod),
+    migrations
+    |> Enum.map(&load_migration/1)
+    |> Enum.reduce_while([], fn {version, file_or_mod, modules}, versions ->
+      with {:ok, mod} <- find_migration_module(modules, file_or_mod),
            :ok <- do_direction(direction, repo, version, mod, opts) do
         {:cont, [version | versions]}
       else
-        error ->
-          {:halt, error}
+        error -> {:halt, error}
       end
-    end
+    end)
   end
 
   defp do_direction(:up, repo, version, mod, opts) do
@@ -450,36 +453,40 @@ defmodule Ecto.Migrator do
   defp ensure_no_duplication([{version, name, _} | t]) do
     cond do
       List.keyfind(t, version, 0) ->
-        {:error, Ecto.MigrationError.exception(
-          "migrations can't be executed, migration version #{version} is duplicated")}
+        message = "migrations can't be executed, migration version #{version} is duplicated"
+        {:error, Ecto.MigrationError.exception(message)}
+
       List.keyfind(t, name, 1) ->
-        {:error, Ecto.MigrationError.exception(
-          "migrations can't be executed, migration name #{name} is duplicated")}
+        message = "migrations can't be executed, migration name #{name} is duplicated"
+        {:error, Ecto.MigrationError.exception(message)}
+
       true ->
         ensure_no_duplication(t)
     end
   end
+
   defp ensure_no_duplication([]), do: :ok
 
-  defp is_migration_module?({mod, _bin}), do: function_exported?(mod, :__migration__, 0)
-  defp is_migration_module?(mod), do: function_exported?(mod, :__migration__, 0)
+  defp find_migration_module(modules, file_or_mod) do
+    cond do
+      mod = Enum.find(modules, &function_exported?(&1, :__migration__, 0)) ->
+        {:ok, mod}
 
-  defp extract_module(:existing_module, mod) do
-    if is_migration_module?(mod) do
-      {:ok, mod}
-    else
-      {:error, Ecto.MigrationError.exception(
-        "module #{inspect mod} is not an Ecto.Migration")}
+      is_binary(file_or_mod) ->
+        message = "file #{Path.relative_to_cwd(file_or_mod)} does not define an Ecto.Migration"
+        {:error, Ecto.MigrationError.exception(message)}
+
+      is_atom(file_or_mod) ->
+        message = "module #{inspect(file_or_mod)} is not an Ecto.Migration"
+        {:error, Ecto.MigrationError.exception(message)}
     end
   end
-  defp extract_module(file, _name) do
-    modules = Code.load_file(file)
-    case Enum.find(modules, &is_migration_module?/1) do
-      {mod, _bin} -> {:ok, mod}
-      _otherwise -> {:error, Ecto.MigrationError.exception(
-                      "file #{Path.relative_to_cwd(file)} is not an Ecto.Migration")}
-    end
-  end
+
+  defp load_migration({version, _, mod}) when is_atom(mod),
+    do: {version, mod, [mod]}
+
+  defp load_migration({version, _, file}) when is_binary(file),
+    do: {version, file, Code.load_file(file) |> Enum.map(&elem(&1, 0))}
 
   defp verbose_schema_migration(repo, reason, fun) do
     try do

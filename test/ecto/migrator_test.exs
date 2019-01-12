@@ -229,7 +229,7 @@ defmodule Ecto.MigratorTest do
   test "fails if there is no migration in file" do
     in_tmp fn path ->
       File.write! "13_sample.exs", ":ok"
-      assert_raise Ecto.MigrationError, "file 13_sample.exs is not an Ecto.Migration", fn ->
+      assert_raise Ecto.MigrationError, "file 13_sample.exs does not define an Ecto.Migration", fn ->
         run(TestRepo, path, :up, all: true, log: false)
       end
     end
