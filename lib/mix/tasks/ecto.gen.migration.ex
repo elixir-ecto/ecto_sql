@@ -94,11 +94,22 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
   embed_template :migration, """
   defmodule <%= inspect @mod %> do
-    use TransportApi.Migration
+    use <%= libraryName() %>.Migration
 
     def change do
   <%= @change %>
     end
   end
   """
+  
+  defp libraryName() do
+    case Application.get_env(:ecto_sql, :migration_library) do
+      x when x != nil ->
+        x
+      _->
+        "Ecto"
+    end
+  end
+
+  
 end
