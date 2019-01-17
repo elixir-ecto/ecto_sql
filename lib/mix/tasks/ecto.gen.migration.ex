@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   defmodule <%= inspect @mod %> do
     use Ecto.Migration
 
-    def change do
+    def change() do
   <%= @change %>
     end
   end

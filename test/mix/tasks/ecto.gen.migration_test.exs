@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
     assert_file path, fn file ->
       assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.MyMigration do"
       assert file =~ "use Ecto.Migration"
-      assert file =~ "def change do"
+      assert file =~ "def change() do"
     end
   end
 
