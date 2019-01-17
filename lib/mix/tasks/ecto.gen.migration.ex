@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
   embed_template :migration, """
   defmodule <%= inspect @mod %> do
-    use Ecto.Migration
+    use TransportApi.Migration
 
     def change do
   <%= @change %>
