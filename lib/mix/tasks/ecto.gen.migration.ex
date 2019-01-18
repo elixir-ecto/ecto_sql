@@ -118,12 +118,9 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   """
   defp migration_module() do
     case Application.get_env(:ecto_sql, :migration_module) do
-      x when x != nil ->
-        x
-      _->
-        Ecto.Migration
+      nil -> Ecto.Migration
+      migration_module when is_atom(migration_module) -> migration_module
+      other -> raise "Expect :migration_module to be a module, got: #{inspect(other)}"
     end
   end
-
-  
 end
