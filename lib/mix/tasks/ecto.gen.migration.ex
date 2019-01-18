@@ -25,6 +25,12 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   The repository must be set under `:ecto_repos` in the
   current app configuration or given via the `-r` option.
 
+  If the current app configuration specifies a custom migration module
+  the generated migration code will use that rather than the default
+  Ecto.Migration
+
+    config :ecto_sql, migration_module: MyApplication.CustomMigrationModule
+
   ## Examples
 
       mix ecto.gen.migration add_posts_table
@@ -94,7 +100,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
   embed_template :migration, """
   defmodule <%= inspect @mod %> do
-    use <%= libraryName() %>.Migration
+    use <%=  inspect migration_module() %>
 
     def change do
   <%= @change %>
@@ -102,12 +108,20 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   end
   """
   
-  defp libraryName() do
-    case Application.get_env(:ecto_sql, :migration_library) do
+  @doc """
+  Looks in the application configuration file for a custom migration module to use when generating the migration file.
+  
+  ## Example
+    config :ecto_sql, migration_module: MyApplication.CustomMigrationModule
+
+  If a custom migration module is not defined in the configuration, returns the default Ecto.Migration
+  """
+  defp migration_module() do
+    case Application.get_env(:ecto_sql, :migration_module) do
       x when x != nil ->
         x
       _->
-        "Ecto"
+        Ecto.Migration
     end
   end
 

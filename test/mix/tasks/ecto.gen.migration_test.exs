@@ -33,6 +33,19 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
     end
   end
 
+  test "generates a new migration with Custom Migration Module" do
+    Application.put_env(:ecto_sql, :migration_module, MyCustomApp.MigrationModule)
+    [path] = run ["-r", to_string(Repo), "my_custom_migration"]
+    Application.delete_env(:ecto_sql, :migration_module)
+    assert Path.dirname(path) == @migrations_path
+    assert Path.basename(path) =~ ~r/^\d{14}_my_custom_migration\.exs$/
+    assert_file path, fn file ->
+      assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.MyCustomMigration do"
+      assert file =~ "use MyCustomApp.MigrationModule"
+      assert file =~ "def change do"
+    end
+  end
+
   test "underscores the filename when generating a migration" do
     run ["-r", to_string(Repo), "MyMigration"]
     assert [name] = File.ls!(@migrations_path)
