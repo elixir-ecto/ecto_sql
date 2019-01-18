@@ -117,10 +117,9 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   If a custom migration module is not defined in the configuration, returns the default Ecto.Migration
   """
   defp migration_module() do
-    case Application.get_env(:ecto_sql, :migration_module) do
-      nil -> Ecto.Migration
+    case Application.get_env(:ecto_sql, :migration_module, Ecto.Migration) do
       migration_module when is_atom(migration_module) -> migration_module
-      other -> raise "Expect :migration_module to be a module, got: #{inspect(other)}"
+      other -> Mix.raise "Expected :migration_module to be a module, got: #{inspect(other)}"
     end
   end
 end
