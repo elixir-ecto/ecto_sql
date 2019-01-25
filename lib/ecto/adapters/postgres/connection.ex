@@ -885,6 +885,8 @@ if Code.ensure_loaded?(Postgrex) do
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP COLUMN ", quote_name(name)]
 
+    defp column_change(_table, {:remove_if_exists, name}), do: ["DROP COLUMN IF EXISTS", quote_name(name)]
+
     defp modify_null(name, opts) do
       case Keyword.get(opts, :null) do
         true  -> [", ALTER COLUMN ", quote_name(name), " DROP NOT NULL"]

@@ -767,6 +767,8 @@ if Code.ensure_loaded?(Mariaex) do
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP ", quote_name(name)]
 
+    defp column_change(_table, {:remove_if_exists, name}), do: ["DROP IF EXISTS ", quote_name(name)]
+
     defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
       null    = Keyword.get(opts, :null)

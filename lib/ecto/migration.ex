@@ -927,6 +927,22 @@ defmodule Ecto.Migration do
     Runner.subcommand {:remove, column, type, opts}
   end
 
+  @doc """
+  Removes a column only if the column exists when altering a table.
+
+  This command is not reversible as Ecto does not know about column existense before removal.
+
+  ## Examples
+
+      alter table("posts") do
+        remove_if_exists :title
+      end
+
+  """
+  def remove_if_exists(column) when is_atom(column) do
+    Runner.subcommand {:remove_if_exists, column}
+  end
+
   @doc ~S"""
   Defines a foreign key.
 
