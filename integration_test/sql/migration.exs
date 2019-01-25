@@ -42,6 +42,26 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
+  defmodule AddColumnIfNotExistsMigration do
+    use Ecto.Migration
+
+    def up do
+      create table(:add_col_if_not_exists_migration) do
+        add :value, :integer
+      end
+
+      alter table(:add_col_if_not_exists_migration) do
+        add :to_be_added, :integer
+      end
+
+      execute "INSERT INTO add_col_if_not_exists_migration (value, to_be_added) VALUES (1, 2)"
+    end
+
+    def down do
+      drop table(:add_col_if_not_exists_migration)
+    end
+  end
+
   defmodule AlterColumnMigration do
     use Ecto.Migration
 
@@ -337,7 +357,11 @@ defmodule Ecto.Integration.MigrationTest do
       create table(:no_error_column_migration)
 
       alter table(:no_error_column_migration) do
-        remove_if_exists :posts
+        add_if_not_exists  :value, :integer
+        add_if_not_exists  :value, :integer
+
+        remove_if_exists :value
+        remove_if_exists :value
       end
     end
 
@@ -440,6 +464,13 @@ defmodule Ecto.Integration.MigrationTest do
     assert :ok == up(PoolRepo, num, AddColumnMigration, log: false)
     assert [2] == PoolRepo.all from p in "add_col_migration", select: p.to_be_added
     :ok = down(PoolRepo, num, AddColumnMigration, log: false)
+  end
+
+  @tag :add_column_if_not_exists
+  test "add column if not exists", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, AddColumnIfNotExistsMigration, log: false)
+    assert [2] == PoolRepo.all from p in "add_col_if_not_exists_migration", select: p.to_be_added
+    :ok = down(PoolRepo, num, AddColumnIfNotExistsMigration, log: false)
   end
 
   @tag :modify_column

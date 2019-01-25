@@ -784,6 +784,37 @@ defmodule Ecto.Migration do
   end
 
   @doc """
+  Adds a column if it not exists yet when altering a table.
+
+  If the `type` value is a `%Reference{}`, it is used to remove the constraint.
+
+ `opts` are exactly the same as in `add/3`, and
+  they are used when the command is reversed.
+
+  ## Examples
+
+      alter table("posts") do
+        add_if_not_exists :title, :string, default: ""
+      end
+
+  """
+  def add_if_not_exists(column, type, opts \\ [])
+
+  def add_if_not_exists(column, :datetime, _opts) when is_atom(column) do
+    raise ArgumentError, "the :datetime type in migrations is not supported, " <>
+                         "please use :utc_datetime or :naive_datetime instead"
+  end
+
+  def add_if_not_exists(column, type, opts) when is_atom(column) and is_list(opts) do
+    if opts[:scale] && !opts[:precision] do
+      raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
+    end
+
+    validate_type!(type)
+    Runner.subcommand {:add_if_not_exists, column, type, opts}
+  end
+
+  @doc """
   Renames a table.
 
   ## Examples

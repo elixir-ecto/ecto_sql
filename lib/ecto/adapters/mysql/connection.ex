@@ -752,6 +752,13 @@ if Code.ensure_loaded?(Mariaex) do
       ["ADD ", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
     end
 
+    defp column_change(table, {:add, name, %Reference{} = ref, opts}),
+      do: error!(nil, "PostgreSQL adapter does not support conditional add on constraints")
+
+    defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
+      ["ADD IF NOT EXISTS", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
+    end
+
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
       [drop_constraint_expr(opts[:from], table, name), "MODIFY ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
        column_options(opts), constraint_expr(ref, table, name)]
@@ -767,7 +774,7 @@ if Code.ensure_loaded?(Mariaex) do
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP ", quote_name(name)]
 
-    defp column_change(_table, {:remove_if_exists, name}), do: ["DROP IF EXISTS ", quote_name(name)]
+    defp column_change(_table, {:remove_if_exists, name}), do: ["DROP COLUMN IF EXISTS ", quote_name(name)]
 
     defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
