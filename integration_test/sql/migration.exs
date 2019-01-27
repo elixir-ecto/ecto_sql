@@ -42,26 +42,6 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
-  defmodule AddColumnIfNotExistsMigration do
-    use Ecto.Migration
-
-    def up do
-      create table(:add_col_if_not_exists_migration) do
-        add :value, :integer
-      end
-
-      alter table(:add_col_if_not_exists_migration) do
-        add :to_be_added, :integer
-      end
-
-      execute "INSERT INTO add_col_if_not_exists_migration (value, to_be_added) VALUES (1, 2)"
-    end
-
-    def down do
-      drop table(:add_col_if_not_exists_migration)
-    end
-  end
-
   defmodule AlterColumnMigration do
     use Ecto.Migration
 
@@ -189,27 +169,6 @@ defmodule Ecto.Integration.MigrationTest do
 
     def down do
       drop table(:drop_col_migration)
-    end
-  end
-
-  defmodule DropColumnIfExistsMigration do
-    use Ecto.Migration
-
-    def up do
-      create table(:drop_col_if_exists_migration) do
-        add :value, :integer
-        add :to_be_removed, :integer
-      end
-
-      execute "INSERT INTO drop_col_if_exists_migration (value, to_be_removed) VALUES (1, 2)"
-
-      alter table(:drop_col_if_exists_migration) do
-        remove :to_be_removed
-      end
-    end
-
-    def down do
-      drop table(:drop_col_if_exists_migration)
     end
   end
 
@@ -350,26 +309,6 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
-  defmodule NoErrorColumnMigration do
-    use Ecto.Migration
-
-    def up do
-      create table(:no_error_column_migration)
-
-      alter table(:no_error_column_migration) do
-        add_if_not_exists  :value, :integer
-        add_if_not_exists  :value, :integer
-
-        remove_if_exists :value
-        remove_if_exists :value
-      end
-    end
-
-    def down do
-      drop table(:no_error_column_migration)
-    end
-  end
-
   defmodule InferredDropIndexMigration do
     use Ecto.Migration
 
@@ -447,12 +386,6 @@ defmodule Ecto.Integration.MigrationTest do
     assert :ok == up(PoolRepo, num, NoErrorIndexMigration, log: false)
   end
 
-  @tag :remove_column_if_exists
-  test "drop column if exists does not raise on failure", %{migration_number: num} do
-    assert :ok == up(PoolRepo, num, NoErrorColumnMigration, log: false)
-    assert :ok == down(PoolRepo, num, NoErrorColumnMigration, log: false)
-  end
-
   test "raises on NoSQL migrations", %{migration_number: num} do
     assert_raise ArgumentError, ~r"does not support keyword lists in :options", fn ->
       up(PoolRepo, num, NoSQLMigration, log: false)
@@ -464,13 +397,6 @@ defmodule Ecto.Integration.MigrationTest do
     assert :ok == up(PoolRepo, num, AddColumnMigration, log: false)
     assert [2] == PoolRepo.all from p in "add_col_migration", select: p.to_be_added
     :ok = down(PoolRepo, num, AddColumnMigration, log: false)
-  end
-
-  @tag :add_column_if_not_exists
-  test "add column if not exists", %{migration_number: num} do
-    assert :ok == up(PoolRepo, num, AddColumnIfNotExistsMigration, log: false)
-    assert [2] == PoolRepo.all from p in "add_col_if_not_exists_migration", select: p.to_be_added
-    :ok = down(PoolRepo, num, AddColumnIfNotExistsMigration, log: false)
   end
 
   @tag :modify_column
@@ -521,13 +447,6 @@ defmodule Ecto.Integration.MigrationTest do
     assert :ok == up(PoolRepo, num, DropColumnMigration, log: false)
     assert catch_error(PoolRepo.all from p in "drop_col_migration", select: p.to_be_removed)
     :ok = down(PoolRepo, num, DropColumnMigration, log: false)
-  end
-
-  @tag :remove_column_if_exists
-  test "remove column when exists", %{migration_number: num} do
-    assert :ok == up(PoolRepo, num, DropColumnIfExistsMigration, log: false)
-    assert catch_error(PoolRepo.all from p in "drop_col_if_exists_migration", select: p.to_be_removed)
-    :ok = down(PoolRepo, num, DropColumnIfExistsMigration, log: false)
   end
 
   @tag :rename_column
