@@ -30,7 +30,7 @@ defmodule Ecto.Adapter.Migration do
           | {:modify, field :: atom, type :: Ecto.Type.t() | Reference.t(), Keyword.t()}
           | {:remove, field :: atom, type :: Ecto.Type.t() | Reference.t(), Keyword.t()}
           | {:remove, field :: atom}
-          | {:remove_if_exists, field :: atom}
+          | {:remove_if_exists, type :: Ecto.Type.t() | Reference.t()}
 
   @typedoc """
   A struct that represents a table or index in a database schema.

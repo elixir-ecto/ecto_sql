@@ -788,7 +788,7 @@ defmodule Ecto.Migration do
 
   If the `type` value is a `%Reference{}`, it is used to remove the constraint.
 
- `opts` are exactly the same as in `add/3`, and
+  `type` and `opts` are exactly the same as in `add/3`, and
   they are used when the command is reversed.
 
   ## Examples
