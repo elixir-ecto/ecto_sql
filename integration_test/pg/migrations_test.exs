@@ -61,15 +61,31 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
-  defmodule NoErrorColumnMigration do
+  defmodule NoErrorOnAddColumnMigration do
     use Ecto.Migration
 
     def up do
-      create table(:no_error_column_migration)
+      create table(:no_error_on_add_column_migration)
 
-      alter table(:no_error_column_migration) do
+      alter table(:no_error_on_add_column_migration) do
         add_if_not_exists  :value, :integer
         add_if_not_exists  :value, :integer
+      end
+    end
+
+    def down do
+      drop table(:no_error_on_add_column_migration)
+    end
+  end
+
+  defmodule NoErrorOnRemoveColumnMigration do
+    use Ecto.Migration
+
+    def up do
+      create table(:no_error_on_remove_column_migration)
+
+      alter table(:no_error_on_remove_column_migration) do
+        add :value, :integer
 
         remove_if_exists :value, :integer
         remove_if_exists :value, :integer
@@ -77,7 +93,7 @@ defmodule Ecto.Integration.MigrationsTest do
     end
 
     def down do
-      drop table(:no_error_column_migration)
+      drop table(:no_error_on_remove_column_migration)
     end
   end
 
@@ -94,10 +110,16 @@ defmodule Ecto.Integration.MigrationsTest do
     assert log =~ ~s(relation "duplicate_table" already exists, skipping)
   end
 
-  @tag :no_error_column_migration
-  test "add if not exists and drop column if exists does not raise on failure", %{migration_number: num} do
-    assert :ok == up(PoolRepo, num, NoErrorColumnMigration, log: false)
-    assert :ok == down(PoolRepo, num, NoErrorColumnMigration, log: false)
+  @tag :no_error_on_add_column_migration
+  test "add if not exists does not raise on failure", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, NoErrorOnAddColumnMigration, log: false)
+    assert :ok == down(PoolRepo, num, NoErrorOnAddColumnMigration, log: false)
+  end
+
+  @tag :no_error_on_remove_column_migration
+  test "drop column if exists does not raise on failure", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, NoErrorOnRemoveColumnMigration, log: false)
+    assert :ok == down(PoolRepo, num, NoErrorOnRemoveColumnMigration, log: false)
   end
 
   @tag :add_column_if_not_exists
