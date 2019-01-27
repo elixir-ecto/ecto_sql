@@ -869,8 +869,10 @@ if Code.ensure_loaded?(Postgrex) do
        column_options(type, opts)]
     end
 
-    defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}),
-      do: error!(nil, "PostgreSQL adapter does not support conditional add on constraints")
+    defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
+      ["ADD COLUMN IF NOT EXISTS", quote_name(name), ?\s, reference_column_type(ref.type, opts),
+       column_options(ref.type, opts), reference_expr(ref, table, name)]
+    end
 
     defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
       ["ADD COLUMN IF NOT EXISTS", quote_name(name), ?\s, column_type(type, opts),

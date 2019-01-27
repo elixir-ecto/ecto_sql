@@ -752,11 +752,13 @@ if Code.ensure_loaded?(Mariaex) do
       ["ADD ", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
     end
 
-    defp column_change(table, {:add, name, %Reference{} = ref, opts}),
-      do: error!(nil, "PostgreSQL adapter does not support conditional add on constraints")
+    defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
+      ["ADD IF NOT EXISTS ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
+       column_options(opts), constraint_if_not_exists_expr(ref, table, name)]
+    end
 
     defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
-      ["ADD IF NOT EXISTS", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
+      ["ADD IF NOT EXISTS ", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
     end
 
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
@@ -845,6 +847,13 @@ if Code.ensure_loaded?(Mariaex) do
     defp constraint_expr(%Reference{} = ref, table, name),
       do: [", ADD CONSTRAINT ", reference_name(ref, table, name),
            " FOREIGN KEY (", quote_name(name), ?),
+           " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
+           ?(, quote_name(ref.column), ?),
+           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+
+    defp constraint_if_not_exists_expr(%Reference{} = ref, table, name),
+      do: [", ADD CONSTRAINT ", reference_name(ref, table, name),
+           " FOREIGN KEY IF NOT EXISTS (", quote_name(name), ?),
            " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
            ?(, quote_name(ref.column), ?),
            reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
