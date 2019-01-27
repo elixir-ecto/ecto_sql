@@ -959,19 +959,21 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Removes a column only if the column exists when altering a table.
+  Removes a column only if the column exists when altering the constraint if the reference type is passed
+  once it only has the constraint name on reference structure.
 
-  This command is not reversible as Ecto does not know about column existense before removal.
+  This command is not reversible as Ecto does not know about column existense before the removal attempt.
 
   ## Examples
 
-      alter table("posts") do
-        remove_if_exists :title
-      end
+  alter table("posts") do
+    remove_if_exists :title, :string
+  end
 
   """
-  def remove_if_exists(column) when is_atom(column) do
-    Runner.subcommand {:remove_if_exists, column}
+  def remove_if_exists(column, type) when is_atom(column) do
+    validate_type!(type)
+    Runner.subcommand {:remove_if_exists, column, type}
   end
 
   @doc ~S"""

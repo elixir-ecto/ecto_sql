@@ -774,7 +774,10 @@ if Code.ensure_loaded?(Mariaex) do
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP ", quote_name(name)]
 
-    defp column_change(_table, {:remove_if_exists, name}), do: ["DROP COLUMN IF EXISTS ", quote_name(name)]
+    defp column_change(table, {:remove_if_exists, name, %Reference{} = ref}) do
+      [drop_constraint_if_exists_expr(ref, table, name), "DROP IF EXISTS ", quote_name(name)]
+    end
+    defp column_change(_table, {:remove_if_exists, name, _type}), do: ["DROP IF EXISTS", quote_name(name)]
 
     defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
@@ -856,6 +859,11 @@ if Code.ensure_loaded?(Mariaex) do
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP FOREIGN KEY ", reference_name(ref, table, name), ", "]
     defp drop_constraint_expr(_, _, _),
+      do: []
+
+    defp drop_constraint_if_exists_expr(%Reference{} = ref, table, name),
+      do: ["DROP FOREIGN KEY IF EXISTS ", reference_name(ref, table, name), ", "]
+    defp drop_constraint_if_exists_expr(_, _, _),
       do: []
 
     defp reference_name(%Reference{name: nil}, table, column),

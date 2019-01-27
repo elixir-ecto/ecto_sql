@@ -893,7 +893,10 @@ if Code.ensure_loaded?(Postgrex) do
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP COLUMN ", quote_name(name)]
 
-    defp column_change(_table, {:remove_if_exists, name}), do: ["DROP COLUMN IF EXISTS", quote_name(name)]
+    defp column_change(table, {:remove_if_exists, name, %Reference{} = ref}) do
+      [drop_constraint_if_exists_expr(ref, table, name), "DROP COLUMN IF EXISTS ", quote_name(name)]
+    end
+    defp column_change(_table, {:remove_if_exists, name, _type}), do: ["DROP COLUMN IF EXISTS", quote_name(name)]
 
     defp modify_null(name, opts) do
       case Keyword.get(opts, :null) do
@@ -1014,6 +1017,11 @@ if Code.ensure_loaded?(Postgrex) do
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP CONSTRAINT ", reference_name(ref, table, name), ", "]
     defp drop_constraint_expr(_, _, _),
+      do: []
+
+    defp drop_constraint_if_exists_expr(%Reference{} = ref, table, name),
+      do: ["DROP CONSTRAINT IF EXISTS ", reference_name(ref, table, name), ", "]
+    defp drop_constraint_if_exists_expr(_, _, _),
       do: []
 
     defp reference_name(%Reference{name: nil}, table, column),

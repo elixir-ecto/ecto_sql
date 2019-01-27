@@ -71,8 +71,8 @@ defmodule Ecto.Integration.MigrationsTest do
         add_if_not_exists  :value, :integer
         add_if_not_exists  :value, :integer
 
-        remove_if_exists :value
-        remove_if_exists :value
+        remove_if_exists :value, :integer
+        remove_if_exists :value, :integer
       end
     end
 
