@@ -15,12 +15,11 @@ defmodule Ecto.Integration.MigrationsTest do
     use Ecto.Migration
 
     def up do
-      create table(:add_col_if_not_exists_migration) do
-        add :value, :integer
-      end
+      create table(:add_col_if_not_exists_migration)
 
       alter table(:add_col_if_not_exists_migration) do
-        add :to_be_added, :integer
+        add_if_not_exists :value, :integer
+        add_if_not_exists :to_be_added, :integer
       end
 
       execute "INSERT INTO add_col_if_not_exists_migration (value, to_be_added) VALUES (1, 2)"
@@ -43,7 +42,7 @@ defmodule Ecto.Integration.MigrationsTest do
       execute "INSERT INTO drop_col_if_exists_migration (value, to_be_removed) VALUES (1, 2)"
 
       alter table(:drop_col_if_exists_migration) do
-        remove :to_be_removed
+        remove_if_exists :to_be_removed, :integer
       end
     end
 

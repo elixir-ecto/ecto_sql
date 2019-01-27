@@ -870,12 +870,12 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
-      ["ADD COLUMN IF NOT EXISTS", quote_name(name), ?\s, reference_column_type(ref.type, opts),
+      ["ADD COLUMN IF NOT EXISTS ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
        column_options(ref.type, opts), reference_expr(ref, table, name)]
     end
 
     defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
-      ["ADD COLUMN IF NOT EXISTS", quote_name(name), ?\s, column_type(type, opts),
+      ["ADD COLUMN IF NOT EXISTS ", quote_name(name), ?\s, column_type(type, opts),
        column_options(type, opts)]
     end
 
@@ -898,7 +898,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_change(table, {:remove_if_exists, name, %Reference{} = ref}) do
       [drop_constraint_if_exists_expr(ref, table, name), "DROP COLUMN IF EXISTS ", quote_name(name)]
     end
-    defp column_change(_table, {:remove_if_exists, name, _type}), do: ["DROP COLUMN IF EXISTS", quote_name(name)]
+    defp column_change(_table, {:remove_if_exists, name, _type}), do: ["DROP COLUMN IF EXISTS ", quote_name(name)]
 
     defp modify_null(name, opts) do
       case Keyword.get(opts, :null) do

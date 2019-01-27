@@ -1226,7 +1226,9 @@ defmodule Ecto.Adapters.PostgresTest do
   test "alter table" do
     alter = {:alter, table(:posts),
              [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
-              {:add, :author_id, %Reference{table: :author}, []},
+             {:add, :author_id, %Reference{table: :author}, []},
+             {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
+             {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
               {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
               {:modify, :cost, :integer, [null: false, default: nil]},
               {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
@@ -1235,12 +1237,16 @@ defmodule Ecto.Adapters.PostgresTest do
               {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
               {:remove, :summary},
               {:remove, :body, :text, []},
-              {:remove, :space_id, %Reference{table: :author}, []}]}
+              {:remove, :space_id, %Reference{table: :author}, []},
+              {:remove_if_exists, :body, :text},
+              {:remove_if_exists, :space_id, %Reference{table: :author}}]}
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE "posts"
     ADD COLUMN "title" varchar(100) DEFAULT 'Untitled' NOT NULL,
     ADD COLUMN "author_id" bigint CONSTRAINT "posts_author_id_fkey" REFERENCES "author"("id"),
+    ADD COLUMN IF NOT EXISTS "subtitle" varchar(100) NOT NULL,
+    ADD COLUMN IF NOT EXISTS "editor_id" bigint CONSTRAINT "posts_editor_id_fkey" REFERENCES "editor"("id"),
     ALTER COLUMN "price" TYPE numeric(8,2),
     ALTER COLUMN "price" DROP NOT NULL,
     ALTER COLUMN "cost" TYPE integer,
@@ -1258,7 +1264,10 @@ defmodule Ecto.Adapters.PostgresTest do
     DROP COLUMN "summary",
     DROP COLUMN "body",
     DROP CONSTRAINT "posts_space_id_fkey",
-    DROP COLUMN "space_id"
+    DROP COLUMN "space_id",
+    DROP COLUMN IF EXISTS "body",
+    DROP CONSTRAINT IF EXISTS "posts_space_id_fkey",
+    DROP COLUMN IF EXISTS "space_id"
     """ |> remove_newlines]
   end
 
