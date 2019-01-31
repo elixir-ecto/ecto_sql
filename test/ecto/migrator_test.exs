@@ -346,6 +346,18 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  test "migrations are also picked up from subdirs" do
+    in_tmp(fn path ->
+      File.mkdir_p!("foo")
+
+      create_migration "foo/6_up_migration_1.exs"
+      create_migration "7_up_migration_2.exs"
+      create_migration "8_up_migration_3.exs"
+
+      assert run(TestRepo, path, :up, all: true, log: false) == [6, 7, 8]
+    end)
+  end
+
   test "migrations will give the migration status while file is deleted" do
     in_tmp fn path ->
       create_migration "1_up_migration_1.exs"
