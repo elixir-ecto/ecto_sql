@@ -966,9 +966,9 @@ defmodule Ecto.Migration do
 
   ## Examples
 
-  alter table("posts") do
-    remove_if_exists :title, :string
-  end
+      alter table("posts") do
+        remove_if_exists :title, :string
+      end
 
   """
   def remove_if_exists(column, type) when is_atom(column) do

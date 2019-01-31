@@ -81,7 +81,7 @@ version =
 
 excludes_above_9_5 = [:without_conflict_target]
 excludes_below_9_5 = [:upsert, :upsert_all, :array_type, :aggregate_filters]
-excludes_below_9_6 = [:add_column_if_not_exists, :no_error_on_add_column_migration]
+excludes_below_9_6 = [:add_column_if_not_exists, :no_error_on_conditional_column_migration]
 
 cond do
   Version.match?(version, "< 9.5.0") ->
