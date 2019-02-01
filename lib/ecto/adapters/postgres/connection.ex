@@ -869,6 +869,16 @@ if Code.ensure_loaded?(Postgrex) do
        column_options(type, opts)]
     end
 
+    defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
+      ["ADD COLUMN IF NOT EXISTS ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
+       column_options(ref.type, opts), reference_expr(ref, table, name)]
+    end
+
+    defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
+      ["ADD COLUMN IF NOT EXISTS ", quote_name(name), ?\s, column_type(type, opts),
+       column_options(type, opts)]
+    end
+
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
       [drop_constraint_expr(opts[:from], table, name), "ALTER COLUMN ", quote_name(name), " TYPE ", reference_column_type(ref.type, opts),
        constraint_expr(ref, table, name), modify_null(name, opts), modify_default(name, ref.type, opts)]
@@ -884,6 +894,11 @@ if Code.ensure_loaded?(Postgrex) do
       [drop_constraint_expr(ref, table, name), "DROP COLUMN ", quote_name(name)]
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP COLUMN ", quote_name(name)]
+
+    defp column_change(table, {:remove_if_exists, name, %Reference{} = ref}) do
+      [drop_constraint_if_exists_expr(ref, table, name), "DROP COLUMN IF EXISTS ", quote_name(name)]
+    end
+    defp column_change(_table, {:remove_if_exists, name, _type}), do: ["DROP COLUMN IF EXISTS ", quote_name(name)]
 
     defp modify_null(name, opts) do
       case Keyword.get(opts, :null) do
@@ -1004,6 +1019,11 @@ if Code.ensure_loaded?(Postgrex) do
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP CONSTRAINT ", reference_name(ref, table, name), ", "]
     defp drop_constraint_expr(_, _, _),
+      do: []
+
+    defp drop_constraint_if_exists_expr(%Reference{} = ref, table, name),
+      do: ["DROP CONSTRAINT IF EXISTS ", reference_name(ref, table, name), ", "]
+    defp drop_constraint_if_exists_expr(_, _, _),
       do: []
 
     defp reference_name(%Reference{name: nil}, table, column),

@@ -79,11 +79,18 @@ version =
     _other -> version
   end
 
-if Version.match?(version, ">= 9.5.0") do
-  ExUnit.configure(exclude: [:without_conflict_target])
-else
-  Application.put_env(:ecto_sql, :postgres_map_type, "json")
-  ExUnit.configure(exclude: [:upsert, :upsert_all, :array_type, :aggregate_filters])
+excludes_above_9_5 = [:without_conflict_target]
+excludes_below_9_5 = [:upsert, :upsert_all, :array_type, :aggregate_filters]
+excludes_below_9_6 = [:add_column_if_not_exists, :no_error_on_conditional_column_migration]
+
+cond do
+  Version.match?(version, "< 9.5.0") ->
+    ExUnit.configure(exclude: excludes_below_9_5 ++ excludes_below_9_6)
+    Application.put_env(:ecto_sql, :postgres_map_type, "json")
+  Version.match?(version, ">= 9.5.0") and Version.match?(version, "< 9.6.0") ->
+    ExUnit.configure(exclude: excludes_above_9_5 ++ excludes_below_9_6)
+  true ->
+    ExUnit.configure(exclude: excludes_above_9_5)
 end
 
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)

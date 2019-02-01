@@ -1036,6 +1036,8 @@ defmodule Ecto.Adapters.MySQLTest do
     alter = {:alter, table(:posts),
                [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
                 {:add, :author_id, %Reference{table: :author}, []},
+                {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
+                {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
                 {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
                 {:modify, :cost, :integer, [null: false, default: nil]},
                 {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
@@ -1044,12 +1046,17 @@ defmodule Ecto.Adapters.MySQLTest do
                 {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
                 {:remove, :summary},
                 {:remove, :body, :text, []},
-                {:remove, :space_id, %Reference{table: :author}, []}]}
+                {:remove, :space_id, %Reference{table: :author}, []},
+                {:remove_if_exists, :body, :text},
+                {:remove_if_exists, :space_id, %Reference{table: :author}}]}
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE `posts` ADD `title` varchar(100) DEFAULT 'Untitled' NOT NULL,
     ADD `author_id` BIGINT UNSIGNED,
     ADD CONSTRAINT `posts_author_id_fkey` FOREIGN KEY (`author_id`) REFERENCES `author`(`id`),
+    ADD IF NOT EXISTS `subtitle` varchar(100) NOT NULL,
+    ADD IF NOT EXISTS `editor_id` BIGINT UNSIGNED,
+    ADD CONSTRAINT `posts_editor_id_fkey` FOREIGN KEY IF NOT EXISTS (`editor_id`) REFERENCES `editor`(`id`),
     MODIFY `price` numeric(8,2) NULL, MODIFY `cost` integer DEFAULT NULL NOT NULL,
     MODIFY `permalink_id` BIGINT UNSIGNED NOT NULL,
     ADD CONSTRAINT `posts_permalink_id_fkey` FOREIGN KEY (`permalink_id`) REFERENCES `permalinks`(`id`),
@@ -1062,7 +1069,10 @@ defmodule Ecto.Adapters.MySQLTest do
     DROP `summary`,
     DROP `body`,
     DROP FOREIGN KEY `posts_space_id_fkey`,
-    DROP `space_id`
+    DROP `space_id`,
+    DROP IF EXISTS `body`,
+    DROP FOREIGN KEY IF EXISTS `posts_space_id_fkey`,
+    DROP IF EXISTS `space_id`
     """ |> remove_newlines]
   end
 

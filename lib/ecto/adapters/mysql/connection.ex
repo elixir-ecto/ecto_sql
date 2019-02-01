@@ -752,6 +752,15 @@ if Code.ensure_loaded?(Mariaex) do
       ["ADD ", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
     end
 
+    defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
+      ["ADD IF NOT EXISTS ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
+       column_options(opts), constraint_if_not_exists_expr(ref, table, name)]
+    end
+
+    defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
+      ["ADD IF NOT EXISTS ", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
+    end
+
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
       [drop_constraint_expr(opts[:from], table, name), "MODIFY ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
        column_options(opts), constraint_expr(ref, table, name)]
@@ -766,6 +775,11 @@ if Code.ensure_loaded?(Mariaex) do
       [drop_constraint_expr(ref, table, name), "DROP ", quote_name(name)]
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP ", quote_name(name)]
+
+    defp column_change(table, {:remove_if_exists, name, %Reference{} = ref}) do
+      [drop_constraint_if_exists_expr(ref, table, name), "DROP IF EXISTS ", quote_name(name)]
+    end
+    defp column_change(_table, {:remove_if_exists, name, _type}), do: ["DROP IF EXISTS ", quote_name(name)]
 
     defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
@@ -837,6 +851,13 @@ if Code.ensure_loaded?(Mariaex) do
            ?(, quote_name(ref.column), ?),
            reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
 
+    defp constraint_if_not_exists_expr(%Reference{} = ref, table, name),
+      do: [", ADD CONSTRAINT ", reference_name(ref, table, name),
+           " FOREIGN KEY IF NOT EXISTS (", quote_name(name), ?),
+           " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
+           ?(, quote_name(ref.column), ?),
+           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+
     defp reference_expr(%Reference{} = ref, table, name),
       do: [", CONSTRAINT ", reference_name(ref, table, name),
            " FOREIGN KEY (", quote_name(name), ?),
@@ -847,6 +868,11 @@ if Code.ensure_loaded?(Mariaex) do
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP FOREIGN KEY ", reference_name(ref, table, name), ", "]
     defp drop_constraint_expr(_, _, _),
+      do: []
+
+    defp drop_constraint_if_exists_expr(%Reference{} = ref, table, name),
+      do: ["DROP FOREIGN KEY IF EXISTS ", reference_name(ref, table, name), ", "]
+    defp drop_constraint_if_exists_expr(_, _, _),
       do: []
 
     defp reference_name(%Reference{name: nil}, table, column),

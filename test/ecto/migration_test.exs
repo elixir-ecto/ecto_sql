@@ -253,18 +253,23 @@ defmodule Ecto.MigrationTest do
   test "forward: alters a table" do
     alter table(:posts) do
       add :summary, :text
+      add_if_not_exists :summary, :text
       modify :title, :text
       remove :views
       remove :status, :string
+      remove_if_exists :status, :string
     end
     flush()
 
     assert last_command() ==
            {:alter, %Table{name: "posts"},
               [{:add, :summary, :text, []},
+               {:add_if_not_exists, :summary, :text, []},
                {:modify, :title, :text, []},
                {:remove, :views},
-               {:remove, :status, :string, []}]}
+               {:remove, :status, :string, []},
+               {:remove_if_exists, :status, :string}]
+              }
   end
 
   test "forward: removing a reference column (remove/3 called)" do
@@ -273,6 +278,14 @@ defmodule Ecto.MigrationTest do
     end
     flush()
     assert {:alter, %Table{name: "posts"}, [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+  end
+
+  test "forward: removing a reference if column (remove_if_exists/2 called)" do
+    alter table(:posts) do
+      remove_if_exists :author_id, references(:authors)
+    end
+    flush()
+    assert {:alter, %Table{name: "posts"}, [{:remove_if_exists, :author_id, %Reference{table: "authors"}}]} = last_command()
   end
 
   test "forward: alter numeric column without specifying precision" do
