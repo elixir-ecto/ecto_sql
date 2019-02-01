@@ -767,14 +767,7 @@ defmodule Ecto.Migration do
     * `:scale` - the scale of a numeric type. Defaults to `0`.
 
   """
-  def add(column, type, opts \\ [])
-
-  def add(column, :datetime, _opts) when is_atom(column) do
-    raise ArgumentError, "the :datetime type in migrations is not supported, " <>
-                         "please use :utc_datetime or :naive_datetime instead"
-  end
-
-  def add(column, type, opts) when is_atom(column) and is_list(opts) do
+  def add(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
     if opts[:scale] && !opts[:precision] do
       raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
     end
@@ -798,14 +791,7 @@ defmodule Ecto.Migration do
       end
 
   """
-  def add_if_not_exists(column, type, opts \\ [])
-
-  def add_if_not_exists(column, :datetime, _opts) when is_atom(column) do
-    raise ArgumentError, "the :datetime type in migrations is not supported, " <>
-                         "please use :utc_datetime or :naive_datetime instead"
-  end
-
-  def add_if_not_exists(column, type, opts) when is_atom(column) and is_list(opts) do
+  def add_if_not_exists(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
     if opts[:scale] && !opts[:precision] do
       raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
     end
@@ -905,14 +891,7 @@ defmodule Ecto.Migration do
       specified.
     * `:scale` - the scale of a numeric type. Defaults to `0`.
   """
-  def modify(column, type, opts \\ [])
-
-  def modify(column, :datetime, _opts) when is_atom(column) do
-    raise ArgumentError, "the :datetime type in migrations is not supported, " <>
-                         "please use :utc_datetime or :naive_datetime instead"
-  end
-
-  def modify(column, type, opts) when is_atom(column) and is_list(opts) do
+  def modify(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
     if opts[:scale] && !opts[:precision] do
       raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
     end
@@ -1059,6 +1038,11 @@ defmodule Ecto.Migration do
   end
 
   # Validation helpers
+  defp validate_type!(:datetime) do
+    raise ArgumentError, "the :datetime type in migrations is not supported, " <>
+                         "please use :utc_datetime or :naive_datetime instead"
+  end
+
   defp validate_type!(type) when is_atom(type) do
     case Atom.to_string(type) do
       "Elixir." <> _ ->
