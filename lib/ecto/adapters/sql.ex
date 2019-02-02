@@ -438,6 +438,8 @@ defmodule Ecto.Adapters.SQL do
          do: {:ok, List.delete(from_driver, driver) ++ [driver]}
   end
 
+  @pool_opts [:timeout, :pool, :pool_size, :migration_lock, :queue_target, :queue_interval]
+
   @doc false
   def init(connection, driver, config) do
     unless Code.ensure_loaded?(connection) do
@@ -461,7 +463,7 @@ defmodule Ecto.Adapters.SQL do
     telemetry = {config[:repo], log, loggers, telemetry_prefix ++ [:query]}
 
     config = adapter_config(config)
-    opts = Keyword.take(config, [:timeout, :pool, :pool_size, :migration_lock])
+    opts = Keyword.take(config, @pool_opts)
     meta = %{telemetry: telemetry, sql: connection, opts: opts}
     {:ok, connection.child_spec(config), meta}
   end
