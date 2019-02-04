@@ -20,6 +20,8 @@ Clone the repo and fetch its dependencies:
     $ mix deps.get
     $ mix test.all
 
+Note that `mix test.all` runs the tests in `test/` and in the `integration_test` folder of the `ecto` dependency.
+
 You can also use a local Ecto checkout if desired:
 
     $ ECTO_PATH=../ecto mix test.all
