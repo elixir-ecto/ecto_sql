@@ -9,7 +9,8 @@ defmodule EctoSQL.TestAdapter do
   def ensure_all_started(_, _), do: {:ok, []}
 
   def init(_opts) do
-    {:ok, Supervisor.Spec.worker(Task, [fn -> :timer.sleep(:infinity) end]), %{meta: :meta}}
+    child_spec = Supervisor.child_spec {Task, fn -> :timer.sleep(:infinity) end}, []
+    {:ok, child_spec, %{meta: :meta}}
   end
 
   def checkout(_, _, _), do: raise "not implemented"

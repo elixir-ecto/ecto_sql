@@ -1,14 +1,14 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.0.4"
+  @version "3.1.0-dev"
   @adapters ~w(pg mysql)
 
   def project do
     [
       app: :ecto_sql,
       version: @version,
-      elixir: "~> 1.4",
+      elixir: "~> 1.5",
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [

@@ -2,6 +2,7 @@ defmodule Ecto.Migration.Runner do
   # A GenServer responsible for running migrations
   # in either `:forward` or `:backward` directions.
   @moduledoc false
+  use Agent, restart: :temporary
 
   require Logger
 

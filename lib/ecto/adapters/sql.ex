@@ -1,20 +1,3 @@
-defmodule Telemetry do
-  # TODO: Remove this deprecated module.
-  @moduledoc false
-
-  def attach(name, event, mod, fun, config) do
-    IO.warn "Telemetry.attach(name, event, mod, fun, config) is deprecated in favor of " <>
-              ":telemetry.attach(name, event, &mod.fun/4, config)"
-    :telemetry.attach(name, event, &apply(mod, fun, [&1, &2, &3, &4]), config)
-  end
-
-  def attach_many(name, events, mod, fun, config) do
-    IO.warn "Telemetry.attach_many(name, events, mod, fun, config) is deprecated in favor of " <>
-              ":telemetry.attach_many(name, events, &mod.fun/4, config)"
-    :telemetry.attach_many(name, events, &apply(mod, fun, [&1, &2, &3, &4]), config)
-  end
-end
-
 defmodule Ecto.Adapters.SQL do
   @moduledoc """
   This application provides functionality for working with
@@ -456,11 +439,9 @@ defmodule Ecto.Adapters.SQL do
       """
     end
 
-    # TODO: Remove deprecated loggers configuration
-    loggers = Keyword.get(config, :loggers, [])
     log = Keyword.get(config, :log, :debug)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
-    telemetry = {config[:repo], log, loggers, telemetry_prefix ++ [:query]}
+    telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
 
     config = adapter_config(config)
     opts = Keyword.take(config, @pool_opts)
@@ -762,7 +743,7 @@ defmodule Ecto.Adapters.SQL do
     [log: &log(telemetry, params, &1, opts)] ++ opts
   end
 
-  defp log({repo, log, loggers, event_name}, params, entry, opts) do
+  defp log({repo, log, event_name}, params, entry, opts) do
     %{
       connection_time: query_time,
       decode_time: decode_time,
@@ -798,10 +779,7 @@ defmodule Ecto.Adapters.SQL do
       level -> Ecto.LogEntry.log(entry, level, ansi_color: sql_color(query_string))
     end
 
-    Enum.reduce(loggers, entry, fn
-      mod, acc when is_atom(mod) -> mod.log(acc)
-      {mod, fun, args}, acc -> apply(mod, fun, [acc | args])
-    end)
+    :ok
   end
 
   defp log_result({:ok, _query, res}), do: {:ok, res}

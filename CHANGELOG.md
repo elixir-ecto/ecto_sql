@@ -1,5 +1,13 @@
 # Changelog for v3.0
 
+## v3.1.0-dev
+
+v3.1 requires Elixir v1.5+.
+
+### Enhancements
+
+  * Run all migrations in subdirectories as well
+
 ## v3.0.5 (2019-02-05)
 
 ### Enhancements

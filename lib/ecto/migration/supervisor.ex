@@ -3,15 +3,17 @@ defmodule Ecto.Migration.Supervisor do
 
   use Supervisor
 
-  def start_link do
+  def start_link(_) do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
     children = [
-      worker(Ecto.Migration.Runner, [], restart: :temporary)
+      Supervisor.child_spec(Ecto.Migration.Runner,
+        start: {Ecto.Migration.Runner, :start_link, []}
+      )
     ]
 
-    supervise(children, strategy: :simple_one_for_one)
+    Supervisor.init(children, strategy: :simple_one_for_one)
   end
 end

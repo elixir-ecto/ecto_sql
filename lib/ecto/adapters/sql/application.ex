@@ -3,10 +3,8 @@ defmodule Ecto.Adapters.SQL.Application do
   use Application
 
   def start(_type, _args) do
-    import Supervisor.Spec
-
     children = [
-      supervisor(Ecto.Migration.Supervisor, [])
+      Ecto.Migration.Supervisor
     ]
 
     opts = [strategy: :one_for_one, name: Ecto.Adapters.SQL.Supervisor]
