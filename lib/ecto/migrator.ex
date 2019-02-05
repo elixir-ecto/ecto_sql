@@ -394,11 +394,11 @@ defmodule Ecto.Migrator do
 
   # This function will match directories passed into `Migrator.run`.
   defp migrations_for(migration_source) when is_binary(migration_source) do
-    Path.join([migration_source, "**", "*.exs"])
-    |> Path.wildcard()
-    |> Enum.map(&extract_migration_info/1)
-    |> Enum.filter(& &1)
-    |> Enum.sort()
+    query = Path.join(migration_source, "*")
+
+    for entry <- Path.wildcard(query),
+        info = extract_migration_info(entry),
+        do: info
   end
 
   # This function will match specific version/modules passed into `Migrator.run`.
@@ -408,9 +408,10 @@ defmodule Ecto.Migrator do
 
   defp extract_migration_info(file) do
     base = Path.basename(file)
+    ext  = Path.extname(base)
 
     case Integer.parse(Path.rootname(base)) do
-      {integer, "_" <> name} ->
+      {integer, "_" <> name} when ext == ".exs" ->
         {integer, name, file}
       _ ->
         nil
