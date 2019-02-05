@@ -1,5 +1,17 @@
 # Changelog for v3.0
 
+## v3.0.5 (2019-02-05)
+
+### Enhancements
+
+  * Add `:repo` and `:type` keys to telemetry events
+  * Add `:add_if_not_exists` and `:remove_if_exists` to columns in migrations
+
+### Bug fixes
+
+  * Load all migrations before running them
+  * Include queue_target and queue_interval in SQL Sandbox checkout
+
 ## v3.0.4 (2018-12-31)
 
 ### Enhancements
@@ -32,7 +44,7 @@
 
 ### Enhancements
 
-  * [query] Support Ecto.Query in insert_all values
+  * [query] Support `Ecto.Query` in `insert_all` values
   * [migration] Add `Ecto.Migration.repo/0`
 
 ## v3.0.1 (2018-11-17)
