@@ -1,4 +1,4 @@
-# Changelog for v3.0
+# Changelog for v3.x
 
 ## v3.1.0-dev
 
