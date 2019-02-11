@@ -583,8 +583,7 @@ defmodule Ecto.Migration do
 
   For example, PostgreSQL supports several index types like B-tree (the
   default), Hash, GIN, and GiST. More information on index types can be found
-  in the [PostgreSQL docs]
-  (http://www.postgresql.org/docs/9.4/static/indexes-types.html).
+  in the [PostgreSQL docs](http://www.postgresql.org/docs/9.4/static/indexes-types.html).
 
   ## Partial indexes
 
