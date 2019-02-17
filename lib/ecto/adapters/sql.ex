@@ -65,6 +65,8 @@ defmodule Ecto.Adapters.SQL do
 
   """
 
+  require Logger
+
   @doc false
   defmacro __using__(opts) do
     quote do
@@ -755,35 +757,113 @@ defmodule Ecto.Adapters.SQL do
     source = Keyword.get(opts, :source)
     query_string = String.Chars.to_string(query)
 
-    entry = %{
+    params =
+      Enum.map(params, fn
+        %Ecto.Query.Tagged{value: value} -> value
+        value -> value
+      end)
+
+    measurements =
+      log_measurements(
+        [query_time: query_time, decode_time: decode_time, queue_time: queue_time],
+        0,
+        []
+      )
+
+    metadata = %{
       type: :ecto_sql_query,
       repo: repo,
-      query_time: query_time,
-      decode_time: decode_time,
-      queue_time: queue_time,
       result: log_result(result),
       params: params,
       query: query_string,
       source: source
     }
 
-    total = (query_time || 0) + (decode_time || 0) + (queue_time || 0)
-
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
-      :telemetry.execute(event_name, total, entry)
+      :telemetry.execute(event_name, measurements, metadata)
     end
 
     case Keyword.get(opts, :log, log) do
-      true -> Ecto.LogEntry.log(entry, log, ansi_color: sql_color(query_string))
-      false -> :ok
-      level -> Ecto.LogEntry.log(entry, level, ansi_color: sql_color(query_string))
+      true ->
+        Logger.log(
+          log,
+          fn -> log_iodata(measurements, metadata) end,
+          ansi_color: sql_color(query_string)
+        )
+
+      false ->
+        :ok
+
+      level ->
+        Logger.log(
+          level,
+          fn -> log_iodata(measurements, metadata) end,
+          ansi_color: sql_color(query_string)
+        )
     end
 
     :ok
   end
 
-  defp log_result({:ok, _query, res}), do: {:ok, res}
-  defp log_result(other), do: other
+  defp log_measurements([{_, nil} | rest], total, acc),
+    do: log_measurements(rest, total, acc)
+
+  defp log_measurements([{key, value} | rest], total, acc),
+    do: log_measurements(rest, total + value, [{key, value} | acc])
+
+  defp log_measurements([], total, acc),
+    do: Map.new([total_time: total] ++ acc)
+
+  defp log_result({:ok, _query, _res}), do: :ok
+  defp log_result({:ok, _res}), do: :ok
+  defp log_result(_), do: :error
+
+  defp log_iodata(measurements, metadata) do
+    %{
+      query_time: query_time,
+      decode_time: decode_time,
+      queue_time: queue_time,
+    } = measurements
+
+    %{
+      params: params,
+      query: query,
+      result: result,
+      source: source
+    } = metadata
+
+    [
+      "QUERY",
+      ?\s,
+      log_ok_error(result),
+      log_ok_source(source),
+      log_time("db", query_time, true),
+      log_time("decode", decode_time, false),
+      log_time("queue", queue_time, false),
+      ?\n,
+      query,
+      ?\s,
+      inspect(params, charlists: false)
+    ]
+  end
+
+  defp log_ok_error(:ok), do: "OK"
+  defp log_ok_error(:error), do: "ERROR"
+
+  defp log_ok_source(nil), do: ""
+  defp log_ok_source(source), do: " source=#{inspect(source)}"
+
+  defp log_time(_label, nil, _force), do: []
+  defp log_time(label, time, force) do
+    us = System.convert_time_unit(time, :native, :microsecond)
+    ms = div(us, 100) / 10
+
+    if force or ms > 0 do
+      [?\s, label, ?=, :io_lib_format.fwrite_g(ms), ?m, ?s]
+    else
+      []
+    end
+  end
 
   ## Connection helpers
 
