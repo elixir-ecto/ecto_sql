@@ -297,7 +297,7 @@ defmodule Ecto.MigrationTest do
     end
   end
 
-  test "forward: add conditional numeric column without specifying precision" do
+  test "forward: conditional creates a numeric column without specifying precision" do
     assert_raise ArgumentError, "column cost is missing precision option", fn ->
       alter table(:posts) do
         add_if_not_exists :cost, :decimal, scale: 5
