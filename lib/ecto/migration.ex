@@ -778,10 +778,11 @@ defmodule Ecto.Migration do
   @doc """
   Adds a column if it not exists yet when altering a table.
 
-  If the `type` value is a `%Reference{}`, it is used to remove the constraint.
+  If the `type` value is a `%Reference{}`, it is used to add a constraint.
 
-  `type` and `opts` are exactly the same as in `add/3`, and
-  they are used when the command is reversed.
+  `type` and `opts` are exactly the same as in `add/3`.
+
+  This command is not reversible as Ecto does not know about column existense before the creation attempt.
 
   ## Examples
 
