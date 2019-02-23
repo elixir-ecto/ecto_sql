@@ -297,6 +297,15 @@ defmodule Ecto.MigrationTest do
     end
   end
 
+  test "forward: conditional creates a numeric column without specifying precision" do
+    assert_raise ArgumentError, "column cost is missing precision option", fn ->
+      alter table(:posts) do
+        add_if_not_exists :cost, :decimal, scale: 5
+      end
+      flush()
+    end
+  end
+
   test "forward: alter datetime column invoke argument error" do
     msg = "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead"
 

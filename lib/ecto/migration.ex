@@ -767,10 +767,7 @@ defmodule Ecto.Migration do
 
   """
   def add(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
-    if opts[:scale] && !opts[:precision] do
-      raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
-    end
-
+    validate_precision_opts!(opts, column)
     validate_type!(type)
     Runner.subcommand {:add, column, type, opts}
   end
@@ -778,10 +775,11 @@ defmodule Ecto.Migration do
   @doc """
   Adds a column if it not exists yet when altering a table.
 
-  If the `type` value is a `%Reference{}`, it is used to remove the constraint.
+  If the `type` value is a `%Reference{}`, it is used to add a constraint.
 
-  `type` and `opts` are exactly the same as in `add/3`, and
-  they are used when the command is reversed.
+  `type` and `opts` are exactly the same as in `add/3`.
+
+  This command is not reversible as Ecto does not know about column existense before the creation attempt.
 
   ## Examples
 
@@ -791,10 +789,7 @@ defmodule Ecto.Migration do
 
   """
   def add_if_not_exists(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
-    if opts[:scale] && !opts[:precision] do
-      raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
-    end
-
+    validate_precision_opts!(opts, column)
     validate_type!(type)
     Runner.subcommand {:add_if_not_exists, column, type, opts}
   end
@@ -891,10 +886,7 @@ defmodule Ecto.Migration do
     * `:scale` - the scale of a numeric type. Defaults to `0`.
   """
   def modify(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
-    if opts[:scale] && !opts[:precision] do
-      raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
-    end
-
+    validate_precision_opts!(opts, column)
     validate_type!(type)
     Runner.subcommand {:modify, column, type, opts}
   end
@@ -1078,6 +1070,12 @@ defmodule Ecto.Migration do
   end
 
   defp validate_index_opts!(opts), do: opts
+
+  defp validate_precision_opts!(opts, column) when is_list(opts) do
+    if opts[:scale] && !opts[:precision] do
+      raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
+    end
+  end
 
   @doc false
   def __prefix__(%{prefix: prefix} = index_or_table) do
