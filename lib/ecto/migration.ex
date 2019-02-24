@@ -143,10 +143,12 @@ defmodule Ecto.Migration do
 
       defmodule MyApp.Migration do
         defmacro __using__(_) do
-          use Ecto.Migration
+          quote do
+            use Ecto.Migration
 
-          def after_begin() do
-            repo().query! "SET lock_timeout TO '5s'", "SET lock_timeout TO '10s'"
+            def after_begin() do
+              repo().query! "SET lock_timeout TO '5s'", "SET lock_timeout TO '10s'"
+            end
           end
         end
       end
