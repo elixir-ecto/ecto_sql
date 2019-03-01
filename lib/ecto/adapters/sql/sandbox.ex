@@ -70,12 +70,8 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
       end
 
-      test "create two posts, one sync, another async" do
-        task = Task.async(fn ->
-          Repo.insert!(%Post{title: "async"})
-        end)
-        assert %Post{} = Repo.insert!(%Post{title: "sync"})
-        assert %Post{} = Task.await(task)
+      test "calls worker that runs a query" do
+        GenServer.call(MyApp.Worker, :run_query)
       end
 
   The test above will fail with an error similar to:
@@ -83,8 +79,8 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       ** (DBConnection.OwnershipError) cannot find ownership process for #PID<0.35.0>
 
   That's because the `setup` block is checking out the connection only
-  for the test process. Once we spawn a Task, there is no connection
-  assigned to it and it will fail.
+  for the test process. Once the worker attempts to perform a query,
+  there is no connection assigned to it and it will fail.
 
   The sandbox module provides two ways of doing so, via allowances or
   by running in shared mode.
@@ -95,14 +91,9 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   which checked out connection it should use, allowing multiple processes
   to collaborate over the same connection. Let's give it a try:
 
-      test "create two posts, one sync, another async" do
-        parent = self()
-        task = Task.async(fn ->
-          Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
-          Repo.insert!(%Post{title: "async"})
-        end)
-        assert %Post{} = Repo.insert!(%Post{title: "sync"})
-        assert %Post{} = Task.await(task)
+      test "calls worker that runs a query" do
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), MyApp.Worker)
+        GenServer.call(MyApp.Worker, :run_query)
       end
 
   And that's it, by calling `allow/3`, we are explicitly assigning
@@ -128,12 +119,8 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
       end
 
-      test "create two posts, one sync, another async" do
-        task = Task.async(fn ->
-          Repo.insert!(%Post{title: "async"})
-        end)
-        assert %Post{} = Repo.insert!(%Post{title: "sync"})
-        assert %Post{} = Task.await(task)
+      test "calls worker that runs a query" do
+        GenServer.call(MyApp.Worker, :run_query)
       end
 
   By calling `mode({:shared, self()})`, any process that needs
@@ -147,6 +134,13 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   you will ensure all upcoming processes and operations will use that
   shared connection, without a need to explicitly allow them. The
   downside is that tests can no longer run concurrently in shared mode.
+
+  Also, beware that if the test process terminates while the worker is
+  using the connection, the connection will be taken away from the worker,
+  which will error. Therefore it is important to guarantee the work is done
+  before the test concludes. In the example above, we are using a `call`,
+  which is synchronous, avoiding the problem, but you may need to explicitly
+  flush the worker or terminate it under such scenarios in your tests.
 
   ### Summing up
 
