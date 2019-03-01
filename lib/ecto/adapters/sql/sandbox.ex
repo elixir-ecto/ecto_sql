@@ -382,6 +382,10 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   Sets the mode for the `repo` pool.
 
   The mode can be `:auto`, `:manual` or `{:shared, <pid>}`.
+
+  Warning: you should only call this function in the setup block for a test and
+  not within a test, because if the mode is changed it will cause other database
+  connections to be checked in (losing data in the process)
   """
   def mode(repo, mode)
       when is_atom(repo) and mode in [:auto, :manual]
