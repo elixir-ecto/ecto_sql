@@ -17,7 +17,8 @@ alias Ecto.Integration.TestRepo
 
 Application.put_env(:ecto_sql, TestRepo,
   url: Application.get_env(:ecto_sql, :pg_test_url) <> "/ecto_test",
-  pool: Ecto.Adapters.SQL.Sandbox)
+  pool: Ecto.Adapters.SQL.Sandbox
+)
 
 defmodule Ecto.Integration.TestRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres

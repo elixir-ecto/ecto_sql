@@ -22,7 +22,7 @@ Application.put_env(:ecto_sql, TestRepo,
 )
 
 defmodule Ecto.Integration.TestRepo do
-  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MySQL
+  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MyXQL
 
   def create_prefix(prefix) do
     "create database #{prefix}"
@@ -41,14 +41,14 @@ end
 alias Ecto.Integration.PoolRepo
 
 Application.put_env(:ecto_sql, PoolRepo,
-  adapter: Ecto.Adapters.MySQL,
+  adapter: Ecto.Adapters.MyXQL,
   url: Application.get_env(:ecto_sql, :mysql_test_url) <> "/ecto_test",
   pool_size: 10,
   show_sensitive_data_on_connection_error: true
 )
 
 defmodule Ecto.Integration.PoolRepo do
-  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MySQL
+  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MyXQL
 end
 
 # Load support files
@@ -64,11 +64,11 @@ defmodule Ecto.Integration.Case do
   end
 end
 
-{:ok, _} = Ecto.Adapters.MySQL.ensure_all_started(TestRepo.config(), :temporary)
+{:ok, _} = Ecto.Adapters.MyXQL.ensure_all_started(TestRepo.config(), :temporary)
 
 # Load up the repository, start it, and run migrations
-_   = Ecto.Adapters.MySQL.storage_down(TestRepo.config)
-:ok = Ecto.Adapters.MySQL.storage_up(TestRepo.config)
+_   = Ecto.Adapters.MyXQL.storage_down(TestRepo.config)
+:ok = Ecto.Adapters.MyXQL.storage_up(TestRepo.config)
 
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()
