@@ -14,18 +14,18 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     def prepare_execute(conn, name, sql, params, opts) do
-      MyXQL.prepare_execute(conn, name, sql, map_params(params), opts)
+      MyXQL.prepare_execute(conn, name, sql, params, opts)
     end
 
     @impl true
     def query(conn, sql, params, opts) do
       opts = Keyword.put_new(opts, :query_type, :binary_then_text)
-      MyXQL.query(conn, sql, map_params(params), opts)
+      MyXQL.query(conn, sql, params, opts)
     end
 
     @impl true
     def execute(conn, %{ref: ref} = query, params, opts) do
-      case MyXQL.execute(conn, query, map_params(params), opts) do
+      case MyXQL.execute(conn, query, params, opts) do
         {:ok, %{ref: ^ref}, result} ->
           {:ok, result}
 
@@ -40,17 +40,6 @@ if Code.ensure_loaded?(MyXQL) do
     @impl true
     def stream(conn, sql, params, opts) do
       MyXQL.stream(conn, sql, params, opts)
-    end
-
-    defp map_params(params) do
-      Enum.map params, fn
-        %{__struct__: _} = value ->
-          value
-        %{} = value ->
-          json_encode!(value)
-        value ->
-          value
-      end
     end
 
     @impl true
@@ -795,12 +784,10 @@ if Code.ensure_loaded?(MyXQL) do
       do: [" DEFAULT '", escape_string(literal), ?']
     defp default_expr({:ok, literal}) when is_number(literal) or is_boolean(literal),
       do: [" DEFAULT ", to_string(literal)]
-    defp default_expr({:ok, %{} = map}) do
-      default = json_encode!(map)
-      [" DEFAULT ", [?', escape_string(default), ?']]
-    end
     defp default_expr({:ok, {:fragment, expr}}),
       do: [" DEFAULT ", expr]
+    defp default_expr({:ok, value}) when is_map(value),
+      do: error!(nil, ":default is not supported for json columns by MySQL")
     defp default_expr(:error),
       do: []
 
@@ -971,11 +958,6 @@ if Code.ensure_loaded?(MyXQL) do
     end
     defp error!(query, message) do
       raise Ecto.QueryError, query: query, message: message
-    end
-
-    defp json_encode!(value) do
-      library = Application.get_env(:myxql, :json_library, Jason)
-      IO.iodata_to_binary(library.encode_to_iodata!(value))
     end
   end
 end

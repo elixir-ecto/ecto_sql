@@ -112,8 +112,6 @@ defmodule Ecto.Adapters.MyXQL do
 
   ## Custom MySQL types
 
-  # TODO: Remove json encoding/decoding when maps are supported in the adapter
-
   @impl true
   def loaders({:embed, _} = type, _), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
   def loaders({:map, _}, type),       do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
@@ -132,10 +130,8 @@ defmodule Ecto.Adapters.MyXQL do
   defp float_decode(%Decimal{} = decimal), do: {:ok, Decimal.to_float(decimal)}
   defp float_decode(x), do: {:ok, x}
 
-  defp json_decode(x) when is_binary(x),
-    do: {:ok, MyXQL.json_library().decode!(x)}
-  defp json_decode(x),
-    do: {:ok, x}
+  defp json_decode(x) when is_binary(x), do: {:ok, MyXQL.json_library().decode!(x)}
+  defp json_decode(x), do: {:ok, x}
 
   ## Storage API
 

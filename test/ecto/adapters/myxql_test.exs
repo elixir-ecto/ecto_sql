@@ -905,31 +905,16 @@ defmodule Ecto.Adapters.MyXQLTest do
     """ |> remove_newlines]
   end
 
-  test "create table with a map column, and an empty map default" do
-    create = {:create, table(:posts),
-              [
-                {:add, :a, :map, [default: %{}]}
-              ]
-            }
-    assert execute_ddl(create) == [~s|CREATE TABLE `posts` (`a` json DEFAULT '{}') ENGINE = INNODB|]
-  end
-
   test "create table with a map column, and a map default with values" do
     create = {:create, table(:posts),
               [
                 {:add, :a, :map, [default: %{foo: "bar", baz: "boom"}]}
               ]
             }
-    assert execute_ddl(create) == [~s|CREATE TABLE `posts` (`a` json DEFAULT '{"baz":"boom","foo":"bar"}') ENGINE = INNODB|]
-  end
 
-  test "create table with a map column, and a string default" do
-    create = {:create, table(:posts),
-              [
-                {:add, :a, :map, [default: ~s|{"foo":"bar","baz":"boom"}|]}
-              ]
-            }
-    assert execute_ddl(create) == [~s|CREATE TABLE `posts` (`a` json DEFAULT '{"foo":"bar","baz":"boom"}') ENGINE = INNODB|]
+    assert_raise ArgumentError, ~r/:default is not supported for json columns by MySQL/, fn ->
+      execute_ddl(create)
+    end
   end
 
   test "create table with time columns" do
