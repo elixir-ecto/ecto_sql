@@ -21,7 +21,7 @@ before_install:
   - sudo apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::="--force-confnew" install postgresql-$PGVERSION postgresql-contrib-$PGVERSION
 
   - sudo chmod 777 -R /var/run/mysqld
-  - docker run -p 3306:3306 --volume /var/run/mysqld:/var/run/mysqld -e MYSQL_ALLOW_EMPTY_PASSWORD=1 -d $MYSQLVERSION --default-authentication-plugin=mysql_native_password
+  - docker run --name mysql-$MYSQLVERSION -p 3306:3306 --volume /var/run/mysqld:/var/run/mysqld -e MYSQL_ALLOW_EMPTY_PASSWORD=1 -d mysql:$MYSQLVERSION --default-authentication-plugin=mysql_native_password
   - mysql --version
   - until mysql -u root -e "SELECT @@version;"; do sleep 1; done
 sudo: required
@@ -34,16 +34,15 @@ matrix:
 env:
   global:
     - PGVERSION=9.6
-    - MYSQLVERSION=mysql:8.0
+    - MYSQLVERSION=8.0
   matrix:
     - ECTO_ADAPTER=none
     - ECTO_ADAPTER=pg PGVERSION=9.2
     - ECTO_ADAPTER=pg
     - ECTO_ADAPTER=mysql
-    - ECTO_ADAPTER=mysql MYSQLVERSION=mysql:5.7
+    - ECTO_ADAPTER=mysql MYSQLVERSION=5.7
     - ECTO_ADAPTER=myxql
-    - ECTO_ADAPTER=myxql MYSQLVERSION=mysql:5.7
-    - ECTO_ADAPTER=myxql MYSQLVERSION=mariadb:10.3
+    - ECTO_ADAPTER=myxql MYSQLVERSION=5.7
 install:
   - mix local.hex --force
   - mix local.rebar --force
