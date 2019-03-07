@@ -41,7 +41,8 @@ inputs = %{
 
 jobs = %{
   "Pg Loader" => fn data -> Enum.map(data, &Ecto.Bench.PgRepo.load(User, &1)) end,
-  "MySQL Loader" => fn data -> Enum.map(data, &Ecto.Bench.MySQLRepo.load(User, &1)) end
+  "MySQL Loader" => fn data -> Enum.map(data, &Ecto.Bench.MySQLRepo.load(User, &1)) end,
+  "MyXQL Loader" => fn data -> Enum.map(data, &Ecto.Bench.MyXQLRepo.load(User, &1)) end
 }
 
 path = System.get_env("BENCHMARKS_OUTPUT_PATH") || "bench/results"

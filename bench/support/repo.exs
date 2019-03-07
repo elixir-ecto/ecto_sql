@@ -1,18 +1,30 @@
 pg_bench_url = System.get_env("PG_URL") || "postgres:postgres@localhost"
 mysql_bench_url = System.get_env("MYSQL_URL") || "root@localhost"
+myxql_bench_url = System.get_env("MYXQL_URL") || "root@localhost"
 
 Application.put_env(
   :ecto_sql,
   Ecto.Bench.PgRepo,
   url: "ecto://" <> pg_bench_url <> "/ecto_test",
-  adapter: Ecto.Adapters.Postgres
+  adapter: Ecto.Adapters.Postgres,
+  show_sensitive_data_on_connection_error: true
 )
 
 Application.put_env(
   :ecto_sql,
   Ecto.Bench.MySQLRepo,
   url: "ecto://" <> mysql_bench_url <> "/ecto_test",
-  adapter: Ecto.Adapters.MySQL
+  adapter: Ecto.Adapters.MySQL,
+  show_sensitive_data_on_connection_error: true
+)
+
+Application.put_env(
+  :ecto_sql,
+  Ecto.Bench.MyXQLRepo,
+  url: "ecto://" <> mysql_bench_url <> "/ecto_test_myxql",
+  adapter: Ecto.Adapters.MyXQL,
+  protocol: :tcp,
+  show_sensitive_data_on_connection_error: true
 )
 
 defmodule Ecto.Bench.PgRepo do
@@ -21,4 +33,8 @@ end
 
 defmodule Ecto.Bench.MySQLRepo do
   use Ecto.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MySQL, log: false
+end
+
+defmodule Ecto.Bench.MyXQLRepo do
+  use Ecto.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MyXQL, log: false
 end
