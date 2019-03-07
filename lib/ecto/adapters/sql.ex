@@ -819,10 +819,6 @@ defmodule Ecto.Adapters.SQL do
   defp log_result(_), do: :error
 
   defp log_iodata(measurements, metadata) do
-    query_time = Map.get(measurements, :query_time)
-    decode_time = Map.get(measurements, :decode_time)
-    queue_time = Map.get(measurements, :queue_time)
-
     %{
       params: params,
       query: query,
@@ -835,9 +831,9 @@ defmodule Ecto.Adapters.SQL do
       ?\s,
       log_ok_error(result),
       log_ok_source(source),
-      log_time("db", query_time, true),
-      log_time("decode", decode_time, false),
-      log_time("queue", queue_time, false),
+      log_time("db", measurements, :query_time, true),
+      log_time("decode", measurements, :decode_time, false),
+      log_time("queue", measurements, :queue_time, false),
       ?\n,
       query,
       ?\s,
@@ -851,15 +847,20 @@ defmodule Ecto.Adapters.SQL do
   defp log_ok_source(nil), do: ""
   defp log_ok_source(source), do: " source=#{inspect(source)}"
 
-  defp log_time(_label, nil, _force), do: []
-  defp log_time(label, time, force) do
-    us = System.convert_time_unit(time, :native, :microsecond)
-    ms = div(us, 100) / 10
+  defp log_time(label, measurements, key, force) do
+    case measurements do
+      %{^key => time} ->
+        us = System.convert_time_unit(time, :native, :microsecond)
+        ms = div(us, 100) / 10
 
-    if force or ms > 0 do
-      [?\s, label, ?=, :io_lib_format.fwrite_g(ms), ?m, ?s]
-    else
-      []
+        if force or ms > 0 do
+          [?\s, label, ?=, :io_lib_format.fwrite_g(ms), ?m, ?s]
+        else
+          []
+        end
+
+      %{} ->
+        []
     end
   end
 
