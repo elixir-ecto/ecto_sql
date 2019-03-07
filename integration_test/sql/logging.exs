@@ -35,6 +35,12 @@ defmodule Ecto.Integration.LoggingTest do
     refute_received :logged
   end
 
+  test "log entry when some measurements are nil" do
+    assert ExUnit.CaptureLog.capture_log(fn ->
+             TestRepo.query("BEG", [], log: :error)
+           end) =~ "[error]"
+  end
+
   test "log entry with custom log level" do
     assert ExUnit.CaptureLog.capture_log(fn ->
              TestRepo.insert!(%Post{title: "1"}, [log: :error])

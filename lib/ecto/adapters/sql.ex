@@ -819,11 +819,9 @@ defmodule Ecto.Adapters.SQL do
   defp log_result(_), do: :error
 
   defp log_iodata(measurements, metadata) do
-    %{
-      query_time: query_time,
-      decode_time: decode_time,
-      queue_time: queue_time,
-    } = measurements
+    query_time = Map.get(measurements, :query_time)
+    decode_time = Map.get(measurements, :decode_time)
+    queue_time = Map.get(measurements, :queue_time)
 
     %{
       params: params,
