@@ -42,7 +42,10 @@ Benchee.run(
   jobs,
   formatters: [Benchee.Formatters.JSON, Benchee.Formatters.Console],
   formatter_options: [json: [file: file]],
-  time: 10
+  time: 10,
+  after_each: fn results ->
+    ^limit = length(results)
+  end
 )
 
 # Clean inserted data
