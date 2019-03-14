@@ -755,6 +755,7 @@ defmodule Ecto.Adapters.SQL do
     } = entry
 
     source = Keyword.get(opts, :source)
+    prefix = Keyword.get(opts, :prefix)
     query_string = String.Chars.to_string(query)
 
     params =
@@ -776,7 +777,8 @@ defmodule Ecto.Adapters.SQL do
       result: log_result(result),
       params: params,
       query: query_string,
-      source: source
+      source: source,
+      prefix: prefix
     }
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
