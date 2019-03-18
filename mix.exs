@@ -13,7 +13,7 @@ defmodule EctoSQL.MixProject do
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [
         exclude: [
-          MySQL,
+          Mariaex,
           Ecto.Adapters.MySQL.Connection,
           MyXQL,
           Ecto.Adapters.MyXQL.Connection,
