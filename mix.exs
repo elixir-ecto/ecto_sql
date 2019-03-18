@@ -2,7 +2,7 @@ defmodule EctoSQL.MixProject do
   use Mix.Project
 
   @version "3.1.0-dev"
-  @adapters ~w(pg mysql)
+  @adapters ~w(pg mysql myxql)
 
   def project do
     [
@@ -15,6 +15,8 @@ defmodule EctoSQL.MixProject do
         exclude: [
           Mariaex,
           Ecto.Adapters.MySQL.Connection,
+          MyXQL,
+          Ecto.Adapters.MyXQL.Connection,
           Postgrex,
           Ecto.Adapters.Postgres.Connection
         ]
@@ -51,6 +53,7 @@ defmodule EctoSQL.MixProject do
       {:db_connection, "~> 2.0"},
       postgrex_dep(),
       mariaex_dep(),
+      myxql_dep(),
 
       # Bring something in for JSON during tests
       {:jason, ">= 0.0.0", only: :test},
@@ -85,6 +88,14 @@ defmodule EctoSQL.MixProject do
       {:mariaex, path: path}
     else
       {:mariaex, "~> 0.9.1", optional: true}
+    end
+  end
+
+  defp myxql_dep do
+    if path = System.get_env("MYXQL_PATH") do
+      {:myxql, path: path}
+    else
+      {:myxql, "~> 0.2.0", optional: true}
     end
   end
 

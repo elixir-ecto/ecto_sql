@@ -41,6 +41,8 @@ env:
     - ECTO_ADAPTER=pg
     - ECTO_ADAPTER=mysql
     - ECTO_ADAPTER=mysql MYSQLVERSION=5.7
+    - ECTO_ADAPTER=myxql
+    - ECTO_ADAPTER=myxql MYSQLVERSION=5.7
 install:
   - mix local.hex --force
   - mix local.rebar --force
