@@ -466,7 +466,8 @@ defmodule Ecto.MigratorTest do
     end
 
     test "version migrations stop before all have been run" do
-      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 13, log: false) == [13]
+      TestRepo.put_dynamic_repo(:tenant_db)
+      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 13, log: false, name: :tenant_db) == [13]
     end
 
     test "version migrations stop at the number of available migrations" do

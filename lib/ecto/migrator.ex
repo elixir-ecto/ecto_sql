@@ -50,7 +50,7 @@ defmodule Ecto.Migrator do
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
   def migrated_versions(repo, opts \\ []) do
     verbose_schema_migration repo, "retrieve migrated versions", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     lock_for_migrations repo, opts, fn versions -> versions end
@@ -71,7 +71,7 @@ defmodule Ecto.Migrator do
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
     verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     lock_for_migrations repo, opts, fn versions ->
@@ -131,7 +131,7 @@ defmodule Ecto.Migrator do
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
   def down(repo, version, module, opts \\ []) do
     verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     lock_for_migrations repo, opts, fn versions ->
@@ -267,7 +267,7 @@ defmodule Ecto.Migrator do
   @spec run(Ecto.Repo.t, binary | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
     verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     pending =
@@ -344,7 +344,8 @@ defmodule Ecto.Migrator do
 
   defp lock_for_migrations(repo, opts, fun) do
     query = SchemaMigration.versions(repo, opts[:prefix])
-    meta = Ecto.Adapter.lookup_meta(repo)
+    name = Keyword.get(opts, :name, repo)
+    meta = Ecto.Adapter.lookup_meta(name)
     callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
 
     case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
