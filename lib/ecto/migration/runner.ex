@@ -107,8 +107,8 @@ defmodule Ecto.Migration.Runner do
 
     commands  = if direction == :backward, do: commands, else: Enum.reverse(commands)
 
+    {repo, repo_name, direction, log} = runner_config()
     for command <- commands do
-      {repo, repo_name, direction, log} = runner_config()
       execute_in_direction(repo, repo_name, direction, log, command)
     end
   end
