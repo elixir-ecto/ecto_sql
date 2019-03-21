@@ -17,8 +17,8 @@ defmodule Ecto.Migration.SchemaMigration do
   def ensure_schema_migrations_table!(repo, opts) do
     table_name = repo |> get_source |> String.to_atom()
     table = %Ecto.Migration.Table{name: table_name, prefix: opts[:prefix]}
-    name = Keyword.get(opts, :name, repo)
-    meta = Ecto.Adapter.lookup_meta(name)
+    repo_name = Keyword.get(opts, :repo_name, repo)
+    meta = Ecto.Adapter.lookup_meta(repo_name)
 
     commands = [
       {:add, :version, :bigint, primary_key: true},
@@ -34,16 +34,16 @@ defmodule Ecto.Migration.SchemaMigration do
     |> Map.put(:prefix, prefix)
   end
 
-  def up(repo, version, prefix) do
+  def up(repo, repo_name, version, prefix) do
     %__MODULE__{version: version}
     |> Ecto.put_meta(prefix: prefix, source: get_source(repo))
-    |> repo.insert!(@opts)
+    |> (&(Ecto.Repo.Schema.insert!(repo_name, &1, @opts))).()
   end
 
-  def down(repo, version, prefix) do
+  def down(repo, repo_name, version, prefix) do
     from(p in get_source(repo), where: p.version == type(^version, :integer))
     |> Map.put(:prefix, prefix)
-    |> repo.delete_all(@opts)
+    |> (&(Ecto.Repo.Queryable.delete_all(repo_name, &1, @opts))).()
   end
 
   def get_source(repo) do

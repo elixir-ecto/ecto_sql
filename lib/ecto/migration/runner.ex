@@ -17,14 +17,15 @@ defmodule Ecto.Migration.Runner do
   def run(repo, version, module, direction, operation, migrator_direction, opts) do
     level = Keyword.get(opts, :log, :info)
     sql = Keyword.get(opts, :log_sql, false)
+    repo_name = Keyword.get(opts, :repo_name, repo)
     log = %{level: level, sql: sql}
-    args  = [self(), repo, direction, migrator_direction, log]
+    args  = [self(), repo, repo_name, direction, migrator_direction, log]
 
     {:ok, runner} = Supervisor.start_child(Ecto.Migration.Supervisor, args)
     metadata(runner, opts)
 
     log(level, "== Running #{version} #{inspect module}.#{operation}/0 #{direction}")
-    {time, _} = :timer.tc(fn -> perform_operation(repo, module, operation) end)
+    {time, _} = :timer.tc(fn -> perform_operation(repo, repo_name, module, operation) end)
     log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
 
     stop()
@@ -41,10 +42,10 @@ defmodule Ecto.Migration.Runner do
   @doc """
   Starts the runner for the specified repo.
   """
-  def start_link(parent, repo, direction, migrator_direction, log) do
+  def start_link(parent, repo, repo_name, direction, migrator_direction, log) do
     Agent.start_link(fn ->
       Process.link(parent)
-      %{direction: direction, repo: repo, migrator_direction: migrator_direction,
+      %{direction: direction, repo: repo, repo_name: repo_name, migrator_direction: migrator_direction,
         command: nil, subcommands: [], log: log, commands: [], config: repo.config()}
     end)
   end
@@ -107,8 +108,8 @@ defmodule Ecto.Migration.Runner do
     commands  = if direction == :backward, do: commands, else: Enum.reverse(commands)
 
     for command <- commands do
-      {repo, direction, log} = runner_config()
-      execute_in_direction(repo, direction, log, command)
+      {repo, repo_name, direction, log} = runner_config()
+      execute_in_direction(repo, repo_name, direction, log, command)
     end
   end
 
@@ -188,21 +189,21 @@ defmodule Ecto.Migration.Runner do
 
   ## Execute
 
-  defp execute_in_direction(repo, :forward, log, %Command{up: up}) do
-    log_and_execute_ddl(repo, log, up)
+  defp execute_in_direction(repo, repo_name, :forward, log, %Command{up: up}) do
+    log_and_execute_ddl(repo, repo_name, log, up)
   end
 
-  defp execute_in_direction(repo, :forward, log, command) do
-    log_and_execute_ddl(repo, log, command)
+  defp execute_in_direction(repo, repo_name, :forward, log, command) do
+    log_and_execute_ddl(repo, repo_name, log, command)
   end
 
-  defp execute_in_direction(repo, :backward, log, %Command{down: down}) do
-    log_and_execute_ddl(repo, log, down)
+  defp execute_in_direction(repo, repo_name, :backward, log, %Command{down: down}) do
+    log_and_execute_ddl(repo, repo_name, log, down)
   end
 
-  defp execute_in_direction(repo, :backward, log, command) do
+  defp execute_in_direction(repo, repo_name, :backward, log, command) do
     if reversed = reverse(command) do
-      log_and_execute_ddl(repo, log, reversed)
+      log_and_execute_ddl(repo, repo_name, log, reversed)
     else
       raise Ecto.MigrationError, message:
         "cannot reverse migration command: #{command command}. " <>
@@ -263,8 +264,8 @@ defmodule Ecto.Migration.Runner do
 
   ## Helpers
 
-  defp perform_operation(repo, module, operation) do
-    if function_exported?(repo, :in_transaction?, 0) and repo.in_transaction?() do
+  defp perform_operation(repo, repo_name, module, operation) do
+    if function_exported?(repo, :in_transaction?, 0) and Ecto.Repo.Transaction.in_transaction?(repo_name) do
       if function_exported?(module, :after_begin, 0) do
         module.after_begin()
       end
@@ -291,14 +292,14 @@ defmodule Ecto.Migration.Runner do
   end
 
   defp runner_config do
-    Agent.get(runner(), fn %{repo: repo, direction: direction, log: log} ->
-      {repo, direction, log}
+    Agent.get(runner(), fn %{repo: repo, repo_name: repo_name, direction: direction, log: log} ->
+      {repo, repo_name, direction, log}
     end)
   end
 
-  defp log_and_execute_ddl(repo, %{level: level, sql: sql}, command) do
+  defp log_and_execute_ddl(repo, repo_name, %{level: level, sql: sql}, command) do
     log(level, command(command))
-    meta = Ecto.Adapter.lookup_meta(repo)
+    meta = Ecto.Adapter.lookup_meta(repo_name)
     {:ok, logs} = repo.__adapter__.execute_ddl(meta, command, timeout: :infinity, log: sql)
 
     Enum.each(logs, fn {level, message, metadata} ->

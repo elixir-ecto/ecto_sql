@@ -91,16 +91,6 @@ end
 
 defmodule EctoSQL.TestRepo do
   use Ecto.Repo, otp_app: :ecto_sql, adapter: EctoSQL.TestAdapter
-
-  def put_dynamic_repo(name) do
-    Process.put(:current_repo, name)
-  end
-
-  defp dynamic_repo(), do: Process.get(:current_repo, __MODULE__)
-
-  def all(queryable, opts) do
-    Ecto.Repo.Queryable.all(dynamic_repo(), queryable, opts)
-  end
 end
 
 EctoSQL.TestRepo.start_link()
