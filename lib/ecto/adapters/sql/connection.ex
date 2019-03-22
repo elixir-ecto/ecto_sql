@@ -83,7 +83,7 @@ defmodule Ecto.Adapters.SQL.Connection do
   """
   @callback insert(prefix ::String.t, table :: String.t,
                    header :: [atom], rows :: [[atom | nil]],
-                   on_conflict :: Ecto.Adapter.on_conflict, returning :: [atom]) :: iodata
+                   on_conflict :: Ecto.Adapter.Schema.on_conflict, returning :: [atom]) :: iodata
 
   @doc """
   Returns an UPDATE for the given `fields` in `table` filtered by
