@@ -45,6 +45,7 @@ defmodule Ecto.Migrator do
   ## Options
 
     * `:prefix` - the prefix to run the migrations on
+    * `:repo_name` - the name of the Repo supervisor process
 
   """
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
@@ -66,6 +67,7 @@ defmodule Ecto.Migrator do
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
+    * `:repo_name` - the name of the Repo supervisor process
     * `:strict_version_order` - abort when applying a migration with old timestamp
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
@@ -126,6 +128,7 @@ defmodule Ecto.Migrator do
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
+    * `:repo_name` - the name of the Repo supervisor process
 
   """
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
