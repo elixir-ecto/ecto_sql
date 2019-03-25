@@ -45,12 +45,13 @@ defmodule Ecto.Migrator do
   ## Options
 
     * `:prefix` - the prefix to run the migrations on
+    * `:repo_name` - the name of the Repo supervisor process
 
   """
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
   def migrated_versions(repo, opts \\ []) do
     verbose_schema_migration repo, "retrieve migrated versions", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     lock_for_migrations repo, opts, fn versions -> versions end
@@ -66,12 +67,13 @@ defmodule Ecto.Migrator do
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
+    * `:repo_name` - the name of the Repo supervisor process
     * `:strict_version_order` - abort when applying a migration with old timestamp
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
     verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     lock_for_migrations repo, opts, fn versions ->
@@ -126,12 +128,13 @@ defmodule Ecto.Migrator do
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
+    * `:repo_name` - the name of the Repo supervisor process
 
   """
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
   def down(repo, version, module, opts \\ []) do
     verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     lock_for_migrations repo, opts, fn versions ->
@@ -155,14 +158,15 @@ defmodule Ecto.Migrator do
   defp async_migrate_maybe_in_transaction(repo, version, module, direction, opts, fun) do
     parent = self()
     ref = make_ref()
-    task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, module, fun) end)
+    repo_name = Keyword.get(opts, :repo_name, repo)
+    task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, repo_name, module, fun) end)
 
     if migrated_successfully?(ref, task.pid) do
       try do
         # The table with schema migrations can only be updated from
         # the parent process because it has a lock on the table
         verbose_schema_migration repo, "update schema migrations", fn ->
-          apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
+          apply(SchemaMigration, direction, [repo, repo_name, version, opts[:prefix]])
         end
       catch
         kind, error ->
@@ -183,13 +187,14 @@ defmodule Ecto.Migrator do
     end
   end
 
-  defp run_maybe_in_transaction(parent, ref, repo, module, fun) do
+  defp run_maybe_in_transaction(parent, ref, repo, repo_name, module, fun) do
     if module.__migration__[:disable_ddl_transaction] ||
          not repo.__adapter__.supports_ddl_transaction? do
       send_and_receive(parent, ref, fun.())
     else
       {:ok, result} =
-        repo.transaction(
+        Ecto.Repo.Transaction.transaction(
+          repo_name,
           fn -> send_and_receive(parent, ref, fun.()) end,
           log: false, timeout: :infinity
         )
@@ -267,7 +272,7 @@ defmodule Ecto.Migrator do
   @spec run(Ecto.Repo.t, binary | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
     verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts[:prefix])
+      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
     end
 
     pending =
@@ -344,8 +349,9 @@ defmodule Ecto.Migrator do
 
   defp lock_for_migrations(repo, opts, fun) do
     query = SchemaMigration.versions(repo, opts[:prefix])
-    meta = Ecto.Adapter.lookup_meta(repo)
-    callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
+    repo_name = Keyword.get(opts, :repo_name, repo)
+    meta = Ecto.Adapter.lookup_meta(repo_name)
+    callback = &fun.(Ecto.Repo.Queryable.all(repo_name, &1, timeout: :infinity, log: false))
 
     case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
       {kind, reason, stacktrace} ->
