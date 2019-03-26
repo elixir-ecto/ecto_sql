@@ -85,6 +85,13 @@ defmodule Ecto.Migration.Runner do
   end
 
   @doc """
+  Gets the repo_name for this migration
+  """
+  def repo_name do
+    Agent.get(runner(), & &1.repo_name)
+  end
+
+  @doc """
   Gets the prefix for this migration
   """
   def prefix do
