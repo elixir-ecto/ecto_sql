@@ -467,8 +467,11 @@ defmodule Ecto.Migrator do
 
   defp migrate(migrations, direction, repo, opts) do
     for {version, mod} <- migrations,
-        do_direction(direction, repo, version, mod, opts),
-        do: version
+        do_direction(direction, repo, version, mod, opts) do
+      :code.purge(mod)
+      :code.delete(mod)
+      version
+    end
   end
 
   defp do_direction(:up, repo, version, mod, opts) do

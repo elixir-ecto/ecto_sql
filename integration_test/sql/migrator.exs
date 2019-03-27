@@ -121,16 +121,12 @@ defmodule Ecto.Integration.MigratorTest do
 
   test "run down to/step migration", config do
     in_tmp fn path ->
-      migrations = [
-        create_migration(49, config),
-        create_migration(50, config),
-      ]
+      create_migration(49, config)
+      create_migration(50, config)
 
       assert [49, 50] = run(PoolRepo, path, :up, all: true, log: false)
-      purge migrations
 
       assert [50] = run(PoolRepo, path, :down, step: 1, log: false)
-      purge migrations
 
       assert count_entries() == 1
       assert [50] = run(PoolRepo, path, :up, to: 50, log: false)
@@ -139,17 +135,13 @@ defmodule Ecto.Integration.MigratorTest do
 
   test "runs all migrations", config do
     in_tmp fn path ->
-      migrations = [
-        create_migration(53, config),
-        create_migration(54, config),
-      ]
+      create_migration(53, config)
+      create_migration(54, config)
 
       assert [53, 54] = run(PoolRepo, path, :up, all: true, log: false)
       assert [] = run(PoolRepo, path, :up, all: true, log: false)
-      purge migrations
 
       assert [54, 53] = run(PoolRepo, path, :down, all: true, log: false)
-      purge migrations
 
       assert count_entries() == 0
       assert [53, 54] = run(PoolRepo, path, :up, all: true, log: false)
@@ -158,10 +150,8 @@ defmodule Ecto.Integration.MigratorTest do
 
   test "does not commit half transactions on bad syntax", config do
     in_tmp fn path ->
-      migrations = [
-        create_migration(64, config),
-        create_migration("65_+", config)
-      ]
+      create_migration(64, config)
+      create_migration("65_+", config)
 
       assert_raise SyntaxError, fn ->
         run(PoolRepo, path, :up, all: true, log: false)
@@ -169,7 +159,6 @@ defmodule Ecto.Integration.MigratorTest do
 
       refute_received {:up, _}
       assert count_entries() == 0
-      purge migrations
     end
   end
 
@@ -231,12 +220,5 @@ defmodule Ecto.Integration.MigratorTest do
     """
 
     module
-  end
-
-  defp purge(modules) do
-    Enum.each(List.wrap(modules), fn m ->
-      :code.delete m
-      :code.purge m
-    end)
   end
 end
