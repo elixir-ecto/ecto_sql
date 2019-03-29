@@ -424,7 +424,8 @@ defmodule Ecto.Adapters.SQL do
          do: {:ok, List.delete(from_driver, driver) ++ [driver]}
   end
 
-  @pool_opts [:timeout, :pool, :pool_size, :migration_lock, :queue_target, :queue_interval]
+  @pool_opts [:timeout, :pool, :pool_size, :migration_lock] ++
+               [:queue_target, :queue_interval, :ownership_timeout]
 
   @doc false
   def init(connection, driver, config) do
