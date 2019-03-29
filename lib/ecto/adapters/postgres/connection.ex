@@ -977,10 +977,10 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_type({:array, type}, opts),
       do: [column_type(type, opts), "[]"]
 
-    defp column_type(type, _opts) when type in ~w(time utc_datetime naive_datetime)a,
+    defp column_type(type, _opts) when type in ~w(time naive_datetime)a,
       do: [ecto_to_db(type), "(0)"]
 
-    defp column_type(type, opts) when type in ~w(time_usec utc_datetime_usec naive_datetime_usec)a do
+    defp column_type(type, opts) when type in ~w(time_usec naive_datetime_usec)a do
       precision = Keyword.get(opts, :precision)
       type_name = ecto_to_db(type)
 
@@ -988,6 +988,20 @@ if Code.ensure_loaded?(Postgrex) do
         [type_name, ?(, to_string(precision), ?)]
       else
         type_name
+      end
+    end
+
+    defp column_type(type, _opts) when type == :utc_datetime,
+      do: [ecto_to_db(type), "(0)", " with time zone"]
+
+    defp column_type(type, opts) when type == :utc_datetime_usec do
+      precision = Keyword.get(opts, :precision)
+      type_name = ecto_to_db(type)
+
+      if precision do
+        [type_name, ?(, to_string(precision), ?), " with time zone"]
+      else
+        [type_name, " with time zone"]
       end
     end
 
