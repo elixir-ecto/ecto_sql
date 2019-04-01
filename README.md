@@ -5,7 +5,7 @@ Ecto SQL
 Ecto SQL ([documentation](https://hexdocs.pm/ecto_sql)) provides building blocks for writing SQL adapters for Ecto. It features:
 
   * The Ecto.Adapters.SQL module as an entry point for all SQL-based adapters
-  * Default implementations for Postgres (Ecto.Adapters.Postgres) and MySQL (Ecto.Adapters.MySQL)
+  * Default implementations for Postgres (Ecto.Adapters.Postgres) and MySQL (Ecto.Adapters.MyXQL)
   * A test sandbox (Ecto.Adapters.SQL.Sandbox) that concurrently run database tests inside transactions
   * Support for database migrations via Mix tasks
 

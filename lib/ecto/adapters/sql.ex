@@ -7,9 +7,9 @@ defmodule Ecto.Adapters.SQL do
 
   By default, we support the following adapters:
 
-    * `Ecto.Adapters.Postgres`
-    * `Ecto.Adapters.MySQL`
-    * `Ecto.Adapters.MyXQL`
+    * `Ecto.Adapters.Postgres` for Postgres
+    * `Ecto.Adapters.MyXQL` for MyXQL
+    * `Ecto.Adapters.MySQL` for MySQL (legacy - it will be removed in future versions)
 
   ## Migrations
 

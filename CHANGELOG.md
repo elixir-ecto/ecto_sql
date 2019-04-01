@@ -6,7 +6,14 @@ v3.1 requires Elixir v1.5+.
 
 ### Enhancements
 
+  * Introduce Ecto.Adapters.MyXQL as an alternative library for MySQL
   * Run all migrations in subdirectories as well
+  * Update to Telemetry v0.4.0 (note the measurements value differ from previous versions)
+
+### Bug fixes
+
+  * Respect `:ownership_timeout` repo configuration on SQL Sandbox
+  * Commit and relock after every migration to avoid leaving the DB in an inconsistent under certain failures
 
 ## v3.0.5 (2019-02-05)
 
@@ -18,7 +25,7 @@ v3.1 requires Elixir v1.5+.
 ### Bug fixes
 
   * Load all migrations before running them
-  * Include queue_target and queue_interval in SQL Sandbox checkout
+  * Include `:queue_target` and `:queue_interval` in SQL Sandbox checkout
 
 ## v3.0.4 (2018-12-31)
 

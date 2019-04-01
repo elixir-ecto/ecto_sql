@@ -147,6 +147,7 @@ defmodule EctoSQL.MixProject do
 
         "Built-in adapters": [
           Ecto.Adapters.MySQL,
+          Ecto.Adapters.MyXQL,
           Ecto.Adapters.Postgres
         ],
         "Adapter specification": [
