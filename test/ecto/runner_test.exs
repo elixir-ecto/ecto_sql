@@ -14,14 +14,6 @@ defmodule Ecto.Migration.RunnerTest do
       stop()
     end
 
-    test "get by named repo" do
-      {:ok, runner} = start_link(self(), TestRepo, TestRepo, :forward, :up, %{level: false, sql: false})
-      Process.put(:ecto_migration, %{runner: runner, prefix: nil})
-
-      assert repo_name() == TestRepo
-      stop()
-    end
-
     test "get when runner is not started" do
       assert_raise RuntimeError, ~r/could not find migration runner process/, fn ->
         repo_name()
