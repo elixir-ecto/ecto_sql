@@ -1,13 +1,13 @@
 # Changelog for v3.x
 
-## v3.1.0-dev
+## v3.1.0 (2019-04-02)
 
 v3.1 requires Elixir v1.5+.
 
 ### Enhancements
 
   * Introduce Ecto.Adapters.MyXQL as an alternative library for MySQL
-  * Run all migrations in subdirectories as well
+  * Run all migrations in subdirectories
   * Update to Telemetry v0.4.0 (note the measurements value differ from previous versions)
 
 ### Bug fixes
@@ -80,4 +80,4 @@ v3.1 requires Elixir v1.5+.
 
 ## v3.0.0 (2018-10-29)
 
-  * Initial release. Note support for `mariaex` will be deprecated in a future patch release in favor of the upcoming `myxql` driver, which is being finalized.
+  * Initial release
