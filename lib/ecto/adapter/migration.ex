@@ -47,12 +47,6 @@ defmodule Ecto.Adapter.Migration do
 
   @doc """
   Executes migration commands.
-
-  ## Options
-
-    * `:timeout` - The time in milliseconds to wait for the query call to
-      finish, `:infinity` will wait indefinitely (default: 15000);
-
   """
   @callback execute_ddl(adapter_meta, command, options :: Keyword.t()) ::
               {:ok, [{Logger.level, Logger.message, Logger.metadata}]}
