@@ -43,26 +43,26 @@ defmodule Ecto.TenantMigratorTest do
     end
   end
 
-  describe "repo_name option" do
+  describe "dynamic_repo option" do
     test "upwards and downwards migrations" do
-      assert run(TestRepo, [{3, ChangeMigration}, {4, Migration}], :up, to: 4, log: false, repo_name: :tenant_db) == [4]
-      assert run(TestRepo, [{2, ChangeMigration}, {3, Migration}], :down, all: true, log: false, repo_name: :tenant_db) == [3, 2]
+      assert run(TestRepo, [{3, ChangeMigration}, {4, Migration}], :up, to: 4, log: false, dynamic_repo: :tenant_db) == [4]
+      assert run(TestRepo, [{2, ChangeMigration}, {3, Migration}], :down, all: true, log: false, dynamic_repo: :tenant_db) == [3, 2]
     end
 
     test "down invokes the repository adapter with down commands" do
-      assert down(TestRepo, 0, Migration, log: false, repo_name: :tenant_db) == :already_down
-      assert down(TestRepo, 2, Migration, log: false, repo_name: :tenant_db) == :ok
+      assert down(TestRepo, 0, Migration, log: false, dynamic_repo: :tenant_db) == :already_down
+      assert down(TestRepo, 2, Migration, log: false, dynamic_repo: :tenant_db) == :ok
     end
 
     test "up invokes the repository adapter with up commands" do
-      assert up(TestRepo, 3, Migration, log: false, repo_name: :tenant_db) == :already_up
-      assert up(TestRepo, 4, Migration, log: false, repo_name: :tenant_db) == :ok
+      assert up(TestRepo, 3, Migration, log: false, dynamic_repo: :tenant_db) == :already_up
+      assert up(TestRepo, 4, Migration, log: false, dynamic_repo: :tenant_db) == :ok
     end
 
     test "migrations run inside a transaction if the adapter supports ddl transactions" do
       capture_log fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
-        up(TestRepo, 0, Migration, repo_name: :tenant_db)
+        up(TestRepo, 0, Migration, dynamic_repo: :tenant_db)
         assert_receive {:transaction, _}
       end
     end

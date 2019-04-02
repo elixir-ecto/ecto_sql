@@ -334,7 +334,7 @@ defmodule Ecto.Adapters.SQL do
               | {:error, Exception.t}
   def query(repo, sql, params \\ [], opts \\ [])
 
-  def query(repo, sql, params, opts) when is_atom(repo) do
+  def query(repo, sql, params, opts) when is_atom(repo) or is_pid(repo) do
     query(Ecto.Adapter.lookup_meta(repo), sql, params, opts)
   end
 

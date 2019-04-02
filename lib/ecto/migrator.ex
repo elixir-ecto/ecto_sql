@@ -45,15 +45,12 @@ defmodule Ecto.Migrator do
   ## Options
 
     * `:prefix` - the prefix to run the migrations on
-    * `:repo_name` - the name of the Repo supervisor process
+    * `:dynamic_repo` - the name of the Repo supervisor process.
+      See `c:Ecto.Repo.put_dynamic_repo/1`.
 
   """
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
   def migrated_versions(repo, opts \\ []) do
-    verbose_schema_migration repo, "retrieve migrated versions", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
-    end
-
     lock_for_migrations repo, opts, fn versions -> versions end
   end
 
@@ -67,15 +64,12 @@ defmodule Ecto.Migrator do
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
-    * `:repo_name` - the name of the Repo supervisor process
+    * `:dynamic_repo` - the name of the Repo supervisor process.
+      See `c:Ecto.Repo.put_dynamic_repo/1`.
     * `:strict_version_order` - abort when applying a migration with old timestamp
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
-    verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
-    end
-
     lock_for_migrations repo, opts, fn versions ->
       if version in versions do
         :already_up
@@ -128,15 +122,12 @@ defmodule Ecto.Migrator do
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
     * `:prefix` - the prefix to run the migrations on
-    * `:repo_name` - the name of the Repo supervisor process
+    * `:dynamic_repo` - the name of the Repo supervisor process.
+      See `c:Ecto.Repo.put_dynamic_repo/1`.
 
   """
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
   def down(repo, version, module, opts \\ []) do
-    verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
-    end
-
     lock_for_migrations repo, opts, fn versions ->
       if version in versions do
         do_down(repo, version, module, opts)
@@ -158,15 +149,15 @@ defmodule Ecto.Migrator do
   defp async_migrate_maybe_in_transaction(repo, version, module, direction, opts, fun) do
     parent = self()
     ref = make_ref()
-    repo_name = Keyword.get(opts, :repo_name, repo)
-    task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, repo_name, module, fun) end)
+    dynamic_repo = repo.get_dynamic_repo()
+    task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, dynamic_repo, module, fun) end)
 
     if migrated_successfully?(ref, task.pid) do
       try do
         # The table with schema migrations can only be updated from
         # the parent process because it has a lock on the table
         verbose_schema_migration repo, "update schema migrations", fn ->
-          apply(SchemaMigration, direction, [repo, repo_name, version, opts[:prefix]])
+          apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
         end
       catch
         kind, error ->
@@ -187,14 +178,15 @@ defmodule Ecto.Migrator do
     end
   end
 
-  defp run_maybe_in_transaction(parent, ref, repo, repo_name, module, fun) do
+  defp run_maybe_in_transaction(parent, ref, repo, dynamic_repo, module, fun) do
+    repo.put_dynamic_repo(dynamic_repo)
+
     if module.__migration__[:disable_ddl_transaction] ||
          not repo.__adapter__.supports_ddl_transaction? do
       send_and_receive(parent, ref, fun.())
     else
       {:ok, result} =
-        Ecto.Repo.Transaction.transaction(
-          repo_name,
+        repo.transaction(
           fn -> send_and_receive(parent, ref, fun.()) end,
           log: false, timeout: :infinity
         )
@@ -271,10 +263,6 @@ defmodule Ecto.Migrator do
   """
   @spec run(Ecto.Repo.t, binary | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
-    verbose_schema_migration repo, "create schema migrations table", fn ->
-      SchemaMigration.ensure_schema_migrations_table!(repo, opts)
-    end
-
     pending =
       lock_for_migrations repo, opts, fn versions ->
         cond do
@@ -348,20 +336,30 @@ defmodule Ecto.Migrator do
   end
 
   defp lock_for_migrations(repo, opts, fun) do
-    query = SchemaMigration.versions(repo, opts[:prefix])
-    repo_name = Keyword.get(opts, :repo_name, repo)
-    meta = Ecto.Adapter.lookup_meta(repo_name)
-    callback = &fun.(Ecto.Repo.Queryable.all(repo_name, &1, timeout: :infinity, log: false))
+    dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
+    previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
-    case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
-      {kind, reason, stacktrace} ->
-        :erlang.raise(kind, reason, stacktrace)
+    try do
+      verbose_schema_migration repo, "create schema migrations table", fn ->
+        SchemaMigration.ensure_schema_migrations_table!(repo, opts)
+      end
 
-      {:error, error} ->
-        raise error
+      meta = Ecto.Adapter.lookup_meta(dynamic_repo)
+      query = SchemaMigration.versions(repo, opts[:prefix])
+      callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
 
-      result ->
-        result
+      case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
+        {kind, reason, stacktrace} ->
+          :erlang.raise(kind, reason, stacktrace)
+
+        {:error, error} ->
+          raise error
+
+        result ->
+          result
+      end
+    after
+      repo.put_dynamic_repo(previous_dynamic_repo)
     end
   end
 
