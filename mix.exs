@@ -56,7 +56,7 @@ defmodule EctoSQL.MixProject do
       myxql_dep(),
 
       # Bring something in for JSON during tests
-      {:jason, ">= 0.0.0", only: :test},
+      {:jason, ">= 0.0.0", only: [:test, :docs]},
 
       # Docs
       {:ex_doc, "~> 0.19", only: :docs},
