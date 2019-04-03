@@ -13,7 +13,7 @@ v3.1 requires Elixir v1.5+.
 ### Bug fixes
 
   * Respect `:ownership_timeout` repo configuration on SQL Sandbox
-  * Commit and relock after every migration to avoid leaving the DB in an inconsistent under certain failures
+  * Commit and relock after every migration to avoid leaving the DB in an inconsistent state under certain failures
 
 ## v3.0.5 (2019-02-05)
 
