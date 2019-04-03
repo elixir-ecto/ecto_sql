@@ -204,7 +204,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       end
 
   Because the server is querying the database from time to time, there is
-  a chance that, when the test exists, the periodic process may be querying
+  a chance that, when the test exits, the periodic process may be querying
   the database, regardless of test success or failure.
 
   ### "owner timed out because it owned the connection for longer than Nms"
