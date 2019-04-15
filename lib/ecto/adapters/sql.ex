@@ -812,9 +812,8 @@ defmodule Ecto.Adapters.SQL do
   defp log_measurements([], total, acc),
     do: Map.new([total_time: total] ++ acc)
 
-  defp log_result({:ok, _query, _res}), do: :ok
-  defp log_result({:ok, _res}), do: :ok
-  defp log_result(_), do: :error
+  defp log_result({:ok, _query, res}), do: {:ok, res}
+  defp log_result(other), do: other
 
   defp log_iodata(measurements, metadata) do
     %{
@@ -839,8 +838,8 @@ defmodule Ecto.Adapters.SQL do
     ]
   end
 
-  defp log_ok_error(:ok), do: "OK"
-  defp log_ok_error(:error), do: "ERROR"
+  defp log_ok_error({:ok, _res}), do: "OK"
+  defp log_ok_error({:error, _err}), do: "ERROR"
 
   defp log_ok_source(nil), do: ""
   defp log_ok_source(source), do: " source=#{inspect(source)}"
