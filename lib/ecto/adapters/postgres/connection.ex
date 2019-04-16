@@ -227,6 +227,9 @@ if Code.ensure_loaded?(Postgrex) do
 
         {field, _value}, acc ->
           {[quote_name(field), " = $" | Integer.to_string(acc)], acc + 1}
+
+        {field, _value, type}, acc ->
+          {[quote_name(field), " = ($" , Integer.to_string(acc), ")::" | Atom.to_string(type)], acc + 1}
       end)
 
       ["UPDATE ", quote_table(prefix, table), " SET ",
@@ -241,6 +244,9 @@ if Code.ensure_loaded?(Postgrex) do
 
         {field, _value}, acc ->
           {[quote_name(field), " = $" | Integer.to_string(acc)], acc + 1}
+
+        {field, _value, type}, acc ->
+          {[quote_name(field), " = ($" , Integer.to_string(acc), ")::" | Atom.to_string(type)], acc + 1}
       end)
 
       ["DELETE FROM ", quote_table(prefix, table), " WHERE ", filters | returning(returning)]

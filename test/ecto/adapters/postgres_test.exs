@@ -932,6 +932,9 @@ defmodule Ecto.Adapters.PostgresTest do
     query = update(nil, "schema", [:x, :y], [id: 1], [])
     assert query == ~s{UPDATE "schema" SET "x" = $1, "y" = $2 WHERE "id" = $3}
 
+    query = update(nil, "schema", [:x, :y], [{:id, 1, :z}], [])
+    assert query == ~s{UPDATE "schema" SET "x" = $1, "y" = $2 WHERE "id" = ($3)::z}
+
     query = update(nil, "schema", [:x, :y], [id: 1], [:z])
     assert query == ~s{UPDATE "schema" SET "x" = $1, "y" = $2 WHERE "id" = $3 RETURNING "z"}
 
@@ -945,6 +948,9 @@ defmodule Ecto.Adapters.PostgresTest do
   test "delete" do
     query = delete(nil, "schema", [x: 1, y: 2], [])
     assert query == ~s{DELETE FROM "schema" WHERE "x" = $1 AND "y" = $2}
+
+    query = delete(nil, "schema", [{:x, 1}, {:y, 2, :z}], [])
+    assert query == ~s{DELETE FROM "schema" WHERE "x" = $1 AND "y" = ($2)::z}
 
     query = delete(nil, "schema", [x: 1, y: 2], [:z])
     assert query == ~s{DELETE FROM "schema" WHERE "x" = $1 AND "y" = $2 RETURNING "z"}

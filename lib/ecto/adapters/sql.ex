@@ -162,14 +162,14 @@ defmodule Ecto.Adapters.SQL do
       @impl true
       def update(adapter_meta, %{source: source, prefix: prefix}, fields, params, returning, opts) do
         {fields, field_values} = :lists.unzip(fields)
-        filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
+        filter_values = params |> Enum.map(&elem(&1,1)) |> Enum.reject(&is_nil(&1))
         sql = @conn.update(prefix, source, fields, params, returning)
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :update, source, params, field_values ++ filter_values, :raise, returning, opts)
       end
 
       @impl true
       def delete(adapter_meta, %{source: source, prefix: prefix}, params, opts) do
-        filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
+        filter_values = params |> Enum.map(&elem(&1,1)) |> Enum.reject(&is_nil(&1))
         sql = @conn.delete(prefix, source, params, [])
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :delete, source, params, filter_values, :raise, [], opts)
       end
