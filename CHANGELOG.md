@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.1.1 (2019-04-16)
+
+### Bug fixes
+
+  * Fix backwards incompatible change in Telemetry metadata
+
 ## v3.1.0 (2019-04-02)
 
 v3.1 requires Elixir v1.5+.
