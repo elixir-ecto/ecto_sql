@@ -222,7 +222,7 @@ defmodule Ecto.Integration.TransactionTest do
     register_telemetry()
 
     PoolRepo.transaction(fn ->
-      assert_received {measurements, %{params: [], result: :ok}}
+      assert_received {measurements, %{params: [], result: {:ok, _res}}}
       assert is_integer(measurements.query_time) and measurements.query_time >= 0
       assert is_integer(measurements.queue_time) and measurements.queue_time >= 0
 
@@ -230,7 +230,7 @@ defmodule Ecto.Integration.TransactionTest do
       register_telemetry()
     end)
 
-    assert_received {measurements, %{params: [], result: :ok}}
+    assert_received {measurements, %{params: [], result: {:ok, _res}}}
     assert is_integer(measurements.query_time) and measurements.query_time >= 0
     refute Map.has_key?(measurements, :queue_time)
 
@@ -240,7 +240,7 @@ defmodule Ecto.Integration.TransactionTest do
       PoolRepo.rollback(:log_rollback)
     end) == {:error, :log_rollback}
 
-    assert_received {measurements, %{params: [], result: :ok}}
+    assert_received {measurements, %{params: [], result: {:ok, _res}}}
     assert is_integer(measurements.query_time) and measurements.query_time >= 0
     refute Map.has_key?(measurements, :queue_time)
   end
@@ -250,7 +250,7 @@ defmodule Ecto.Integration.TransactionTest do
       register_telemetry()
       assert [] = PoolRepo.all(Trans)
 
-      assert_received {measurements, %{params: [], result: :ok}}
+      assert_received {measurements, %{params: [], result: {:ok, _res}}}
       assert is_integer(measurements.query_time) and measurements.query_time >= 0
       assert is_integer(measurements.decode_time) and measurements.query_time >= 0
       refute Map.has_key?(measurements, :queue_time)
