@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-  * Fix backwards incompatible change in Telemetry metadata
+  * [repo] Fix backwards incompatible change in Telemetry metadata
 
 ## v3.1.0 (2019-04-02)
 
@@ -12,41 +12,45 @@ v3.1 requires Elixir v1.5+.
 
 ### Enhancements
 
-  * Introduce Ecto.Adapters.MyXQL as an alternative library for MySQL
-  * Run all migrations in subdirectories
-  * Update to Telemetry v0.4.0 (note the measurements value differ from previous versions)
+  * [mysql] Introduce Ecto.Adapters.MyXQL as an alternative library for MySQL
+  * [migrations] Run all migrations in subdirectories
+  * [repo] Update to Telemetry v0.4.0 (note the measurements value differ from previous versions)
 
 ### Bug fixes
 
-  * Respect `:ownership_timeout` repo configuration on SQL Sandbox
-  * Commit and relock after every migration to avoid leaving the DB in an inconsistent state under certain failures
+  * [sandbox] Respect `:ownership_timeout` repo configuration on SQL Sandbox
+  * [migrations] Commit and relock after every migration to avoid leaving the DB in an inconsistent state under certain failures
+
+### Backwards incompatible changess
+
+  * [migrations] If you are creating indexes concurrently, you need to disable the migration lock: `config :app, App.Repo, migration_lock: nil`. This will migrations behave the same way as they did in Ecto 2.0.
 
 ## v3.0.5 (2019-02-05)
 
 ### Enhancements
 
-  * Add `:repo` and `:type` keys to telemetry events
-  * Add `:add_if_not_exists` and `:remove_if_exists` to columns in migrations
+  * [repo] Add `:repo` and `:type` keys to telemetry events
+  * [migrations] Add `:add_if_not_exists` and `:remove_if_exists` to columns in migrations
 
 ### Bug fixes
 
-  * Load all migrations before running them
-  * Include `:queue_target` and `:queue_interval` in SQL Sandbox checkout
+  * [migrations] Load all migrations before running them
+  * [sandbox] Include `:queue_target` and `:queue_interval` in SQL Sandbox checkout
 
 ## v3.0.4 (2018-12-31)
 
 ### Enhancements
 
-  * Bump telemetry dependency
-  * Perform strict argument parsing in `ecto.migrate`, `ecto.rollback`, `ecto.load` and `ecto.dump`
+  * [repo] Bump telemetry dependency
+  * [migrations] Perform strict argument parsing in `ecto.migrate`, `ecto.rollback`, `ecto.load` and `ecto.dump`
 
 ### Bug fixes
 
-  * Do not log migration versions query
+  * [migrations] Do not log migration versions query
 
 ### Deprecations
 
-  * `Telemetry.attach/5` and `Telemetry.attach_many/5` are deprecated in favor of `:telemetry.attach/5` and `:telemetry.attach_many/5`
+  * [repo] `Telemetry.attach/5` and `Telemetry.attach_many/5` are deprecated in favor of `:telemetry.attach/5` and `:telemetry.attach_many/5`
 
 ## v3.0.3 (2018-11-29)
 
