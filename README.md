@@ -6,7 +6,7 @@ Ecto SQL ([documentation](https://hexdocs.pm/ecto_sql)) provides building blocks
 
   * The Ecto.Adapters.SQL module as an entry point for all SQL-based adapters
   * Default implementations for Postgres (Ecto.Adapters.Postgres) and MySQL (Ecto.Adapters.MyXQL)
-  * A test sandbox (Ecto.Adapters.SQL.Sandbox) that concurrently run database tests inside transactions
+  * A test sandbox (Ecto.Adapters.SQL.Sandbox) that concurrently runs database tests inside transactions
   * Support for database migrations via Mix tasks
 
 To learn more about getting started, [see the Ecto repository](https://github.com/elixir-ecto/ecto). 
@@ -26,7 +26,7 @@ You can also use a local Ecto checkout if desired:
 
     $ ECTO_PATH=../ecto mix test.all
 
-You can run tests against an specific Ecto adapter by using the `ECTO_ADAPTER` environment variable:
+You can run tests against a specific Ecto adapter by using the `ECTO_ADAPTER` environment variable:
 
     $ ECTO_ADAPTER=pg mix test
 
