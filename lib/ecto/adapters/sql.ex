@@ -667,6 +667,9 @@ defmodule Ecto.Adapters.SQL do
       {:ok, %{rows: nil, num_rows: 1}} ->
         {:ok, []}
 
+      {:ok, %{rows: [], num_rows: 1}} ->
+        {:ok, []}
+
       {:ok, %{rows: [values], num_rows: 1}} ->
         {:ok, Enum.zip(returning, values)}
 
