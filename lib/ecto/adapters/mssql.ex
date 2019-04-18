@@ -56,6 +56,7 @@ defmodule Ecto.Adapters.MsSql do
   use Ecto.Adapters.SQL,
     driver: :tds,
     migration_lock: nil
+  require Logger
 
   @behaviour Ecto.Adapter.Storage
 
@@ -67,17 +68,45 @@ defmodule Ecto.Adapters.MsSql do
   def autogenerate(type),       do: super(type)
 
   @doc false
-  def loaders({:embed, _} = type, _), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
-  def loaders({:map, _}, type),       do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
-  def loaders(:map, type),            do: [&json_decode/1, type]
-  def loaders(:boolean, type),        do: [&bool_decode/1, type]
-  def loaders(:binary_id, type),      do: [Tds.Types.UUID, type]
-  def loaders(_, type),               do: [type]
+  def loaders({:embed, _} = type, _),       do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
+  def loaders({:map, _}, type),             do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
+  def loaders(:map, type),                  do: [&json_decode/1, type]
+  def loaders(:boolean, type),              do: [&bool_decode/1, type]
+  def loaders(:binary_id, type),            do: [Tds.Types.UUID, type]
+  def loaders(:naive_datetime, type),       do: [&datetime_decode/1, type]
+  def loaders(:naive_datetime_usec, type),  do: [&datetime_decode/1, type]
+  def loaders(_, type),                     do: [type]
 
-  def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
-  def dumpers({:map, _} , type),      do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
-  def dumpers(:binary_id, type),      do: [type, Tds.Types.UUID]
-  def dumpers(_, type),               do: [type]
+
+  def dumpers({:embed, _} = type, _),       do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
+  def dumpers({:map, _} , type),            do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
+  def dumpers(:binary_id, type),            do: [type, Tds.Types.UUID]
+  def dumpers(:naive_datetime, type),       do: [type, &datetime_encode/1]
+  def dumpers(:naive_datetime_usec, type),  do: [type, &datetime_encode/1]
+  def dumpers(_, type),                     do: [type]
+
+  defp datetime_encode(nil), do: {:ok, nil}
+  defp datetime_encode(val) do
+    val  = {_, _} = NaiveDateTime.to_erl(val)
+    {:ok, val}
+  rescue
+    _ ->
+      :error
+  end
+
+  defp datetime_decode(nil), do: {:ok, nil}
+  defp datetime_decode({date, {h, m, s, ms}}) do
+    # we are loosing precision here!!!!
+    cond do
+      ms == 0 ->
+        NaiveDateTime.from_erl({date, {h, m, s}})
+      ms > 999999 ->
+        rms = Integer.floor_div(ms, 10)
+        NaiveDateTime.from_erl!({date, {h, m, s}}, {rms,  6})
+      true ->
+        NaiveDateTime.from_erl!({date, {h, m, s}}, {ms,  6})
+    end
+  end
 
   defp bool_decode(<<0>>),                do: {:ok, false}
   defp bool_decode(<<1>>),                do: {:ok, true}
