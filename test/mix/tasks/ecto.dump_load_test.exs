@@ -3,6 +3,10 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
 
   alias Mix.Tasks.Ecto.{Load, Dump}
 
+  import Support.FileHelpers
+
+  migrations_path = Path.join([tmp_path(), inspect(Ecto.Load), "migrations"])
+
   # Mocked adapters
 
   defmodule Adapter do
@@ -10,14 +14,18 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
     @behaviour Ecto.Adapter.Structure
 
     defmacro __before_compile__(_), do: :ok
-    def dumpers(_, _), do: raise "not implemented"
-    def loaders(_, _), do: raise "not implemented"
-    def init(_), do: raise "not implemented"
-    def checkout(_, _, _), do: raise "not implemented"
-    def ensure_all_started(_, _), do: raise "not implemented"
+    def dumpers(_, _), do: raise("not implemented")
+    def loaders(_, _), do: raise("not implemented")
+    def checkout(_, _, _), do: raise("not implemented")
+    def ensure_all_started(_, _), do: {:ok, []}
 
-    def structure_dump(_, _), do: Process.get(:structure_dump) || raise "no structure_dump"
-    def structure_load(_, _), do: Process.get(:structure_load) || raise "no structure_load"
+    def init(_opts) do
+      child_spec = Supervisor.child_spec({Task, fn -> :timer.sleep(:infinity) end}, [])
+      {:ok, child_spec, %{meta: :meta}}
+    end
+
+    def structure_dump(_, _), do: Process.get(:structure_dump) || raise("no structure_dump")
+    def structure_load(_, _), do: Process.get(:structure_load) || raise("no structure_load")
   end
 
   defmodule NoStructureAdapter do
@@ -41,8 +49,9 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
   end
 
   setup do
-    Application.put_env(:ecto_sql, __MODULE__.Repo, [])
+    Application.put_env(:ecto_sql, __MODULE__.Repo, priv: "tmp/#{inspect(Ecto.Load)}")
     Application.put_env(:ecto_sql, __MODULE__.NoStructureRepo, [])
+    File.mkdir_p!(unquote(migrations_path))
   end
 
   ## Dump
@@ -75,21 +84,46 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
   ## Load
 
   test "runs the adapter structure_load" do
+    migrations = fn _, _ -> [] end
+
     Process.put(:structure_load, {:ok, "foo"})
-    Load.run ["-r", to_string(Repo)]
-    assert_received {:mix_shell, :info, ["The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"]}
+    Load.run ["-r", to_string(Repo)], migrations
+
+    assert_received {:mix_shell, :info,
+                     [
+                       "The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"
+                     ]}
   end
 
   test "runs the adapter structure_load with --quiet" do
+    migrations = fn _, _ -> [] end
     Process.put(:structure_load, {:ok, "foo"})
-    Load.run ["-r", to_string(Repo), "--quiet"]
+    Load.run ["-r", to_string(Repo), "--quiet"], migrations
     refute_received {:mix_shell, :info, [_]}
   end
 
+  test "skips when the database is loaded with --skip-if-loaded" do
+    migrations = fn _, _ ->
+      [
+        {:up, 20_160_000_000_001, "up_migration_1"},
+        {:down, 20_160_000_000_004, "down_migration_1"}
+      ]
+    end
+
+    Load.run ["-r", to_string(Repo), "--skip-if-loaded"], migrations
+
+    assert_received {:mix_shell, :info,
+                     [
+                       "Skipped since a structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded"
+                     ]}
+  end
+
   test "raises an error when structure_load gives an unknown feedback" do
+    migrations = fn _, _ -> [] end
+
     Process.put(:structure_load, {:error, :confused})
     assert_raise Mix.Error, fn ->
-      Load.run ["-r", to_string(Repo)]
+      Load.run ["-r", to_string(Repo)], migrations
     end
   end
 
