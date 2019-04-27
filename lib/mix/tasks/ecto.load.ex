@@ -19,7 +19,8 @@ defmodule Mix.Tasks.Ecto.Load do
     quiet: :boolean,
     repo: [:string, :keep],
     no_compile: :boolean,
-    no_deps_check: :boolean
+    no_deps_check: :boolean,
+    skip_if_loaded: :boolean
   ]
 
   @moduledoc """
@@ -51,29 +52,57 @@ defmodule Mix.Tasks.Ecto.Load do
       (typically in production)
     * `--no-compile` - does not compile applications before loading
     * `--no-deps-check` - does not check depedendencies before loading
-
+    * `--skip-if-loaded` - does not load the dump file if the repo has the migrations table up
   """
 
   @impl true
-  def run(args) do
-    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
+  def run(args, table_exists? \\ &Ecto.Adapters.SQL.table_exists?/2) do
+    {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     opts = Keyword.merge(@default_opts, opts)
 
-    Enum.each parse_repo(args), fn repo ->
+    Enum.each(parse_repo(args), fn repo ->
       ensure_repo(repo, args)
-      ensure_implements(repo.__adapter__, Ecto.Adapter.Structure,
-                                          "load structure for #{inspect repo}")
 
-      if skip_safety_warnings?() or
-          opts[:force] or
-          Mix.shell.yes?("Are you sure you want to load a new structure for #{inspect repo}? Any existing data in this repo may be lost.") do
-        load_structure(repo, opts)
+      ensure_implements(
+        repo.__adapter__,
+        Ecto.Adapter.Structure,
+        "load structure for #{inspect(repo)}"
+      )
+
+      {:ok, loaded?, _} =
+        Ecto.Migrator.with_repo(
+          repo,
+          &table_exists?.(&1, Ecto.Migration.SchemaMigration.get_source(&1))
+        )
+
+      cond do
+        loaded? and opts[:skip_if_loaded] ->
+          :ok
+
+        (skip_safety_warnings?() and not loaded?) or opts[:force] or confirm_load(repo, loaded?) ->
+          load_structure(repo, opts)
+
+        true ->
+          :ok
       end
-    end
+    end)
   end
 
   defp skip_safety_warnings? do
-    Mix.Project.config[:start_permanent] != true
+    Mix.Project.config()[:start_permanent] != true
+  end
+
+  defp confirm_load(repo, false) do
+    Mix.shell().yes?(
+      "Are you sure you want to load a new structure for #{inspect(repo)}? Any existing data in this repo may be lost."
+    )
+  end
+
+  defp confirm_load(repo, true) do
+    Mix.shell().yes?("""
+    It looks like a structure was already loaded for #{inspect(repo)}. Any attempt to load it again might fail.
+    Are you sure you want to proceed?
+    """)
   end
 
   defp load_structure(repo, opts) do
