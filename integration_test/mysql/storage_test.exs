@@ -102,6 +102,20 @@ defmodule Ecto.Integration.StorageTest do
     assert contents =~ "INSERT INTO `schema_migrations` (version) VALUES ("
   end
 
+  describe "table_exists?/2" do
+    setup do
+      :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo)
+    end
+
+    test "returns true when table exists" do
+      assert MySQL.table_exists?(TestRepo, "posts")
+    end
+
+    test "returns false table doesn't exists" do
+      refute MySQL.table_exists?(TestRepo, "unknown")
+    end
+  end
+
   defp strip_timestamp(dump) do
     dump
     |> String.split("\n")

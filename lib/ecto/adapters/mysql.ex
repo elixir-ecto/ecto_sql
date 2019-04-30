@@ -288,6 +288,16 @@ defmodule Ecto.Adapters.MySQL do
     end
   end
 
+  @impl true
+  def table_exists?(repo_or_adapter, table_name) do
+    case Ecto.Adapters.SQL.query!(repo_or_adapter, "SHOW tables LIKE `#{table_name}`;") do
+      %Mariaex.Result{rows: [[nil]]} ->
+        false
+      _ ->
+        true
+    end
+  end
+
   ## Helpers
 
   defp run_query(sql, opts) do

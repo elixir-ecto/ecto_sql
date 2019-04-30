@@ -38,4 +38,13 @@ defmodule Ecto.Adapter.Structure do
   """
   @callback structure_load(default :: String.t, config :: Keyword.t) ::
             {:ok, String.t} | {:error, term}
+
+
+  @doc """
+  Check if the given `table` exists.
+
+  Returns `true` if the `table` exists in the database specified by the given
+  `adapter_meta`, otherwise `false`.
+  """
+  @callback table_exists?(Ecto.Repo.t | Ecto.Adapter.adapter_meta, table :: String.t) :: boolean
 end
