@@ -355,6 +355,28 @@ defmodule Ecto.Adapters.SQL do
     opts
   end
 
+  @doc """
+  Check if the given `table` exists in the given `database`.
+
+  Returns `true` if the `table` exists in the `database` using the given
+  `adapter_meta`, otherwise `false`.
+  """
+  @spec table_exists?(Ecto.Repo.t | Ecto.Adapter.adapter_meta, table :: String.t, schema :: String.t) :: boolean
+  def table_exists?(repo_or_adapter, table, schema) do
+    query = """
+	SELECT 1
+      FROM information_schema.tables
+      WHERE table_name = '#{table}'
+      AND table_schema = '#{schema}';
+    """
+    case query!(repo_or_adapter, query) do
+      %{num_rows: 0} ->
+        false
+      _ ->
+        true
+    end
+  end
+
   ## Callbacks
 
   @doc false

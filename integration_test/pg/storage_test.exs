@@ -109,18 +109,4 @@ defmodule Ecto.Integration.StorageTest do
     contents = File.read!(path)
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES]
   end
-
-  describe "table_exists?/2" do
-    setup do
-      :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo)
-    end
-
-    test "returns true when table exists" do
-      assert Postgres.table_exists?(TestRepo, "posts")
-    end
-
-    test "returns false table doesn't exists" do
-      refute Postgres.table_exists?(TestRepo, "unknown")
-    end
-  end
 end

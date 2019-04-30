@@ -176,16 +176,6 @@ defmodule Ecto.Adapters.Postgres do
          do: append_versions(table, versions, path)
   end
 
-  @impl true
-  def table_exists?(repo_or_adapter, table_name) do
-    case Ecto.Adapters.SQL.query!(repo_or_adapter, "SELECT to_regclass('#{table_name}')") do
-      %Postgrex.Result{rows: [[nil]]} ->
-        false
-      _ ->
-        true
-    end
-  end
-
   defp select_versions(table, config) do
     case run_query(~s[SELECT version FROM public."#{table}" ORDER BY version], config) do
       {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, &hd/1)}
