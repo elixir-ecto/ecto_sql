@@ -355,25 +355,35 @@ defmodule Ecto.Adapters.SQL do
     opts
   end
 
+  defmacrop safe_fragment(string) do
+    quote do
+      fragment(unquote(string))
+    end
+  end
+
   @doc """
   Check if the given `table` exists.
 
-  Returns `true` if the `table` exists in the database using the given
-  `adapter_meta`, otherwise `false`.
+  Returns `true` if the `table` exists in the `repo`, otherwise `false`.
   """
-  @spec table_exists?(Ecto.Repo.t | Ecto.Adapter.adapter_meta, table :: String.t) :: boolean
-  def table_exists?(repo, table) when is_atom(repo) or is_pid(repo) do
-    table_exists?(Ecto.Adapter.lookup_meta(repo), table)
+  @spec table_exists?(Ecto.Repo.t, table :: String.t) :: boolean
+  def table_exists?(repo, table) when is_atom(repo) do
+    table_exists?(repo, Ecto.Adapter.lookup_meta(repo), table)
   end
 
-  def table_exists?(%{sql: sql} = adapter_meta, table) do
-    query = """
-      SELECT 1
-      FROM information_schema.tables
-      WHERE table_name = $1
-      AND table_schema = #{sql.current_prefix_function()};
-    """
-    case query!(adapter_meta, query, [table]) do
+  defp table_exists?(repo, %{sql: sql} = adapter_meta, table) do\
+    import Ecto.Query, only: [from: 2]
+
+    query = from(
+      t in "tables",
+      prefix: "information_schema",
+      where: t.table_name == ^table,
+      select: t.table_name
+    )
+    {sql_query, params} = to_sql(:all, repo, query)
+    sql_query = "#{sql_query} AND table_schema = #{sql.current_prefix_function()} LIMIT 1;"
+
+    case query!(adapter_meta, sql_query, params) do
       %{num_rows: 0} ->
         false
       _ ->

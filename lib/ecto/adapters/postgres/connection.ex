@@ -800,7 +800,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def current_prefix_function(), do: "current_schema()"
+    def current_prefix_function, do: "current_schema()"
 
     # From https://www.postgresql.org/docs/9.3/static/protocol-error-fields.html.
     defp ddl_log_level("DEBUG"), do: :debug

@@ -702,7 +702,7 @@ if Code.ensure_loaded?(MyXQL) do
     def ddl_logs(_), do: []
 
     @impl true
-    def current_prefix_function(), do: "DATABASE()"
+    def current_prefix_function, do: "DATABASE()"
 
     defp pk_definitions(columns, prefix) do
       pks =

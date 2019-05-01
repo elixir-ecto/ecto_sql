@@ -715,7 +715,7 @@ if Code.ensure_loaded?(Mariaex) do
     def ddl_logs(_), do: []
 
     @impl true
-    def current_prefix_function(), do: "DATABASE()"
+    def current_prefix_function, do: "DATABASE()"
 
     defp pk_definitions(columns, prefix) do
       pks =
