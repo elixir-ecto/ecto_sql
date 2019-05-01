@@ -714,6 +714,9 @@ if Code.ensure_loaded?(Mariaex) do
     @impl true
     def ddl_logs(_), do: []
 
+    @impl true
+    def current_prefix_function(), do: "DATABASE()"
+
     defp pk_definitions(columns, prefix) do
       pks =
         for {_, name, _, opts} <- columns,

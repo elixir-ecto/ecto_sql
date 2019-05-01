@@ -799,6 +799,9 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
+    @impl true
+    def current_prefix_function(), do: "current_schema()"
+
     # From https://www.postgresql.org/docs/9.3/static/protocol-error-fields.html.
     defp ddl_log_level("DEBUG"), do: :debug
     defp ddl_log_level("LOG"), do: :info

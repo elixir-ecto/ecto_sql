@@ -116,10 +116,10 @@ defmodule Ecto.Integration.SQLTest do
   end
 
   test "returns true when table exists" do
-    assert Ecto.Adapters.SQL.table_exists?(TestRepo, "posts", "public")
+    assert Ecto.Adapters.SQL.table_exists?(TestRepo, "posts")
   end
 
   test "returns false table doesn't exists" do
-    refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown", "public")
+    refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
   end
 end
