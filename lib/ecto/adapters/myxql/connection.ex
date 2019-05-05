@@ -702,7 +702,17 @@ if Code.ensure_loaded?(MyXQL) do
     def ddl_logs(_), do: []
 
     @impl true
-    def current_prefix_function, do: "DATABASE()"
+    def table_exists_query(table) do
+      require Ecto.Query
+      
+      Ecto.Query.from(
+        t in "tables",
+        prefix: "information_schema",
+        where: t.table_name == ^table and t.table_schema == fragment("DATABASE()"),
+        select: t.table_name,
+        limit: 1
+      )
+    end
 
     defp pk_definitions(columns, prefix) do
       pks =

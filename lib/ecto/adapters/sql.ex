@@ -355,12 +355,6 @@ defmodule Ecto.Adapters.SQL do
     opts
   end
 
-  defmacrop safe_fragment(string) do
-    quote do
-      fragment(unquote(string))
-    end
-  end
-
   @doc """
   Check if the given `table` exists.
 
@@ -371,24 +365,9 @@ defmodule Ecto.Adapters.SQL do
     table_exists?(repo, Ecto.Adapter.lookup_meta(repo), table)
   end
 
-  defp table_exists?(repo, %{sql: sql} = adapter_meta, table) do\
-    import Ecto.Query, only: [from: 2]
-
-    query = from(
-      t in "tables",
-      prefix: "information_schema",
-      where: t.table_name == ^table,
-      select: t.table_name
-    )
-    {sql_query, params} = to_sql(:all, repo, query)
-    sql_query = "#{sql_query} AND table_schema = #{sql.current_prefix_function()} LIMIT 1;"
-
-    case query!(adapter_meta, sql_query, params) do
-      %{num_rows: 0} ->
-        false
-      _ ->
-        true
-    end
+  defp table_exists?(repo, %{sql: sql}, table) do
+    sql_query = sql.table_exists_query(table)
+    repo.one(sql_query) != nil
   end
 
   ## Callbacks
