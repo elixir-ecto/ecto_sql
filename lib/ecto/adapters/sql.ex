@@ -359,15 +359,13 @@ defmodule Ecto.Adapters.SQL do
   Check if the given `table` exists.
 
   Returns `true` if the `table` exists in the `repo`, otherwise `false`.
+  The table is checked against the current database/schema in the connection.
   """
   @spec table_exists?(Ecto.Repo.t, table :: String.t) :: boolean
   def table_exists?(repo, table) when is_atom(repo) do
-    table_exists?(repo, Ecto.Adapter.lookup_meta(repo), table)
-  end
-
-  defp table_exists?(repo, %{sql: sql}, table) do
-    sql_query = sql.table_exists_query(table)
-    repo.one(sql_query) != nil
+    %{sql: sql} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
+    {query, params} = sql.table_exists_query(table)
+    query!(adapter_meta, query, params, []).num_rows != 0
   end
 
   ## Callbacks

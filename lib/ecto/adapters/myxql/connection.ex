@@ -703,15 +703,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     def table_exists_query(table) do
-      require Ecto.Query
-      
-      Ecto.Query.from(
-        t in "tables",
-        prefix: "information_schema",
-        where: t.table_name == ^table and t.table_schema == fragment("DATABASE()"),
-        select: t.table_name,
-        limit: 1
-      )
+      {"SELECT true FROM information_schema.tables WHERE table_name = ? AND table_schema = DATABASE() LIMIT 1", [table]}
     end
 
     defp pk_definitions(columns, prefix) do

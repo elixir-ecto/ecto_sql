@@ -801,15 +801,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def table_exists_query(table) do
-      require Ecto.Query
-      
-      Ecto.Query.from(
-        t in "tables",
-        prefix: "information_schema",
-        where: t.table_name == ^table and t.table_schema == fragment("current_schema()"),
-        select: t.table_name,
-        limit: 1
-      )
+      {"SELECT true FROM information_schema.tables WHERE table_name = $1 AND table_schema = current_schema() LIMIT 1", [table]}
     end
 
     # From https://www.postgresql.org/docs/9.3/static/protocol-error-fields.html.
