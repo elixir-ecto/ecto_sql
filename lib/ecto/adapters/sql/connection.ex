@@ -113,5 +113,5 @@ defmodule Ecto.Adapters.SQL.Connection do
   @doc """
   Returns a queryable to check if the given `table` exists.
   """
-  @callback table_exists_query(table :: String.t) :: Ecto.Query.t
+  @callback table_exists_query(table :: String.t) :: {iodata, [term]}
 end
