@@ -114,4 +114,12 @@ defmodule Ecto.Integration.SQLTest do
     posts = Enum.map(result.rows, &TestRepo.load(Post, {result.columns, &1}))
     assert [%Post{title: "title1", inserted_at: ^inserted_at, public: false}] = posts
   end
+
+  test "returns true when table exists" do
+    assert Ecto.Adapters.SQL.table_exists?(TestRepo, "posts")
+  end
+
+  test "returns false table doesn't exists" do
+    refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
+  end
 end

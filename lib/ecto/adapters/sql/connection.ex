@@ -109,4 +109,9 @@ defmodule Ecto.Adapters.SQL.Connection do
   Receives a query result and returns a list of logs.
   """
   @callback ddl_logs(result :: term) :: [{Logger.level, Logger.message, Logger.metadata}]
+
+  @doc """
+  Returns a queryable to check if the given `table` exists.
+  """
+  @callback table_exists_query(table :: String.t) :: Ecto.Query.t
 end

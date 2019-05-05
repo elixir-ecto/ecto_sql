@@ -799,6 +799,19 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
+    @impl true
+    def table_exists_query(table) do
+      require Ecto.Query
+      
+      Ecto.Query.from(
+        t in "tables",
+        prefix: "information_schema",
+        where: t.table_name == ^table and t.table_schema == fragment("current_schema()"),
+        select: t.table_name,
+        limit: 1
+      )
+    end
+
     # From https://www.postgresql.org/docs/9.3/static/protocol-error-fields.html.
     defp ddl_log_level("DEBUG"), do: :debug
     defp ddl_log_level("LOG"), do: :info
