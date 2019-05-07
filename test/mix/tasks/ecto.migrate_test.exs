@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
       assert repo == Repo
       refute path =~ ~r/_build/
       assert direction == :up
-      assert opts == [mode: :temporary, repo: "Elixir.Mix.Tasks.Ecto.MigrateTest.Repo", step: 1]
+      assert opts == [repo: "Elixir.Mix.Tasks.Ecto.MigrateTest.Repo", step: 1]
       []
     end
     assert Process.get(:started)
