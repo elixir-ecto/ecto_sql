@@ -36,27 +36,31 @@ defmodule Mix.Tasks.Ecto.Migrations do
   def run(args, migrations \\ &Ecto.Migrator.migrations/2, puts \\ &IO.puts/1) do
     repos = parse_repo(args)
 
-    result =
-      Enum.map(repos, fn repo ->
-        ensure_repo(repo, args)
-        path = ensure_migrations_path(repo)
-        {:ok, pid, _} = ensure_started(repo, all: true)
-        repo_status = migrations.(repo, path)
-        pid && repo.stop()
+    for repo <- repos do
+      ensure_repo(repo, args)
+      path = ensure_migrations_path(repo)
 
-        """
+      case Ecto.Migrator.with_repo(repo, &migrations.(&1, path), [mode: :temporary]) do
+        {:ok, repo_status, _} ->
+          puts.(
+            """
 
-        Repo: #{inspect(repo)}
+            Repo: #{inspect(repo)}
 
-          Status    Migration ID    Migration Name
-        --------------------------------------------------
-        """ <>
-          Enum.map_join(repo_status, "\n", fn {status, number, description} ->
-            "  #{format(status, 10)}#{format(number, 16)}#{description}"
-          end) <> "\n"
-      end)
+              Status    Migration ID    Migration Name
+            --------------------------------------------------
+            """ <>
+              Enum.map_join(repo_status, "\n", fn {status, number, description} ->
+                "  #{format(status, 10)}#{format(number, 16)}#{description}"
+              end) <> "\n"
+          )
 
-    puts.(Enum.join(result, "\n"))
+        {:error, error} ->
+          Mix.raise "Could not start repo #{inspect repo}, error: #{inspect error}"
+      end
+    end
+
+    :ok
   end
 
   defp format(content, pad) do

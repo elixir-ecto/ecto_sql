@@ -2,41 +2,6 @@ defmodule Mix.EctoSQL do
   @moduledoc false
 
   @doc """
-  Ensures the given repository is started and running.
-  """
-  @spec ensure_started(Ecto.Repo.t, Keyword.t) :: {:ok, pid | nil, [atom]}
-  def ensure_started(repo, opts) do
-    {:ok, started} = Application.ensure_all_started(:ecto_sql)
-
-    # If we starting EctoSQL just now, assume
-    # logger has not been properly booted yet.
-    if :ecto_sql in started && Process.whereis(Logger) do
-      backends = Application.get_env(:logger, :backends, [])
-      try do
-        Logger.App.stop
-        Application.put_env(:logger, :backends, [:console])
-        :ok = Logger.App.start
-      after
-        Application.put_env(:logger, :backends, backends)
-      end
-    end
-
-    {:ok, apps} = repo.__adapter__.ensure_all_started(repo.config(), :temporary)
-    pool_size = Keyword.get(opts, :pool_size, 2)
-
-    case repo.start_link(pool_size: pool_size) do
-      {:ok, pid} ->
-        {:ok, pid, apps}
-
-      {:error, {:already_started, _pid}} ->
-        {:ok, nil, apps}
-
-      {:error, error} ->
-        Mix.raise "Could not start repo #{inspect repo}, error: #{inspect error}"
-    end
-  end
-
-  @doc """
   Ensures the given repository's migrations path exists on the file system.
   """
   @spec ensure_migrations_path(Ecto.Repo.t) :: String.t

@@ -204,6 +204,11 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_default_prefix: "my_prefix"
 
+    * `:start_apps_before_migration` - A list of applications to be started before
+      running migrations. Used by `Ecto.Migrator.with_repo/3` and the migration tasks:
+
+          config :app, App.Repo, start_apps_before_migration: [:ssl, :some_custom_logger]
+
   """
 
   @doc """
