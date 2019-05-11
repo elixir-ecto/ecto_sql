@@ -1,5 +1,13 @@
 # Changelog for v3.x
 
+## v3.1.2 (2019-05-11)
+
+### Enhancements
+
+  * [migrator] Add `Ecto.Migrator.with_repo/2` to start repo and apps
+  * [mix] Add `--skip-if-loaded` for `ecto.load`
+  * [sql] Add `Ecto.Adapters.SQL.table_exists?/2`
+
 ## v3.1.1 (2019-04-16)
 
 ### Bug fixes

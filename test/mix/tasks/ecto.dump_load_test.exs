@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
 
     def init(_opts) do
       child_spec = Supervisor.child_spec({Task, fn -> :timer.sleep(:infinity) end}, [])
-      {:ok, child_spec, %{meta: :meta}}
+      {:ok, child_spec, %{}}
     end
 
     def structure_dump(_, _), do: Process.get(:structure_dump) || raise "no structure_dump"
@@ -84,10 +84,8 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
     Process.put(:structure_load, {:ok, "foo"})
     Load.run ["-r", to_string(Repo)], table_exists?
 
-    assert_received {:mix_shell, :info,
-                     [
-                       "The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"
-                     ]}
+    msg = "The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"
+    assert_received {:mix_shell, :info, [^msg]}
   end
 
   test "runs the adapter structure_load with --quiet" do
@@ -99,7 +97,6 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
 
   test "skips when the database is loaded with --skip-if-loaded" do
     table_exists? = fn _, _ -> true end
-
     assert :ok == Load.run ["-r", to_string(Repo), "--skip-if-loaded"], table_exists?
   end
 
