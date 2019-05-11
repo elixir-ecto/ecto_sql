@@ -12,9 +12,13 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
     defmacro __before_compile__(_), do: :ok
     def dumpers(_, _), do: raise "not implemented"
     def loaders(_, _), do: raise "not implemented"
-    def init(_), do: raise "not implemented"
     def checkout(_, _, _), do: raise "not implemented"
-    def ensure_all_started(_, _), do: raise "not implemented"
+    def ensure_all_started(_, _), do: {:ok, []}
+
+    def init(_opts) do
+      child_spec = Supervisor.child_spec({Task, fn -> :timer.sleep(:infinity) end}, [])
+      {:ok, child_spec, %{meta: :meta}}
+    end
 
     def structure_dump(_, _), do: Process.get(:structure_dump) || raise "no structure_dump"
     def structure_load(_, _), do: Process.get(:structure_load) || raise "no structure_load"
@@ -75,21 +79,36 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
   ## Load
 
   test "runs the adapter structure_load" do
+    table_exists? = fn _, _ -> false end
+
     Process.put(:structure_load, {:ok, "foo"})
-    Load.run ["-r", to_string(Repo)]
-    assert_received {:mix_shell, :info, ["The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"]}
+    Load.run ["-r", to_string(Repo)], table_exists?
+
+    assert_received {:mix_shell, :info,
+                     [
+                       "The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"
+                     ]}
   end
 
   test "runs the adapter structure_load with --quiet" do
+    table_exists? = fn _, _ -> false end
     Process.put(:structure_load, {:ok, "foo"})
-    Load.run ["-r", to_string(Repo), "--quiet"]
+    Load.run ["-r", to_string(Repo), "--quiet"], table_exists?
     refute_received {:mix_shell, :info, [_]}
   end
 
+  test "skips when the database is loaded with --skip-if-loaded" do
+    table_exists? = fn _, _ -> true end
+
+    assert :ok == Load.run ["-r", to_string(Repo), "--skip-if-loaded"], table_exists?
+  end
+
   test "raises an error when structure_load gives an unknown feedback" do
+    table_exists? = fn _, _ -> false end
+
     Process.put(:structure_load, {:error, :confused})
     assert_raise Mix.Error, fn ->
-      Load.run ["-r", to_string(Repo)]
+      Load.run ["-r", to_string(Repo)], table_exists?
     end
   end
 
