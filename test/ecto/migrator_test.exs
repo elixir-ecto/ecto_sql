@@ -512,4 +512,43 @@ defmodule Ecto.MigratorTest do
       refute log =~ "before_commit"
     end
   end
+
+  describe "with_repo" do
+    defmodule Repo do
+      def start_link(opts) do
+        assert opts[:pool_size] == 2
+        Process.get(:start_link)
+      end
+
+      def stop() do
+        Process.put(:stopped, true)
+      end
+
+      def __adapter__ do
+        EctoSQL.TestAdapter
+      end
+
+      def config do
+        [priv: Process.get(:priv), otp_app: :ecto_sql]
+      end
+    end
+
+    test "starts and stops repo" do
+      Process.put(:start_link, {:ok, self()})
+      assert with_repo(Repo, fn Repo -> :one end) == {:ok, :one, []}
+      assert Process.get(:stopped)
+    end
+
+    test "runs with existing repo" do
+      Process.put(:start_link, {:error, {:already_started, self()}})
+      assert with_repo(Repo, fn Repo -> :two end) == {:ok, :two, []}
+      refute Process.get(:stopped)
+    end
+
+    test "handles errors" do
+      Process.put(:start_link, {:error, :oops})
+      assert with_repo(Repo, fn Repo -> raise "never invoked" end) == {:error, :oops}
+      refute Process.get(:stopped)
+    end
+  end
 end

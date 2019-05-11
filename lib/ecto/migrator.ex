@@ -26,6 +26,69 @@ defmodule Ecto.Migrator do
   alias Ecto.Migration.SchemaMigration
 
   @doc """
+  Ensures the repo is started to perform migration operations.
+
+  All of the application reqeuired to run the repo will be started
+  before hand with chosen mode. If the repo has not yet been started,
+  it is manually started  before, with a `:pool_size` of 2, the given
+  function is executed, and the repo is terminated. If the repo was
+  already started, then the function is directly executed, without
+  terminating the repo afterwards.
+
+  The repo may also configure a `:start_apps_before_migration` option
+  which is a list of applications to be started before the migration
+  runs.
+
+  It returns `{:ok, fun_return, apps}`, with all apps that have been
+  started, or `{:error, term}`.
+
+  ## Options
+
+    * `:pool_size` - The pool size to start the repo for migrations.
+      Defaults to 2.
+    * `:mode` - The mode to start all applications.
+      Defaults to `:permanent`.
+
+  ## Examples
+
+      {:ok, _, _} =
+        Ecto.Migrator.with_repo(repo, fn repo ->
+          Ecto.Migrator.run(repo, :up, all: true)
+        end)
+
+  """
+  def with_repo(repo, fun, opts \\ []) do
+    config = repo.config()
+    mode = Keyword.get(opts, :mode, :permanent)
+    apps = [:ecto_sql | config[:start_apps_before_migration] || []]
+
+    extra_started =
+      Enum.flat_map(apps, fn app ->
+        {:ok, started} = Application.ensure_all_started(app, mode)
+        started
+      end)
+
+    {:ok, repo_started} = repo.__adapter__.ensure_all_started(config, mode)
+    started = extra_started ++ repo_started
+    pool_size = Keyword.get(opts, :pool_size, 2)
+
+    case repo.start_link(pool_size: pool_size) do
+      {:ok, _} ->
+        try do
+          {:ok, fun.(repo), started}
+        after
+          repo.stop()
+        end
+
+      {:error, {:already_started, _pid}} ->
+        {:ok, fun.(repo), started}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
   Gets the migrations path from a repository.
   """
   @spec migrations_path(Ecto.Repo.t) :: String.t
