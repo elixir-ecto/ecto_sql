@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
     end
   end
 
-  test "migrations displays the up and down status for the default repo" do
+  test "displays the up and down status for the default repo" do
     Application.put_env(:ecto_sql, :ecto_repos, [Repo])
 
     migrations = fn _, _ ->
@@ -86,7 +86,7 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
     run ["-r", to_string(Repo)], migrations, fn i -> assert(i == expected_output) end
   end
 
-  test "migrations does not run from _build" do
+  test "does not run from _build" do
     Application.put_env(:ecto_sql, :ecto_repos, [Repo])
 
     migrations = fn repo, path ->
@@ -96,5 +96,11 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
     end
 
     run [], migrations, fn _ -> :ok end
+  end
+
+  test "uses custom path" do
+    run ["-r", to_string(Repo), "--migrations-path", "test/ecto"],
+        fn Repo, "test/ecto" -> [] end,
+        fn _ -> :ok end
   end
 end

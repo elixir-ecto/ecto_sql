@@ -5,6 +5,18 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
   @shortdoc "Displays the repository migration status"
 
+  @aliases [
+    r: :repo,
+    n: :step
+  ]
+
+  @switches [
+    repo: [:keep, :string],
+    no_compile: :boolean,
+    no_deps_check: :boolean,
+    migrations_path: :string
+  ]
+
   @moduledoc """
   Displays the up / down migration status for the given repository.
 
@@ -29,16 +41,18 @@ defmodule Mix.Tasks.Ecto.Migrations do
     * `-r`, `--repo` - the repo to obtain the status for
     * `--no-compile` - does not compile applications before running
     * `--no-deps-check` - does not check depedendencies before running
+    * `--migrations-path` - the path to run the migrations from
 
   """
 
   @impl true
   def run(args, migrations \\ &Ecto.Migrator.migrations/2, puts \\ &IO.puts/1) do
     repos = parse_repo(args)
+    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
 
     for repo <- repos do
       ensure_repo(repo, args)
-      path = ensure_migrations_path(repo)
+      path = ensure_migrations_path(repo, opts)
 
       case Ecto.Migrator.with_repo(repo, &migrations.(&1, path), [mode: :temporary]) do
         {:ok, repo_status, _} ->

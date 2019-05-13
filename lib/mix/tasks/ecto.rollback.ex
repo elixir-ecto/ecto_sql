@@ -21,7 +21,8 @@ defmodule Mix.Tasks.Ecto.Rollback do
     log_sql: :boolean,
     repo: [:keep, :string],
     no_compile: :boolean,
-    no_deps_check: :boolean
+    no_deps_check: :boolean,
+    migrations_path: :string
   ]
 
   @moduledoc """
@@ -75,6 +76,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
     * `--log-sql` - log the raw sql migrations are running
     * `--no-compile` - does not compile applications before rolling back
     * `--no-deps-check` - does not check depedendencies before rolling back
+    * `--migrations-path` - the path to run the migrations from
 
   """
 
@@ -99,7 +101,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     for repo <- repos do
       ensure_repo(repo, args)
-      path = ensure_migrations_path(repo)
+      path = ensure_migrations_path(repo, opts)
       pool = repo.config[:pool]
 
       fun =

@@ -125,4 +125,9 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
     end
     assert !Process.get(:started)
   end
+
+  test "uses custom paths" do
+    run ["-r", to_string(Repo), "--migrations-path", "test/mix"],
+        fn Repo, "test/mix", _, _ -> [] end
+  end
 end

@@ -21,7 +21,8 @@ defmodule Mix.Tasks.Ecto.Migrate do
     strict_version_order: :boolean,
     repo: [:keep, :string],
     no_compile: :boolean,
-    no_deps_check: :boolean
+    no_deps_check: :boolean,
+    migrations_path: :string
   ]
 
   @moduledoc """
@@ -79,6 +80,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
     * `--strict-version-order` - abort when applying a migration with old timestamp
     * `--no-compile` - does not compile applications before migrating
     * `--no-deps-check` - does not check depedendencies before migrating
+    * `--migrations-path` - the path to run the migrations from
 
   """
 
@@ -103,7 +105,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     for repo <- repos do
       ensure_repo(repo, args)
-      path = ensure_migrations_path(repo)
+      path = ensure_migrations_path(repo, opts)
       pool = repo.config[:pool]
 
       fun =
