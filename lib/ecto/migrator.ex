@@ -28,12 +28,17 @@ defmodule Ecto.Migrator do
   @doc """
   Ensures the repo is started to perform migration operations.
 
-  All of the application reqeuired to run the repo will be started
+  All of the application required to run the repo will be started
   before hand with chosen mode. If the repo has not yet been started,
-  it is manually started  before, with a `:pool_size` of 2, the given
-  function is executed, and the repo is terminated. If the repo was
-  already started, then the function is directly executed, without
+  it is manually started, with a `:pool_size` of 2, before the given
+  function is executed, and the repo is then terminated. If the repo
+  was already started, then the function is directly executed, without
   terminating the repo afterwards.
+
+  Although this function was designed to start repositories for running
+  migrations, it can be used by any code, Mix task, or release tooling
+  that needs to briefly start a repository to perform a certain operation
+  and then terminate.
 
   The repo may also configure a `:start_apps_before_migration` option
   which is a list of applications to be started before the migration
