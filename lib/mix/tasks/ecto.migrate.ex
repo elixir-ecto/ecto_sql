@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
       pool = repo.config[:pool]
 
       fun =
-        if function_exported?(pool, :unboxed_run, 2) do
+        if Code.ensure_loaded?(pool) and function_exported?(pool, :unboxed_run, 2) do
           &pool.unboxed_run(&1, fn -> migrator.(&1, path, :up, opts) end)
         else
           &migrator.(&1, path, :up, opts)
