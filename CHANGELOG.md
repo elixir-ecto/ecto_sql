@@ -1,5 +1,15 @@
 # Changelog for v3.x
 
+## v3.1.3 (2019-05-19)
+
+### Enhancements
+
+  * [migrator] Add `--migrations-path` to ecto.migrate/ecto.rollback/ecto.migrations Mix tasks
+
+### Bug fixes
+
+  * [migrator] Make sure an unboxed run is performed when running migrations with the ownership pool
+
 ## v3.1.2 (2019-05-11)
 
 ### Enhancements
