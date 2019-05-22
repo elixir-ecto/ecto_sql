@@ -564,6 +564,8 @@ defmodule Ecto.Migrator do
           * The database does not exist
           * The "schema_migrations" table, which Ecto uses for managing
             migrations, was defined by another library
+          * There is a deadlock while migrating (such as using concurrent
+            indexes with a migration_lock)
 
         To fix the first issue, run "mix ecto.create".
 

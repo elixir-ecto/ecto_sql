@@ -644,6 +644,17 @@ defmodule Ecto.Migration do
 
   def index(table, columns, opts) when is_binary(table) and is_list(columns) and is_list(opts) do
     validate_index_opts!(opts)
+
+    if opts[:concurrently] && Runner.repo_config(:migration_lock, nil) do
+      IO.warn """
+      You are setting an index on table #{inspect table} to run concurrently, \
+      but your repository is currently configured to lock the database during migrations. \
+      This means your migrations will deadlock and be unable to complete. \
+      You should either remove the concurrently option from the index or \
+      set the migration lock to nil with `config :my_app, MyRepo, migration_lock: nil`
+      """
+    end
+
     index = struct(%Index{table: table, columns: columns}, opts)
     %{index | name: index.name || default_index_name(index)}
   end

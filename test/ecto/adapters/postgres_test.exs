@@ -1375,19 +1375,22 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "create index concurrently" do
-    create = {:create, index(:posts, [:permalink], concurrently: true)}
+    index = index(:posts, [:permalink])
+    create = {:create, %{index | concurrently: true}}
     assert execute_ddl(create) ==
       [~s|CREATE INDEX CONCURRENTLY "posts_permalink_index" ON "posts" ("permalink")|]
   end
 
   test "create unique index concurrently" do
-    create = {:create, index(:posts, [:permalink], concurrently: true, unique: true)}
+    index = index(:posts, [:permalink], unique: true)
+    create = {:create, %{index | concurrently: true}}
     assert execute_ddl(create) ==
       [~s|CREATE UNIQUE INDEX CONCURRENTLY "posts_permalink_index" ON "posts" ("permalink")|]
   end
 
   test "create index if not exists concurrently" do
-    create = {:create_if_not_exists, index(:posts, [:permalink], concurrently: true)}
+    index = index(:posts, [:permalink])
+    create = {:create_if_not_exists, %{index | concurrently: true}}
 
     assert_raise ArgumentError,
                  "concurrent index and create_if_not_exists is not supported by the Postgres adapter",
@@ -1411,7 +1414,8 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "drop index concurrently" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main", concurrently: true)}
+    index = index(:posts, [:id], name: "posts$main")
+    drop = {:drop, %{index | concurrently: true}}
     assert execute_ddl(drop) == [~s|DROP INDEX CONCURRENTLY "posts$main"|]
   end
 

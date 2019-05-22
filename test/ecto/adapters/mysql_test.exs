@@ -1116,12 +1116,6 @@ defmodule Ecto.Adapters.MySQLTest do
            [~s|CREATE INDEX `posts_category_id_permalink_index` ON `foo`.`posts` (`category_id`, `permalink`)|]
   end
 
-  test "create index asserting concurrency" do
-    create = {:create, index(:posts, ["permalink(8)"], name: "posts$main", concurrently: true)}
-    assert execute_ddl(create) ==
-           [~s|CREATE INDEX `posts$main` ON `posts` (permalink(8)) LOCK=NONE|]
-  end
-
   test "create unique index" do
     create = {:create, index(:posts, [:permalink], unique: true)}
     assert execute_ddl(create) ==
@@ -1161,11 +1155,6 @@ defmodule Ecto.Adapters.MySQLTest do
   test "drop index with prefix" do
     drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo)}
     assert execute_ddl(drop) == [~s|DROP INDEX `posts$main` ON `foo`.`posts`|]
-  end
-
-  test "drop index asserting concurrency" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main", concurrently: true)}
-    assert execute_ddl(drop) == [~s|DROP INDEX `posts$main` ON `posts` LOCK=NONE|]
   end
 
   test "rename table" do
