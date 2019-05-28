@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.1.4 (2019-05-28)
+
+### Enhancements
+
+  * [migrator] Print warning message if concurrent indexes are used with migration lock
+
 ## v3.1.3 (2019-05-19)
 
 ### Enhancements
