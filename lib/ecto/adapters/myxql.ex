@@ -193,6 +193,9 @@ defmodule Ecto.Adapters.MyXQL do
     {fields, values} = :lists.unzip(params)
     sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [])
 
+    cache_statement = "ecto_insert_#{source}"
+    opts = [{:cache_statement, cache_statement} | opts]
+
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 1, last_insert_id: last_insert_id}} ->
         {:ok, last_insert_id(key, last_insert_id)}
