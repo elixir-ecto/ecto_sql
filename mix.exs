@@ -79,7 +79,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("POSTGREX_PATH") do
       {:postgrex, path: path}
     else
-      {:postgrex, "~> 0.14.0", optional: true}
+      {:postgrex, "~> 0.14.0 or ~> 0.15.0", optional: true}
     end
   end
 
