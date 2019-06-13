@@ -117,7 +117,7 @@ defmodule Ecto.Adapters.MySQL do
 
   defmacro __before_compile__(env) do
     message = """
-      Ecto.Adapters.SQL is deprecated in favour of Ecto.Adapters.MyXQL
+      Ecto.Adapters.MySQL is deprecated in favour of Ecto.Adapters.MyXQL
       which uses the new MyXQL driver. To switch your repo to that adapter do:
 
           use Ecto.Repo,
