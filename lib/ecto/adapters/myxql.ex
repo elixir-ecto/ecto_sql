@@ -54,7 +54,7 @@ defmodule Ecto.Adapters.MyXQL do
   to the database, you can use the `:after_connect` configuration. For
   example, in your repository configuration you can add:
 
-    after_connect: {MyXQL, :query!, ["SET variable = value", []]}
+      after_connect: {MyXQL, :query!, ["SET variable = value", []]}
 
   You can also specify your own module that will receive the MyXQL
   connection as argument.
