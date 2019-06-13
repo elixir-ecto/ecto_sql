@@ -67,6 +67,15 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  defmodule NoLockMigration do
+    use Ecto.Migration
+    @disable_migration_lock true
+
+    def change do
+      create index(:posts, [:foo])
+    end
+  end
+
   defmodule MigrationWithCallbacks do
     use Ecto.Migration
 
@@ -205,6 +214,44 @@ defmodule Ecto.MigratorTest do
     assert down(TestRepo, 0, Migration, log: false) == :already_down
     assert down(TestRepo, 1, Migration, log: false) == :ok
     assert down(TestRepo, 2, ChangeMigration, log: false) == :ok
+  end
+
+  describe "lock for migrations" do
+    setup do
+      put_test_adapter_config(test_process: self())
+    end
+
+    test "on up" do
+      assert up(TestRepo, 0, Migration, log: false) == :ok
+      assert_receive {:lock_for_migrations, _}
+
+      assert up(TestRepo, 10, NoLockMigration, log: false) == :ok
+      refute_received {:lock_for_migrations, _}
+    end
+
+    test "on down" do
+      assert down(TestRepo, 1, Migration, log: false) == :ok
+      assert_receive {:lock_for_migrations, _}
+
+      assert down(TestRepo, 2, NoLockMigration, log: false) == :ok
+      refute_received {:lock_for_migrations, _}
+    end
+
+    test "on run" do
+      in_tmp fn path ->
+        create_migration "13_sample.exs"
+        assert run(TestRepo, path, :up, all: true, log: false) == [13]
+        # One lock for fetching versions, another for running
+        assert_receive {:lock_for_migrations, _}
+        assert_receive {:lock_for_migrations, _}
+
+        create_migration "14_sample.exs", [:disable_migration_lock]
+        assert run(TestRepo, path, :up, all: true, log: false) == [14]
+        # One lock for fetching versions, another from running
+        assert_receive {:lock_for_migrations, _}
+        refute_received {:lock_for_migrations, _}
+      end
+    end
   end
 
   test "up raises error when missing up/0 and change/0" do
@@ -402,12 +449,14 @@ defmodule Ecto.MigratorTest do
     end
   end
 
-  defp create_migration(name) do
+  defp create_migration(name, opts \\ []) do
     module = name |> Path.basename |> Path.rootname
 
     File.write! name, """
     defmodule Ecto.MigrationTest.S#{module} do
       use Ecto.Migration
+
+      #{Enum.map_join(opts, "\n", &"@#{&1} true")}
 
       def up do
         execute "up"

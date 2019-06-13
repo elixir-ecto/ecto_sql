@@ -119,7 +119,7 @@ defmodule Ecto.Migrator do
   """
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
   def migrated_versions(repo, opts \\ []) do
-    lock_for_migrations repo, opts, fn versions -> versions end
+    lock_for_migrations true, repo, opts, fn versions -> versions end
   end
 
   @doc """
@@ -138,7 +138,7 @@ defmodule Ecto.Migrator do
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
-    lock_for_migrations repo, opts, fn versions ->
+    conditional_lock_for_migrations module, repo, opts, fn versions ->
       if version in versions do
         :already_up
       else
@@ -196,7 +196,7 @@ defmodule Ecto.Migrator do
   """
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
   def down(repo, version, module, opts \\ []) do
-    lock_for_migrations repo, opts, fn versions ->
+    conditional_lock_for_migrations module, repo, opts, fn versions ->
       if version in versions do
         do_down(repo, version, module, opts)
       else
@@ -332,7 +332,7 @@ defmodule Ecto.Migrator do
   @spec run(Ecto.Repo.t, binary | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
     pending =
-      lock_for_migrations repo, opts, fn versions ->
+      lock_for_migrations true, repo, opts, fn versions ->
         cond do
           opts[:all] ->
             pending_all(versions, migration_source, direction)
@@ -403,7 +403,7 @@ defmodule Ecto.Migrator do
     versions -- versions_with_file
   end
 
-  defp lock_for_migrations(repo, opts, fun) do
+  defp lock_for_migrations(should_lock?, repo, opts, fun) when is_boolean(should_lock?) do
     dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
@@ -416,19 +416,28 @@ defmodule Ecto.Migrator do
       query = SchemaMigration.versions(repo, opts[:prefix])
       callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
 
-      case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
-        {kind, reason, stacktrace} ->
-          :erlang.raise(kind, reason, stacktrace)
+      if should_lock? do
+        case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
+          {kind, reason, stacktrace} ->
+            :erlang.raise(kind, reason, stacktrace)
 
-        {:error, error} ->
-          raise error
+          {:error, error} ->
+            raise error
 
-        result ->
-          result
+          result ->
+            result
+        end
+      else
+        callback.(query)
       end
     after
       repo.put_dynamic_repo(previous_dynamic_repo)
     end
+  end
+
+  defp conditional_lock_for_migrations(module, repo, opts, fun) do
+    disable_lock? = module.__migration__[:disable_migration_lock]
+    lock_for_migrations(not disable_lock?, repo, opts, fun)
   end
 
   defp pending_to(versions, migration_source, direction, target) do
@@ -538,7 +547,7 @@ defmodule Ecto.Migrator do
   end
 
   defp do_direction(:up, repo, version, mod, opts) do
-    lock_for_migrations repo, opts, fn versions ->
+    conditional_lock_for_migrations mod, repo, opts, fn versions ->
       unless version in versions do
         do_up(repo, version, mod, opts)
       end
@@ -546,7 +555,7 @@ defmodule Ecto.Migrator do
   end
 
   defp do_direction(:down, repo, version, mod, opts) do
-    lock_for_migrations repo, opts, fn versions ->
+    conditional_lock_for_migrations mod, repo, opts, fn versions ->
       if version in versions do
         do_down(repo, version, mod, opts)
       end

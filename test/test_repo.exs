@@ -52,7 +52,6 @@ defmodule EctoSQL.TestAdapter do
   def transaction(_mod, _opts, fun) do
     Process.put(:in_transaction?, true)
     send test_process(), {:transaction, fun}
-
     {:ok, fun.()}
   after
     Process.put(:in_transaction?, false)

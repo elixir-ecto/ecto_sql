@@ -123,14 +123,6 @@ defmodule Ecto.Migration do
   same prefix for the index field to ensure that you index the prefix-qualified
   table.
 
-  ## Transactions
-
-  For PostgreSQL, Ecto always runs migrations inside a transaction, but that's not
-  always desired: for example, you cannot create/drop indexes concurrently inside
-  a transaction. Migrations can be forced to run outside a transaction by setting
-  the `@disable_ddl_transaction` module attribute to `true`. See the section about
-  concurrent in `index/3` for more information.
-
   ### Transaction Callbacks
 
   There are use cases that dictate adding some common behavior after beginning a
@@ -193,9 +185,7 @@ defmodule Ecto.Migration do
 
     * `:migration_lock` - By default, Ecto will lock the migration table. This allows
       multiple nodes to attempt to run migrations at the same time but only one will
-      succeed. However, this does not play well with other features, such as the
-      `:concurrently` option in PostgreSQL indexes. You can disable the `migration_lock`
-      by setting it to `nil`:
+      succeed. You can disable the `migration_lock` by setting it to `nil`:
 
           config :app, App.Repo, migration_lock: nil
 
@@ -311,6 +301,7 @@ defmodule Ecto.Migration do
     quote location: :keep do
       import Ecto.Migration
       @disable_ddl_transaction false
+      @disable_migration_lock false
       @before_compile Ecto.Migration
     end
   end
@@ -318,8 +309,12 @@ defmodule Ecto.Migration do
   @doc false
   defmacro __before_compile__(_env) do
     quote do
-      def __migration__,
-        do: [disable_ddl_transaction: @disable_ddl_transaction]
+      def __migration__ do
+        [
+          disable_ddl_transaction: @disable_ddl_transaction,
+          disable_migration_lock: @disable_migration_lock
+        ]
+      end
     end
   end
 
@@ -557,30 +552,27 @@ defmodule Ecto.Migration do
   Ecto to guarantee integrity during migrations.
 
   Therefore, to migrate indexes concurrently, you need to set
-  `@disable_ddl_transaction` in the migration to true, disabling the
-  guarantee that all of the changes in the migration will happen at
-  once:
+  both `@disable_ddl_transaction` and `@disable_migration_lock` to true:
 
       defmodule MyRepo.Migrations.CreateIndexes do
         use Ecto.Migration
         @disable_ddl_transaction true
+        @disable_migration_lock true
 
         def change do
           create index("posts", [:slug], concurrently: true)
         end
       end
 
-  And you also need to disable the migration lock for that repository:
+  Disabling DDL transactions removes the guarantee that all of the changes
+  in the migration will happen at once. Disabling the migration lock removes
+  the guarantee only a single node will run a given migration if multiple
+  nodes are attempting to migrate at the same time.
 
-      config :my_app, MyApp.Repo, migration_lock: nil
-
-  The migration lock is used to guarantee that only one node in a cluster
-  can run migrations. Two nodes may attempt to race each other.
-
-  Since running migrations outside a transaction can be dangerous,
-  consider performing very few operations in migrations that add concurrent
-  indexes. We recommend to run migrations with concurrent indexes in isolation
-  and disable those features only temporarily.
+  Since running migrations outside a transaction and without locks can be
+  dangerous, consider performing very few operations in migrations that add
+  concurrent indexes. We recommend to run migrations with concurrent indexes
+  in isolation and disable those features only temporarily.
 
   ## Index types
 
@@ -644,17 +636,6 @@ defmodule Ecto.Migration do
 
   def index(table, columns, opts) when is_binary(table) and is_list(columns) and is_list(opts) do
     validate_index_opts!(opts)
-
-    if opts[:concurrently] && Runner.repo_config(:migration_lock, nil) do
-      IO.warn """
-      You are setting an index on table #{inspect table} to run concurrently, \
-      but your repository is currently configured to lock the database during migrations. \
-      This means your migrations will deadlock and be unable to complete. \
-      You should either remove the concurrently option from the index or \
-      set the migration lock to nil with `config :my_app, MyRepo, migration_lock: nil`
-      """
-    end
-
     index = struct(%Index{table: table, columns: columns}, opts)
     %{index | name: index.name || default_index_name(index)}
   end
