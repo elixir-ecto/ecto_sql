@@ -115,6 +115,15 @@ defmodule Ecto.Adapters.MySQL do
     driver: :mariaex,
     migration_lock: "FOR UPDATE"
 
+  defmacro __before_compile__(env) do
+    message =
+      "#{inspect(__MODULE__)} is deprecated in favour of Ecto.Adapters.MyXQL " <>
+        "which uses the new MyXQL driver."
+
+    IO.warn(message, [])
+    super(env)
+  end
+
   # And provide a custom storage implementation
   @behaviour Ecto.Adapter.Storage
   @behaviour Ecto.Adapter.Structure
