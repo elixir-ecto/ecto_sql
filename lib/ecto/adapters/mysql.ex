@@ -115,6 +115,20 @@ defmodule Ecto.Adapters.MySQL do
     driver: :mariaex,
     migration_lock: "FOR UPDATE"
 
+  defmacro __before_compile__(env) do
+    message = """
+      Ecto.Adapters.MySQL is deprecated in favour of Ecto.Adapters.MyXQL
+      which uses the new MyXQL driver. To switch your repo to that adapter do:
+
+          use Ecto.Repo,
+            otp_app: :myapp,
+            adapter: Ecto.Adpaters.MyXQL
+      """
+
+    IO.warn(message, Macro.Env.stacktrace(env))
+    super(env)
+  end
+
   # And provide a custom storage implementation
   @behaviour Ecto.Adapter.Storage
   @behaviour Ecto.Adapter.Structure
