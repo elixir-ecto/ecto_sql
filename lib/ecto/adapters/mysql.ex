@@ -123,7 +123,6 @@ defmodule Ecto.Adapters.MySQL do
           use Ecto.Repo,
             otp_app: :myapp,
             adapter: Ecto.Adpaters.MyXQL
-
       """
 
     IO.warn(message, Macro.Env.stacktrace(env))
