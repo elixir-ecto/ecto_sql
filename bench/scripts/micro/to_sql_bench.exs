@@ -50,7 +50,6 @@ inputs = %{
 
 jobs = %{
   "Pg Query Builder" => fn {type, query} -> Ecto.Bench.PgRepo.to_sql(type, query) end,
-  "MySQL Query Builder" => fn {type, query} -> Ecto.Bench.MySQLRepo.to_sql(type, query) end,
   "MyXQL Query Builder" => fn {type, query} -> Ecto.Bench.MyXQLRepo.to_sql(type, query) end
 }
 

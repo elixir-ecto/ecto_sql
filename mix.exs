@@ -13,8 +13,6 @@ defmodule EctoSQL.MixProject do
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [
         exclude: [
-          Mariaex,
-          Ecto.Adapters.MySQL.Connection,
           MyXQL,
           Ecto.Adapters.MyXQL.Connection,
           Postgrex,
@@ -52,7 +50,6 @@ defmodule EctoSQL.MixProject do
       # Drivers
       {:db_connection, "~> 2.1"},
       postgrex_dep(),
-      mariaex_dep(),
       myxql_dep(),
 
       # Bring something in for JSON during tests
@@ -80,14 +77,6 @@ defmodule EctoSQL.MixProject do
       {:postgrex, path: path}
     else
       {:postgrex, "~> 0.14.0 or ~> 0.15.0", optional: true}
-    end
-  end
-
-  defp mariaex_dep do
-    if path = System.get_env("MARIAEX_PATH") do
-      {:mariaex, path: path}
-    else
-      {:mariaex, "~> 0.9.1", optional: true}
     end
   end
 
@@ -146,7 +135,6 @@ defmodule EctoSQL.MixProject do
         # Ecto.Migrator,
 
         "Built-in adapters": [
-          Ecto.Adapters.MySQL,
           Ecto.Adapters.MyXQL,
           Ecto.Adapters.Postgres
         ],
