@@ -298,12 +298,6 @@ defmodule Ecto.Migration.Runner do
     end
   end
 
-  defp runner_config do
-    Agent.get(runner(), fn %{repo: repo, direction: direction, log: log} ->
-      {repo, direction, log}
-    end)
-  end
-
   defp log_and_execute_ddl(repo, migration, log, {instruction, %Index{} = index}) do
     if index.concurrently do
       migration_config = migration.__migration__()

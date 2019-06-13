@@ -1,5 +1,16 @@
 # Changelog for v3.x
 
+## v3.1.5 (2019-06-13)
+
+### Enhancements
+
+  * [migration] Add `@disable_migration_lock` to be better handle concurrent indexes
+  * [mysql] Set `cache_statement` for inserts
+
+### Deprecations
+
+  * [mysql] Deprecate Ecto.Adapters.MySQL
+
 ## v3.1.4 (2019-05-28)
 
 ### Enhancements
