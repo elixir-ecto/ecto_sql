@@ -120,7 +120,7 @@ defmodule Ecto.Adapters.MySQL do
       "#{inspect(__MODULE__)} is deprecated in favour of Ecto.Adapters.MyXQL " <>
         "which uses the new MyXQL driver."
 
-    IO.warn(message, [])
+    IO.warn(message, Macro.Env.stacktrace(env))
     super(env)
   end
 
