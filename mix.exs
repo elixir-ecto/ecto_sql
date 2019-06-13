@@ -1,14 +1,14 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.1.5"
+  @version "3.2.0-dev"
   @adapters ~w(pg mysql myxql)
 
   def project do
     [
       app: :ecto_sql,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.6",
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [
@@ -50,7 +50,7 @@ defmodule EctoSQL.MixProject do
       {:telemetry, "~> 0.4.0"},
 
       # Drivers
-      {:db_connection, "~> 2.0"},
+      {:db_connection, "~> 2.1"},
       postgrex_dep(),
       mariaex_dep(),
       myxql_dep(),

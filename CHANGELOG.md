@@ -1,5 +1,9 @@
 # Changelog for v3.x
 
+## v3.2.0-dev
+
+This new version requires Elixir v1.6+.
+
 ## v3.1.5 (2019-06-13)
 
 ### Enhancements
