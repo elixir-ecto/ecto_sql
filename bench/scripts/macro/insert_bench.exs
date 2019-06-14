@@ -26,7 +26,6 @@ inputs = %{
 
 jobs = %{
   "Pg Insert" => fn entry -> Ecto.Bench.PgRepo.insert!(entry) end,
-  "MySQL Insert" => fn entry -> Ecto.Bench.MySQLRepo.insert!(entry) end,
   "MyXQL Insert" => fn entry -> Ecto.Bench.MyXQLRepo.insert!(entry) end
 }
 
@@ -42,5 +41,4 @@ Benchee.run(
 
 # Clean inserted data
 Ecto.Bench.PgRepo.delete_all(User)
-Ecto.Bench.MySQLRepo.delete_all(User)
 Ecto.Bench.MyXQLRepo.delete_all(User)

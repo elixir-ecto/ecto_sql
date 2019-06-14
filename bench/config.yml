@@ -2,7 +2,7 @@ elixir: 1.5.2
 erlang: 20.1.2
 environment:
   PG_URL: postgres:postgres@localhost
-  MYSQL_URL: root@localhost
+  MYXQL_URL: root@localhost
 deps:
   docker:
     - container_name: postgres
