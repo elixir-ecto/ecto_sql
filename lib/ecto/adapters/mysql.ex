@@ -4,7 +4,7 @@ defmodule Ecto.Adapters.MySQL do
   @behaviour Ecto.Adapter
 
   defp error!() do
-    raise "Ecto.Adapters.MySQL is obsolete, use Ecto.Adaptes.MyXQL instead"
+    raise "Ecto.Adapters.MySQL is obsolete, use Ecto.Adapters.MyXQL instead"
   end
 
   defmacro __before_compile__(_env), do: error!()
