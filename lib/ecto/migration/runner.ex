@@ -1,6 +1,4 @@
 defmodule Ecto.Migration.Runner do
-  # A GenServer responsible for running migrations
-  # in either `:forward` or `:backward` directions.
   @moduledoc false
   use Agent, restart: :temporary
 
@@ -18,9 +16,9 @@ defmodule Ecto.Migration.Runner do
     level = Keyword.get(opts, :log, :info)
     sql = Keyword.get(opts, :log_sql, false)
     log = %{level: level, sql: sql}
-    args  = [self(), repo, module, direction, migrator_direction, log]
+    args  = {self(), repo, module, direction, migrator_direction, log}
 
-    {:ok, runner} = Supervisor.start_child(Ecto.Migration.Supervisor, args)
+    {:ok, runner} = DynamicSupervisor.start_child(Ecto.MigratorSupervisor, {__MODULE__, args})
     metadata(runner, opts)
 
     log(level, "== Running #{version} #{inspect module}.#{operation}/0 #{direction}")
@@ -41,7 +39,7 @@ defmodule Ecto.Migration.Runner do
   @doc """
   Starts the runner for the specified repo.
   """
-  def start_link(parent, repo, module, direction, migrator_direction, log) do
+  def start_link({parent, repo, module, direction, migrator_direction, log}) do
     Agent.start_link(fn ->
       Process.link(parent)
 
