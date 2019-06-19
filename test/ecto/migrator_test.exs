@@ -254,7 +254,7 @@ defmodule Ecto.MigratorTest do
     end
 
     test "on up" do
-      assert up(TestRepo, 0, Migration, log: false) == :ok
+      assert up(TestRepo, 9, Migration, log: false) == :ok
       assert_receive {:lock_for_migrations, _}
 
       assert up(TestRepo, 10, NoLockMigration, log: false) == :ok
