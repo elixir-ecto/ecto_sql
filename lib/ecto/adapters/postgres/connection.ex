@@ -269,6 +269,14 @@ if Code.ensure_loaded?(Postgrex) do
       do: "TRUE"
     defp select_fields(fields, sources, query) do
       intersperse_map(fields, ", ", fn
+        {:&, _, [idx]} ->
+          case elem(sources, idx) do
+            {source, _, nil} ->
+              error!(query, "PostgreSQL does not support selecting all fields from #{source} without a schema. " <>
+                            "Please specify a schema or specify exactly which fields you want to select")
+            {_, source, _} ->
+              source
+          end
         {key, value} ->
           [expr(value, sources, query), " AS " | quote_name(key)]
         value ->

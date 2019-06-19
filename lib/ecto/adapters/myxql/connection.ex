@@ -213,8 +213,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp handle_call(fun, _arity), do: {:fun, Atom.to_string(fun)}
 
-    defp select(%{select: %{fields: fields}, distinct: distinct} = query,
-                sources) do
+    defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
       ["SELECT ", distinct(distinct, sources, query) | select(fields, sources, query)]
     end
 
@@ -229,6 +228,14 @@ if Code.ensure_loaded?(MyXQL) do
       do: "TRUE"
     defp select(fields, sources, query) do
       intersperse_map(fields, ", ", fn
+        {:&, _, [idx]} ->
+          case elem(sources, idx) do
+            {source, _, nil} ->
+              error!(query, "MySQL does not support selecting all fields from #{source} without a schema. " <>
+                            "Please specify a schema or specify exactly which fields you want to select")
+            {_, source, _} ->
+              source
+          end
         {key, value} ->
           [expr(value, sources, query), " AS ", quote_name(key)]
         value ->
