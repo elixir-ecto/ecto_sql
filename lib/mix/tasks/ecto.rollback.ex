@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
         end
 
       case Ecto.Migrator.with_repo(repo, fun, [mode: :temporary] ++ opts) do
-        {:ok, migrated, apps} -> restart_apps_if_migrated(apps, migrated)
+        {:ok, _migrated, _apps} -> :ok
         {:error, error} -> Mix.raise "Could not start repo #{inspect repo}, error: #{inspect error}"
       end
     end

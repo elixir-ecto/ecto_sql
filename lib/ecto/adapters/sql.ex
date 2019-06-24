@@ -427,9 +427,7 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def ensure_all_started(driver, _config, type) do
-    with {:ok, from_driver} <- Application.ensure_all_started(driver, type),
-         # We always return the adapter to force it to be restarted if necessary
-         do: {:ok, List.delete(from_driver, driver) ++ [driver]}
+    Application.ensure_all_started(driver, type)
   end
 
   @pool_opts [:timeout, :pool, :pool_size, :migration_lock] ++

@@ -86,7 +86,14 @@ defmodule Ecto.Migrator do
         end
 
       {:error, {:already_started, _pid}} ->
-        {:ok, fun.(repo), started}
+        try do
+          {:ok, fun.(repo), started}
+        after
+          if Process.whereis(repo) do
+            %{pid: pid} = Ecto.Adapter.lookup_meta(repo)
+            Supervisor.restart_child(repo, pid)
+          end
+        end
 
       {:error, _} = error ->
         error

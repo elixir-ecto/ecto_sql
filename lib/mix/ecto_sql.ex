@@ -31,25 +31,6 @@ defmodule Mix.EctoSQL do
   end
 
   @doc """
-  Restarts the app if there was any migration command.
-  """
-  @spec restart_apps_if_migrated([atom], list()) :: :ok
-  def restart_apps_if_migrated(_apps, []), do: :ok
-  def restart_apps_if_migrated(apps, [_|_]) do
-    # Silence the logger to avoid application down messages.
-    Logger.remove_backend(:console)
-    for app <- Enum.reverse(apps) do
-      Application.stop(app)
-    end
-    for app <- apps do
-      Application.ensure_all_started(app)
-    end
-    :ok
-  after
-    Logger.add_backend(:console, flush: true)
-  end
-
-  @doc """
   Returns the private repository path relative to the source.
   """
   def source_repo_priv(repo) do
