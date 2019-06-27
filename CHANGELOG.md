@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.1.6 (2019-06-27)
+
+### Enhancements
+
+  * [sql] Set `cache_statement` for `insert_all`
+
 ## v3.1.5 (2019-06-13)
 
 ### Enhancements
