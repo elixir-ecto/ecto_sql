@@ -523,6 +523,9 @@ defmodule Ecto.Adapters.SQL do
     {rows, params} = unzip_inserts(header, rows)
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning)
 
+    cache_statement = "ecto_insert_all_#{source}"
+    opts = [{:cache_statement, cache_statement} | opts]
+
     %{num_rows: num, rows: rows} =
       query!(adapter_meta, sql, Enum.reverse(params) ++ conflict_params, opts)
 
