@@ -6,7 +6,36 @@ defmodule Ecto.Migration do
   allowing developers to use Elixir to alter their storage in
   a way that is database independent.
 
-  Here is an example:
+  Migrations typically provide two operations: `up` and `down`,
+  allowing us to migrate the database forward or roll it back
+  in case of errors.
+
+  In order to manage migrations, Ecto creates a table called
+  `schema_migrations` in the database, which stores all migrations
+  that have already been executed. You can configure the name of
+  this table with the `:migration_source` configuration option.
+
+  Ecto also locks the `schema_migrations` table when running
+  migrations, guaranteeing two different servers cannot run the same
+  migration at the same time.
+
+  ## Creating your first migration
+
+  Migrations are defined inside the "priv/REPO/migrations" where REPO
+  is the last part of the repository name in underscore. For example,
+  migrations for `MyApp.Repo` would be found in "priv/repo/migrations".
+  For `MyApp.CustomRepo`, it would be found in "priv/custom_repo/migrations".
+
+  Each file in the migratitons directory have the following structure:
+
+      NUMBER_NAME.exs
+
+  The NUMBER is a unique number that identifies the migration. It is
+  usually the timestamp of when the migration was created. The NAME
+  must also be unique and it quickly identifies what the migration
+  does. For example, if you need to track the "weather" in your system,
+  you can start a new file at "priv/repo/migraitons/2019041714000_add_weather_table.exs"
+  that will have the following contents:
 
       defmodule MyRepo.Migrations.AddWeatherTable do
         use Ecto.Migration
@@ -27,30 +56,55 @@ defmodule Ecto.Migration do
         end
       end
 
-  Note that migrations have `up/0` and `down/0` instructions, where
-  `up/0` applies changes to the database and `down/0` rolls back
-  changes, returning the database schema to a previous state.
+  The `up/0` function is responsible to migrate your database forward.
+  the `down/0` function is executed whenever you want to rollback.
+  The `down/0` function must always do the opposite of `up/0`.
+  Inside those functions, we invoke the API defined in this module,
+  you will find conveniences for managing tables, indexes, columns,
+  references, as well as running custom SQL commands.
 
-  Ecto creates a table (see the `:migration_source` configuration option)
-  in the database in order to keep track of migrations and will add
-  an entry to this table for each migration you define. Ecto also
-  locks the table when adding/removing entries, guaranteeing two
-  different servers cannot run the same migration at the same time.
+  To run a migration, we generally use Mix tasks. For example, you can
+  run the migration above by going to the root of your project and
+  typing:
 
-  Ecto provides some mix tasks to help developers work with migrations:
+      $ mix ecto.migrate
+
+  You can also it rollback by calling
+
+      $ mix ecto.rollback --step 1
+
+  Note rollback requires us to say how much we want to rollback.
+  On the other hand, `mix ecto.migrate` will always run all pending
+  migrations.
+
+  In practice, we don't create migration files by hand either, we
+  typically use `mix ecto.gen.migration` to generate the file with
+  the proper timestamp and then we just fill in its contents:
+
+      mix ecto.gen.migration add_weather_table
+
+  ## Mix tasks
+
+  As seen above, Ecto provides many Mix tasks to help developers work
+  with migrations. We summarize them below:
 
     * `mix ecto.gen.migration` - generates a
       migration that the user can fill in with particular commands
     * `mix ecto.migrate` - migrates a repository
+    * `mix ecto.migrations` - shows all migrations and their status
     * `mix ecto.rollback` - rolls back a particular migration
 
   Run `mix help COMMAND` for more information on a particular command.
+  For a lower level API for running migrations, see `Ecto.Migrator`.
 
   ## Change
 
-  `change/0` is an abstraction that wraps both `up/0` and `down/0` for
-  automatically-reversible migrations. For example, the migration above
-  can be written as:
+  Having to write both `up/0` and `down/0` functions for every
+  migration is tedious and error prone. For this reason, Ecto allows
+  you to defined a `change/0` callback with all of the code you want
+  to execute when migrating and Ecto will automatically figure out
+  the `down/0` for you. For example, the migration above can be
+  written as:
 
       defmodule MyRepo.Migrations.AddWeatherTable do
         use Ecto.Migration
@@ -74,8 +128,8 @@ defmodule Ecto.Migration do
   `change/0` by accepting a pair of plain SQL strings. The first is run on
   forward migrations (`up/0`) and the second when rolling back (`down/0`).
 
-  If `up/0` and `down/0` are implemented in a migration, they take precedence, and
-  `change/0` isn't invoked.
+  If `up/0` and `down/0` are implemented in a migration, they take precedence,
+  and `change/0` isn't invoked.
 
   ## Field Types
 
@@ -93,60 +147,22 @@ defmodule Ecto.Migration do
   field type with database-specific options, you can pass atoms containing
   these options like `:"int unsigned"`, `:"time without time zone"`, etc.
 
-  ## Prefixes
+  ## Flushing
 
-  Migrations support specifying a table prefix or index prefix which will
-  target either a schema (if using PostgreSQL) or a different database (if using
-  MySQL). If no prefix is provided, the default schema or database is used.
+  Instructions inside migrations are not executed immedidately. Instead
+  they are performed once the relevant `up`, `change`, or `down` callback
+  terminates.
 
-  Any reference declared in the table migration refers by default to the table
-  with the same declared prefix. The prefix is specified in the table options:
+  However, under certain situations, you may want to guarantee all of the
+  previous steps have been executed before continuing. This is generally
+  useful in case you need to apply some changes to the table before
+  continuing with the migration. This can be done with `flush/0`:
 
       def up do
-        create table("weather", prefix: "north_america") do
-          add :city,    :string, size: 40
-          add :temp_lo, :integer
-          add :temp_hi, :integer
-          add :prcp,    :float
-          add :group_id, references(:groups)
-
-          timestamps()
-        end
-
-        create index("weather", [:city], prefix: "north_america")
+        ...
+        flush()
+        ...
       end
-
-  Note: if using MySQL with a prefixed table, you must use the same prefix
-  for the references since cross-database references are not supported.
-
-  When using a prefixed table with either MySQL or PostgreSQL, you must use the
-  same prefix for the index field to ensure that you index the prefix-qualified
-  table.
-
-  ### Transaction Callbacks
-
-  There are use cases that dictate adding some common behavior after beginning a
-  migration transaction, or before commiting that transaction. For instance, one
-  might desire to set a `lock_timeout` for each lock in the transaction.
-
-  Another way these might be leveraged is by defining a custom migration module
-  so that these callbacks will run for *all* of your migrations, if you have special
-  requirements.
-
-      defmodule MyApp.Migration do
-        defmacro __using__(_) do
-          quote do
-            use Ecto.Migration
-
-            def after_begin() do
-              repo().query! "SET lock_timeout TO '5s'", "SET lock_timeout TO '10s'"
-            end
-          end
-        end
-      end
-
-  Then in your migrations you can `use MyApp.Migration` to share this behavior
-  among all your migrations.
 
   ## Comments
 
@@ -199,6 +215,66 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, start_apps_before_migration: [:ssl, :some_custom_logger]
 
+  ## Prefixes
+
+  Migrations support specifying a table prefix or index prefix which will
+  target either a schema (if using PostgreSQL) or a different database (if using
+  MySQL). If no prefix is provided, the default schema or database is used.
+
+  Any reference declared in the table migration refers by default to the table
+  with the same declared prefix. The prefix is specified in the table options:
+
+      def up do
+        create table("weather", prefix: "north_america") do
+          add :city,    :string, size: 40
+          add :temp_lo, :integer
+          add :temp_hi, :integer
+          add :prcp,    :float
+          add :group_id, references(:groups)
+
+          timestamps()
+        end
+
+        create index("weather", [:city], prefix: "north_america")
+      end
+
+  Note: if using MySQL with a prefixed table, you must use the same prefix
+  for the references since cross-database references are not supported.
+
+  When using a prefixed table with either MySQL or PostgreSQL, you must use the
+  same prefix for the index field to ensure that you index the prefix-qualified
+  table.
+
+  ## Transaction Callbacks
+
+  If possible, each migration runs inside a transaction. This is true for Postgres,
+  but not true for MySQL, as the later does not support DDL transactions.
+
+  In some rare cases, you may need to execute some common behavior after beginning
+  a migration transaction, or before commiting that transaction. For instance, one
+  might desire to set a `lock_timeout` for each lock in the migration transaction.
+
+  You can do so by defining `c:after_begin/0` and `c:before_commit/0` callbacks to
+  your migration.
+
+  However, if you need do so for every migration module, implemment this callback
+  for every migration can be quite repetitive. Luckily, you can handle this by
+  providing your migration module:
+
+      defmodule MyApp.Migration do
+        defmacro __using__(_) do
+          quote do
+            use Ecto.Migration
+
+            def after_begin() do
+              repo().query! "SET lock_timeout TO '5s'", "SET lock_timeout TO '10s'"
+            end
+          end
+        end
+      end
+
+  Then in your migrations you can `use MyApp.Migration` to share this behavior
+  among all your migrations.
   """
 
   @doc """
