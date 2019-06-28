@@ -1,8 +1,25 @@
 defmodule Ecto.Migrator do
   @moduledoc """
-  This module provides the migration API.
+  Lower level API for managing migrations.
 
-  ## Example
+  EctoSQL provides three mix tasks for running and managing migrations:
+
+    * `mix ecto.migrate` - migrates a repository
+    * `mix ecto.rollback` - rolls back a particular migration
+    * `mix ecto.migrations` - shows all migrations and their status
+
+  Those tasks are built on top of the functions in this module.
+  While the tasks above cover most use cases, it may be necessary
+  from time to time to jump into the lower level API. For example,
+  if you are assembling an Elixir release, Mix is not available,
+  so this module provides a nice complement to still migrate your
+  system.
+
+  To learn more about migrations in general, see `Ecto.Migration`.
+
+  ## Example: Running an individual migration
+
+  Imagine you have this migration:
 
       defmodule MyApp.MigrationExample do
         use Ecto.Migration
@@ -16,7 +33,49 @@ defmodule Ecto.Migrator do
         end
       end
 
+  You can execute it manually with:
+
       Ecto.Migrator.up(Repo, 20080906120000, MyApp.MigrationExample)
+
+  ## Example: Running migrations in a release
+
+  Elixir v1.9 introduces `mix release`, which generates a self-contained
+  directory that consists of your application code, all of its dependencies,
+  plus the whole Erlang Virtual Machine (VM) and runtime.
+
+  When a release is assembled, Mix is not longer available inside a release
+  and therefore none of the Mix tasks. Users may still need a mechanism to
+  migrate their databases. This can be achieved with using the `Ecto.Migrator`
+  module:
+
+      defmodule MyApp.Release do
+        @app :my_app
+
+        def migrate do
+          for repo <- repos() do
+            {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+          end
+        end
+
+        def rollback(repo, version) do
+          {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))
+        end
+
+        defp repos do
+          Application.load(@app)
+          Application.fetch_env!(@app, :ecto_repos)
+        end
+      end
+
+  The example above uses `with_repo/3` to make sure the repository is
+  started and then runs all migrations up or a given migration down.
+  Note you will have to replace `MyApp` and `:my_app` on the first two
+  lines by your actual application name. Once the file above is added
+  to your application, you can assemble a new release and invoke the
+  commands above in the release root like this:
+
+      $ bin/my_app eval "MyApp.Release.migrate"
+      $ bin/my_app eval "MyApp.Release.rollback(MyApp.Repo, 20190417140000)"
 
   """
 
