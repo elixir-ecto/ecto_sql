@@ -81,7 +81,7 @@ defmodule Ecto.Migration do
   typically use `mix ecto.gen.migration` to generate the file with
   the proper timestamp and then we just fill in its contents:
 
-      mix ecto.gen.migration add_weather_table
+      $ mix ecto.gen.migration add_weather_table
 
   ## Mix tasks
 
