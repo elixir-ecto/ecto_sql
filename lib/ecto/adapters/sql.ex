@@ -102,16 +102,16 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @impl true
-      def loaders({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
-      def loaders({:map, _} = type, _),   do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
-      def loaders(:binary_id, type),      do: [Ecto.UUID, type]
-      def loaders(_, type),               do: [type]
+      def loaders({:embed, _}, type), do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
+      def loaders({:map, _}, type),   do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
+      def loaders(:binary_id, type),  do: [Ecto.UUID, type]
+      def loaders(_, type),           do: [type]
 
       @impl true
-      def dumpers({:embed, _} = type, _), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-      def dumpers({:map, _} = type, _),   do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-      def dumpers(:binary_id, type),      do: [type, Ecto.UUID]
-      def dumpers(_, type),               do: [type]
+      def dumpers({:embed, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+      def dumpers({:map, _}, type),   do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+      def dumpers(:binary_id, type),  do: [type, Ecto.UUID]
+      def dumpers(_, type),           do: [type]
 
       ## Query
 
