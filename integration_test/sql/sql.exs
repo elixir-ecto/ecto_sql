@@ -27,6 +27,11 @@ defmodule Ecto.Integration.SQLTest do
     assert result.rows == [[[text1, text2]]]
   end
 
+  test "query!/4 with dynamic repo" do
+    TestRepo.put_dynamic_repo(:unknown)
+    assert_raise RuntimeError, ~r/:unknown/, fn -> TestRepo.query!("SELECT 1") end
+  end
+
   test "query!/4" do
     result = TestRepo.query!("SELECT 1")
     assert result.rows == [[1]]

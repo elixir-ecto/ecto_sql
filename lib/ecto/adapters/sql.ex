@@ -402,7 +402,7 @@ defmodule Ecto.Adapters.SQL do
       See `Ecto.Adapters.SQL.query/4` for more information.
       """
       def query(sql, params \\ [], opts \\ []) do
-        Ecto.Adapters.SQL.query(__MODULE__, sql, params, opts)
+        Ecto.Adapters.SQL.query(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
@@ -411,7 +411,7 @@ defmodule Ecto.Adapters.SQL do
       See `Ecto.Adapters.SQL.query!/4` for more information.
       """
       def query!(sql, params \\ [], opts \\ []) do
-        Ecto.Adapters.SQL.query!(__MODULE__, sql, params, opts)
+        Ecto.Adapters.SQL.query!(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
@@ -420,7 +420,7 @@ defmodule Ecto.Adapters.SQL do
       See `Ecto.Adapters.SQL.to_sql/3` for more information.
       """
       def to_sql(operation, queryable) do
-        Ecto.Adapters.SQL.to_sql(operation, __MODULE__, queryable)
+        Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
       end
     end
   end
