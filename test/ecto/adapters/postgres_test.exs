@@ -657,6 +657,10 @@ defmodule Ecto.Adapters.PostgresTest do
     query = from(m in Schema, update: [set: [x: 0]]) |> select([m], m) |> plan(:update_all)
     assert update_all(query) ==
            ~s{UPDATE "schema" AS s0 SET "x" = 0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+
+    query = from(m in Schema, update: [set: [x: ^1]]) |> where([m], m.x == ^2) |> select([m], m.x == ^3) |> plan(:update_all)
+    assert update_all(query) ==
+           ~s{UPDATE "schema" AS s0 SET "x" = $1 WHERE (s0."x" = $2) RETURNING s0."x" = $3}
   end
 
   test "update all array ops" do
