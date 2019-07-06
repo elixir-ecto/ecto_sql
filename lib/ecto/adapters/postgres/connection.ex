@@ -127,6 +127,7 @@ if Code.ensure_loaded?(Postgrex) do
     @impl true
     def update_all(%{from: %{source: source}} = query, prefix \\ nil) do
       sources = create_names(query)
+      cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, source)
 
       prefix = prefix || ["UPDATE ", from, " AS ", name | " SET "]
@@ -134,7 +135,7 @@ if Code.ensure_loaded?(Postgrex) do
       {join, wheres} = using_join(query, :update_all, "FROM", sources)
       where = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      [prefix, fields, join, where | returning(query, sources)]
+      [cte, prefix, fields, join, where | returning(query, sources)]
     end
 
     @impl true

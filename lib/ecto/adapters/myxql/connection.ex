@@ -99,6 +99,7 @@ if Code.ensure_loaded?(MyXQL) do
       end
 
       sources = create_names(query)
+      cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, source)
 
       fields = if prefix do
@@ -111,7 +112,7 @@ if Code.ensure_loaded?(MyXQL) do
       prefix = prefix || ["UPDATE ", from, " AS ", name, join, " SET "]
       where  = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      [prefix, fields | where]
+      [cte, prefix, fields | where]
     end
 
     @impl true
