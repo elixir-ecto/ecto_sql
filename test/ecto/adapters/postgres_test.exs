@@ -192,7 +192,7 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
   end
 
-  test "CTE update" do
+  test "CTE update_all" do
     cte_query =
       from(x in Schema, order_by: [asc: :id], limit: 10, lock: "FOR UPDATE SKIP LOCKED", select: %{id: x.id})
 
@@ -210,6 +210,26 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{UPDATE "schema" AS s0 } <>
       ~s{SET "x" = 123 } <>
       ~s{FROM "target_rows" AS t1 } <>
+      ~s{WHERE (t1."id" = s0."id") } <>
+      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+  end
+
+  test "CTE delete_all" do
+    cte_query =
+      from(x in Schema, order_by: [asc: :id], limit: 10, lock: "FOR UPDATE SKIP LOCKED", select: %{id: x.id})
+
+    query =
+      Schema
+      |> with_cte("target_rows", as: ^cte_query)
+      |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
+      |> select([r, t], r)
+      |> plan(:delete_all)
+
+    assert delete_all(query) ==
+      ~s{WITH "target_rows" AS } <>
+      ~s{(SELECT s0."id" AS "id" FROM "schema" AS s0 ORDER BY s0."id" LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{DELETE FROM "schema" AS s0 } <>
+      ~s{USING "target_rows" AS t1 } <>
       ~s{WHERE (t1."id" = s0."id") } <>
       ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
   end

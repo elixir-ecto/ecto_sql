@@ -141,12 +141,13 @@ if Code.ensure_loaded?(Postgrex) do
     @impl true
     def delete_all(%{from: from} = query) do
       sources = create_names(query)
+      cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, from)
 
       {join, wheres} = using_join(query, :delete_all, "USING", sources)
       where = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      ["DELETE FROM ", from, " AS ", name, join, where | returning(query, sources)]
+      [cte, "DELETE FROM ", from, " AS ", name, join, where | returning(query, sources)]
     end
 
     @impl true
