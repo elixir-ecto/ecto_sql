@@ -122,13 +122,14 @@ if Code.ensure_loaded?(MyXQL) do
       end
 
       sources = create_names(query)
+      cte = cte(query, sources)
       {_, name, _} = elem(sources, 0)
 
       from   = from(query, sources)
       join   = join(query, sources)
       where  = where(query, sources)
 
-      ["DELETE ", name, ".*", from, join | where]
+      [cte, "DELETE ", name, ".*", from, join | where]
     end
 
     @impl true
