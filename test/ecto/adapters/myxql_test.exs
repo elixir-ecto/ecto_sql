@@ -189,6 +189,43 @@ defmodule Ecto.Adapters.MyXQLTest do
       ~s{INNER JOIN `tree` AS t1 ON t1.`id` = s0.`category_id`}
   end
 
+  test "CTE update_all" do
+    cte_query =
+      from(x in Schema, order_by: [asc: :id], limit: 10, lock: "FOR UPDATE SKIP LOCKED", select: %{id: x.id})
+
+    query =
+      Schema
+      |> with_cte("target_rows", as: ^cte_query)
+      |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
+      |> update(set: [x: 123])
+      |> plan(:update_all)
+
+    assert update_all(query) ==
+      ~s{WITH `target_rows` AS } <>
+      ~s{(SELECT s0.`id` AS `id` FROM `schema` AS s0 ORDER BY s0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{UPDATE `schema` AS s0, `target_rows` AS t1 } <>
+      ~s{SET s0.`x` = 123 } <>
+      ~s{WHERE (t1.`id` = s0.`id`)}
+  end
+
+  test "CTE delete_all" do
+    cte_query =
+      from(x in Schema, order_by: [asc: :id], limit: 10, lock: "FOR UPDATE SKIP LOCKED", select: %{id: x.id})
+
+    query =
+      Schema
+      |> with_cte("target_rows", as: ^cte_query)
+      |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
+      |> plan(:delete_all)
+
+    assert delete_all(query) ==
+      ~s{WITH `target_rows` AS } <>
+      ~s{(SELECT s0.`id` AS `id` FROM `schema` AS s0 ORDER BY s0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{DELETE s0.* } <>
+      ~s{FROM `schema` AS s0 } <>
+      ~s{INNER JOIN `target_rows` AS t1 ON t1.`id` = s0.`id`}
+  end
+
   test "select" do
     query = Schema |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT s0.`x`, s0.`y` FROM `schema` AS s0}
