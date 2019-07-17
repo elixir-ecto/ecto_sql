@@ -4,6 +4,7 @@ defmodule Ecto.Integration.SQLTest do
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Barebone
   alias Ecto.Integration.Post
+  alias Ecto.Integration.Comment
   alias Ecto.Integration.CorruptedPk
   import Ecto.Query, only: [from: 2]
 
@@ -126,5 +127,16 @@ defmodule Ecto.Integration.SQLTest do
 
   test "returns false table doesn't exists" do
     refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
+  end
+
+  @tag :foreign_key
+  test "foreign key error returns invalid constraint" do
+    changeset = Comment.changeset(%Comment{post_id: 9999999}, %{})
+                |> Ecto.Changeset.assoc_constraint(:post)
+
+    result = TestRepo.insert(changeset)
+    assert {:error, %{errors: [
+        post: {"does not exist", [constraint: :assoc, constraint_name: "comments_post_id_fkey"]}
+      ]}} = result
   end
 end
