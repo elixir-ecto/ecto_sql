@@ -48,6 +48,7 @@ defmodule Ecto.Integration.Migration do
       add :user_id, references(:users)
     end
 
+    create unique_index(:permalinks, [:post_id])
     create unique_index(:permalinks, [:uniform_resource_locator])
 
     create table(:comments) do
