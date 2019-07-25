@@ -4,11 +4,15 @@
 
 This new version requires Elixir v1.6+.
 
+  * [sql] Use `get_dynamic_repo` on SQL-specific functions
+  * [sql] Respect `Ecto.Type.embed_as/2` choice when loading/dumping embeds (Ecto 3.2+ compat)
+  * [sql] Support CTE expressions (Ecto 3.2+ compat)
+
 ## v3.1.6 (2019-06-27)
 
 ### Enhancements
 
-  * [sql] Set `cache_statement` for `insert_all
+  * [sql] Set `cache_statement` for `insert_all`
 
 ## v3.1.5 (2019-06-13)
 
