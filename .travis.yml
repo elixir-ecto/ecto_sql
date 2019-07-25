@@ -1,19 +1,17 @@
 language: elixir
-# Temporary workaround MySQL installation errors
-dist: xenial
+dist: trusty
 elixir:
   - 1.8.1
 otp_release:
   - 20.2
 addons:
-  # apt:
-  #   sources:
-  #     - mysql-5.7-trusty
-  #   packages:
-  #     - mysql-client
+  apt:
+    sources:
+      - mysql-5.7-trusty
+    packages:
+      - mysql-client
 services:
   - docker
-  - mysql
 before_install:
   - sudo service postgresql stop
   - sudo apt-get -y -qq --purge remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common
