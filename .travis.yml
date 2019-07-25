@@ -1,4 +1,6 @@
 language: elixir
+# Temporary workaround MySQL installation errors
+dist: xenial
 elixir:
   - 1.8.1
 otp_release:
