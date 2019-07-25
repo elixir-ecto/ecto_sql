@@ -6,13 +6,14 @@ elixir:
 otp_release:
   - 20.2
 addons:
-  apt:
-    sources:
-      - mysql-5.7-trusty
-    packages:
-      - mysql-client
+  # apt:
+  #   sources:
+  #     - mysql-5.7-trusty
+  #   packages:
+  #     - mysql-client
 services:
   - docker
+  - mysql
 before_install:
   - sudo service postgresql stop
   - sudo apt-get -y -qq --purge remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common
@@ -27,22 +28,18 @@ before_install:
   - mysql --version
   - until mysql -u root -e "SELECT @@version;"; do sleep 1; done
 sudo: required
-dist: trusty
 cache: apt
 matrix:
   include:
   - otp_release: 19.3
     elixir: 1.6.6
 env:
-  global:
-    - PGVERSION=9.6
-    - MYSQLVERSION=8.0
   matrix:
     - ECTO_ADAPTER=none
     - ECTO_ADAPTER=pg PGVERSION=9.2
-    - ECTO_ADAPTER=pg
-    - ECTO_ADAPTER=myxql
+    - ECTO_ADAPTER=pg PGVERSION=9.6
     - ECTO_ADAPTER=myxql MYSQLVERSION=5.7
+    - ECTO_ADAPTER=myxql MYSQLVERSION=8.0
 install:
   - mix local.hex --force
   - mix local.rebar --force
