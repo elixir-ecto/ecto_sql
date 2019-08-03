@@ -854,7 +854,7 @@ defmodule Ecto.Migration do
 
   `type` and `opts` are exactly the same as in `add/3`.
 
-  This command is not reversible as Ecto does not know about column existense before the creation attempt.
+  This command is not reversible as Ecto does not know about column existence before the creation attempt.
 
   ## Examples
 
@@ -1007,7 +1007,7 @@ defmodule Ecto.Migration do
   Removes a column only if the column exists when altering the constraint if the reference type is passed
   once it only has the constraint name on reference structure.
 
-  This command is not reversible as Ecto does not know about column existense before the removal attempt.
+  This command is not reversible as Ecto does not know about column existence before the removal attempt.
 
   ## Examples
 
