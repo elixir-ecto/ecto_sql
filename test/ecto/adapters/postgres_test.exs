@@ -510,6 +510,14 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 WHERE (s0."foo" = 123.0::float)}
   end
 
+  test "datetime_add" do
+    query = "schema" |> where([s], datetime_add(s.foo, 1, "month") > s.bar) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 WHERE (s0."foo"::timestamp + interval '1 month' > s0."bar")}
+
+    query = "schema" |> where([s], datetime_add(type(s.foo, :string), 1, "month") > s.bar) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 WHERE (s0."foo"::varchar + interval '1 month' > s0."bar")}
+  end
+
   test "tagged type" do
     query = Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
     assert all(query) == ~s{SELECT $1::uuid FROM "schema" AS s0}

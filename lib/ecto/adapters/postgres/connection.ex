@@ -560,12 +560,12 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
-      [expr(datetime, sources, query), "::timestamp + ",
+      [expr(datetime, sources, query), type_unless_typed(datetime, "timestamp"), " + ",
        interval(count, interval, sources, query)]
     end
 
     defp expr({:date_add, _, [date, count, interval]}, sources, query) do
-      [?(, expr(date, sources, query), "::date + ",
+      [?(, expr(date, sources, query), type_unless_typed(date, "date"), " + ",
        interval(count, interval, sources, query) | ")::date"]
     end
 
@@ -639,10 +639,13 @@ if Code.ensure_loaded?(Postgrex) do
       [Float.to_string(literal) | "::float"]
     end
 
-    defp tagged_to_db({:array, type}), do: [tagged_to_db(type), ?[, ?]]
+    defp type_unless_typed(%Ecto.Query.Tagged{}, _type), do: []
+    defp type_unless_typed(_, type), do: [?:, ?: | type]
+
     # Always use the largest possible type for integers
     defp tagged_to_db(:id), do: "bigint"
     defp tagged_to_db(:integer), do: "bigint"
+    defp tagged_to_db({:array, type}), do: [tagged_to_db(type), ?[, ?]]
     defp tagged_to_db(type), do: ecto_to_db(type)
 
     defp interval(count, interval, _sources, _query) when is_integer(count) do
