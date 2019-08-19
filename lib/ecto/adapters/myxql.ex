@@ -29,6 +29,9 @@ defmodule Ecto.Adapters.MyXQL do
       via the `mysql` command. For more information, please check
       [MySQL docs](https://dev.mysql.com/doc/en/connecting.html)
     * `:socket_options` - Specifies socket configuration
+    * `:show_sensitive_data_on_connection_error` - show connection data and
+      configuration whenever there is an error attempting to connect to the
+      database
 
   The `:socket_options` are particularly useful when configuring the size
   of both send and receive buffers. For example, when Ecto starts with a
