@@ -157,12 +157,13 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   When running the sandbox mode concurrently, developers may run into
   issues we explore in the upcoming sections.
 
-  ### "owner exited while client is still running"
+  ### "owner exited"
 
   In some situations, you may see error reports similar to the one below:
 
-      21:57:43.910 [error] Postgrex.Protocol (#PID<0.284.0>) disconnected:
-          ** (DBConnection.Error) owner #PID<> exited while client #PID<> is still running
+      23:59:59.999 [error] Postgrex.Protocol (#PID<>) disconnected:
+          ** (DBConnection.Error) owner #PID<> exited
+      Client #PID<> is still using a connection from owner
 
   Such errors are usually followed by another error report from another
   process that failed while executing a database query.
