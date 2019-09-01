@@ -1510,7 +1510,7 @@ defmodule Ecto.Adapters.PostgresTest do
     assert execute_ddl(create) == [remove_newlines("""
     CREATE INDEX "posts_category_id_permalink_index" ON "foo"."posts" ("category_id", "permalink")
     """),
-    ~s|COMMENT ON INDEX "posts_category_id_permalink_index" IS 'comment'|]
+    ~s|COMMENT ON INDEX "foo"."posts_category_id_permalink_index" IS 'comment'|]
   end
 
   test "create unique index" do
