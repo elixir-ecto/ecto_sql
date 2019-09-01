@@ -763,7 +763,7 @@ if Code.ensure_loaded?(Postgrex) do
                   ?\s, ?(, fields, ?),
                   if_do(index.where, [" WHERE ", to_string(index.where)])]]
 
-      queries ++ comments_on("INDEX", quote_name(index.name), index.comment)
+      queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)
     end
 
     def execute_ddl({:create_if_not_exists, %Index{} = index}) do
