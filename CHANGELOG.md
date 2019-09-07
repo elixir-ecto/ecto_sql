@@ -1,12 +1,18 @@
 # Changelog for v3.x
 
-## v3.2.0-dev
+## v3.2.0 (2019-09-07)
 
 This new version requires Elixir v1.6+.
+
+### Enhancements
 
   * [sql] Use `get_dynamic_repo` on SQL-specific functions
   * [sql] Respect `Ecto.Type.embed_as/2` choice when loading/dumping embeds (Ecto 3.2+ compat)
   * [sql] Support CTE expressions (Ecto 3.2+ compat)
+
+### Bug fixes
+
+  * [sql] Fix generated "COMMENT ON INDEX" for PostgreSQL
 
 ## v3.1.6 (2019-06-27)
 
