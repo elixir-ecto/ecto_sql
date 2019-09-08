@@ -26,7 +26,7 @@ defmodule Ecto.Migration do
   migrations for `MyApp.Repo` would be found in "priv/repo/migrations".
   For `MyApp.CustomRepo`, it would be found in "priv/custom_repo/migrations".
 
-  Each file in the migratitons directory have the following structure:
+  Each file in the migrations directory has the following structure:
 
       NUMBER_NAME.exs
 
