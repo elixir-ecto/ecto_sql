@@ -1,4 +1,4 @@
-Code.require_file "../support/file_helpers.exs", __DIR__
+Code.require_file("../support/file_helpers.exs", __DIR__)
 
 defmodule Ecto.Integration.StorageTest do
   use ExUnit.Case
@@ -17,9 +17,10 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   def wrong_params do
-    Keyword.merge params(),
-      [username: "randomuser",
-       password: "password1234"]
+    Keyword.merge(params(),
+      username: "randomuser",
+      password: "password1234"
+    )
   end
 
   def drop_database do
@@ -35,8 +36,21 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   def run_psql(sql, args \\ []) do
-    args = ["-U", params()[:username], "-c", sql | args]
-    System.cmd "psql", args
+    params = params()
+    env = if password = params[:password], do: [{"PGPASSWORD", password}], else: []
+
+    args = [
+      "-U",
+      params[:username],
+      "--host",
+      params[:hostname],
+      "-p",
+      to_string(params[:port] || 5432),
+      "-c",
+      sql | args
+    ]
+
+    System.cmd("psql", args, env: env)
   end
 
   test "storage up (twice in a row)" do
@@ -93,7 +107,10 @@ defmodule Ecto.Integration.StorageTest do
     File.mkdir_p!(tmp_path())
     error_path = Path.join(tmp_path(), "error.sql")
     File.write!(error_path, "DO $$ BEGIN RAISE EXCEPTION 'failing SQL'; END $$;")
-    {:error, message} = Postgres.structure_load(tmp_path(), [dump_path: error_path] ++ TestRepo.config())
+
+    {:error, message} =
+      Postgres.structure_load(tmp_path(), [dump_path: error_path] ++ TestRepo.config())
+
     assert message =~ ~r/ERROR.*failing SQL/
   end
 

@@ -1,4 +1,4 @@
-Code.require_file "../support/file_helpers.exs", __DIR__
+Code.require_file("../support/file_helpers.exs", __DIR__)
 
 defmodule Ecto.Integration.StorageTest do
   use ExUnit.Case
@@ -16,9 +16,10 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   def wrong_params do
-    Keyword.merge params(),
-      [username: "randomuser",
-       password: "password1234"]
+    Keyword.merge(params(),
+      username: "randomuser",
+      password: "password1234"
+    )
   end
 
   def drop_database do
@@ -34,8 +35,21 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   def run_mysql(sql, args \\ []) do
-    args = ["-u", params()[:username], "-e", sql | args]
-    System.cmd "mysql", args
+    params = params()
+    env = if password = params[:password], do: [{"MYSQL_PWD", password}], else: []
+
+    args = [
+      "-u",
+      params[:username],
+      "--host",
+      params[:hostname],
+      "--port",
+      to_string(params[:port] || 3306),
+      "-e",
+      sql | args
+    ]
+
+    System.cmd("mysql", args, env: env)
   end
 
   test "storage up (twice in a row)" do
@@ -73,7 +87,9 @@ defmodule Ecto.Integration.StorageTest do
     # Load custom
     dump_path = Path.join(tmp_path(), "custom.sql")
     File.rm(dump_path)
-    {:error, _} = Ecto.Adapters.MyXQL.structure_load(tmp_path(), [dump_path: dump_path] ++ params())
+
+    {:error, _} =
+      Ecto.Adapters.MyXQL.structure_load(tmp_path(), [dump_path: dump_path] ++ params())
 
     # Dump custom
     {:ok, _} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), [dump_path: dump_path] ++ params())

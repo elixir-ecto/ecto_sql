@@ -1,23 +1,80 @@
 name: CI
 on: push
 jobs:
-  test:
-    name: "Elixir v${{ matrix.elixir_version }}"
-    runs-on: ubuntu-latest
-
-    container:
-      image: elixir:${{ matrix.elixir_version }}-slim
+  test-elixir:
+    runs-on: ubuntu-18.4
+    container: elixir:${{ matrix.elixir_version }}-slim
 
     strategy:
       matrix:
-        elixir_version: [1.9, 1.6]
+        elixir_version: [1.6, 1.9]
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Install Dependencies
-      run: |
-        mix local.rebar --force
-        mix local.hex --force
-        mix deps.get
-    - name: Run Tests
-      run: mix test
+      - uses: actions/checkout@v1
+      - name: Install Dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: mix test
+
+  test-mysql:
+    runs-on: ubuntu-18.4
+
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql_version }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    container: elixir:1.9-slim
+
+    strategy:
+      matrix:
+        mysql_version: [5.7, 8.0]
+
+    steps:
+      - name: Install MySQL Client
+        run: |
+          echo "deb http://repo.mysql.com/apt/debian/ stretch mysql-${{ matrix.mysql_version }}" > /etc/apt/sources.list.d/mysql.list
+          apt-get update
+          apt-get install -y mysql-client
+      - uses: actions/checkout@v1
+      - name: Install Dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: MYSQL_URL=root:root@mysql ECTO_ADAPTER=myxql mix test
+
+  test-pg:
+    runs-on: ubuntu-18.4
+
+    services:
+      pg:
+        image: postgres:${{ matrix.pg_version }}
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    container: elixir:1.9-slim
+
+    strategy:
+      matrix:
+        pg_version: [9.2, 9.6, 11.0]
+
+    steps:
+      - name: Install PG Client
+        run: |
+          apt-get update
+          apt-get install -y wget ca-certificates gnupg
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+          echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main ${{ matrix.pg_version }}" > /etc/apt/sources.list.d/pgdg.list
+          apt-get update
+          apt-get install -y postgresql-${{ matrix.pg_version }} postgresql-contrib-${{ matrix.pg_version }}
+      - uses: actions/checkout@v1
+      - name: Install Dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: PG_URL=postgres:postgres@pg ECTO_ADAPTER=pg mix test

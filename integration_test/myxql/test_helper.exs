@@ -9,7 +9,7 @@ Code.require_file "../support/repo.exs", __DIR__
 
 # Configure MySQL connection
 Application.put_env(:ecto_sql, :mysql_test_url,
-  "ecto://" <> (System.get_env("MYSQL_URL") || "root@localhost")
+  "ecto://" <> (System.get_env("MYSQL_URL") || "root@127.0.0.1")
 )
 
 # Pool repo for async, safe tests
