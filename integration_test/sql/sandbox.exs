@@ -130,9 +130,9 @@ defmodule Ecto.Integration.SandboxTest do
     test "does not taint the sandbox on query errors" do
       Sandbox.checkout(TestRepo)
 
-      {:ok, _}    = TestRepo.insert(%Post{}, skip_transaction: true)
+      {:ok, _}    = TestRepo.insert(%Post{})
       {:error, _} = TestRepo.query("INVALID")
-      {:ok, _}    = TestRepo.insert(%Post{}, skip_transaction: true)
+      {:ok, _}    = TestRepo.insert(%Post{})
 
       Sandbox.checkin(TestRepo)
     end

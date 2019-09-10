@@ -19,7 +19,7 @@ defmodule Ecto.Integration.PGTransactionTest do
         {:error, _} = PoolRepo.query("INVALID")
 
         assert_raise Postgrex.Error, ~r/current transaction is aborted/, fn ->
-          PoolRepo.insert(%Post{}, skip_transaction: true)
+          PoolRepo.insert(%Post{})
         end
       end
     end
@@ -34,7 +34,7 @@ defmodule Ecto.Integration.PGTransactionTest do
         {:error, _} = TestRepo.query("INVALID")
 
         assert_raise Postgrex.Error, ~r/current transaction is aborted/, fn ->
-          TestRepo.insert(%Post{}, skip_transaction: true)
+          TestRepo.insert(%Post{})
         end
       end
     end
