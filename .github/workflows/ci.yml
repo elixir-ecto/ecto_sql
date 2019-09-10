@@ -2,7 +2,7 @@ name: CI
 on: push
 jobs:
   test-elixir:
-    runs-on: ubuntu-18.4
+    runs-on: ubuntu-18.04
     container: elixir:${{ matrix.elixir_version }}-slim
 
     strategy:
@@ -19,7 +19,7 @@ jobs:
       - run: mix test
 
   test-mysql:
-    runs-on: ubuntu-18.4
+    runs-on: ubuntu-18.04
 
     services:
       mysql:
@@ -32,14 +32,15 @@ jobs:
 
     strategy:
       matrix:
-        mysql_version: [5.7, 8.0]
+        mysql_version: ["5.7", "8.0"]
 
     steps:
       - name: Install MySQL Client
         run: |
-          echo "deb http://repo.mysql.com/apt/debian/ stretch mysql-${{ matrix.mysql_version }}" > /etc/apt/sources.list.d/mysql.list
+          echo "deb http://repo.mysql.com/apt/debian/ stretch mysql-${{ matrix.mysql_version }}" >> /etc/apt/sources.list.d/mysql.list
           apt-get update
-          apt-get install -y mysql-client
+          apt-get install --allow-unauthenticated -y mysql-client
+          mysql --version
       - uses: actions/checkout@v1
       - name: Install Dependencies
         run: |
@@ -49,7 +50,7 @@ jobs:
       - run: MYSQL_URL=root:root@mysql ECTO_ADAPTER=myxql mix test
 
   test-pg:
-    runs-on: ubuntu-18.4
+    runs-on: ubuntu-18.04
 
     services:
       pg:
@@ -60,7 +61,7 @@ jobs:
 
     strategy:
       matrix:
-        pg_version: [9.2, 9.6, 11.0]
+        pg_version: ["9.4", "9.6", "11"]
 
     steps:
       - name: Install PG Client
@@ -68,9 +69,10 @@ jobs:
           apt-get update
           apt-get install -y wget ca-certificates gnupg
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-          echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main ${{ matrix.pg_version }}" > /etc/apt/sources.list.d/pgdg.list
+          echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main ${{ matrix.pg_version }}" >> /etc/apt/sources.list.d/pgdg.list
           apt-get update
           apt-get install -y postgresql-${{ matrix.pg_version }} postgresql-contrib-${{ matrix.pg_version }}
+          psql --version
       - uses: actions/checkout@v1
       - name: Install Dependencies
         run: |
