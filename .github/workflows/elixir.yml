@@ -1,0 +1,23 @@
+name: Elixir CI
+on: push
+jobs:
+  test:
+    name: "Elixir v${{ matrix.elixir_version }}"
+    runs-on: ubuntu-latest
+
+    container:
+      image: elixir:${{ matrix.elixir_version }}-slim
+
+    strategy:
+      matrix:
+        elixir_version: [1.9, 1.6]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependencies
+      run: |
+        mix local.rebar --force
+        mix local.hex --force
+        mix deps.get
+    - name: Run Tests
+      run: mix test
