@@ -47,7 +47,7 @@ defmodule Ecto.Adapters.MyXQL do
 
   ### Storage options
 
-    * `:charset` - the database encoding (default: "utf8")
+    * `:charset` - the database encoding (default: "utf8mb4")
     * `:collation` - the collation order
     * `:dump_path` - where to place dumped structures
 
@@ -141,7 +141,7 @@ defmodule Ecto.Adapters.MyXQL do
   def storage_up(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
     opts = Keyword.delete(opts, :database)
-    charset = opts[:charset] || "utf8"
+    charset = opts[:charset] || "utf8mb4"
 
     command =
       ~s(CREATE DATABASE `#{database}` DEFAULT CHARACTER SET = #{charset})
