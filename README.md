@@ -1,6 +1,6 @@
 Ecto SQL
 =========
-[![Build Status](https://travis-ci.org/elixir-ecto/ecto_sql.svg?branch=master)](https://travis-ci.org/elixir-ecto/ecto_sql)
+![Build Status](https://github.com/elixir-ecto/ecto_sql/workflows/CI/badge.svg)
 
 Ecto SQL ([documentation](https://hexdocs.pm/ecto_sql)) provides building blocks for writing SQL adapters for Ecto. It features:
 
