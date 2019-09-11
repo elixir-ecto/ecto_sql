@@ -89,6 +89,23 @@ defmodule Ecto.Adapters.MyXQL do
   automatically commits after some commands like CREATE TABLE.
   Therefore MySQL migrations does not run inside transactions.
 
+  ## Old MySQL versions
+
+  ### JSON support
+
+  MySQL introduced a native JSON type in v5.7.8, if your server is
+  using this version or higher, you may use `:map` type for your
+  column in migration:
+
+      add :some_field, :map
+
+  If you're using older server versions, use a `TEXT` field instead:
+
+      add :some_field, :text
+
+  in either case, the adapter will automatically encode/decode the
+  value from JSON.
+
   ### usec in datetime
 
   Old MySQL versions did not support usec in datetime while
