@@ -587,7 +587,9 @@ defmodule Ecto.Migration do
       creation.
     * `:engine` - customizes the table storage for supported databases. For MySQL,
       the default is InnoDB.
-    * `:prefix` - the prefix for the table.
+    * `:prefix` - the prefix for the table. This prefix will automatically be used
+      for all constraints and references defined for this table unless explicitly
+      overridden in said constraints/references.
     * `:options` - provide custom options that will be appended after the generated
       statement. For example, "WITH", "INHERITS", or "ON COMMIT" clauses.
 
