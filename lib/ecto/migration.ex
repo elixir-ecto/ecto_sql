@@ -1037,8 +1037,9 @@ defmodule Ecto.Migration do
     * `:name` - The name of the underlying reference, which defaults to
       "#{table}_#{column}_fkey".
     * `:column` - The foreign key column name, which defaults to `:id`.
-    * `:prefix` - The prefix for the reference. Defaults to the reference
-      of the table if present, or `nil`.
+    * `:prefix` - The prefix for the reference. Defaults to the prefix
+      defined by the block's `table/2` struct (the "products" table in
+      the example above), or `nil`.
     * `:type` - The foreign key type, which defaults to `:bigserial`.
     * `:on_delete` - What to do if the referenced entry is deleted. May be
       `:nothing` (default), `:delete_all`, `:nilify_all`, or `:restrict`.
