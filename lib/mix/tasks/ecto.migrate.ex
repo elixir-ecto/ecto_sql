@@ -64,7 +64,6 @@ defmodule Mix.Tasks.Ecto.Migrate do
       mix ecto.migrate -n 3
       mix ecto.migrate --step 3
 
-      mix ecto.migrate -v 20080906120000
       mix ecto.migrate --to 20080906120000
 
   ## Command line options
