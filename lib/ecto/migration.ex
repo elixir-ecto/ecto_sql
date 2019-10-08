@@ -149,14 +149,14 @@ defmodule Ecto.Migration do
 
   ## Flushing
 
-  Instructions inside migrations are not executed immedidately. Instead
-  they are performed once the relevant `up`, `change`, or `down` callback
+  Instructions inside of migrations are not executed immediately. Instead
+  they are performed after the relevant `up`, `change`, or `down` callback
   terminates.
 
-  However, under certain situations, you may want to guarantee all of the
-  previous steps have been executed before continuing. This is generally
-  useful in case you need to apply some changes to the table before
-  continuing with the migration. This can be done with `flush/0`:
+  However, in some situations you may want to guarantee that all of the
+  previous steps have been executed before continuing. This is useful when 
+  you need to apply a set of changes to the table before continuing with the 
+  migration. This can be done with `flush/0`:
 
       def up do
         ...
