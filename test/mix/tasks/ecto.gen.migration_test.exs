@@ -52,6 +52,12 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
     assert name =~ ~r/^\d{14}_my_migration\.exs$/
   end
 
+  test "underscores the filename when filename with spaces" do
+    run ["-r", to_string(Repo), "My migration"]
+    assert [name] = File.ls!(@migrations_path)
+    assert name =~ ~r/^\d{14}_my_migration\.exs$/
+  end
+
   test "raises when existing migration exists" do
     run ["-r", to_string(Repo), "my_migration"]
     assert_raise Mix.Error, ~r"migration can't be created", fn ->

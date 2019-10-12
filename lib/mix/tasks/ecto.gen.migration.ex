@@ -67,7 +67,8 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
         {opts, [name]} ->
           ensure_repo(repo, args)
           path = Path.join(source_repo_priv(repo), "migrations")
-          base_name = "#{underscore(name)}.exs"
+          underscore_name = underscore(name) |> String.replace(" ", "_")
+          base_name = "#{underscore_name}.exs"
           file = Path.join(path, "#{timestamp()}_#{base_name}")
           unless File.dir?(path), do: create_directory path
 
