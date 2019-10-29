@@ -466,7 +466,7 @@ defmodule Ecto.Migration do
     end
   end
 
-  defmacro dynamic(bindings, do: block) do
+  defmacro dynamic(bindings \\ [], do: block) do
     quote bind_quoted: [bindings: bindings, block: Macro.escape(block)] do
       Runner.execute({:dynamic, block, bindings, __ENV__})
     end
