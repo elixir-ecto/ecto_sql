@@ -216,7 +216,7 @@ defmodule Ecto.Migration.Runner do
     end
   end
 
-  defp reverse({:dynamic, _macro, _env} = dynamic), do: dynamic
+  defp reverse({:dynamic, _macro, _bindings, _env} = dynamic), do: dynamic
   defp reverse({:create, %Index{} = index}),
     do: {:drop, index}
   defp reverse({:create_if_not_exists, %Index{} = index}),
@@ -333,8 +333,8 @@ defmodule Ecto.Migration.Runner do
     log_and_execute_ddl(repo, log, command)
   end
 
-  defp log_and_execute_ddl(_repo, _log, {:dynamic, macro, env}) do
-    Code.eval_quoted(macro, [], env)
+  defp log_and_execute_ddl(_repo, _log, {:dynamic, macro, bindings, env}) do
+    Code.eval_quoted(macro, bindings, env)
     :ok
   end
 

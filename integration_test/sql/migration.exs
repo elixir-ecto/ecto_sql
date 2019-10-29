@@ -336,17 +336,19 @@ defmodule Ecto.Integration.MigrationTest do
     @disable_ddl_transaction true
 
     @migrate_first "select 'This is a first part of ecto.migrate';"
+    @migrate_middle "select 'In the middle of ecto.migrate';"
     @migrate_second "select 'This is a second part of ecto.migrate';"
     @rollback_first "select 'This is a first part of ecto.rollback';"
+    @rollback_middle "select 'In the middle of ecto.rollback';"
     @rollback_second "select 'This is a second part of ecto.rollback';"
 
     def change do
       execute @migrate_first, @rollback_second
 
-      dynamic do
+      dynamic migrate_middle: @migrate_middle, rollback_middle: @rollback_middle do
         case direction() do
-          :up -> Ecto.Adapters.SQL.query!(repo(), "select 'In the middle of ecto.migrate';", [], [log: :info])
-          :down -> Ecto.Adapters.SQL.query!(repo(), "select 'In the middle of ecto.rollback';", [], [log: :info])
+          :up -> Ecto.Adapters.SQL.query!(repo(), migrate_middle, [], [log: :info])
+          :down -> Ecto.Adapters.SQL.query!(repo(), rollback_middle, [], [log: :info])
         end
       end
 
