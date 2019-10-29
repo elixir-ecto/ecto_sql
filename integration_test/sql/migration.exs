@@ -330,8 +330,33 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
+  defmodule MigrationWithDynamicCommand do
+    use Ecto.Migration
+
+    @disable_ddl_transaction true
+
+    @migrate_first "select 'This is a first part of ecto.migrate';"
+    @migrate_second "select 'This is a second part of ecto.migrate';"
+    @rollback_first "select 'This is a first part of ecto.rollback';"
+    @rollback_second "select 'This is a second part of ecto.rollback';"
+
+    def change do
+      execute @migrate_first, @rollback_second
+
+      dynamic do
+        case direction() do
+          :up -> Ecto.Adapters.SQL.query!(repo(), "select 'In the middle of ecto.migrate';", [], [log: :info])
+          :down -> Ecto.Adapters.SQL.query!(repo(), "select 'In the middle of ecto.rollback';", [], [log: :info])
+        end
+      end
+
+      execute @migrate_second, @rollback_first
+    end
+  end
+
   import Ecto.Query, only: [from: 2]
   import Ecto.Migrator, only: [up: 4, down: 4]
+  import ExUnit.CaptureLog, only: [capture_log: 1]
 
   # Avoid migration out of order warnings
   @moduletag :capture_log
@@ -339,6 +364,25 @@ defmodule Ecto.Integration.MigrationTest do
 
   setup do
     {:ok, migration_number: System.unique_integer([:positive]) + @base_migration}
+  end
+
+  @tag :current
+  test "migration with dynamic", %{migration_number: num} do
+    level = :info
+    args = [PoolRepo, num, MigrationWithDynamicCommand, [log: level]]
+
+    for {name, direction} <- [migrate: :up, rollback: :down] do
+      output = capture_log(fn ->
+        :ok = apply(Ecto.Migrator, direction, args)
+      end)
+
+      lines = String.split(output, "\n")
+      assert Enum.at(lines, 4) =~ "== Running #{num} #{inspect(MigrationWithDynamicCommand)}.change/0"
+      assert Enum.at(lines, 6) =~ ~s[execute "select 'This is a first part of ecto.#{name}';"]
+      assert Enum.at(lines, 9) =~ "select 'In the middle of ecto.#{name}'; []"
+      assert Enum.at(lines, 11) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
+      assert Enum.at(lines, 13) =~ ~r"Migrated #{num} in \d.\ds"
+    end
   end
 
   test "create and drop table and indexes", %{migration_number: num} do

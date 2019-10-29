@@ -466,6 +466,12 @@ defmodule Ecto.Migration do
     end
   end
 
+  defmacro dynamic(do: block) do
+    quote bind_quoted: [block: Macro.escape(block)] do
+      Runner.execute({:dynamic, block, __ENV__})
+    end
+  end
+
   @doc """
   Creates one of the following:
 
