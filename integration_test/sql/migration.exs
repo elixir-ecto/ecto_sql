@@ -333,6 +333,10 @@ defmodule Ecto.Integration.MigrationTest do
   defmodule MigrationWithDynamicCommand do
     use Ecto.Migration
 
+    alias Ecto.Adapters.SQL
+
+    require Logger
+
     @disable_ddl_transaction true
 
     @migrate_first "select 'This is a first part of ecto.migrate';"
@@ -344,16 +348,13 @@ defmodule Ecto.Integration.MigrationTest do
 
     def change do
       execute @migrate_first, @rollback_second
-
-      dynamic migrate_middle: @migrate_middle, rollback_middle: @rollback_middle do
-        case direction() do
-          :up -> Ecto.Adapters.SQL.query!(repo(), migrate_middle, [], [log: :info])
-          :down -> Ecto.Adapters.SQL.query!(repo(), rollback_middle, [], [log: :info])
-        end
-      end
-
+      dynamic(fn -> Logger.info("This is a middle part called by dynamic/0") end)
+      dynamic(&dynamic_query/1)
       execute @migrate_second, @rollback_first
     end
+
+    defp dynamic_query(:up), do: SQL.query!(repo(), @migrate_middle, [], [log: :info])
+    defp dynamic_query(:down), do: SQL.query!(repo(), @rollback_middle, [], [log: :info])
   end
 
   import Ecto.Query, only: [from: 2]
@@ -368,6 +369,7 @@ defmodule Ecto.Integration.MigrationTest do
     {:ok, migration_number: System.unique_integer([:positive]) + @base_migration}
   end
 
+  @tag :current
   test "migration with dynamic", %{migration_number: num} do
     level = :info
     args = [PoolRepo, num, MigrationWithDynamicCommand, [log: level]]
@@ -377,11 +379,18 @@ defmodule Ecto.Integration.MigrationTest do
       lines = String.split(output, "\n")
       assert Enum.at(lines, 4) =~ "== Running #{num} #{inspect(MigrationWithDynamicCommand)}.change/0"
       assert Enum.at(lines, 6) =~ ~s[execute "select 'This is a first part of ecto.#{name}';"]
-      assert Enum.at(lines, 9) =~ "select 'In the middle of ecto.#{name}'; []"
-      assert Enum.at(lines, 11) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
-      assert Enum.at(lines, 13) =~ ~r"Migrated #{num} in \d.\ds"
+      {first_line, second_line} = if direction == :up, do: {8, 11}, else: {9, 11}
+      assert Enum.at(lines, first_line) =~ get_middle_log(direction, first_line, name)
+      assert Enum.at(lines, second_line) =~ get_middle_log(direction, second_line, name)
+      assert Enum.at(lines, 13) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
+      assert Enum.at(lines, 15) =~ ~r"Migrated #{num} in \d.\ds"
     end
   end
+
+  defp get_middle_log(:up, 8, _name), do: "This is a middle part called by dynamic/0"
+  defp get_middle_log(:up, 11, name), do: "select 'In the middle of ecto.#{name}'; []"
+  defp get_middle_log(:down, 9, name), do: get_middle_log(:up, 11, name)
+  defp get_middle_log(:down, 11, name), do: get_middle_log(:up, 8, name)
 
   test "create and drop table and indexes", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, CreateMigration, log: false)

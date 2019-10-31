@@ -479,27 +479,26 @@ defmodule Ecto.Migration do
         add :body, :string
       end
 
-      dynamic key: value do
+      dynamic(fn ->
         Ecto.Adapters.SQL.query!(repo(), "select 'Using binding key: \#{key}';", [], [log: :info])
         Repo.insert!(%Post{body: key})
-      end
+      end)
 
-  If you are working with reversible migrations `direction/0` may be useful for you.
+  You can optionally accept an extra `direction` argument:
 
-      dynamic key: value do
-        if direction() == :up do
-          Ecto.Adapters.SQL.query!(repo(), "select 'Forward: \#{key}';", [], [log: :info])
-        else
-          Ecto.Adapters.SQL.query!(repo(), "select 'Backward: \#{key}';", [], [log: :info])
-        end
-      end
+      alias Ecto.Adapters.SQL
+
+      dynamic(&my_dynamic_func/1)
+
+      defp my_dynamic_fync(:up),
+        do: SQL.query!(repo(), "select 'Up: \#{key}';", [], [log: :info])
+
+      defp my_dynamic_fync(:down),
+        do: SQL.query!(repo(), "select 'Down: \#{key}';", [], [log: :info])
   """
-  @spec dynamic(bindings :: keyword(), [do: Macro.expr()]) :: Macro.expr()
-  defmacro dynamic(bindings \\ [], do: block) do
-    quote bind_quoted: [bindings: bindings, block: Macro.escape(block)] do
-      Runner.execute({:dynamic, block, bindings, __ENV__})
-    end
-  end
+  @spec dynamic((-> any) | (:up | :down -> any)) :: :ok
+  def dynamic(func) when is_function(func, 0) or is_function(func, 1),
+    do: Runner.execute({:dynamic, func})
 
   @doc """
   Creates one of the following:
