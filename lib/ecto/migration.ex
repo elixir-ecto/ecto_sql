@@ -1096,14 +1096,16 @@ defmodule Ecto.Migration do
     struct(%Constraint{table: table, name: name}, opts)
   end
 
-  @doc """
-  Executes queue migration commands.
-
-  Reverses the order in which commands are executed when doing a rollback
-  on a `change/0` function and resets the commands queue.
-  """
-  def flush do
-    Runner.flush
+  @doc "Executes queue migration commands."
+  defmacro flush do
+    quote bind_quoted: [caller: __CALLER__.module] do
+      if direction() == :down and function_exported?(caller, :change, 0) do
+        message = "Calling flush() inside change when doing rollback is not supported."
+        raise ArgumentError, message
+      else
+        Runner.flush()
+      end
+    end
   end
 
   # Validation helpers
