@@ -466,6 +466,35 @@ defmodule Ecto.Migration do
     end
   end
 
+  @doc """
+  Creates a dynamic command.
+
+  Unlike `flush/0` it's reversible, but migrations inside it like `execute/2`
+  are not supported. This is useful for migration `repo/0` features and
+  runtime generated database queries by `Ecto.Adapters.SQL.query/4` function.
+
+  ## Examples
+
+      create table("posts") do
+        add :body, :string
+      end
+
+      dynamic key: value do
+        Ecto.Adapters.SQL.query!(repo(), "select 'Using binding key: \#{key}';", [], [log: :info])
+        Repo.insert!(%Post{body: key})
+      end
+
+  If you are working with reversible migrations `direction/0` may be useful for you.
+
+      dynamic key: value do
+        if direction() == :up do
+          Ecto.Adapters.SQL.query!(repo(), "select 'Forward: \#{key}';", [], [log: :info])
+        else
+          Ecto.Adapters.SQL.query!(repo(), "select 'Backward: \#{key}';", [], [log: :info])
+        end
+      end
+  """
+  @spec dynamic(bindings :: keyword(), [do: Macro.expr()]) :: Macro.expr()
   defmacro dynamic(bindings \\ [], do: block) do
     quote bind_quoted: [bindings: bindings, block: Macro.escape(block)] do
       Runner.execute({:dynamic, block, bindings, __ENV__})

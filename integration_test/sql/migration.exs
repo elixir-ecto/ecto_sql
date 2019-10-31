@@ -368,16 +368,12 @@ defmodule Ecto.Integration.MigrationTest do
     {:ok, migration_number: System.unique_integer([:positive]) + @base_migration}
   end
 
-  @tag :current
   test "migration with dynamic", %{migration_number: num} do
     level = :info
     args = [PoolRepo, num, MigrationWithDynamicCommand, [log: level]]
 
     for {name, direction} <- [migrate: :up, rollback: :down] do
-      output = capture_log(fn ->
-        :ok = apply(Ecto.Migrator, direction, args)
-      end)
-
+      output = capture_log(fn -> :ok = apply(Ecto.Migrator, direction, args) end)
       lines = String.split(output, "\n")
       assert Enum.at(lines, 4) =~ "== Running #{num} #{inspect(MigrationWithDynamicCommand)}.change/0"
       assert Enum.at(lines, 6) =~ ~s[execute "select 'This is a first part of ecto.#{name}';"]
