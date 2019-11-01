@@ -170,11 +170,9 @@ defmodule Ecto.MigratorTest do
 
   Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
 
-  @base_migration 1_000_000
-
   setup do
     Process.put(:migrated_versions, [1, 2, 3])
-    {:ok, migration_number: System.unique_integer([:positive]) + @base_migration}
+    :ok
   end
 
   def put_test_adapter_config(config) do
@@ -205,15 +203,17 @@ defmodule Ecto.MigratorTest do
     """
   end
 
-  test "execute one anonymous function", %{migration_number: num} do
+  test "execute one anonymous function" do
     module = ExecuteOneAnonymousFunctionMigration
+    num = System.unique_integer([:positive])
     capture_log(fn -> :ok = up(TestRepo, num, module, [log: false]) end)
     message = "no function clause matching in Ecto.Migration.Runner.command/1"
     assert_raise(FunctionClauseError, message, fn -> down(TestRepo, num, module, [log: false]) end)
   end
 
-  test "execute two anonymous functions", %{migration_number: num} do
+  test "execute two anonymous functions" do
     module = ExecuteTwoAnonymousFunctionsMigration
+    num = System.unique_integer([:positive])
     args = [TestRepo, num, module, [log: :info]]
 
     for {name, direction} <- [migrate: :up, rollback: :down] do
