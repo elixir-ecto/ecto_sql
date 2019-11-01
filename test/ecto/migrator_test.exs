@@ -216,7 +216,6 @@ defmodule Ecto.MigratorTest do
   defp get_middle_log(:down, :first, name), do: get_middle_log(:up, :second, name)
   defp get_middle_log(:down, :second, name), do: get_middle_log(:up, :first, name)
 
-  @tag :current
   test "flush" do
     num = System.unique_integer([:positive])
     assert :ok == up(TestRepo, num, EmptyUpDownMigration, log: false)
