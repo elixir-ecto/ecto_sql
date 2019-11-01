@@ -147,7 +147,7 @@ defmodule Ecto.Migration do
   field type with database-specific options, you can pass atoms containing
   these options like `:"int unsigned"`, `:"time without time zone"`, etc.
 
-  ## Flushing
+  ## Executing and flushing
 
   Instructions inside migrations are not executed immedidately. Instead
   they are performed once the relevant `up`, `change`, or `down` callback
@@ -163,6 +163,10 @@ defmodule Ecto.Migration do
         flush()
         ...
       end
+
+  However `flush/0` will raise if it would be called from `change` function when doing a rollback.
+  To avoid that we recommend to use `execute/2` with anonymous functions instead.
+  For more information and example usage please take a look at `execute/2` function.
 
   ## Comments
 
@@ -740,7 +744,7 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Executes arbitrary SQL or a keyword command.
+  Executes arbitrary SQL, anonymous function or a keyword command.
 
   Reversible commands can be defined by calling `execute/2`.
 
@@ -750,8 +754,9 @@ defmodule Ecto.Migration do
 
       execute create: "posts", capped: true, size: 1024
 
+      execute(fn -> repo().query!("select 'Anonymous function query …';", [], [log: :info]) end)
   """
-  def execute(command) when is_binary(command) or is_list(command) do
+  def execute(command) when is_binary(command) or is_function(command, 0) or is_list(command) do
     Runner.execute command
   end
 
@@ -766,11 +771,20 @@ defmodule Ecto.Migration do
 
   ## Examples
 
-      execute "CREATE EXTENSION postgres_fdw", "DROP EXTENSION postgres_fdw"
+      defmodule MyApp.MyMigration do
+        use Ecto.Migration
 
+        def change do
+          execute "CREATE EXTENSION postgres_fdw", "DROP EXTENSION postgres_fdw"
+          execute(&execute_up/0, &execute_down/0)
+        end
+
+        defp execute_up, do: repo().query!("select 'Up query …';", [], [log: :info])
+        defp execute_down, do: repo().query!("select 'Down query …';", [], [log: :info])
+      end
   """
-  def execute(up, down) when (is_binary(up) or is_list(up)) and
-                             (is_binary(down) or is_list(down)) do
+  def execute(up, down) when (is_binary(up) or is_function(up, 0) or is_list(up)) and
+                             (is_binary(down) or is_function(down, 0) or is_list(down)) do
     Runner.execute %Command{up: up, down: down}
   end
 
