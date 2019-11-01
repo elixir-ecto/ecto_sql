@@ -110,6 +110,31 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  defmodule AnonymousFunctionMigration do
+    use Ecto.Migration
+
+    require Logger
+
+    @disable_ddl_transaction true
+
+    @migrate_first "select 'This is a first part of ecto.migrate';"
+    @migrate_middle "select 'In the middle of ecto.migrate';"
+    @migrate_second "select 'This is a second part of ecto.migrate';"
+    @rollback_first "select 'This is a first part of ecto.rollback';"
+    @rollback_middle "select 'In the middle of ecto.rollback';"
+    @rollback_second "select 'This is a second part of ecto.rollback';"
+
+    def change do
+      execute @migrate_first, @rollback_second
+      execute(fn -> Logger.info("This is a middle part called by execute") end)
+      execute(&execute_up/0, &execute_down/0)
+      execute @migrate_second, @rollback_first
+    end
+
+    defp execute_up, do: Logger.info(@migrate_middle)
+    defp execute_down, do: Logger.info(@rollback_middle)
+  end
+
   defmodule InvalidMigration do
     use Ecto.Migration
   end
@@ -155,6 +180,28 @@ defmodule Ecto.MigratorTest do
     end
     """
   end
+
+  test "anonymous function migration" do
+    level = :info
+    num = System.unique_integer([:positive])
+    args = [TestRepo, num, AnonymousFunctionMigration, [log: level]]
+
+    for {name, direction} <- [migrate: :up, rollback: :down] do
+      output = capture_log(fn -> :ok = apply(Ecto.Migrator, direction, args) end)
+      lines = String.split(output, "\n")
+      assert Enum.at(lines, 1) =~ "== Running #{num} #{inspect(AnonymousFunctionMigration)}.change/0"
+      assert Enum.at(lines, 3) =~ ~s[execute "select 'This is a first part of ecto.#{name}';"]
+      assert Enum.at(lines, 5) =~ get_middle_log(direction, :first, name)
+      assert Enum.at(lines, 7) =~ get_middle_log(direction, :second, name)
+      assert Enum.at(lines, 9) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
+      assert Enum.at(lines, 11) =~ ~r"Migrated #{num} in \d.\ds"
+    end
+  end
+
+  defp get_middle_log(:up, :first, _name), do: "This is a middle part called by execute"
+  defp get_middle_log(:up, :second, name), do: "select 'In the middle of ecto.#{name}';"
+  defp get_middle_log(:down, :first, name), do: get_middle_log(:up, :second, name)
+  defp get_middle_log(:down, :second, name), do: get_middle_log(:up, :first, name)
 
   test "custom schema migrations table is right" do
     assert SchemaMigration.get_source(TestRepo) == "schema_migrations"
