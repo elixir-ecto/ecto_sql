@@ -216,8 +216,6 @@ defmodule Ecto.Migration.Runner do
     end
   end
 
-  defp reverse(func) when is_function(func, 0), do: func
-
   defp reverse({:create, %Index{} = index}),
     do: {:drop, index}
   defp reverse({:create_if_not_exists, %Index{} = index}),

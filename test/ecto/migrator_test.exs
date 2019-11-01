@@ -110,7 +110,17 @@ defmodule Ecto.MigratorTest do
     end
   end
 
-  defmodule AnonymousFunctionMigration do
+  defmodule ExecuteOneAnonymousFunctionMigration do
+    use Ecto.Migration
+
+    require Logger
+
+    def change do
+      execute(fn -> Logger.info("This should fail on rollback.") end)
+    end
+  end
+
+  defmodule ExecuteTwoAnonymousFunctionsMigration do
     use Ecto.Migration
 
     require Logger
@@ -125,10 +135,9 @@ defmodule Ecto.MigratorTest do
     @rollback_second "select 'This is a second part of ecto.rollback';"
 
     def change do
-      execute @migrate_first, @rollback_second
-      execute(fn -> Logger.info("This is a middle part called by execute") end)
+      execute(@migrate_first, @rollback_second)
       execute(&execute_up/0, &execute_down/0)
-      execute @migrate_second, @rollback_first
+      execute(@migrate_second, @rollback_first)
     end
 
     defp execute_up, do: Logger.info(@migrate_middle)
@@ -161,9 +170,11 @@ defmodule Ecto.MigratorTest do
 
   Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
 
+  @base_migration 1_000_000
+
   setup do
     Process.put(:migrated_versions, [1, 2, 3])
-    :ok
+    {:ok, migration_number: System.unique_integer([:positive]) + @base_migration}
   end
 
   def put_test_adapter_config(config) do
@@ -194,27 +205,27 @@ defmodule Ecto.MigratorTest do
     """
   end
 
-  test "anonymous function migration" do
-    level = :info
-    num = System.unique_integer([:positive])
-    args = [TestRepo, num, AnonymousFunctionMigration, [log: level]]
+  test "execute one anonymous function", %{migration_number: num} do
+    module = ExecuteOneAnonymousFunctionMigration
+    capture_log(fn -> :ok = up(TestRepo, num, module, [log: false]) end)
+    message = "no function clause matching in Ecto.Migration.Runner.command/1"
+    assert_raise(FunctionClauseError, message, fn -> down(TestRepo, num, module, [log: false]) end)
+  end
+
+  test "execute two anonymous functions", %{migration_number: num} do
+    module = ExecuteTwoAnonymousFunctionsMigration
+    args = [TestRepo, num, module, [log: :info]]
 
     for {name, direction} <- [migrate: :up, rollback: :down] do
       output = capture_log(fn -> :ok = apply(Ecto.Migrator, direction, args) end)
       lines = String.split(output, "\n")
-      assert Enum.at(lines, 1) =~ "== Running #{num} #{inspect(AnonymousFunctionMigration)}.change/0"
+      assert Enum.at(lines, 1) =~ "== Running #{num} #{inspect(module)}.change/0"
       assert Enum.at(lines, 3) =~ ~s[execute "select 'This is a first part of ecto.#{name}';"]
-      assert Enum.at(lines, 5) =~ get_middle_log(direction, :first, name)
-      assert Enum.at(lines, 7) =~ get_middle_log(direction, :second, name)
-      assert Enum.at(lines, 9) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
-      assert Enum.at(lines, 11) =~ ~r"Migrated #{num} in \d.\ds"
+      assert Enum.at(lines, 5) =~ "select 'In the middle of ecto.#{name}';"
+      assert Enum.at(lines, 7) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
+      assert Enum.at(lines, 9) =~ ~r"Migrated #{num} in \d.\ds"
     end
   end
-
-  defp get_middle_log(:up, :first, _name), do: "This is a middle part called by execute"
-  defp get_middle_log(:up, :second, name), do: "select 'In the middle of ecto.#{name}';"
-  defp get_middle_log(:down, :first, name), do: get_middle_log(:up, :second, name)
-  defp get_middle_log(:down, :second, name), do: get_middle_log(:up, :first, name)
 
   test "flush" do
     num = System.unique_integer([:positive])
