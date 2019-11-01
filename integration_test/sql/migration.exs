@@ -348,13 +348,13 @@ defmodule Ecto.Integration.MigrationTest do
 
     def change do
       execute @migrate_first, @rollback_second
-      dynamic(fn -> Logger.info("This is a middle part called by dynamic/0") end)
-      dynamic(&dynamic_query/1)
+      execute(fn -> Logger.info("This is a middle part called by execute") end)
+      execute(&execute_up/0, &execute_down/0)
       execute @migrate_second, @rollback_first
     end
 
-    defp dynamic_query(:up), do: SQL.query!(repo(), @migrate_middle, [], [log: :info])
-    defp dynamic_query(:down), do: SQL.query!(repo(), @rollback_middle, [], [log: :info])
+    defp execute_up, do: SQL.query!(repo(), @migrate_middle, [], [log: :info])
+    defp execute_down, do: SQL.query!(repo(), @rollback_middle, [], [log: :info])
   end
 
   import Ecto.Query, only: [from: 2]
@@ -387,7 +387,7 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
-  defp get_middle_log(:up, 8, _name), do: "This is a middle part called by dynamic/0"
+  defp get_middle_log(:up, 8, _name), do: "This is a middle part called by execute"
   defp get_middle_log(:up, 11, name), do: "select 'In the middle of ecto.#{name}'; []"
   defp get_middle_log(:down, 9, name), do: get_middle_log(:up, 11, name)
   defp get_middle_log(:down, 11, name), do: get_middle_log(:up, 8, name)

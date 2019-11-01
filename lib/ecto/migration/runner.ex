@@ -216,7 +216,8 @@ defmodule Ecto.Migration.Runner do
     end
   end
 
-  defp reverse({:dynamic, func}), do: {:dynamic, func}
+  defp reverse(func) when is_function(func, 0), do: func
+
   defp reverse({:create, %Index{} = index}),
     do: {:drop, index}
   defp reverse({:create_if_not_exists, %Index{} = index}),
@@ -333,13 +334,8 @@ defmodule Ecto.Migration.Runner do
     log_and_execute_ddl(repo, log, command)
   end
 
-  defp log_and_execute_ddl(_repo, _log, {:dynamic, func}) when is_function(func, 0) do
+  defp log_and_execute_ddl(_repo, _log, func) when is_function(func, 0) do
     func.()
-    :ok
-  end
-
-  defp log_and_execute_ddl(_repo, _log, {:dynamic, func}) do
-    func.(migrator_direction())
     :ok
   end
 

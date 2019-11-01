@@ -467,40 +467,6 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Creates a dynamic command.
-
-  Unlike `flush/0` it's reversible, but migrations inside it like `execute/2`
-  are not supported. This is useful for migration `repo/0` features and
-  runtime generated database queries by `Ecto.Adapters.SQL.query/4` function.
-
-  ## Examples
-
-      create table("posts") do
-        add :body, :string
-      end
-
-      dynamic(fn ->
-        Ecto.Adapters.SQL.query!(repo(), "select 'Using binding key: \#{key}';", [], [log: :info])
-        Repo.insert!(%Post{body: key})
-      end)
-
-  You can optionally accept an extra `direction` argument:
-
-      alias Ecto.Adapters.SQL
-
-      dynamic(&my_dynamic_func/1)
-
-      defp my_dynamic_fync(:up),
-        do: SQL.query!(repo(), "select 'Up: \#{key}';", [], [log: :info])
-
-      defp my_dynamic_fync(:down),
-        do: SQL.query!(repo(), "select 'Down: \#{key}';", [], [log: :info])
-  """
-  @spec dynamic((-> any) | (:up | :down -> any)) :: :ok
-  def dynamic(func) when is_function(func, 0) or is_function(func, 1),
-    do: Runner.execute({:dynamic, func})
-
-  @doc """
   Creates one of the following:
 
     * an index
@@ -774,7 +740,7 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Executes arbitrary SQL or a keyword command.
+  Executes arbitrary SQL, anonymous function or a keyword command.
 
   Reversible commands can be defined by calling `execute/2`.
 
@@ -784,8 +750,12 @@ defmodule Ecto.Migration do
 
       execute create: "posts", capped: true, size: 1024
 
+      execute(fn ->
+        Ecto.Adapters.SQL.query!(repo(), "select 'Using binding key: \#{key}';", [], [log: :info])
+        Repo.insert!(%Post{body: key})
+      end)
   """
-  def execute(command) when is_binary(command) or is_list(command) do
+  def execute(command) when is_binary(command) or is_function(command, 0) or is_list(command) do
     Runner.execute command
   end
 
@@ -802,9 +772,15 @@ defmodule Ecto.Migration do
 
       execute "CREATE EXTENSION postgres_fdw", "DROP EXTENSION postgres_fdw"
 
+      alias Ecto.Adapters.SQL
+
+      execute(&execute_up/0, &execute_down/0)
+
+      defp execute_up, do: SQL.query!(repo(), "select 'Up query …';", [], [log: :info])
+      defp execute_down, do: SQL.query!(repo(), "select 'Down query …';", [], [log: :info])
   """
-  def execute(up, down) when (is_binary(up) or is_list(up)) and
-                             (is_binary(down) or is_list(down)) do
+  def execute(up, down) when (is_binary(up) or is_function(up, 0) or is_list(up)) and
+                             (is_binary(down) or is_function(down, 0) or is_list(down)) do
     Runner.execute %Command{up: up, down: down}
   end
 
