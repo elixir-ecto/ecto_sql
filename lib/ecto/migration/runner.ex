@@ -332,6 +332,11 @@ defmodule Ecto.Migration.Runner do
     log_and_execute_ddl(repo, log, command)
   end
 
+  defp log_and_execute_ddl(_repo, _log, func) when is_function(func, 0) do
+    func.()
+    :ok
+  end
+
   defp log_and_execute_ddl(repo, %{level: level, sql: sql}, command) do
     log(level, command(command))
     meta = Ecto.Adapter.lookup_meta(repo.get_dynamic_repo())
