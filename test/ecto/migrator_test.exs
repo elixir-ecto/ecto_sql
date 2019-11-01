@@ -146,6 +146,19 @@ defmodule Ecto.MigratorTest do
     use Ecto.Repo, otp_app: :ecto_sql, adapter: EctoSQL.TestAdapter
   end
 
+  defmodule EmptyUpDownMigration do
+    use Ecto.Migration
+
+    def up, do: flush()
+    def down, do: flush()
+  end
+
+  defmodule EmptyChangeMigration do
+    use Ecto.Migration
+
+    def change, do: flush()
+  end
+
   Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
 
   setup do
@@ -202,6 +215,18 @@ defmodule Ecto.MigratorTest do
   defp get_middle_log(:up, :second, name), do: "select 'In the middle of ecto.#{name}';"
   defp get_middle_log(:down, :first, name), do: get_middle_log(:up, :second, name)
   defp get_middle_log(:down, :second, name), do: get_middle_log(:up, :first, name)
+
+  @tag :current
+  test "flush" do
+    num = System.unique_integer([:positive])
+    assert :ok == up(TestRepo, num, EmptyUpDownMigration, log: false)
+    assert :ok == down(TestRepo, num, EmptyUpDownMigration, log: false)
+    assert :ok == up(TestRepo, num, EmptyChangeMigration, log: false)
+    message = "calling flush() inside change when doing rollback is not supported."
+    assert_raise(RuntimeError, message, fn ->
+      down(TestRepo, num, EmptyChangeMigration, log: false)
+    end)
+  end
 
   test "custom schema migrations table is right" do
     assert SchemaMigration.get_source(TestRepo) == "schema_migrations"
