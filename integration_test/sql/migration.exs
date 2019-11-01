@@ -330,19 +330,6 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
-  defmodule EmptyUpDownMigration do
-    use Ecto.Migration
-
-    def up, do: flush()
-    def down, do: flush()
-  end
-
-  defmodule EmptyChangeMigration do
-    use Ecto.Migration
-
-    def change, do: flush()
-  end
-
   import Ecto.Query, only: [from: 2]
   import Ecto.Migrator, only: [up: 4, down: 4]
 
@@ -352,16 +339,6 @@ defmodule Ecto.Integration.MigrationTest do
 
   setup do
     {:ok, migration_number: System.unique_integer([:positive]) + @base_migration}
-  end
-
-  test "flush", %{migration_number: num} do
-    assert :ok == up(PoolRepo, num, EmptyUpDownMigration, log: false)
-    assert :ok == down(PoolRepo, num, EmptyUpDownMigration, log: false)
-    assert :ok == up(PoolRepo, num, EmptyChangeMigration, log: false)
-    message = "Calling flush() inside change when doing rollback is not supported."
-    assert_raise(ArgumentError, message, fn ->
-      down(PoolRepo, num, EmptyChangeMigration, log: false)
-    end)
   end
 
   test "create and drop table and indexes", %{migration_number: num} do

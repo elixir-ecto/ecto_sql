@@ -1098,10 +1098,9 @@ defmodule Ecto.Migration do
 
   @doc "Executes queue migration commands."
   defmacro flush do
-    quote bind_quoted: [caller: __CALLER__.module] do
-      if direction() == :down and function_exported?(caller, :change, 0) do
-        message = "Calling flush() inside change when doing rollback is not supported."
-        raise ArgumentError, message
+    quote do
+      if direction() == :down and not function_exported?(__MODULE__, :down, 0) do
+        raise "calling flush() inside change when doing rollback is not supported."
       else
         Runner.flush()
       end
