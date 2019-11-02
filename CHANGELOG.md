@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.3.0-dev
+
+### Bug fixes
+
+ * [migration] Ensure that flush() will raise on rollback if called from change/0
+
 ## v3.2.1 (2019-11-02)
 
 ### Enhancements
