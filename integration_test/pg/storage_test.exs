@@ -126,4 +126,23 @@ defmodule Ecto.Integration.StorageTest do
     contents = File.read!(path)
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES]
   end
+
+  test "storage status is up when database is created" do
+    create_database()
+    assert :up == Postgres.storage_status(params())
+  after
+    drop_database()
+  end
+
+  test "storage status is down when database is not created" do
+    create_database()
+    drop_database()
+    assert :down == Postgres.storage_status(params())
+  end
+
+  test "storage status is an error when wrong credentials are passed" do
+    assert ExUnit.CaptureLog.capture_log(fn ->
+             assert {:error, _} = Postgres.storage_status(wrong_params())
+           end) =~ "FATAL 28000"
+  end
 end

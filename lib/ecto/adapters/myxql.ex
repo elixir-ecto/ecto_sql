@@ -198,6 +198,19 @@ defmodule Ecto.Adapters.MyXQL do
         {:error, exit_to_exception(exit)}
     end
   end
+  
+  @impl Ecto.Adapter.Storage
+  def storage_status(opts) do
+    database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    opts = Keyword.delete(opts, :database)
+    check_database_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{database}'"
+
+    case run_query(check_database_query, opts) do
+      {:ok, %MyXQL.Result{num_rows: 0}} -> :down
+      {:ok, %MyXQL.Result{num_rows: _num_rows}} -> :up
+      other -> {:error, other}
+    end
+  end
 
   @impl true
   def supports_ddl_transaction? do
