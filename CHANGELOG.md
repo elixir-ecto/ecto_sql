@@ -1,8 +1,18 @@
 # Changelog for v3.x
 
+## v3.2.1 (2019-11-02)
+
+### Enhancements
+
+  * [migration] Support anonymous functions in execute
+
+### Bug fixes
+
+  * [mix ecto.create] Change default charset in MyXQL to utf8mb4
+
 ## v3.2.0 (2019-09-07)
 
-This new version requires Elixir v1.6+.
+This new version requires Elixir v1.6+. Note also the previously soft-deprecated `Ecto.Adapters.MySQL` has been removed in favor of `Ecto.Adapters.MyXQL`. We announced the intent to remove `Ecto.Adapters.MySQL` back in v3.0 and `Ecto.Adapters.MyXQL` has been tested since then and ready for prime time since v3.1.
 
 ### Enhancements
 
