@@ -322,7 +322,7 @@ defmodule Ecto.Adapters.SQL do
       {:ok, %{rows: [[42]], num_rows: 1}}
 
   """
-  @spec query(Ecto.Repo.t | Ecto.Adapter.adapter_meta, String.t, [term], Keyword.t) ::
+  @spec query(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, String.t, [term], Keyword.t) ::
               {:ok, %{:rows => nil | [[term] | binary],
                       :num_rows => non_neg_integer,
                       optional(atom) => any}}
