@@ -203,6 +203,7 @@ defmodule Ecto.Adapters.MyXQL do
   def storage_status(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
     opts = Keyword.delete(opts, :database)
+
     check_database_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{database}'"
 
     case run_query(check_database_query, opts) do
