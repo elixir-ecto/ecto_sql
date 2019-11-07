@@ -104,6 +104,25 @@ defmodule Ecto.Integration.StorageTest do
     drop_database()
   end
 
+  test "storage status is up when database is created" do
+    create_database()
+    assert :up == Ecto.Adapters.MyXQL.storage_status(params())
+  after
+    drop_database()
+  end
+
+  test "storage status is down when database is not created" do
+    create_database()
+    drop_database()
+    assert :down == Ecto.Adapters.MyXQL.storage_status(params())
+  end
+
+  test "storage status is an error when wrong credentials are passed" do
+    assert ExUnit.CaptureLog.capture_log(fn ->
+             assert {:error, _} = Ecto.Adapters.MyXQL.storage_status(wrong_params())
+           end) =~ "(1045) (ER_ACCESS_DENIED_ERROR)"
+  end
+
   defmodule Migration do
     use Ecto.Migration
     def change, do: :ok
