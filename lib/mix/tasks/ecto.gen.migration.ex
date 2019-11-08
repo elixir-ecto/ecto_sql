@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
           assigns = [mod: Module.concat([repo, Migrations, camelize(name)]), change: opts[:change]]
           create_file file, migration_template(assigns)
 
-          if open?(file) and Mix.shell.yes?("Do you want to run this migration?") do
+          if open?(file) and Mix.shell().yes?("Do you want to run this migration?") do
             Mix.Task.run "ecto.migrate", ["-r", inspect(repo)]
           end
 

@@ -328,7 +328,7 @@ defmodule Ecto.Migrator do
       result
     end
   catch kind, reason ->
-    send_and_receive(parent, ref, {kind, reason, System.stacktrace})
+    send_and_receive(parent, ref, {kind, reason, System.stacktrace()})
   end
 
   defp send_and_receive(parent, ref, value) do
@@ -655,7 +655,7 @@ defmodule Ecto.Migrator do
 
         The full error report is shown below.
         """
-        reraise error, System.stacktrace
+        reraise error, System.stacktrace()
     end
   end
 

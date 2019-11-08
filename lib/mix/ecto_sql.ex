@@ -8,7 +8,7 @@ defmodule Mix.EctoSQL do
   def ensure_migrations_path(repo, opts) do
     path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
 
-    if not Mix.Project.umbrella? and not File.dir?(path) do
+    if not Mix.Project.umbrella?() and not File.dir?(path) do
       raise_missing_migrations(Path.relative_to_cwd(path), repo)
     end
 
@@ -35,8 +35,8 @@ defmodule Mix.EctoSQL do
   """
   def source_repo_priv(repo) do
     config = repo.config()
-    priv = config[:priv] || "priv/#{repo |> Module.split |> List.last |> Macro.underscore}"
+    priv = config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}"
     app = Keyword.fetch!(config, :otp_app)
-    Path.join(Mix.Project.deps_paths[app] || File.cwd!, priv)
+    Path.join(Mix.Project.deps_paths()[app] || File.cwd!(), priv)
   end
 end

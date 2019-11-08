@@ -52,7 +52,7 @@ defmodule Ecto.Integration.PoolRepo do
 end
 
 # Load support files
-ecto = Mix.Project.deps_paths[:ecto]
+ecto = Mix.Project.deps_paths()[:ecto]
 Code.require_file "#{ecto}/integration_test/support/schemas.exs", __DIR__
 Code.require_file "../support/migration.exs", __DIR__
 
@@ -67,8 +67,8 @@ end
 {:ok, _} = Ecto.Adapters.MyXQL.ensure_all_started(TestRepo.config(), :temporary)
 
 # Load up the repository, start it, and run migrations
-_   = Ecto.Adapters.MyXQL.storage_down(TestRepo.config)
-:ok = Ecto.Adapters.MyXQL.storage_up(TestRepo.config)
+_   = Ecto.Adapters.MyXQL.storage_down(TestRepo.config())
+:ok = Ecto.Adapters.MyXQL.storage_up(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()

@@ -444,7 +444,7 @@ defmodule Ecto.Migration do
       end
 
       unquote(block)
-      Runner.end_command
+      Runner.end_command()
       table
     end
   end
@@ -466,7 +466,7 @@ defmodule Ecto.Migration do
       table = %Table{} = unquote(object)
       Runner.start_command({:alter, Ecto.Migration.__prefix__(table)})
       unquote(block)
-      Runner.end_command
+      Runner.end_command()
     end
   end
 
@@ -793,7 +793,7 @@ defmodule Ecto.Migration do
   """
   @spec direction :: :up | :down
   def direction do
-    Runner.migrator_direction
+    Runner.migrator_direction()
   end
 
   @doc """
@@ -808,7 +808,7 @@ defmodule Ecto.Migration do
   Gets the migrator prefix.
   """
   def prefix do
-    Runner.prefix
+    Runner.prefix()
   end
 
   @doc """

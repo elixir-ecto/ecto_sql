@@ -253,7 +253,7 @@ defmodule Ecto.Adapters.Postgres do
       |> Keyword.put(:backoff_type, :stop)
       |> Keyword.put(:max_restarts, 0)
 
-    {:ok, pid} = Task.Supervisor.start_link
+    {:ok, pid} = Task.Supervisor.start_link()
 
     task = Task.Supervisor.async_nolink(pid, fn ->
       {:ok, conn} = Postgrex.start_link(opts)

@@ -27,18 +27,18 @@ defmodule Ecto.Integration.TransactionTest do
   end
 
   test "transaction returns value" do
-    refute PoolRepo.in_transaction?
+    refute PoolRepo.in_transaction?()
     {:ok, val} = PoolRepo.transaction(fn ->
-      assert PoolRepo.in_transaction?
+      assert PoolRepo.in_transaction?()
       {:ok, val} =
         PoolRepo.transaction(fn ->
-          assert PoolRepo.in_transaction?
+          assert PoolRepo.in_transaction?()
           42
         end)
-      assert PoolRepo.in_transaction?
+      assert PoolRepo.in_transaction?()
       val
     end)
-    refute PoolRepo.in_transaction?
+    refute PoolRepo.in_transaction?()
     assert val == 42
   end
 
@@ -187,21 +187,21 @@ defmodule Ecto.Integration.TransactionTest do
   describe "with checkouts" do
     test "transaction inside checkout" do
       PoolRepo.checkout(fn ->
-        refute PoolRepo.in_transaction?
+        refute PoolRepo.in_transaction?()
         PoolRepo.transaction(fn ->
-          assert PoolRepo.in_transaction?
+          assert PoolRepo.in_transaction?()
         end)
-        refute PoolRepo.in_transaction?
+        refute PoolRepo.in_transaction?()
       end)
     end
 
     test "checkout inside transaction" do
       PoolRepo.transaction(fn ->
-        assert PoolRepo.in_transaction?
+        assert PoolRepo.in_transaction?()
         PoolRepo.checkout(fn ->
-          assert PoolRepo.in_transaction?
+          assert PoolRepo.in_transaction?()
         end)
-        assert PoolRepo.in_transaction?
+        assert PoolRepo.in_transaction?()
       end)
     end
 

@@ -89,7 +89,7 @@ defmodule Ecto.Integration.Migration do
       add :permalink_id, references(:permalinks)
     end
 
-    unless :array_type in ExUnit.configuration[:exclude] do
+    unless :array_type in ExUnit.configuration()[:exclude] do
       create table(:tags) do
         add :ints,  {:array, :integer}
         add :uuids, {:array, :uuid}, default: []

@@ -111,7 +111,7 @@ defmodule Mix.Tasks.Ecto.Load do
     case repo.__adapter__.structure_load(source_repo_priv(repo), config) do
       {:ok, location} ->
         unless opts[:quiet] do
-          Mix.shell.info "The structure for #{inspect repo} has been loaded from #{location}"
+          Mix.shell().info "The structure for #{inspect repo} has been loaded from #{location}"
         end
       {:error, term} when is_binary(term) ->
         Mix.raise "The structure for #{inspect repo} couldn't be loaded: #{term}"

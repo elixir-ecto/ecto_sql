@@ -1,4 +1,4 @@
-ecto = Mix.Project.deps_paths[:ecto]
+ecto = Mix.Project.deps_paths()[:ecto]
 Code.require_file "#{ecto}/integration_test/cases/assoc.exs", __DIR__
 Code.require_file "#{ecto}/integration_test/cases/interval.exs", __DIR__
 Code.require_file "#{ecto}/integration_test/cases/joins.exs", __DIR__
