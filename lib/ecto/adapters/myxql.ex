@@ -207,8 +207,8 @@ defmodule Ecto.Adapters.MyXQL do
     check_database_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{database}'"
 
     case run_query(check_database_query, opts) do
-      {:ok, %MyXQL.Result{num_rows: 0}} -> :down
-      {:ok, %MyXQL.Result{num_rows: _num_rows}} -> :up
+      {:ok, %{num_rows: 0}} -> :down
+      {:ok, %{num_rows: _num_rows}} -> :up
       other -> {:error, other}
     end
   end
