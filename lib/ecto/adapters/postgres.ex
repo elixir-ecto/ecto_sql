@@ -175,8 +175,8 @@ defmodule Ecto.Adapters.Postgres do
     check_database_query = "SELECT datname FROM pg_catalog.pg_database WHERE datname = '#{database}'"
 
     case run_query(check_database_query, opts) do
-      {:ok, %Postgrex.Result{num_rows: 0}} -> :down
-      {:ok, %Postgrex.Result{num_rows: _num_rows}} -> :up
+      {:ok, %{num_rows: 0}} -> :down
+      {:ok, %{num_rows: _num_rows}} -> :up
       other -> {:error, other}
     end
   end
