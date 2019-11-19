@@ -214,6 +214,10 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_default_prefix: "my_prefix"
 
+    * `:priv` - the priv diretory for the repo with the location of important assets,
+      such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to
+      "priv/foo_repo" and migrations should be placed at "priv/foo_repo/migrations"
+
     * `:start_apps_before_migration` - A list of applications to be started before
       running migrations. Used by `Ecto.Migrator.with_repo/3` and the migration tasks:
 
