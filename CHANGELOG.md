@@ -6,6 +6,12 @@
 
  * [migration] Ensure that flush() will raise on rollback if called from change/0
 
+## v3.2.2 (2019-11-25)
+
+### Enhancements
+
+  * [mysql] Support myxql v0.3
+
 ## v3.2.1 (2019-11-02)
 
 ### Enhancements
