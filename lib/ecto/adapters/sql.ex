@@ -772,6 +772,7 @@ defmodule Ecto.Adapters.SQL do
       connection_time: query_time,
       decode_time: decode_time,
       pool_time: queue_time,
+      idle_time: idle_time,
       result: result,
       query: query
     } = entry
@@ -785,11 +786,14 @@ defmodule Ecto.Adapters.SQL do
         value -> value
       end)
 
+    acc =
+      if idle_time, do: [idle_time: idle_time], else: []
+
     measurements =
       log_measurements(
         [query_time: query_time, decode_time: decode_time, queue_time: queue_time],
         0,
-        []
+        acc
       )
 
     metadata = %{

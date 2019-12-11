@@ -2,18 +2,20 @@ defmodule Ecto.Integration.LoggingTest do
   use Ecto.Integration.Case, async: true
 
   alias Ecto.Integration.TestRepo
+  alias Ecto.Integration.PoolRepo
   alias Ecto.Integration.Post
 
   test "log entry is sent to telemetry" do
-    log = fn event_name, measurement, metadata ->
+    log = fn event_name, measurements, metadata ->
       assert Enum.at(event_name, -1) == :query
       assert %{result: {:ok, _res}} = metadata
-      assert measurement.total_time == measurement.query_time + measurement.decode_time + measurement.queue_time
+      assert measurements.total_time == measurements.query_time + measurements.decode_time + measurements.queue_time
+      assert measurements.idle_time
       send(self(), :logged)
     end
 
     Process.put(:telemetry, log)
-    _ = TestRepo.all(Post)
+    _ = PoolRepo.all(Post)
     assert_received :logged
   end
 
@@ -21,11 +23,12 @@ defmodule Ecto.Integration.LoggingTest do
     log = fn [:custom], measurements, metadata ->
       assert %{result: {:ok, _res}} = metadata
       assert measurements.total_time == measurements.query_time + measurements.decode_time + measurements.queue_time
+      assert measurements.idle_time
       send(self(), :logged)
     end
 
     Process.put(:telemetry, log)
-    _ = TestRepo.all(Post, telemetry_event: [:custom])
+    _ = PoolRepo.all(Post, telemetry_event: [:custom])
     assert_received :logged
   end
 
