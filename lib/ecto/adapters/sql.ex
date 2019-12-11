@@ -859,6 +859,7 @@ defmodule Ecto.Adapters.SQL do
       log_time("db", measurements, :query_time, true),
       log_time("decode", measurements, :decode_time, false),
       log_time("queue", measurements, :queue_time, false),
+      log_time("idle", measurements, :idle_time, true),
       ?\n,
       query,
       ?\s,

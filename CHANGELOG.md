@@ -1,10 +1,16 @@
 # Changelog for v3.x
 
-## v3.3.0-dev
+## v3.3.0 (2019-12-11)
+
+### Enhancements
+
+  * [ecto] Upgrade and support Ecto v3.3
+  * [repo] Include `:idle_time` on telemetry measuremnts
+  * [migration] Support anonymous functions in `Ecto.Migration.execute/2`
 
 ### Bug fixes
 
- * [migration] Ensure that flush() will raise on rollback if called from change/0
+  * [migration] Ensure that flush() will raise on rollback if called from `change/0`
 
 ## v3.2.2 (2019-11-25)
 
