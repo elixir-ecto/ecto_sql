@@ -1194,5 +1194,4 @@ defmodule Ecto.Migration do
     {type, opts} = Keyword.pop(opts, :type, :bigserial)
     {name, type, opts}
   end
-
 end
