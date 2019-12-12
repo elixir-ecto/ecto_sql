@@ -440,7 +440,6 @@ defmodule Ecto.Migration do
       if table.primary_key do
         opts = Runner.repo_config(:migration_primary_key, [])
         opts = Keyword.put(opts, :primary_key, true)
-
         {name, opts} = Keyword.pop(opts, :name, :id)
         {type, opts} = Keyword.pop(opts, :type, :bigserial)
 
@@ -478,7 +477,7 @@ defmodule Ecto.Migration do
   Creates one of the following:
 
     * an index
-    * a table with only an `:id` field
+    * a table with only the :id primary key
     * a constraint
 
   When reversing (in a `change/0` running backwards), indexes are only dropped
@@ -528,7 +527,11 @@ defmodule Ecto.Migration do
   defp do_create(table, command) do
     columns =
       if table.primary_key do
-        [{:add, :id, :bigserial, primary_key: true}]
+        opts = Runner.repo_config(:migration_primary_key, [])
+        opts = Keyword.put(opts, :primary_key, true)
+        {name, opts} = Keyword.pop(opts, :name, :id)
+        {type, opts} = Keyword.pop(opts, :type, :bigserial)
+        [{:add, name, type, opts}]
       else
         []
       end
