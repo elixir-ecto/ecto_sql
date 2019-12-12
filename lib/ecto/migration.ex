@@ -438,11 +438,7 @@ defmodule Ecto.Migration do
       Runner.start_command({unquote(command), Ecto.Migration.__prefix__(table)})
 
       if table.primary_key do
-        opts = Runner.repo_config(:migration_primary_key, [])
-        opts = Keyword.put(opts, :primary_key, true)
-        {name, opts} = Keyword.pop(opts, :name, :id)
-        {type, opts} = Keyword.pop(opts, :type, :bigserial)
-
+        {name, type, opts} = Ecto.Migration.__primary_key__()
         add(name, type, opts)
       end
 
@@ -527,10 +523,7 @@ defmodule Ecto.Migration do
   defp do_create(table, command) do
     columns =
       if table.primary_key do
-        opts = Runner.repo_config(:migration_primary_key, [])
-        opts = Keyword.put(opts, :primary_key, true)
-        {name, opts} = Keyword.pop(opts, :name, :id)
-        {type, opts} = Keyword.pop(opts, :type, :bigserial)
+        {name, type, opts} = Ecto.Migration.__primary_key__()
         [{:add, name, type, opts}]
       else
         []
@@ -1192,4 +1185,14 @@ defmodule Ecto.Migration do
           "the :prefix option `#{prefix}` does match the migrator prefix `#{runner_prefix}`"
     end
   end
+
+  @doc false
+  def __primary_key__() do
+    opts = Runner.repo_config(:migration_primary_key, [])
+    opts = Keyword.put(opts, :primary_key, true)
+    {name, opts} = Keyword.pop(opts, :name, :id)
+    {type, opts} = Keyword.pop(opts, :type, :bigserial)
+    {name, type, opts}
+  end
+
 end
