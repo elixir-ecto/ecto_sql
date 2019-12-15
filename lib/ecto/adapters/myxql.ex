@@ -315,6 +315,7 @@ defmodule Ecto.Adapters.MyXQL do
   ## Helpers
 
   defp run_query(sql, opts) do
+    {:ok, _} = Application.ensure_all_started(:ecto_sql)
     {:ok, _} = Application.ensure_all_started(:myxql)
 
     opts =

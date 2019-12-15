@@ -245,6 +245,7 @@ defmodule Ecto.Adapters.Postgres do
   ## Helpers
 
   defp run_query(sql, opts) do
+    {:ok, _} = Application.ensure_all_started(:ecto_sql)
     {:ok, _} = Application.ensure_all_started(:postgrex)
 
     opts =
