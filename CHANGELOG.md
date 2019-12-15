@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.3.1 (2019-12-15)
+
+### Bug fixes
+
+  * [adapters] Do not leak PIDs on storage commands
+  * [migrations] Use :migration_primary_key in create/1
+
 ## v3.3.0 (2019-12-11)
 
 ### Enhancements
