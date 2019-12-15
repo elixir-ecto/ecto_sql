@@ -323,9 +323,7 @@ defmodule Ecto.Adapters.MyXQL do
       |> Keyword.put(:backoff_type, :stop)
       |> Keyword.put(:max_restarts, 0)
 
-    {:ok, pid} = Task.Supervisor.start_link()
-
-    task = Task.Supervisor.async_nolink(pid, fn ->
+    task = Task.Supervisor.async_nolink(Ecto.Adapters.SQL.StorageSupervisor, fn ->
       {:ok, conn} = MyXQL.start_link(opts)
 
       value = MyXQL.query(conn, sql, [], opts)
