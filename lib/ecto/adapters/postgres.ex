@@ -63,6 +63,7 @@ defmodule Ecto.Adapters.Postgres do
   ### Storage options
 
     * `:encoding` - the database encoding (default: "UTF8")
+      or `:unspecified` to remove encoding parameter (alternative engine compatibility)
     * `:template` - the template to create the database from
     * `:lc_collate` - the collation order
     * `:lc_ctype` - the character classification
@@ -126,12 +127,13 @@ defmodule Ecto.Adapters.Postgres do
   @impl true
   def storage_up(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
-    encoding = opts[:encoding] || "UTF8"
+    encoding = if opts[:encoding] == :unspecified, do: nil, else: opts[:encoding] || "UTF8"
     maintenance_database = Keyword.get(opts, :maintenance_database, @default_maintenance_database)
     opts = Keyword.put(opts, :database, maintenance_database)
 
     command =
-      ~s(CREATE DATABASE "#{database}" ENCODING '#{encoding}')
+      ~s(CREATE DATABASE "#{database}")
+      |> concat_if(encoding, &"ENCODING '#{&1}'")
       |> concat_if(opts[:template], &"TEMPLATE=#{&1}")
       |> concat_if(opts[:lc_ctype], &"LC_CTYPE='#{&1}'")
       |> concat_if(opts[:lc_collate], &"LC_COLLATE='#{&1}'")
