@@ -2,7 +2,7 @@ defmodule EctoSQL.MixProject do
   use Mix.Project
 
   @version "3.3.2"
-  @adapters ~w(pg mysql mssql)
+  @adapters ~w(pg myxql mssql)
 
   def project do
     [
@@ -53,6 +53,7 @@ defmodule EctoSQL.MixProject do
       {:db_connection, "~> 2.2"},
       postgrex_dep(),
       myxql_dep(),
+      tds_dep(),
 
       # Bring something in for JSON during tests
       {:jason, ">= 0.0.0", only: [:test, :docs]},
@@ -87,6 +88,14 @@ defmodule EctoSQL.MixProject do
       {:myxql, path: path}
     else
       {:myxql, "~> 0.3.0", optional: true}
+    end
+  end
+
+  defp tds_dep do
+    if path = System.get_env("TDS_PATH") do
+      {:tds, path: path}
+    else
+      {:tds, "~> 2.1.0", optional: true}
     end
   end
 
@@ -138,6 +147,7 @@ defmodule EctoSQL.MixProject do
 
         "Built-in adapters": [
           Ecto.Adapters.MyXQL,
+          Ecto.Adapters.MsSql,
           Ecto.Adapters.Postgres
         ],
         "Adapter specification": [

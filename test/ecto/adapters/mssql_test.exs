@@ -50,7 +50,7 @@ defmodule Ecto.Adapters.MsSqlTest do
   end
 
   defp plan(query, operation \\ :all) do
-    {query, _params} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.MySQL, query)
+    {query, _params} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.MsSql, query)
     query
   end
 
@@ -68,10 +68,8 @@ defmodule Ecto.Adapters.MsSqlTest do
     query = "model" |> select([r], r.x) |> plan
     assert SQL.all(query) == ~s{SELECT m0.[x] FROM [model] AS m0}
 
-    # todo: somthing is changed into ecto causing this exception to be missed.
-    # instead query is built as "SELECT &(0) FROM [posts] AS p0" which won't work
     assert_raise Ecto.QueryError,
-                 ~r"TDS Adapter does not support selecting all fields from",
+                 ~r"MSSQL adapter does not support selecting all fields from",
                  fn ->
                    query = from(p in "posts", select: [p]) |> plan()
 
@@ -237,7 +235,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     query = Model |> select([], fragment(title: 2)) |> plan
 
     assert_raise Ecto.QueryError,
-                 ~r"TDS adapter does not support keyword or interpolated fragments",
+                 ~r"MSSQL adapter does not support keyword or interpolated fragments",
                  fn ->
                    SQL.all(query)
                  end
@@ -935,7 +933,7 @@ defmodule Ecto.Adapters.MsSqlTest do
   test "create an index using a different type" do
     create = {:create, index(:posts, [:permalink], using: :hash)}
 
-    assert_raise ArgumentError, ~r"TDS adapter does not support using in indexes.", fn ->
+    assert_raise ArgumentError, ~r"MSSQL adapter does not support using in indexes.", fn ->
       SQL.execute_ddl(create)
     end
   end
