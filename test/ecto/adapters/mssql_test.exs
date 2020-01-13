@@ -600,7 +600,7 @@ defmodule Ecto.Adapters.MsSqlTest do
        ]}
 
     assert SQL.execute_ddl(create) ==
-             ~s|CREATE TABLE [posts] ([id] bigint IDENTITY(1,1), [title] nvarchar(255), [created_at] datetime, CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([id]))|
+             ~s|CREATE TABLE [posts] ([id] bigint IDENTITY(1,1), [title] nvarchar(255), [created_at] datetime, CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))|
   end
 
   test "create table with prefix" do
@@ -637,7 +637,7 @@ defmodule Ecto.Adapters.MsSqlTest do
              [
                "CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT, ",
                "CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id]) ",
-               "REFERENCES [categories]([id]), CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([id]))"
+               "REFERENCES [categories]([id]), CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))"
              ]
              |> IO.iodata_to_binary()
   end
@@ -654,7 +654,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     assert SQL.execute_ddl(create) ==
              [
                "CREATE TABLE [posts] ([a] integer, [b] integer, [name] nvarchar(255), ",
-               "CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([a], [b]))"
+               "CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([a], [b]))"
              ]
              |> IO.iodata_to_binary()
   end
@@ -671,7 +671,7 @@ defmodule Ecto.Adapters.MsSqlTest do
              [
                "CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT, ",
                "CONSTRAINT [foo_bar] FOREIGN KEY ([category_id]) REFERENCES [categories]([id]), ",
-               "CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([id]))"
+               "CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))"
              ]
              |> IO.iodata_to_binary()
   end
@@ -688,7 +688,7 @@ defmodule Ecto.Adapters.MsSqlTest do
              [
                "CREATE TABLE [posts] ([id] bigint IDENTITY(1,1), [category_id] BIGINT, ",
                "CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id]) ",
-               "REFERENCES [categories]([id]), CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([id]))"
+               "REFERENCES [categories]([id]), CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))"
              ]
              |> IO.iodata_to_binary()
   end
@@ -706,7 +706,7 @@ defmodule Ecto.Adapters.MsSqlTest do
                "CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT, ",
                "CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id]) ",
                "REFERENCES [categories]([id]) ON DELETE SET NULL, ",
-               "CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([id]))"
+               "CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))"
              ]
              |> IO.iodata_to_binary()
   end
@@ -724,7 +724,7 @@ defmodule Ecto.Adapters.MsSqlTest do
                "CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT, ",
                "CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id]) ",
                "REFERENCES [categories]([id]) ON DELETE CASCADE, ",
-               "CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([id]))"
+               "CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))"
              ]
              |> IO.iodata_to_binary()
   end
@@ -844,7 +844,7 @@ defmodule Ecto.Adapters.MsSqlTest do
        [{:add, :id, :serial, [primary_key: true]}, {:add, :created_at, :datetime, []}]}
 
     assert SQL.execute_ddl(create) ==
-             ~s|CREATE TABLE [posts] ([id] int IDENTITY(1,1), [created_at] datetime, CONSTRAINT [PK__posts] PRIMARY KEY CLUSTERED ([id])) WITH FOO=BAR|
+             ~s|CREATE TABLE [posts] ([id] int IDENTITY(1,1), [created_at] datetime, CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id])) WITH FOO=BAR|
   end
 
   test "rename table" do
