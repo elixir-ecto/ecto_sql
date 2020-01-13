@@ -165,19 +165,19 @@ if Code.ensure_loaded?(Tds) do
       {value, :decimal}
     end
 
-    defp prepare_param(%NaiveDateTime{}=value) do
+    defp prepare_param(%NaiveDateTime{} = value) do
       {value, :datetime}
     end
 
-    defp prepare_param(%DateTime{}=value) do
+    defp prepare_param(%DateTime{} = value) do
       {value, :datetime2}
     end
 
-    defp prepare_param(%Date{}=value) do
+    defp prepare_param(%Date{} = value) do
       {value, :date}
     end
 
-    defp prepare_param(%Time{}=value) do
+    defp prepare_param(%Time{} = value) do
       {value, :time}
     end
 
@@ -358,9 +358,20 @@ if Code.ensure_loaded?(Tds) do
     ## Query generation
 
     binary_ops = [
-      ==: "=", !=: "<>", <=: "<=", >=: ">=", <: "<", >: ">",
-      +: "+", -: "-", *: "*", /: "/",
-      and: "AND", or: "OR", ilike: "LIKE", like: "LIKE"
+      ==: "=",
+      !=: "<>",
+      <=: "<=",
+      >=: ">=",
+      <: "<",
+      >: ">",
+      +: "+",
+      -: "-",
+      *: "*",
+      /: "/",
+      and: "AND",
+      or: "OR",
+      ilike: "LIKE",
+      like: "LIKE"
     ]
 
     @binary_ops Keyword.keys(binary_ops)
@@ -882,18 +893,17 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp create_name(sources, pos) do
+      case elem(sources, pos) do
+        {:fragment, _, _} ->
+          {nil, "f" <> Integer.to_string(pos), nil}
 
-        case elem(sources, pos) do
-          {:fragment, _, _} ->
-            {nil, "f" <> Integer.to_string(pos), nil}
+        {table, model, prefix} ->
+          name = String.first(table) <> Integer.to_string(pos)
+          {quote_table(prefix, table), name, model}
 
-          {table, model, prefix} ->
-            name = String.first(table) <> Integer.to_string(pos)
-            {quote_table(prefix, table), name, model}
-
-          %Ecto.SubQuery{} ->
-            {nil, "s" <> Integer.to_string(pos), nil}
-        end
+        %Ecto.SubQuery{} ->
+          {nil, "s" <> Integer.to_string(pos), nil}
+      end
     end
 
     # DDL
@@ -1057,7 +1067,10 @@ if Code.ensure_loaded?(Tds) do
       do: error!(nil, "MSSQL adapter does not support keyword lists in execute")
 
     defp pk_definitions(columns, prefix) do
-      pks = for {_, name, _, opts} <- columns, opts[:primary_key], do: name
+      pks =
+        for {_, name, _, opts} <- columns,
+            opts[:primary_key],
+            do: name
 
       case pks do
         [] ->
@@ -1365,42 +1378,59 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp ecto_to_db(type, size, precision, scale, query \\ nil)
+
     defp ecto_to_db({:array, _}, _, _, _, query),
       do: error!(query, "Array type is not supported by TDS")
-    defp ecto_to_db(:id, _, _, _, _),                   do: "bigint"
-    defp ecto_to_db(:serial, _, _, _, _),               do: "int IDENTITY(1,1)"
-    defp ecto_to_db(:bigserial, _, _, _, _),            do: "bigint IDENTITY(1,1)"
-    defp ecto_to_db(:binary_id, _, _, _, _),            do: "uniqueidentifier"
-    defp ecto_to_db(:boolean, _, _, _, _),              do: "bit"
+
+    defp ecto_to_db(:id, _, _, _, _), do: "bigint"
+    defp ecto_to_db(:serial, _, _, _, _), do: "int IDENTITY(1,1)"
+    defp ecto_to_db(:bigserial, _, _, _, _), do: "bigint IDENTITY(1,1)"
+    defp ecto_to_db(:binary_id, _, _, _, _), do: "uniqueidentifier"
+    defp ecto_to_db(:boolean, _, _, _, _), do: "bit"
+
     defp ecto_to_db(:string, size, _, _, _)
-      when is_integer(size) and size > 0,               do: "nvarchar(#{size})"
-    defp ecto_to_db(:string, :max, _, _, _),            do: "nvarchar(max)"
-    defp ecto_to_db(:string, _, _, _, _),               do: "nvarchar(255)"
-    defp ecto_to_db(:float, _, _, _, _),                do: "float"
+         when is_integer(size) and size > 0,
+         do: "nvarchar(#{size})"
+
+    defp ecto_to_db(:string, :max, _, _, _), do: "nvarchar(max)"
+    defp ecto_to_db(:string, _, _, _, _), do: "nvarchar(255)"
+    defp ecto_to_db(:float, _, _, _, _), do: "float"
+
     defp ecto_to_db(:binary, size, _, _, _)
-      when is_integer(size) and size > 0,               do: "varbinary(#{size})"
-    defp ecto_to_db(:binary, :max, _, _, _),            do: "varbinary(max)"
-    defp ecto_to_db(:binary, nil, _, _, _),             do: "varbinary(2000)"
-    defp ecto_to_db(:uuid, _, _, _, _),                 do: "uniqueidentifier"
+         when is_integer(size) and size > 0,
+         do: "varbinary(#{size})"
+
+    defp ecto_to_db(:binary, :max, _, _, _), do: "varbinary(max)"
+    defp ecto_to_db(:binary, nil, _, _, _), do: "varbinary(2000)"
+    defp ecto_to_db(:uuid, _, _, _, _), do: "uniqueidentifier"
+
     defp ecto_to_db(:map, size, _, _, _)
-      when is_integer(size) and size > 0,               do: "nvarchar(#{size})"
-    defp ecto_to_db(:map, :max, _, _, _),               do: "nvarchar(max)"
-    defp ecto_to_db(:map, _, _, _, _),                  do: "nvarchar(2000)"
+         when is_integer(size) and size > 0,
+         do: "nvarchar(#{size})"
+
+    defp ecto_to_db(:map, :max, _, _, _), do: "nvarchar(max)"
+    defp ecto_to_db(:map, _, _, _, _), do: "nvarchar(2000)"
+
     defp ecto_to_db({:map, _}, size, _, _, _)
-      when is_integer(size) and size > 0,               do: "nvarchar(#{size})"
-    defp ecto_to_db({:map, _}, :max, _, _, _),          do: "nvarchar(max)"
-    defp ecto_to_db({:map, _}, _, _, _, _),             do: "nvarchar(2000)"
-    defp ecto_to_db(:time_usec, _, _, _, _),            do: "time"
-    defp ecto_to_db(:utc_datetime, _, _, _, _),         do: "datetime"
-    defp ecto_to_db(:utc_datetime_usec, _, _, _, _),    do: "datetime2"
-    defp ecto_to_db(:naive_datetime, _, _, _, _),       do: "datetime"
-    defp ecto_to_db(:naive_datetime_usec, _, _, _, _),  do: "datetime2"
+         when is_integer(size) and size > 0,
+         do: "nvarchar(#{size})"
+
+    defp ecto_to_db({:map, _}, :max, _, _, _), do: "nvarchar(max)"
+    defp ecto_to_db({:map, _}, _, _, _, _), do: "nvarchar(2000)"
+    defp ecto_to_db(:time_usec, _, _, _, _), do: "time"
+    defp ecto_to_db(:utc_datetime, _, _, _, _), do: "datetime"
+    defp ecto_to_db(:utc_datetime_usec, _, _, _, _), do: "datetime2"
+    defp ecto_to_db(:naive_datetime, _, _, _, _), do: "datetime"
+    defp ecto_to_db(:naive_datetime_usec, _, _, _, _), do: "datetime2"
+
     defp ecto_to_db(other, size, _, _, _) when is_integer(size) do
       "#{Atom.to_string(other)}(#{size})"
     end
+
     defp ecto_to_db(other, _, precision, scale, _) when is_integer(precision) do
       "#{Atom.to_string(other)}(#{precision},#{scale || 0})"
     end
+
     defp ecto_to_db(other, nil, nil, nil, _) do
       Atom.to_string(other)
     end
@@ -1494,7 +1524,11 @@ if Code.ensure_loaded?(Tds) do
     # "C", "PK", "UQ", "F ", "D " - constraints
     defp if_object_exists(name, type, statement) do
       [
-        "IF (OBJECT_ID(N'", name, "', '", type, "') IS NOT NULL) BEGIN ",
+        "IF (OBJECT_ID(N'",
+        name,
+        "', '",
+        type,
+        "') IS NOT NULL) BEGIN ",
         statement,
         " END; "
       ]
