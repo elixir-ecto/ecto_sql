@@ -913,11 +913,16 @@ if Code.ensure_loaded?(Tds) do
         when command in [:create, :create_if_not_exists] do
       prefix = table.prefix
 
+      pk_name =
+        if table.prefix,
+          do: "#{table.prefix}_#{table.name}",
+          else: table.name
+
       table_structure =
         case column_definitions(table, columns) ++
                pk_definitions(
                  columns,
-                 ", CONSTRAINT [PK_#{prefix}_#{table.name}] "
+                 ", CONSTRAINT [#{pk_name}_pkey] "
                ) do
           [] -> []
           list -> [" (#{list})"]
@@ -956,14 +961,13 @@ if Code.ensure_loaded?(Tds) do
     def execute_ddl({:alter, %Table{} = table, changes}) do
       statement_prefix = ["ALTER TABLE ", quote_table(table.prefix, table.name), " "]
 
-      # todo: There is amny issues which could arase is we want to remove primary key, this needs special attention!!!
-      # below is just case when we are adding pkeys, but may things are not covered:
-      # 1. What if primary key was already defined?
-      # 2. What if we need to drop composite key?
-      # 3. What is field is removed which is in PK but developer do not specify in options?
-      # 4. If developer whant to alter PK field, it could be an issue. The only way is to query database and check what is currently there!!
+      pk_name =
+        if table.prefix,
+          do: "#{table.prefix}_#{table.name}",
+          else: table.name
+
       pkeys =
-        case pk_definitions(changes, " CONSTRAINT [PK_#{table.prefix}_#{table.name}] ") do
+        case pk_definitions(changes, " CONSTRAINT [#{pk_name}_pkey] ") do
           [] -> []
           sql -> [statement_prefix, "ADD", sql]
         end
