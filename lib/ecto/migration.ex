@@ -34,7 +34,7 @@ defmodule Ecto.Migration do
   usually the timestamp of when the migration was created. The NAME
   must also be unique and it quickly identifies what the migration
   does. For example, if you need to track the "weather" in your system,
-  you can start a new file at "priv/repo/migrations/2019041714000_add_weather_table.exs"
+  you can start a new file at "priv/repo/migrations/20190417140000_add_weather_table.exs"
   that will have the following contents:
 
       defmodule MyRepo.Migrations.AddWeatherTable do
