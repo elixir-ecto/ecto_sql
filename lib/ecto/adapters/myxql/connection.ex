@@ -47,6 +47,7 @@ if Code.ensure_loaded?(MyXQL) do
       to_constraints(error, [])
     end
 
+    @doc false
     def to_constraints(%MyXQL.Error{mysql: %{name: :ER_DUP_ENTRY}, message: message}, opts) do
       case :binary.split(message, " for key ") do
         [_, quoted] -> [unique: normalize_index_name(quoted, opts[:source])]
