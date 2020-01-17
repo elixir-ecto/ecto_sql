@@ -7,13 +7,14 @@ ExUnit.start(
     :array_type,
     # :case_sensitive,
     :modify_foreign_key_on_update,
-    :modify_foreign_key_on_delete,
+    :modify_foreign_key_on_delete
     # :uses_usec,
     # :lock_for_update,
     # :with_conflict_target,
     # :with_conflict_ignore
   ]
 )
+
 Application.put_env(:tds, :json_library, Jason)
 Application.put_env(:ecto, :primary_key_type, :id)
 Application.put_env(:ecto, :async_integration_tests, false)
@@ -36,11 +37,14 @@ Application.put_env(
   :ecto_sql,
   TestRepo,
   url: Application.get_env(:ecto_sql, :mssql_test_url) <> "/ecto_test",
-  pool: Ecto.Adapters.SQL.Sandbox
+  pool: Ecto.Adapters.SQL.Sandbox,
+  set_allow_snapshot_isolation: :on
 )
 
 defmodule Ecto.Integration.TestRepo do
-  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MsSql
+  use Ecto.Integration.Repo,
+    otp_app: :ecto_sql,
+    adapter: Ecto.Adapters.MsSql
 
   def uuid, do: Tds.Types.UUID
 
@@ -57,7 +61,6 @@ defmodule Ecto.Integration.TestRepo do
   end
 end
 
-
 Code.require_file("#{ecto}/integration_test/support/schemas.exs", __DIR__)
 Code.require_file("../support/migration.exs", __DIR__)
 
@@ -66,13 +69,15 @@ alias Ecto.Integration.PoolRepo
 Application.put_env(
   :ecto_sql,
   PoolRepo,
-  url: Application.get_env(:ecto_sql, :mssql_test_url) <> "/ecto_test",
+  url: "#{Application.get_env(:ecto_sql, :mssql_test_url)}/ecto_test",
   set_allow_snapshot_isolation: :on,
-  set_read_committed_snapshot: :on
+  set_transaction_isolation_level: :snapshot
 )
 
 defmodule Ecto.Integration.PoolRepo do
-  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MsSql
+  use Ecto.Integration.Repo,
+    otp_app: :ecto_sql,
+    adapter: Ecto.Adapters.MsSql
 
   def create_prefix(prefix) do
     "create schema #{prefix}"
@@ -99,6 +104,6 @@ _ = Ecto.Adapters.MsSql.storage_down(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()
-:ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)
+:ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: :debug)
 Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
 Process.flag(:trap_exit, true)

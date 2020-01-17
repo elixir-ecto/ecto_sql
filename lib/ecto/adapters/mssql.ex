@@ -53,9 +53,11 @@ defmodule Ecto.Adapters.MsSql do
 
   """
   require Tds
+
   use Ecto.Adapters.SQL,
     driver: :tds,
     migration_lock: nil
+
   require Logger
 
   @behaviour Ecto.Adapter.Storage
@@ -64,30 +66,34 @@ defmodule Ecto.Adapters.MsSql do
 
   @doc false
   def autogenerate(:binary_id), do: Tds.Types.UUID.bingenerate()
-  def autogenerate(:embed_id),  do: Tds.Types.UUID.generate()
-  def autogenerate(type),       do: super(type)
+  def autogenerate(:embed_id), do: Tds.Types.UUID.generate()
+  def autogenerate(type), do: super(type)
 
   @doc false
-  def loaders({:embed, _} = type, _),       do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
-  def loaders({:map, _}, type),             do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
-  def loaders(:map, type),                  do: [&json_decode/1, type]
-  def loaders(:boolean, type),              do: [&bool_decode/1, type]
-  def loaders(:binary_id, type),            do: [Tds.Types.UUID, type]
-  def loaders(:naive_datetime, type),       do: [&datetime_decode/1, type]
-  def loaders(:naive_datetime_usec, type),  do: [&datetime_decode/1, type]
-  def loaders(_, type),                     do: [type]
+  @impl true
+  def loaders({:embed, _}, type), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
+  def loaders({:map, _}, type), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
+  def loaders(:map, type), do: [&json_decode/1, type]
+  def loaders(:boolean, type), do: [&bool_decode/1, type]
+  def loaders(:binary_id, type), do: [Tds.Types.UUID, type]
+  def loaders(:naive_datetime, type), do: [&datetime_decode/1, type]
+  def loaders(:naive_datetime_usec, type), do: [&datetime_decode/1, type]
+  def loaders(_, type), do: [type]
 
+  @impl true
+  def dumpers({:embed, _} = type, _),
+    do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
 
-  def dumpers({:embed, _} = type, _),       do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
-  def dumpers({:map, _} , type),            do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
-  def dumpers(:binary_id, type),            do: [type, Tds.Types.UUID]
-  def dumpers(:naive_datetime, type),       do: [type, &datetime_encode/1]
-  def dumpers(:naive_datetime_usec, type),  do: [type, &datetime_encode/1]
-  def dumpers(_, type),                     do: [type]
+  def dumpers({:map, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
+  def dumpers(:binary_id, type), do: [type, Tds.Types.UUID]
+  def dumpers(:naive_datetime, type), do: [type, &datetime_encode/1]
+  def dumpers(:naive_datetime_usec, type), do: [type, &datetime_encode/1]
+  def dumpers(_, type), do: [type]
 
   defp datetime_encode(nil), do: {:ok, nil}
+
   defp datetime_encode(val) do
-    val  = {_, _} = NaiveDateTime.to_erl(val)
+    val = {_, _} = NaiveDateTime.to_erl(val)
     {:ok, val}
   rescue
     _ ->
@@ -95,31 +101,33 @@ defmodule Ecto.Adapters.MsSql do
   end
 
   defp datetime_decode(nil), do: {:ok, nil}
+  defp datetime_decode(%NaiveDateTime{} = date), do: {:ok, date}
+
   defp datetime_decode({date, {h, m, s, ms}}) do
     # we are loosing precision here!!!!
     cond do
       ms == 0 ->
         NaiveDateTime.from_erl({date, {h, m, s}})
-      ms > 999999 ->
+
+      ms > 999_999 ->
         rms = Integer.floor_div(ms, 10)
-        NaiveDateTime.from_erl!({date, {h, m, s}}, {rms,  6})
+        NaiveDateTime.from_erl!({date, {h, m, s}}, {rms, 6})
+
       true ->
-        NaiveDateTime.from_erl!({date, {h, m, s}}, {ms,  6})
+        NaiveDateTime.from_erl!({date, {h, m, s}}, {ms, 6})
     end
   end
 
-  defp bool_decode(<<0>>),                do: {:ok, false}
-  defp bool_decode(<<1>>),                do: {:ok, true}
-  defp bool_decode(0),                    do: {:ok, false}
-  defp bool_decode(1),                    do: {:ok, true}
+  defp bool_decode(<<0>>), do: {:ok, false}
+  defp bool_decode(<<1>>), do: {:ok, true}
+  defp bool_decode(0), do: {:ok, false}
+  defp bool_decode(1), do: {:ok, true}
   defp bool_decode(x) when is_boolean(x), do: {:ok, x}
 
-  defp json_decode(x) when is_binary(x),  do: {:ok, json_library().decode!(x)}
-  defp json_decode(x),                    do: {:ok, x}
+  defp json_decode(x) when is_binary(x), do: {:ok, Tds.json_library().decode!(x)}
+  defp json_decode(x), do: {:ok, x}
 
-  defp json_encode(x),                    do: {:ok, json_library().encode!(x)}
-
-  defp json_library(), do: Application.get_env(:tds, :json_library) || Jason
+  defp json_encode(x), do: {:ok, Tds.json_library().encode!(x)}
 
   # Storage API
   @doc false
@@ -165,11 +173,26 @@ defmodule Ecto.Adapters.MsSql do
     end
   end
 
-  def select_versions(table, opts) do
-    case run_query(opts, ~s(SELECT version FROM [#{table}] ORDER BY version)) do
-      {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, &hd/1)}
-      {:error, _} = error -> error
+  @impl Ecto.Adapter.Storage
+  def storage_status(opts) do
+    database =
+      Keyword.fetch!(opts, :database) || raise ":database is nil in repostory configuration"
+
+    opts = Keyword.delete(opts, :database)
+
+    check_database_query =
+      "SELECT [name] FROM [master].[sys].[databases] WHERE [name] = '#{database}'"
+
+    case run_query(opts, check_database_query) do
+      {:ok, %{num_rows: 0}} -> :down
+      {:ok, %{num_rows: _}} -> :up
+      other -> {:error, other}
     end
+  end
+
+  @impl true
+  def supports_ddl_transaction? do
+    true
   end
 
   defp run_query(opts, sql_command) do
@@ -210,10 +233,5 @@ defmodule Ecto.Adapters.MsSql do
       nil ->
         {:error, RuntimeError.exception("command timed out")}
     end
-  end
-
-  @impl true
-  def supports_ddl_transaction? do
-    true
   end
 end

@@ -5,31 +5,19 @@ if Code.ensure_loaded?(Tds) do
     alias Tds.Query
     alias Ecto.Query.Tagged
     require Ecto.Schema
-    @default_port System.get_env("MSSQLPORT") || 1433
 
     @behaviour Ecto.Adapters.SQL.Connection
     # @behaviour Ecto.Adapters.SQL.Query
 
     @unsafe_query_strings ["'\\"]
 
-    @doc """
-    Receives options and returns `DBConnection` supervisor child specification.
-    """
-    @spec connect(opts :: Keyword.t()) :: {module, Keyword.t()}
-    def connect(opts) do
-      opts
-      |> Keyword.put_new(:port, @default_port)
-      |> Tds.Protocol.connect()
-    end
-
+    @impl true
     @doc false
     def child_spec(opts) do
-      opts
-      |> Tds.child_spec()
+      Tds.child_spec(opts)
     end
 
-    # alias Tds.Parameter
-
+    @impl true
     def prepare_execute(pid, _name, statement, params, opts \\ []) do
       query = %Query{statement: statement}
 
@@ -43,6 +31,7 @@ if Code.ensure_loaded?(Tds) do
       DBConnection.prepare_execute(pid, query, params, opts)
     end
 
+    @impl true
     def execute(pid, statement, params, opts) when is_binary(statement) or is_list(statement) do
       query = %Query{statement: statement}
 
@@ -83,10 +72,12 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
+    @impl true
     def stream(_conn, _sql, _params, _opts) do
       {:error, :not_implemented}
     end
 
+    @impl true
     def query(conn, sql, params, opts) do
       {params, _} =
         Enum.map_reduce(params, 1, fn param, acc ->
@@ -103,11 +94,10 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
+    @impl true
     def to_constraints(%Tds.Error{mssql: %{number: code, msg_text: message}}) do
       Tds.Error.get_constraint_violations(code, message)
     end
-
-    def ddl_logs(_), do: []
 
     # Boolean
     defp prepare_param(%Tagged{value: true, type: :boolean}), do: {1, :boolean}
@@ -214,69 +204,88 @@ if Code.ensure_loaded?(Tds) do
     ## Query
 
     alias Ecto.Query
-    alias Ecto.Query.{SelectExpr, QueryExpr, JoinExpr, BooleanExpr}
+    # alias Ecto.Query.SelectExpr, QueryExpr, JoinExpr, BooleanExpr, WithExpr}
+    alias Ecto.Query.SelectExpr
+    alias Ecto.Query.QueryExpr
+    alias Ecto.Query.JoinExpr
+    alias Ecto.Query.BooleanExpr
+    alias Ecto.Query.WithExpr
 
+    @impl true
     def all(query) do
       sources = create_names(query)
 
+      # cte = TODO
       from = from(query, sources)
       select = select(query, sources)
       join = join(query, sources)
       where = where(query, sources)
       group_by = group_by(query, sources)
       having = having(query, sources)
+      # window - not supported
+      combinations = combinations(query)
       order_by = order_by(query, sources)
-
+      # limit = is handled in select (TOP X)
       offset = offset(query, sources)
+      # lock = is handled in FROM
+      # options = aka hints TODO
 
       if query.offset != nil and query.order_bys == [],
-        do: error!(query, "ORDER BY is mandatory to use OFFSET")
+        do: error!(query, "ORDER BY is mandatory when OFFSET is set")
 
-      assemble([select, from, join, where, group_by, having, order_by, offset])
+      [select, from, join, where, group_by, having, combinations, order_by, offset]
     end
 
+    @impl true
     def update_all(query) do
       sources = create_names(query)
       {table, name, _model} = elem(sources, 0)
 
-      update = "UPDATE #{name}"
       fields = update_fields(query, sources)
-      from = "FROM #{table} AS #{name}"
+      from = " FROM #{table} AS #{name}"
       join = join(query, sources)
       where = where(query, sources)
 
-      assemble([update, "SET", fields, from, join, where])
+      ["UPDATE ", name, " SET ", fields, from, join, where]
     end
 
+    @impl true
     def delete_all(query) do
       sources = create_names(query)
       {table, name, _model} = elem(sources, 0)
 
       delete = "DELETE #{name}"
-      from = "FROM #{table} AS #{name}"
+      from = " FROM #{table} AS #{name}"
       join = join(query, sources)
       where = where(query, sources)
 
-      assemble([delete, from, join, where])
+      [delete, from, join, where]
     end
 
+    @impl true
     def insert(prefix, table, header, rows, on_conflict, returning) do
       [] = on_conflict(on_conflict, header)
+      returning = returning(returning, "INSERTED")
 
       values =
         if header == [] do
-          returning(returning, "INSERTED") <> "DEFAULT VALUES"
+          [returning, " DEFAULT VALUES"]
         else
-          "(" <>
-            Enum.map_join(header, ", ", &quote_name/1) <>
-            ")" <> " " <> returning(returning, "INSERTED") <> "VALUES " <> insert_all(rows, 1, "")
+          [
+            ?\s,
+            ?(,
+            intersperse_map(header, ", ", &quote_name/1),
+            ?),
+            returning,
+            " VALUES " | insert_all(rows, 1)
+          ]
         end
 
-      "INSERT INTO #{quote_table(prefix, table)} " <> values
+      ["INSERT INTO ", quote_table(prefix, table), values]
     end
 
     defp on_conflict({_, _, [_ | _]}, _header) do
-      error!(nil, "The :conflict_target option is not supported in insert/insert_all by TDS")
+      error!(nil, "The :conflict_target option is not supported in insert/insert_all by MsSql")
     end
 
     defp on_conflict({:raise, _, []}, _header) do
@@ -284,75 +293,90 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp on_conflict({:nothing, _, []}, [_field | _]) do
-      error!(nil, "The :nothing option is not supported in insert/insert_all by TDS")
+      error!(nil, "The :nothing option is not supported in insert/insert_all by MsSql")
     end
 
     defp on_conflict({:replace_all, _, []}, _header) do
-      error!(nil, "The :replace_all option is not supported in insert/insert_all by TDS")
+      error!(nil, "The :replace_all option is not supported in insert/insert_all by MsSql")
     end
 
     defp on_conflict({_query, _, []}, _header) do
       error!(
         nil,
-        "The query as option for on_conflict is not supported in insert/insert_all by TDS yet."
+        "The query as option for on_conflict is not supported in insert/insert_all by MsSql yet."
       )
     end
 
-    defp insert_all([row | rows], counter, acc) do
-      {counter, row} = insert_each(row, counter, "")
-      insert_all(rows, counter, acc <> ",(" <> row <> ")")
+    defp insert_all(rows, counter) do
+      intersperse_reduce(rows, ",", counter, fn row, counter ->
+        {row, counter} = insert_each(row, counter)
+        {[?(, row, ?)], counter}
+      end)
+      |> elem(0)
     end
 
-    defp insert_all([], _counter, "," <> acc) do
-      acc
+    defp insert_each(values, counter) do
+      intersperse_reduce(values, ", ", counter, fn
+        nil, counter ->
+          {"DEFAULT", counter}
+
+        {%Query{} = query, params_counter}, counter ->
+          {[?(, all(query), ?)], counter + params_counter}
+
+        _, counter ->
+          {[?@ | Integer.to_string(counter)], counter + 1}
+      end)
     end
 
-    defp insert_each([nil | t], counter, acc), do: insert_each(t, counter, acc <> ",DEFAULT")
-
-    defp insert_each([_ | t], counter, acc),
-      do: insert_each(t, counter + 1, acc <> ", @" <> Integer.to_string(counter))
-
-    defp insert_each([], counter, ", " <> acc), do: {counter, acc}
-    defp insert_each([], counter, "," <> acc), do: {counter, acc}
-
+    @impl true
     def update(prefix, table, fields, filters, returning) do
       {fields, count} =
-        Enum.map_reduce(fields, 1, fn field, acc ->
-          {"#{quote_name(field)} = @#{acc}", acc + 1}
+        intersperse_reduce(fields, ", ", 1, fn field, acc ->
+          {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
         end)
 
       {filters, _count} =
-        Enum.map_reduce(filters, count, fn
+        intersperse_reduce(filters, " AND ", count, fn
           {field, nil}, acc ->
-            {"#{quote_name(field)} IS NULL", acc + 1}
+            {[quote_name(field), " IS NULL"], acc + 1}
 
           {field, _value}, acc ->
-            {"#{quote_name(field)} = @#{acc}", acc + 1}
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
 
           field, acc ->
-            {"#{quote_name(field)} = @#{acc}", acc + 1}
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
         end)
 
-      "UPDATE #{quote_table(prefix, table)} SET " <>
-        Enum.join(fields, ", ") <>
-        " " <> returning(returning, "INSERTED") <> "WHERE " <> Enum.join(filters, " AND ")
+      [
+        "UPDATE ",
+        quote_table(prefix, table),
+        " SET ",
+        fields,
+        returning(returning, "INSERTED"),
+        " WHERE " | filters
+      ]
     end
 
+    @impl true
     def delete(prefix, table, filters, returning) do
       {filters, _} =
-        Enum.map_reduce(filters, 1, fn
+        intersperse_reduce(filters, " AND ", 1, fn
           {field, nil}, acc ->
-            {"#{quote_name(field)} IS NULL", acc + 1}
+            {[quote_name(field), " IS NULL"], acc + 1}
 
           {field, _value}, acc ->
-            {"#{quote_name(field)} = @#{acc}", acc + 1}
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
 
           field, acc ->
-            {"#{quote_name(field)} = @#{acc}", acc + 1}
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
         end)
 
-      "DELETE FROM #{quote_table(prefix, table)}" <>
-        " " <> returning(returning, "DELETED") <> "WHERE " <> Enum.join(filters, " AND ")
+      [
+        "DELETE FROM ",
+        quote_table(prefix, table),
+        returning(returning, "DELETED"),
+        " WHERE " | filters
+      ]
     end
 
     ## Query generation
@@ -382,86 +406,60 @@ if Code.ensure_loaded?(Tds) do
 
     defp handle_call(fun, _arity), do: {:fun, Atom.to_string(fun)}
 
-    defp select(
-           %Query{
-             select: %{
-               fields: fields
-             }
-           } = query,
-           sources
-         ) do
+    defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
       [
-        "SELECT",
-        distinct(query, sources),
+        "SELECT ",
+        distinct(distinct, sources, query),
         limit(query, sources),
-        ?\s | select_fields(fields, sources, query)
+        select(fields, sources, query)
       ]
-      |> IO.iodata_to_binary()
     end
 
-    defp select_fields(
-           [],
-           sources,
-           %Query{
-             select: %SelectExpr{
-               expr: val
-             }
-           } = query
-         ) do
+    defp distinct(nil, _sources, _query), do: []
+    defp distinct(%QueryExpr{expr: true}, _sources, _query), do: "DISTINCT "
+    defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
+
+    defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
+      error!(
+        query,
+        "DISTINCT with multiple columns is not supported by MsSQL. " <>
+          "Please use distinct(true) if you need distinct resultset"
+      )
+    end
+
+
+    defp select([], sources, %{select: %SelectExpr{expr: val}} = query) do
       expr(val, sources, query)
     end
 
-    defp select_fields(fields, sources, query) do
-      [
-        Enum.map_join(fields, ", ", fn
-          {key, value} ->
-            expr(value, sources, query) <> " AS " <> quote_name(key)
+    defp select(fields, sources, query) do
+      intersperse_map(fields, ", ", fn
+        {:&, _, [idx]} ->
+          {table, _name, _schema} = elem(sources, idx)
 
-          value ->
-            expr(value, sources, query)
-        end)
-      ]
+          error!(
+            query,
+            "MSSQL adapter does not support selecting all fields from #{table} without a schema. " <>
+              "Please specify a schema or specify exactly which fields you want in projection"
+          )
+
+        {key, value} ->
+          [expr(value, sources, query), " AS ", quote_name(key)]
+
+        value ->
+          expr(value, sources, query)
+      end)
     end
 
-    defp distinct(%Query{distinct: nil}, _sources), do: ""
-    defp distinct(%Query{distinct: []}, _sources), do: ""
-
-    defp distinct(
-           %Query{
-             distinct: %QueryExpr{
-               expr: true
-             }
-           },
-           _sources
-         ),
-         do: " DISTINCT"
-
-    defp distinct(
-           %Query{
-             distinct: %QueryExpr{
-               expr: false
-             }
-           },
-           _sources
-         ),
-         do: ""
-
-    defp distinct(
-           %Query{
-             distinct: %QueryExpr{
-               expr: _exprs
-             }
-           } = query,
-           _sources
-         ) do
-      error!(query, "MSSQL does not allow expressions in distinct")
+    defp from(%{from: %{hints: [_ | _]}} = query, _sources) do
+      error!(query, "table hints are not supported by MsSql adpter yet.")
     end
 
-    defp from(%{from: from} = query, sources) do
-      {from, name} = get_source(query, sources, 0, from)
+    # defp from(%{from: %{source: source, hints: hints}} = query, sources) do
+    defp from(%{from: %{source: source}, lock: lock} = query, sources) do
+      {from, name} = get_source(query, sources, 0, source)
 
-      ("FROM #{from} AS #{name}" <> lock(query.lock))
-      |> String.trim()
+      [" FROM ", from, " AS ", name, if_do(lock, lock(lock))]
     end
 
     defp update_fields(%Query{updates: updates} = query, sources) do
@@ -491,72 +489,67 @@ if Code.ensure_loaded?(Tds) do
       error!(query, "Unknown update operation #{inspect(command)} for TDS")
     end
 
-    defp join(%Query{joins: []}, _sources), do: nil
+    defp join(%{joins: []}, _sources), do: []
 
-    defp join(%Query{joins: joins, lock: lock} = query, sources) do
-      Enum.map_join(joins, " ", fn
-        %JoinExpr{
-          on: %QueryExpr{expr: _},
-          qual: :cross,
-          ix: ix,
-          source: source
-        } ->
-          {join, name, _model} = elem(sources, ix)
-          # qual = join_qual(qual)
-          join = join || "(" <> expr(source, sources, query) <> ")"
+    defp join(%{joins: joins, lock: lock} = query, sources) do
+      [
+        ?\s,
+        intersperse_map(joins, ?\s, fn
+          %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
+            if hints != [] do
+              error!(query, "table hints are not supported by MsSQL")
+            end
 
-          "CROSS JOIN #{join} AS #{name} #{lock(lock)}"
-
-        %JoinExpr{
-          on: %QueryExpr{expr: expr},
-          qual: qual,
-          ix: ix,
-          source: source
-        } ->
-          {join, name, _model} = elem(sources, ix)
-          qual = join_qual(qual)
-          join = join || "(" <> expr(source, sources, query) <> ")"
-
-          "#{qual} JOIN " <>
-            join <> " AS #{name} " <> lock(lock) <> "ON " <> expr(expr, sources, query)
-      end)
+            {join, name} = get_source(query, sources, ix, source)
+            qual = join_qual(qual)
+            join = join || "(" <> expr(source, sources, query) <> ")"
+            lock = if_do(lock, lock(lock))
+            [qual, join, " AS ", name, lock | join_on(qual, expr, sources, query)]
+        end)
+      ]
     end
 
-    defp join_qual(:inner), do: "INNER"
-    defp join_qual(:left), do: "LEFT OUTER"
-    defp join_qual(:right), do: "RIGHT OUTER"
-    defp join_qual(:full), do: "FULL OUTER"
+    defp join_on(:cross, true, _sources, _query), do: []
+    defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
+
+    defp join_qual(:inner), do: "INNER JOIN "
+    defp join_qual(:inner_loop), do: "INNER LOOP JOIN "
+    defp join_qual(:inner_hash), do: "INNER HASH JOIN "
+    defp join_qual(:inner_merge), do: "INNER MERGE JOIN "
+    defp join_qual(:inner_remote), do: "INNER REMOTE JOIN "
+    defp join_qual(:left), do: "LEFT OUTER JOIN "
+    defp join_qual(:right), do: "RIGHT OUTER JOIN "
+    defp join_qual(:full), do: "FULL OUTER JOIN "
+    defp join_qual(:cross), do: "CROSS JOIN "
 
     defp where(%Query{wheres: wheres} = query, sources) do
-      boolean("WHERE", wheres, sources, query)
+      boolean(" WHERE ", wheres, sources, query)
     end
 
     defp having(%Query{havings: havings} = query, sources) do
-      boolean("HAVING", havings, sources, query)
+      boolean(" HAVING ", havings, sources, query)
     end
 
-    defp group_by(%Query{group_bys: group_bys} = query, sources) do
-      exprs =
-        Enum.map_join(group_bys, ", ", fn %QueryExpr{expr: expr} ->
-          Enum.map_join(expr, ", ", &expr(&1, sources, query))
-        end)
+    defp group_by(%{group_bys: []}, _sources), do: []
 
-      case exprs do
-        "" -> nil
-        _ -> "GROUP BY " <> exprs
-      end
+    defp group_by(%{group_bys: group_bys} = query, sources) do
+      [
+        " GROUP BY "
+        | intersperse_map(group_bys, ", ", fn %QueryExpr{expr: expr} ->
+            intersperse_map(expr, ", ", &expr(&1, sources, query))
+          end)
+      ]
     end
 
-    defp order_by(%Query{order_bys: order_bys} = query, sources) do
-      exprs =
-        Enum.map_join(order_bys, ", ", fn %QueryExpr{expr: expr} ->
-          Enum.map_join(expr, ", ", &order_by_expr(&1, sources, query))
-        end)
+    defp order_by(%{order_bys: []}, _sources), do: []
 
-      case exprs do
-        "" -> nil
-        _ -> "ORDER BY " <> exprs
-      end
+    defp order_by(%{order_bys: order_bys} = query, sources) do
+      [
+        " ORDER BY "
+        | intersperse_map(order_bys, ", ", fn %QueryExpr{expr: expr} ->
+            intersperse_map(expr, ", ", &order_by_expr(&1, sources, query))
+          end)
+      ]
     end
 
     defp order_by_expr({dir, expr}, sources, query) do
@@ -564,11 +557,12 @@ if Code.ensure_loaded?(Tds) do
 
       case dir do
         :asc -> str
-        :desc -> str <> " DESC"
+        :desc -> [str | " DESC"]
+        _ -> error!(query, "#{dir} is not supported in ORDER BY in MySQL")
       end
     end
 
-    defp limit(%Query{limit: nil}, _sources), do: ""
+    defp limit(%Query{limit: nil}, _sources), do: []
 
     defp limit(
            %Query{
@@ -580,15 +574,14 @@ if Code.ensure_loaded?(Tds) do
          ) do
       case Map.get(query, :offset) do
         nil ->
-          [" TOP(", expr(expr, sources, query), ")"]
-          |> IO.iodata_to_binary()
+          ["TOP(", expr(expr, sources, query), ") "]
 
         _ ->
-          ""
+          []
       end
     end
 
-    defp offset(%Query{offset: nil}, _sources), do: nil
+    defp offset(%Query{offset: nil}, _sources), do: []
 
     defp offset(
            %Query{
@@ -602,37 +595,47 @@ if Code.ensure_loaded?(Tds) do
            sources
          ) do
       [
-        "OFFSET ",
+        " OFFSET ",
         expr(offset_expr, sources, query),
-        " ROW ",
-        "FETCH NEXT ",
+        " ROW",
+        " FETCH NEXT ",
         expr(limit_expr, sources, query),
         " ROWS ONLY"
       ]
-      |> IO.iodata_to_binary()
     end
 
     defp offset(%Query{offset: _} = query, _sources) do
       error!(query, "You must provide a limit while using an offset")
     end
 
-    defp lock(nil), do: ""
-    defp lock(lock_clause), do: " #{lock_clause} "
+    defp combinations(%{combinations: combinations}) do
+      Enum.map(combinations, fn
+        {:union, query} -> [" UNION (", all(query), ")"]
+        {:union_all, query} -> [" UNION ALL (", all(query), ")"]
+        {:except, query} -> [" EXCEPT (", all(query), ")"]
+        {:except_all, query} -> [" EXCEPT ALL (", all(query), ")"]
+        {:intersect, query} -> [" INTERSECT (", all(query), ")"]
+        {:intersect_all, query} -> [" INTERSECT ALL (", all(query), ")"]
+      end)
+    end
+
+    defp lock(nil), do: []
+    defp lock(lock_clause), do: [?\s, lock_clause]
 
     defp boolean(_name, [], _sources, _query), do: []
 
     defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do
-      boolean_expression =
-        Enum.reduce(query_exprs, {op, paren_expr(expr, sources, query)}, fn
-          %BooleanExpr{expr: expr, op: op}, {op, acc} ->
-            {op, acc <> operator_to_boolean(op) <> paren_expr(expr, sources, query)}
+      [
+        name
+        | Enum.reduce(query_exprs, {op, paren_expr(expr, sources, query)}, fn
+            %BooleanExpr{expr: expr, op: op}, {op, acc} ->
+              {op, [acc, operator_to_boolean(op), paren_expr(expr, sources, query)]}
 
-          %BooleanExpr{expr: expr, op: op}, {_, acc} ->
-            {op, "(" <> acc <> ")" <> operator_to_boolean(op) <> paren_expr(expr, sources, query)}
-        end)
-        |> elem(1)
-
-      name <> " " <> boolean_expression
+            %BooleanExpr{expr: expr, op: op}, {_, acc} ->
+              {op, [?(, acc, ?), operator_to_boolean(op), paren_expr(expr, sources, query)]}
+          end)
+          |> elem(1)
+      ]
     end
 
     # defp boolean(name, query_exprs, sources, query) do
@@ -652,7 +655,6 @@ if Code.ensure_loaded?(Tds) do
 
     defp paren_expr(expr, sources, query) do
       [?(, expr(expr, sources, query), ?)]
-      |> IO.iodata_to_binary()
     end
 
     # :^ - represents parameter ix is index number
@@ -705,7 +707,8 @@ if Code.ensure_loaded?(Tds) do
     end
 
     # example from(p in Post, where: p.id in [])
-    defp expr({:in, _, [_left, {:^, [], [0, 0]}]}, _sources, _query), do: "0=1"
+    defp expr({:in, _, [_, {:^, _, [_, 0]}]}, _sources, _query), do: "0=1"
+
     # example from(p in Post, where: p.id in ^some_list)
     # or from(p in Post, where: p.id in ^[])
     defp expr({:in, _, [left, {:^, _, [idx, length]}]}, sources, query) do
@@ -844,11 +847,11 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr(literal, _sources, _query) when is_integer(literal) do
-      String.Chars.Integer.to_string(literal)
+      Integer.to_string(literal)
     end
 
     defp expr(literal, _sources, _query) when is_float(literal) do
-      String.Chars.Float.to_string(literal)
+      Float.to_string(literal)
     end
 
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
@@ -871,17 +874,14 @@ if Code.ensure_loaded?(Tds) do
       expr(count, sources, query)
     end
 
-    defp returning([], _verb), do: ""
+    defp returning([], _verb), do: []
 
     defp returning(returning, verb) do
-      "OUTPUT " <>
-        Enum.map_join(returning, ", ", fn arg -> "#{verb}.#{quote_name(arg)}" end) <> " "
+      [" OUTPUT ", intersperse_map(returning, ", ", &[verb, ?., quote_name(&1)])]
     end
 
     defp create_names(%{sources: sources}) do
-      sources
-      |> create_names(0, tuple_size(sources))
-      |> List.to_tuple()
+      create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
     end
 
     defp create_names(sources, pos, limit) when pos < limit do
@@ -898,7 +898,7 @@ if Code.ensure_loaded?(Tds) do
           {nil, "f" <> Integer.to_string(pos), nil}
 
         {table, model, prefix} ->
-          name = String.first(table) <> Integer.to_string(pos)
+          name = create_alias(table) <> Integer.to_string(pos)
           {quote_table(prefix, table), name, model}
 
         %Ecto.SubQuery{} ->
@@ -906,9 +906,18 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
+    defp create_alias(<<first, _rest::binary>>) when first in ?a..?z when first in ?A..?Z do
+      <<first>>
+    end
+
+    defp create_alias(_) do
+      "t"
+    end
+
     # DDL
     alias Ecto.Migration.{Table, Index, Reference, Constraint}
 
+    @impl true
     def execute_ddl({command, %Table{} = table, columns})
         when command in [:create, :create_if_not_exists] do
       prefix = table.prefix
@@ -925,10 +934,10 @@ if Code.ensure_loaded?(Tds) do
                  ", CONSTRAINT [#{pk_name}_pkey] "
                ) do
           [] -> []
-          list -> [" (#{list})"]
+          list -> [" (", list, ?)]
         end
 
-      query = [
+      [
         [
           if_table_not_exists(command == :create_if_not_exists, table.name, prefix),
           "CREATE TABLE ",
@@ -939,14 +948,12 @@ if Code.ensure_loaded?(Tds) do
           if_do(command == :create_if_not_exists, "END ")
         ]
       ]
-
-      Enum.map_join(query, "", &"#{&1}")
     end
 
     def execute_ddl({command, %Table{} = table}) when command in [:drop, :drop_if_exists] do
       prefix = table.prefix
 
-      query = [
+      [
         [
           if_table_exists(command == :drop_if_exists, table.name, prefix),
           "DROP TABLE ",
@@ -954,8 +961,6 @@ if Code.ensure_loaded?(Tds) do
           if_do(command == :drop_if_exists, "END ")
         ]
       ]
-
-      Enum.map_join(query, "", &"#{&1}")
     end
 
     def execute_ddl({:alter, %Table{} = table, changes}) do
@@ -973,10 +978,11 @@ if Code.ensure_loaded?(Tds) do
         end
 
       [
-        column_changes(statement_prefix, table, changes),
-        pkeys
+        [
+          column_changes(statement_prefix, table, changes),
+          pkeys
+        ]
       ]
-      |> IO.iodata_to_binary()
     end
 
     def execute_ddl({command, %Index{} = index})
@@ -1008,7 +1014,6 @@ if Code.ensure_loaded?(Tds) do
           ";"
         ]
       ]
-      |> IO.iodata_to_binary()
     end
 
     def execute_ddl({:create, %Constraint{check: check}}) when is_binary(check),
@@ -1021,19 +1026,20 @@ if Code.ensure_loaded?(Tds) do
       prefix = index.prefix
 
       [
-        if_index_exists(
-          command == :drop_if_exists,
-          index.name,
-          unquoted_name(prefix, index.table)
-        ),
-        "DROP INDEX ",
-        quote_name(index.name),
-        " ON ",
-        quote_table(prefix, index.table),
-        if_do(index.concurrently, " LOCK=NONE"),
-        ";"
+        [
+          if_index_exists(
+            command == :drop_if_exists,
+            index.name,
+            unquoted_name(prefix, index.table)
+          ),
+          "DROP INDEX ",
+          quote_name(index.name),
+          " ON ",
+          quote_table(prefix, index.table),
+          if_do(index.concurrently, " LOCK=NONE"),
+          ";"
+        ]
       ]
-      |> IO.iodata_to_binary()
     end
 
     def execute_ddl({:drop, %Constraint{}}),
@@ -1049,7 +1055,6 @@ if Code.ensure_loaded?(Tds) do
           "'"
         ]
       ]
-      |> IO.iodata_to_binary()
     end
 
     def execute_ddl({:rename, table, current_column, new_column}) do
@@ -1062,13 +1067,20 @@ if Code.ensure_loaded?(Tds) do
           "', 'COLUMN'"
         ]
       ]
-      |> IO.iodata_to_binary()
     end
 
     def execute_ddl(string) when is_binary(string), do: [string]
 
     def execute_ddl(keyword) when is_list(keyword),
       do: error!(nil, "MSSQL adapter does not support keyword lists in execute")
+
+    @impl true
+    def ddl_logs(_), do: []
+
+    @impl true
+    def table_exists_query(table) do
+      {"SELECT 1 FROM sys.tables WHERE [name] = @1", [table]}
+    end
 
     defp pk_definitions(columns, prefix) do
       pks =
@@ -1081,10 +1093,7 @@ if Code.ensure_loaded?(Tds) do
           []
 
         _ ->
-          [
-            [prefix, "PRIMARY KEY CLUSTERED (#{intersperse_map(pks, ", ", &quote_name/1)})"]
-            |> IO.iodata_to_binary()
-          ]
+          [prefix, "PRIMARY KEY CLUSTERED (#{intersperse_map(pks, ", ", &quote_name/1)})"]
       end
     end
 
@@ -1310,8 +1319,9 @@ if Code.ensure_loaded?(Tds) do
       {expr || paren_expr(source, sources, query), name}
     end
 
-    defp quote_name(name)
-    defp quote_name(name) when is_atom(name), do: quote_name(Atom.to_string(name))
+    defp quote_name(name) when is_atom(name) do
+      quote_name(Atom.to_string(name))
+    end
 
     defp quote_name(name) do
       if String.contains?(name, "[") or String.contains?(name, "]") do
@@ -1346,7 +1356,6 @@ if Code.ensure_loaded?(Tds) do
       name = if is_atom(name), do: Atom.to_string(name), else: name
 
       [prefix, ".", name]
-      |> IO.iodata_to_binary()
     end
 
     defp unquoted_name(name) when is_atom(name), do: unquoted_name(Atom.to_string(name))
@@ -1361,15 +1370,25 @@ if Code.ensure_loaded?(Tds) do
 
     defp intersperse_map(list, separator, mapper, acc \\ [])
     defp intersperse_map([], _separator, _mapper, acc), do: acc
-    defp intersperse_map([elem], _separator, mapper, acc), do: acc ++ mapper.(elem)
+    defp intersperse_map([elem], _separator, mapper, acc), do: [acc | mapper.(elem)]
 
     defp intersperse_map([elem | rest], separator, mapper, acc) do
-      statement =
-        [mapper.(elem), separator]
-        |> IO.iodata_to_binary()
+      intersperse_map(rest, separator, mapper, [acc, mapper.(elem), separator])
+    end
 
-      acc = acc ++ [statement]
-      intersperse_map(rest, separator, mapper, acc)
+    defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])
+
+    defp intersperse_reduce([], _separator, user_acc, _reducer, acc),
+      do: {acc, user_acc}
+
+    defp intersperse_reduce([elem], _separator, user_acc, reducer, acc) do
+      {elem, user_acc} = reducer.(elem, user_acc)
+      {[acc | elem], user_acc}
+    end
+
+    defp intersperse_reduce([elem | rest], separator, user_acc, reducer, acc) do
+      {elem, user_acc} = reducer.(elem, user_acc)
+      intersperse_reduce(rest, separator, user_acc, reducer, [acc, elem, separator])
     end
 
     defp if_do(condition, value) do
@@ -1439,13 +1458,6 @@ if Code.ensure_loaded?(Tds) do
       Atom.to_string(other)
     end
 
-    defp assemble(list) do
-      list
-      |> List.flatten()
-      |> Enum.filter(&(&1 != nil))
-      |> Enum.join(" ")
-    end
-
     defp error!(nil, message) do
       raise ArgumentError, message
     end
@@ -1455,37 +1467,27 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp if_table_not_exists(condition, name, prefix) do
-      if condition do
-        query_segment = [
-          "IF NOT EXISTS ( ",
-          "SELECT * ",
-          "FROM [INFORMATION_SCHEMA].[TABLES] info ",
-          "WHERE info.[TABLE_NAME] = '#{name}' ",
-          "AND ('#{prefix}' = '' OR info.[TABLE_SCHEMA] = '#{prefix}') ",
-          ") BEGIN "
-        ]
-
-        Enum.map_join(query_segment, "", &"#{&1}")
-      else
-        []
-      end
+      if_do(condition, [
+        "IF NOT EXISTS ( SELECT * FROM [INFORMATION_SCHEMA].[TABLES] info ",
+        "WHERE info.[TABLE_NAME] = '",
+        quote_table(prefix, name),
+        "' AND ('",
+        quote_name(prefix),
+        "' = '' OR info.[TABLE_SCHEMA] = '",
+        quote_name(prefix),
+        "') ) BEGIN "
+      ])
     end
 
     defp if_table_exists(condition, name, prefix) do
-      if condition do
-        query_segment = [
-          "IF EXISTS ( ",
-          "SELECT * ",
-          "FROM [INFORMATION_SCHEMA].[TABLES] info ",
-          "WHERE info.[TABLE_NAME] = '#{name}' ",
-          "AND ('#{prefix}' = '' OR info.[TABLE_SCHEMA] = '#{prefix}') ",
-          ") BEGIN "
-        ]
-
-        Enum.map_join(query_segment, "", &"#{&1}")
-      else
-        []
-      end
+      if_do(condition, [
+        "IF EXISTS ( ",
+        "SELECT * ",
+        "FROM [INFORMATION_SCHEMA].[TABLES] info ",
+        "WHERE info.[TABLE_NAME] = '#{name}' ",
+        "AND ('#{prefix}' = '' OR info.[TABLE_SCHEMA] = '#{prefix}') ",
+        ") BEGIN "
+      ])
     end
 
     defp list_param_to_args(idx, length) do
@@ -1496,31 +1498,23 @@ if Code.ensure_loaded?(Tds) do
     defp as_string(str), do: str
 
     defp if_index_exists(condition, index_name, table_name) do
-      if condition do
-        [
-          "IF EXISTS (SELECT name FROM sys.indexes WHERE name = N'",
-          as_string(index_name),
-          "' AND object_id = OBJECT_ID(N'",
-          as_string(table_name),
-          "')) "
-        ]
-      else
-        []
-      end
+      if_do(condition, [
+        "IF EXISTS (SELECT name FROM sys.indexes WHERE name = N'",
+        as_string(index_name),
+        "' AND object_id = OBJECT_ID(N'",
+        as_string(table_name),
+        "')) "
+      ])
     end
 
     defp if_index_not_exists(condition, index_name, table_name) do
-      if condition do
-        [
-          "IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'",
-          as_string(index_name),
-          "' AND object_id = OBJECT_ID(N'",
-          as_string(table_name),
-          "')) "
-        ]
-      else
-        []
-      end
+      if_do(condition, [
+        "IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'",
+        as_string(index_name),
+        "' AND object_id = OBJECT_ID(N'",
+        as_string(table_name),
+        "')) "
+      ])
     end
 
     # types
