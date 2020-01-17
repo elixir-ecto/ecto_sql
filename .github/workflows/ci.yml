@@ -39,6 +39,9 @@ jobs:
     steps:
       - name: Install MySQL Client
         run: |
+          apt-get update
+          apt-get install -y wget ca-certificates gnupg
+          apt-key adv --recv-keys --keyserver keys.gnupg.net 8C718D3B5072E1F5
           echo "deb http://repo.mysql.com/apt/debian/ stretch mysql-${{ matrix.mysql_version }}" >> /etc/apt/sources.list.d/mysql.list
           apt-get update
           apt-get install --allow-unauthenticated -y mysql-client
@@ -72,7 +75,7 @@ jobs:
           apt-get update
           apt-get install -y wget ca-certificates gnupg
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-          echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main ${{ matrix.pg_version }}" >> /etc/apt/sources.list.d/pgdg.list
+          echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main ${{ matrix.pg_version }}" >> /etc/apt/sources.list.d/pgdg.list
           apt-get update
           apt-get install -y postgresql-${{ matrix.pg_version }} postgresql-contrib-${{ matrix.pg_version }}
           psql --version
