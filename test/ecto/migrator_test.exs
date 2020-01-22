@@ -337,18 +337,18 @@ defmodule Ecto.MigratorTest do
 
     test "on up" do
       assert up(TestRepo, 9, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _}
+      assert_receive {:lock_for_migrations, _, _}
 
       assert up(TestRepo, 10, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _}
+      refute_received {:lock_for_migrations, _, _}
     end
 
     test "on down" do
       assert down(TestRepo, 1, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _}
+      assert_receive {:lock_for_migrations, _, _}
 
       assert down(TestRepo, 2, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _}
+      refute_received {:lock_for_migrations, _, _}
     end
 
     test "on run" do
@@ -356,14 +356,14 @@ defmodule Ecto.MigratorTest do
         create_migration "13_sample.exs"
         assert run(TestRepo, path, :up, all: true, log: false) == [13]
         # One lock for fetching versions, another for running
-        assert_receive {:lock_for_migrations, _}
-        assert_receive {:lock_for_migrations, _}
+        assert_receive {:lock_for_migrations, _, _}
+        assert_receive {:lock_for_migrations, _, _}
 
         create_migration "14_sample.exs", [:disable_migration_lock]
         assert run(TestRepo, path, :up, all: true, log: false) == [14]
         # One lock for fetching versions, another from running
-        assert_receive {:lock_for_migrations, _}
-        refute_received {:lock_for_migrations, _}
+        assert_receive {:lock_for_migrations, _, _}
+        refute_received {:lock_for_migrations, _, _}
       end
     end
   end
@@ -534,7 +534,7 @@ defmodule Ecto.MigratorTest do
       capture_log fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
         up(TestRepo, 0, ChangeMigration)
-        assert_receive {:transaction, _}
+        assert_receive {:transaction, _, _}
       end
     end
 

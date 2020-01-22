@@ -1,10 +1,11 @@
-defmodule Ecto.TenantMigratorTest do
+defmodule Ecto.MigratorRepoTest do
   use ExUnit.Case
 
   import Ecto.Migrator
   import ExUnit.CaptureLog
 
   alias EctoSQL.TestRepo
+  alias EctoSQL.MigrationTestRepo
 
   defmodule Migration do
     use Ecto.Migration
@@ -43,27 +44,29 @@ defmodule Ecto.TenantMigratorTest do
     end
   end
 
-  describe "dynamic_repo option" do
+  describe "migration_repo option" do
     test "upwards and downwards migrations" do
-      assert run(TestRepo, [{3, ChangeMigration}, {4, Migration}], :up, to: 4, log: false, dynamic_repo: :tenant_db) == [4]
-      assert run(TestRepo, [{2, ChangeMigration}, {3, Migration}], :down, all: true, log: false, dynamic_repo: :tenant_db) == [3, 2]
+      assert run(TestRepo, [{3, ChangeMigration}, {4, Migration}], :up, to: 4, log: false, migration_repo: MigrationTestRepo) == [4]
+      assert run(TestRepo, [{2, ChangeMigration}, {3, Migration}], :down, all: true, log: false, migration_repo: MigrationTestRepo) == [3, 2]
     end
 
     test "down invokes the repository adapter with down commands" do
-      assert down(TestRepo, 0, Migration, log: false, dynamic_repo: :tenant_db) == :already_down
-      assert down(TestRepo, 2, Migration, log: false, dynamic_repo: :tenant_db) == :ok
+      assert down(TestRepo, 0, Migration, log: false, migration_repo: MigrationTestRepo) == :already_down
+      assert down(TestRepo, 2, Migration, log: false, migration_repo: MigrationTestRepo) == :ok
     end
 
     test "up invokes the repository adapter with up commands" do
-      assert up(TestRepo, 3, Migration, log: false, dynamic_repo: :tenant_db) == :already_up
-      assert up(TestRepo, 4, Migration, log: false, dynamic_repo: :tenant_db) == :ok
+      assert up(TestRepo, 3, Migration, log: false, migration_repo: MigrationTestRepo) == :already_up
+      assert up(TestRepo, 4, Migration, log: false, migration_repo: MigrationTestRepo) == :ok
     end
 
     test "migrations run inside a transaction if the adapter supports ddl transactions" do
       capture_log fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
-        up(TestRepo, 0, Migration, dynamic_repo: :tenant_db)
-        assert_receive {:transaction, _, _}
+        up(TestRepo, 0, Migration, migration_repo: MigrationTestRepo)
+
+        assert_receive {:transaction, %{repo: TestRepo}, _}
+        assert_receive {:lock_for_migrations, %{repo: MigrationTestRepo}, _}
       end
     end
   end

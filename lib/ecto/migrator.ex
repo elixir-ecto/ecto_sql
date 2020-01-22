@@ -284,14 +284,16 @@ defmodule Ecto.Migrator do
     parent = self()
     ref = make_ref()
     dynamic_repo = repo.get_dynamic_repo()
+    migration_repo = Keyword.get(opts, :migration_repo, repo)
     task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, dynamic_repo, module, fun) end)
+
 
     if migrated_successfully?(ref, task.pid) do
       try do
         # The table with schema migrations can only be updated from
         # the parent process because it has a lock on the table
-        verbose_schema_migration repo, "update schema migrations", fn ->
-          apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
+        verbose_schema_migration migration_repo, "update schema migrations", fn ->
+          apply(SchemaMigration, direction, [migration_repo, version, opts[:prefix]])
         end
       catch
         kind, error ->
@@ -472,6 +474,7 @@ defmodule Ecto.Migrator do
   end
 
   defp lock_for_migrations(should_lock?, repo, opts, fun) when is_boolean(should_lock?) do
+    repo = Keyword.get(opts, :migration_repo, repo)
     dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
