@@ -284,7 +284,6 @@ defmodule Ecto.Migrator do
     parent = self()
     ref = make_ref()
     dynamic_repo = repo.get_dynamic_repo()
-    migration_repo = Keyword.get(opts, :migration_repo, repo)
     task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, dynamic_repo, module, fun) end)
 
 
@@ -293,7 +292,7 @@ defmodule Ecto.Migrator do
         # The table with schema migrations can only be updated from
         # the parent process because it has a lock on the table
         verbose_schema_migration repo, "update schema migrations", fn ->
-          apply(SchemaMigration, direction, [migration_repo, version, opts[:prefix]])
+          apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
         end
       catch
         kind, error ->
@@ -474,21 +473,27 @@ defmodule Ecto.Migrator do
   end
 
   defp lock_for_migrations(should_lock?, repo, opts, fun) when is_boolean(should_lock?) do
-    repo = Keyword.get(opts, :migration_repo, repo)
     dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
+
+    {lookup_meta_repo, migration_repo} =
+      if migration_repo = repo.config[:migration_repo] do
+        {migration_repo, migration_repo}
+      else
+        {dynamic_repo, repo}
+      end
 
     try do
       verbose_schema_migration repo, "create schema migrations table", fn ->
         SchemaMigration.ensure_schema_migrations_table!(repo, opts)
       end
 
-      meta = Ecto.Adapter.lookup_meta(dynamic_repo)
+      meta = Ecto.Adapter.lookup_meta(lookup_meta_repo)
       query = SchemaMigration.versions(repo, opts[:prefix])
-      callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
+      callback = &fun.(migration_repo.all(&1, timeout: :infinity, log: false))
 
       if should_lock? do
-        case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
+        case migration_repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
           {kind, reason, stacktrace} ->
             :erlang.raise(kind, reason, stacktrace)
 
