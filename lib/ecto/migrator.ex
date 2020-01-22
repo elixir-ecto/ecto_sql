@@ -651,7 +651,7 @@ defmodule Ecto.Migrator do
 
         To address the second, you can run "mix ecto.drop" followed by
         "mix ecto.create". Alternatively you may configure Ecto to use
-        another table and/or repo for managing migrations:
+        another table and/or repository for managing migrations:
 
             config #{inspect repo.config[:otp_app]}, #{inspect repo},
               migration_source: "some_other_table_for_schema_migrations",
