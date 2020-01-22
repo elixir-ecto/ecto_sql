@@ -292,7 +292,7 @@ defmodule Ecto.Migrator do
       try do
         # The table with schema migrations can only be updated from
         # the parent process because it has a lock on the table
-        verbose_schema_migration migration_repo, "update schema migrations", fn ->
+        verbose_schema_migration repo, "update schema migrations", fn ->
           apply(SchemaMigration, direction, [migration_repo, version, opts[:prefix]])
         end
       catch
@@ -651,10 +651,11 @@ defmodule Ecto.Migrator do
 
         To address the second, you can run "mix ecto.drop" followed by
         "mix ecto.create". Alternatively you may configure Ecto to use
-        another table for managing migrations:
+        another table and/or repo for managing migrations:
 
             config #{inspect repo.config[:otp_app]}, #{inspect repo},
-              migration_source: "some_other_table_for_schema_migrations"
+              migration_source: "some_other_table_for_schema_migrations",
+              migration_repo: AnotherRepoForSchemaMigrations
 
         The full error report is shown below.
         """
