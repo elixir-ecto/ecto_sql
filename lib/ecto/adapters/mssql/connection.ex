@@ -215,7 +215,7 @@ if Code.ensure_loaded?(Tds) do
     def all(query) do
       sources = create_names(query)
 
-      # cte = TODO
+      cte = cte(query, sources)
       from = from(query, sources)
       select = select(query, sources)
       join = join(query, sources)
@@ -233,12 +233,13 @@ if Code.ensure_loaded?(Tds) do
       if query.offset != nil and query.order_bys == [],
         do: error!(query, "ORDER BY is mandatory when OFFSET is set")
 
-      [select, from, join, where, group_by, having, combinations, order_by, offset]
+      [cte, select, from, join, where, group_by, having, combinations, order_by, offset]
     end
 
     @impl true
     def update_all(query) do
       sources = create_names(query)
+      cte = cte(query, sources)
       {table, name, _model} = elem(sources, 0)
 
       fields = update_fields(query, sources)
@@ -246,12 +247,13 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
 
-      ["UPDATE ", name, " SET ", fields, from, join, where]
+      [cte, "UPDATE ", name, " SET ", fields, from, join, where | returning(query, 0, "INSERTED")]
     end
 
     @impl true
     def delete_all(query) do
       sources = create_names(query)
+      cte = cte(query, sources)
       {table, name, _model} = elem(sources, 0)
 
       delete = "DELETE #{name}"
@@ -259,7 +261,7 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
 
-      [delete, from, join, where]
+      [cte, delete, from, join, where | returning(query, 0, "DELETED")]
     end
 
     @impl true
@@ -427,7 +429,6 @@ if Code.ensure_loaded?(Tds) do
       )
     end
 
-
     defp select([], sources, %{select: %SelectExpr{expr: val}} = query) do
       expr(val, sources, query)
     end
@@ -461,6 +462,44 @@ if Code.ensure_loaded?(Tds) do
 
       [" FROM ", from, " AS ", name, if_do(lock, lock(lock))]
     end
+
+    defp cte(%{with_ctes: %WithExpr{queries: [_ | _] = queries}} = query, sources) do
+      ctes = intersperse_map(queries, ", ", &cte_expr(&1, sources, query))
+      ["WITH ", ctes, " "]
+    end
+
+    defp cte(%{with_ctes: _}, _), do: []
+
+    defp cte_expr({name, cte}, sources, query) do
+      [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query)]
+    end
+
+    defp cte_header(%QueryExpr{}, query) do
+      error!(
+        query,
+        "Unfortunately MsSQL adapter does not support fragment in CTE"
+      )
+    end
+
+    defp cte_header(%Ecto.Query{select: %{fields: fields}} = query, _) do
+      [
+        " (",
+        intersperse_map(fields, ", ", fn
+          {key, _} ->
+            [quote_name(key)]
+
+          other ->
+            error!(
+              query,
+              "MSSQL adapter got expected field name or alias, instead got #{inspect(other)}"
+            )
+        end),
+        ?)
+      ]
+    end
+
+    defp cte_query(%Ecto.Query{} = query, _, _), do: [?(, all(query), ?)]
+    # defp cte_query(%QueryExpr{expr: expr}, sources, query), do: expr(expr, sources, query)
 
     defp update_fields(%Query{updates: updates} = query, sources) do
       for(
@@ -558,7 +597,7 @@ if Code.ensure_loaded?(Tds) do
       case dir do
         :asc -> str
         :desc -> [str | " DESC"]
-        _ -> error!(query, "#{dir} is not supported in ORDER BY in MySQL")
+        _ -> error!(query, "#{dir} is not supported in ORDER BY in MsSql")
       end
     end
 
@@ -876,9 +915,18 @@ if Code.ensure_loaded?(Tds) do
 
     defp returning([], _verb), do: []
 
-    defp returning(returning, verb) do
+    defp returning(returning, verb) when is_list(returning) do
       [" OUTPUT ", intersperse_map(returning, ", ", &[verb, ?., quote_name(&1)])]
     end
+
+    defp returning(%{select: nil}, _, _),
+      do: []
+    defp returning(%{select: %{fields: fields}}, idx, verb),
+      do: [
+        " OUTPUT " | intersperse_map(fields, ", ", fn
+          {{:., _, [{:&, _, [^idx]}, key]}, _, _} -> [verb, ?., quote_name(key)]
+          _ -> []
+      end)]
 
     defp create_names(%{sources: sources}) do
       create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()

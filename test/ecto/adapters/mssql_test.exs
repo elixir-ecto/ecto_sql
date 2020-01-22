@@ -107,10 +107,12 @@ defmodule Ecto.Adapters.MsSqlTest do
     query = "0odel" |> select([:x]) |> plan()
     assert all(query) == ~s{SELECT t0.[x] FROM [0odel] AS t0}
 
-    assert_raise Ecto.QueryError, ~r"MSSQL adapter does not support selecting all fields from", fn ->
-      query = from(m in "model", select: [m]) |> plan()
-      all(query) == ~s{SELECT m0.* FROM [model] AS m0}
-    end
+    assert_raise Ecto.QueryError,
+                 ~r"MSSQL adapter does not support selecting all fields from",
+                 fn ->
+                   query = from(m in "model", select: [m]) |> plan()
+                   all(query) == ~s{SELECT m0.* FROM [model] AS m0}
+                 end
   end
 
   test "from with subquery" do
@@ -147,14 +149,115 @@ defmodule Ecto.Adapters.MsSqlTest do
       |> plan()
 
     assert all(query) ==
-             ~s{;WITH [tree] ([id], [depth]) AS (} <>
-               ~s{SELECT c0.[id] AS [id], 1 AS [depth] FROM [categories] AS c0 WHERE (c0.[parent_id] IS NULL } <>
+             ~s{WITH [tree] ([id], [depth]) AS (} <>
+               ~s{SELECT c0.[id] AS [id], 1 AS [depth] FROM [categories] AS c0 WHERE (c0.[parent_id] IS NULL) } <>
                ~s{UNION ALL } <>
-               ~s{SELECT c0.[id], t1.[depth] + 1 FROM [categories] AS c0 } <>
-               ~s{INNER JOIN [tree] AS t1 ON t1.[id] = c0.[parent_id]) } <>
-               ~s{SELECT s0.[x], t1.[id], CAST(t1.[depth] AS unsigned) } <>
-               ~s{FROM [schema] AS s0 } <>
-               ~s{INNER JOIN [tree] AS t1 ON t1.[id] = s0.[category_id]}
+               ~s{(SELECT c0.[id], t1.[depth] + 1 FROM [categories] AS c0 } <>
+               ~s{INNER JOIN [tree] AS t1 ON t1.[id] = c0.[parent_id])) } <>
+               ~s{SELECT m0.[x], t1.[id], CAST(t1.[depth] AS integer) } <>
+               ~s{FROM [model] AS m0 } <>
+               ~s{INNER JOIN [tree] AS t1 ON t1.[id] = m0.[category_id]}
+  end
+
+  @raw_sql_cte """
+  SELECT * FROM categories WHERE c.parent_id IS NULL
+  UNION ALL
+  SELECT * FROM categories AS c, category_tree AS ct WHERE ct.id = c.parent_id
+  """
+
+  test "reference CTE in union" do
+    comments_scope_query =
+      "comments"
+      |> where([c], is_nil(c.deleted_at))
+      |> select([c], %{entity_id: c.entity_id, text: c.text})
+
+    posts_query =
+      "posts"
+      |> join(:inner, [p], c in "comments_scope", on: c.entity_id == p.guid)
+      |> select([p, c], [p.title, c.text])
+
+    videos_query =
+      "videos"
+      |> join(:inner, [v], c in "comments_scope", on: c.entity_id == v.guid)
+      |> select([v, c], [v.title, c.text])
+
+    query =
+      posts_query
+      |> union_all(^videos_query)
+      |> with_cte("comments_scope", as: ^comments_scope_query)
+      |> plan()
+
+    assert all(query) ==
+             ~s{WITH [comments_scope] ([entity_id], [text]) AS (} <>
+               ~s{SELECT c0.[entity_id] AS [entity_id], c0.[text] AS [text] } <>
+               ~s{FROM [comments] AS c0 WHERE (c0.[deleted_at] IS NULL)) } <>
+               ~s{SELECT p0.[title], c1.[text] } <>
+               ~s{FROM [posts] AS p0 } <>
+               ~s{INNER JOIN [comments_scope] AS c1 ON c1.[entity_id] = p0.[guid] } <>
+               ~s{UNION ALL } <>
+               ~s{(SELECT v0.[title], c1.[text] } <>
+               ~s{FROM [videos] AS v0 } <>
+               ~s{INNER JOIN [comments_scope] AS c1 ON c1.[entity_id] = v0.[guid])}
+  end
+
+  test "fragment CTE" do
+    query =
+      Model
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: fragment(@raw_sql_cte))
+      |> join(:inner, [p], c in "tree", on: c.id == p.category_id)
+      |> select([r], r.x)
+      |> plan()
+
+    assert_raise(
+      Ecto.QueryError,
+      ~r"Unfortunately MsSQL adapter does not support fragment in CTE",
+      fn ->
+        all(query)
+      end
+    )
+  end
+
+  test "CTE update_all" do
+    cte_query =
+      from(x in Model, order_by: [asc: :id], limit: 10, lock: "WITH(NOLOCK)", select: %{id: x.id})
+
+    query =
+      Model
+      |> with_cte("target_rows", as: ^cte_query)
+      |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
+      |> select([r, t], r)
+      |> update(set: [x: 123])
+      |> plan(:update_all)
+
+    assert update_all(query) ==
+      ~s{WITH [target_rows] ([id]) AS } <>
+      ~s{(SELECT TOP(10) m0.[id] AS [id] FROM [model] AS m0 WITH(NOLOCK) ORDER BY m0.[id]) } <>
+      ~s{UPDATE m0 } <>
+      ~s{SET m0.[x] = 123 } <>
+      ~s{FROM [model] AS m0 } <>
+      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id] } <>
+      ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w]}
+  end
+
+  test "CTE delete_all" do
+    cte_query =
+      from(x in Model, order_by: [asc: :id], limit: 10, select: %{id: x.id})
+
+    query =
+      Model
+      |> with_cte("target_rows", as: ^cte_query)
+      |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
+      |> select([r, t], r)
+      |> plan(:delete_all)
+
+    assert delete_all(query) ==
+      ~s{WITH [target_rows] ([id]) AS } <>
+      ~s{(SELECT TOP(10) m0.[id] AS [id] FROM [model] AS m0 ORDER BY m0.[id]) } <>
+      ~s{DELETE m0 } <>
+      ~s{FROM [model] AS m0 } <>
+      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id] } <>
+      ~s{OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w]}
   end
 
   test "select" do
@@ -625,7 +728,9 @@ defmodule Ecto.Adapters.MsSqlTest do
     assert query == ~s{INSERT INTO [model] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2)}
 
     query = insert(nil, "model", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id])
-    assert query == ~s{INSERT INTO [model] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2),(DEFAULT, @3)}
+
+    assert query ==
+             ~s{INSERT INTO [model] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2),(DEFAULT, @3)}
 
     query = insert(nil, "model", [], [[]], {:raise, [], []}, [:id])
     assert query == ~s{INSERT INTO [model] OUTPUT INSERTED.[id] DEFAULT VALUES}
