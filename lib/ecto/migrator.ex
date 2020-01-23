@@ -288,7 +288,6 @@ defmodule Ecto.Migrator do
     dynamic_repo = repo.get_dynamic_repo()
     task = Task.async(fn -> run_maybe_in_transaction(parent, ref, repo, dynamic_repo, module, fun) end)
 
-
     if migrated_successfully?(ref, task.pid) do
       try do
         # The table with schema migrations can only be updated from
