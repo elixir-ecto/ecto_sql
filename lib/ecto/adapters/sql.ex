@@ -496,6 +496,7 @@ defmodule Ecto.Adapters.SQL do
         load_embed(type, value)
 
       type, value ->
+        # TODO: use embedded_load when bumping the Ecto requirement
         case Ecto.Type.embed_as(type, :json) do
           :self ->
             case Ecto.Type.cast(type, value) do
@@ -515,6 +516,7 @@ defmodule Ecto.Adapters.SQL do
         dump_embed(type, value)
 
       type, value ->
+        # TODO: use embedded_dump when bumping the Ecto requirement
         case Ecto.Type.embed_as(type, :json) do
           :self -> {:ok, value}
           :dump -> Ecto.Type.dump(type, value)
