@@ -266,6 +266,20 @@ defmodule Ecto.Adapters.MsSqlTest do
 
     query = Model |> select([r], [r.x, r.y]) |> plan()
     assert all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
+
+    query = Model |> select([r], struct(r, [:x, :y])) |> plan()
+    assert all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
+  end
+
+  test "aggregates" do
+    query = Model |> select([r], count(r.x)) |> plan()
+    assert all(query) == ~s{SELECT count(m0.[x]) FROM [model] AS m0}
+
+    query = Model |> select([r], count(r.x, :distinct)) |> plan()
+    assert all(query) == ~s{SELECT count(DISTINCT m0.[x]) FROM [model] AS m0}
+
+    query = Model |> select([r], count()) |> plan()
+    assert all(query) == ~s{SELECT count(*) FROM [model] AS m0}
   end
 
   test "select with operation" do

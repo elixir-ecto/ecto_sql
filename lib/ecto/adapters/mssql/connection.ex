@@ -807,6 +807,8 @@ if Code.ensure_loaded?(Tds) do
         ) <> " AS datetime2)" <> ") AS date)"
     end
 
+    defp expr({:count, _, []}, _sources, _query), do: "count(*)"
+
     defp expr({fun, _, args}, sources, query) when is_atom(fun) and is_list(args) do
       {modifier, args} =
         case args do
