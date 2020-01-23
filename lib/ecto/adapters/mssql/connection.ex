@@ -228,12 +228,12 @@ if Code.ensure_loaded?(Tds) do
       # limit = is handled in select (TOP X)
       offset = offset(query, sources)
       # lock = is handled in FROM
-      # options = aka hints TODO
+      options = options(query, sources)
 
       if query.offset != nil and query.order_bys == [],
         do: error!(query, "ORDER BY is mandatory when OFFSET is set")
 
-      [cte, select, from, join, where, group_by, having, combinations, order_by, offset]
+      [cte, select, from, join, where, group_by, having, combinations, order_by, offset | options]
     end
 
     @impl true
@@ -452,11 +452,6 @@ if Code.ensure_loaded?(Tds) do
       end)
     end
 
-    defp from(%{from: %{hints: [_ | _]}} = query, _sources) do
-      error!(query, "table hints are not supported by MsSql adpter yet.")
-    end
-
-    # defp from(%{from: %{source: source, hints: hints}} = query, sources) do
     defp from(%{from: %{source: source}, lock: lock} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
 
@@ -580,6 +575,22 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
+    # defp window_exprs(kw, sources, query) do
+    #   [?(, intersperse_map(kw, ?\s, &window_expr(&1, sources, query)), ?)]
+    # end
+
+    # defp window_expr({:partition_by, fields}, sources, query) do
+    #   ["PARTITION BY " | intersperse_map(fields, ", ", &expr(&1, sources, query))]
+    # end
+
+    # defp window_expr({:order_by, fields}, sources, query) do
+    #   ["ORDER BY " | intersperse_map(fields, ", ", &order_by_expr(&1, sources, query))]
+    # end
+
+    # defp window_expr({:frame, {:fragment, _, _} = fragment}, sources, query) do
+    #   expr(fragment, sources, query)
+    # end
+
     defp order_by(%{order_bys: []}, _sources), do: []
 
     defp order_by(%{order_bys: order_bys} = query, sources) do
@@ -620,32 +631,30 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
-    defp offset(%Query{offset: nil}, _sources), do: []
+    defp offset(%{offset: nil}, _sources), do: []
 
-    defp offset(
-           %Query{
-             offset: %QueryExpr{
-               expr: offset_expr
-             },
-             limit: %QueryExpr{
-               expr: limit_expr
-             }
-           } = query,
-           sources
-         ) do
+    defp offset(%Query{offset: _, limit: nil} = query, _sources) do
+      error!(query, "You must provide a limit while using an offset")
+    end
+
+    defp offset(%{offset: offset, limit: limit} = query, sources) do
       [
         " OFFSET ",
-        expr(offset_expr, sources, query),
+        expr(offset.expr, sources, query),
         " ROW",
         " FETCH NEXT ",
-        expr(limit_expr, sources, query),
+        expr(limit.expr, sources, query),
         " ROWS ONLY"
       ]
     end
 
-    defp offset(%Query{offset: _} = query, _sources) do
-      error!(query, "You must provide a limit while using an offset")
+    defp options(%{from: %{hints: [_ | _] = hints}}, _sources) do
+      [" OPTION ", ?(, intersperse_map(hints, ", ", &[&1]), ?)]
     end
+
+    defp options(_query, _sources), do: []
+
+
 
     defp combinations(%{combinations: combinations}) do
       Enum.map(combinations, fn
@@ -770,6 +779,16 @@ if Code.ensure_loaded?(Tds) do
     defp expr({:filter, _, _}, _sources, query) do
       error!(query, "MSSQL adapter does not support aggregate filters")
     end
+
+    # defp expr({:over, _, [agg, name]}, sources, query) when is_atom(name) do
+    #   aggregate = expr(agg, sources, query)
+    #   [aggregate, " OVER ", "(GROUP BY ", quote_name(name), ?)]
+    # end
+
+    # defp expr({:over, _, [agg, kw]}, sources, query) do
+    #   aggregate = expr(agg, sources, query)
+    #   [aggregate, " OVER ", ?(, window_exprs(kw, sources, query), ?)]
+    # end
 
     defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
       all(query)

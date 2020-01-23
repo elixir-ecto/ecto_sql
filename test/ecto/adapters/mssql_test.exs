@@ -282,6 +282,19 @@ defmodule Ecto.Adapters.MsSqlTest do
     assert all(query) == ~s{SELECT count(*) FROM [model] AS m0}
   end
 
+  # test "aggregate filters" do
+  #   query = Model |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
+  #   assert all(query) == ~s{SELECT count(CASE WHEN m0.[x] > 10 THEN 1 ELSE NULL) FROM [model] AS m0}
+
+  #   query = Model |> select([r], count(r.x) |> filter(r.x > 10 and r.x < 50)) |> plan()
+  #   assert all(query) == ~s{SELECT count(CASE WHEN (m0.[x] > 10) AND (m.[x] < 50) THEN 1 ELSE NULL) FROM "schema" AS s0}
+
+  #   query = Model |> select([r], count() |> filter(r.x > 10)) |> plan()
+  #   assert all(query) == ~s{SELECT count(CASE WHEN m0.[x] > 10 THEN 1 ELSE NULL) FROM [model] AS m0}
+  # end
+
+
+
   test "select with operation" do
     query = Model |> select([r], r.x * 2) |> plan()
     assert all(query) == ~s{SELECT m0.[x] * 2 FROM [model] AS m0}
