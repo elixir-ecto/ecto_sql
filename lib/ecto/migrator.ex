@@ -138,21 +138,23 @@ defmodule Ecto.Migrator do
 
     case repo.start_link(pool_size: pool_size) do
       {:ok, _} ->
-        ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo)
-        try do
-          {:ok, fun.(repo), started}
-        after
-          repo.stop()
+        with :ok <- ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo) do
+          try do
+            {:ok, fun.(repo), started}
+          after
+            repo.stop()
+          end
         end
 
       {:error, {:already_started, _pid}} ->
-        ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo)
-        try do
-          {:ok, fun.(repo), started}
-        after
-          if Process.whereis(repo) do
-            %{pid: pid} = Ecto.Adapter.lookup_meta(repo)
-            Supervisor.restart_child(repo, pid)
+        with :ok <- ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo) do
+          try do
+            {:ok, fun.(repo), started}
+          after
+            if Process.whereis(repo) do
+              %{pid: pid} = Ecto.Adapter.lookup_meta(repo)
+              Supervisor.restart_child(repo, pid)
+            end
           end
         end
 
