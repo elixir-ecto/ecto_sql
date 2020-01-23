@@ -138,7 +138,7 @@ defmodule Ecto.Migrator do
 
     case repo.start_link(pool_size: pool_size) do
       {:ok, _} ->
-        ensure_migration_repo_started(repo, repo.config[:migration_repo])
+        ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo)
         try do
           {:ok, fun.(repo), started}
         after
@@ -146,7 +146,7 @@ defmodule Ecto.Migrator do
         end
 
       {:error, {:already_started, _pid}} ->
-        ensure_migration_repo_started(repo, repo.config[:migration_repo])
+        ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo)
         try do
           {:ok, fun.(repo), started}
         after
@@ -673,10 +673,6 @@ defmodule Ecto.Migrator do
   defp log(level, msg),  do: Logger.log(level, msg)
 
   defp ensure_migration_repo_started(repo, repo) do
-    :ok
-  end
-
-  defp ensure_migration_repo_started(_repo, nil) do
     :ok
   end
 
