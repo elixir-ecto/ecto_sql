@@ -135,29 +135,21 @@ defmodule Ecto.Migrator do
     {:ok, repo_started} = repo.__adapter__.ensure_all_started(config, mode)
     started = extra_started ++ repo_started
     pool_size = Keyword.get(opts, :pool_size, 2)
-
-    case repo.start_link(pool_size: pool_size) do
-      {:ok, _} ->
-        with :ok <- ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo) do
-          try do
-            {:ok, fun.(repo), started}
-          after
-            repo.stop()
-          end
-        end
-
-      {:error, {:already_started, _pid}} ->
-        with :ok <- ensure_migration_repo_started(repo, repo.config[:migration_repo] || repo) do
-          try do
-            {:ok, fun.(repo), started}
-          after
-            if Process.whereis(repo) do
-              %{pid: pid} = Ecto.Adapter.lookup_meta(repo)
-              Supervisor.restart_child(repo, pid)
+    migration_repo = repo.config[:migration_repo] || repo
+    case ensure_repo_started(repo, pool_size) do
+      {:ok, repo_after} ->
+        case ensure_migration_repo_started(migration_repo, repo) do
+          {:ok, migration_repo_after} ->
+            try do
+              {:ok, fun.(repo), started}
+            after
+              after_action(repo, repo_after)
+              after_action(migration_repo, migration_repo_after)
             end
-          end
+          {:error, _} = error ->
+            after_action(repo, repo_after)
+            error
         end
-
       {:error, _} = error ->
         error
     end
@@ -674,20 +666,48 @@ defmodule Ecto.Migrator do
   defp log(false, _msg), do: :ok
   defp log(level, msg),  do: Logger.log(level, msg)
 
-  defp ensure_migration_repo_started(repo, repo) do
-    :ok
-  end
-
-  defp ensure_migration_repo_started(_repo, migration_repo) do
-    case migration_repo.start_link() do
+  defp ensure_repo_started(repo, pool_size) do
+    case repo.start_link(pool_size: pool_size) do
       {:ok, _} ->
-        :ok
+        {:ok, :stop}
 
       {:error, {:already_started, _pid}} ->
-        :ok
+        {:ok, :restart}
 
       {:error, _} = error ->
         error
     end
+  end
+
+  defp ensure_migration_repo_started(repo, repo) do
+    {:ok, nil}
+  end
+
+  defp ensure_migration_repo_started(migration_repo, _repo) do
+    case migration_repo.start_link() do
+      {:ok, _} ->
+        {:ok, :stop}
+
+      {:error, {:already_started, _pid}} ->
+        {:ok, nil}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp after_action(repo, :restart) do
+    if Process.whereis(repo) do
+      %{pid: pid} = Ecto.Adapter.lookup_meta(repo)
+      Supervisor.restart_child(repo, pid)
+    end
+  end
+
+  defp after_action(repo, :stop) do
+    repo.stop()
+  end
+
+  defp after_action(_repo, nil) do
+    nil
   end
 end
