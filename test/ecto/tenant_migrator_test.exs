@@ -63,7 +63,7 @@ defmodule Ecto.TenantMigratorTest do
       capture_log fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
         up(TestRepo, 0, Migration, dynamic_repo: :tenant_db)
-        assert_receive {:transaction, _}
+        assert_receive {:transaction, _, _}
       end
     end
   end

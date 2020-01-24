@@ -49,9 +49,9 @@ defmodule EctoSQL.TestAdapter do
 
   def in_transaction?(_), do: Process.get(:in_transaction?) || false
 
-  def transaction(_mod, _opts, fun) do
+  def transaction(mod, _opts, fun) do
     Process.put(:in_transaction?, true)
-    send test_process(), {:transaction, fun}
+    send test_process(), {:transaction, mod, fun}
     {:ok, fun.()}
   after
     Process.put(:in_transaction?, false)
@@ -59,8 +59,8 @@ defmodule EctoSQL.TestAdapter do
 
   ## Migrations
 
-  def lock_for_migrations(_, query, _opts, fun) do
-    send test_process(), {:lock_for_migrations, fun}
+  def lock_for_migrations(mod, query, _opts, fun) do
+    send test_process(), {:lock_for_migrations, mod, fun}
     fun.(query)
   end
 
@@ -92,5 +92,10 @@ defmodule EctoSQL.TestRepo do
   use Ecto.Repo, otp_app: :ecto_sql, adapter: EctoSQL.TestAdapter
 end
 
+defmodule EctoSQL.MigrationTestRepo do
+  use Ecto.Repo, otp_app: :ecto_sql, adapter: EctoSQL.TestAdapter
+end
+
 EctoSQL.TestRepo.start_link()
 EctoSQL.TestRepo.start_link(name: :tenant_db)
+EctoSQL.MigrationTestRepo.start_link()

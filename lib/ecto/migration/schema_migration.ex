@@ -17,7 +17,7 @@ defmodule Ecto.Migration.SchemaMigration do
   def ensure_schema_migrations_table!(repo, opts) do
     table_name = repo |> get_source |> String.to_atom()
     table = %Ecto.Migration.Table{name: table_name, prefix: opts[:prefix]}
-    meta = Ecto.Adapter.lookup_meta(repo.get_dynamic_repo())
+    meta = Ecto.Adapter.lookup_meta(get_migration_repo(repo).get_dynamic_repo())
 
     commands = [
       {:add, :version, :bigint, primary_key: true},
@@ -25,7 +25,7 @@ defmodule Ecto.Migration.SchemaMigration do
     ]
 
     # DDL queries do not log, so we do not need to pass log: false here.
-    repo.__adapter__.execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
+    get_migration_repo(repo).__adapter__.execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
   end
 
   def versions(repo, prefix) do
@@ -36,16 +36,20 @@ defmodule Ecto.Migration.SchemaMigration do
   def up(repo, version, prefix) do
     %__MODULE__{version: version}
     |> Ecto.put_meta(prefix: prefix, source: get_source(repo))
-    |> repo.insert(@opts)
+    |> get_migration_repo(repo).insert(@opts)
   end
 
   def down(repo, version, prefix) do
     from(p in get_source(repo), where: p.version == type(^version, :integer))
     |> Map.put(:prefix, prefix)
-    |> repo.delete_all(@opts)
+    |> get_migration_repo(repo).delete_all(@opts)
   end
 
   def get_source(repo) do
     Keyword.get(repo.config, :migration_source, "schema_migrations")
+  end
+
+  def get_migration_repo(repo) do
+    Keyword.get(repo.config, :migration_repo, repo)
   end
 end
