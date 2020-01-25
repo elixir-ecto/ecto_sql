@@ -936,7 +936,7 @@ defmodule Ecto.Migration do
       Setting it to `false` disables the column.
     * `:type` - the type of the `:inserted_at` and `:updated_at` columns.
       Defaults to `:naive_datetime`.
-    * `:default` - the default value for the inserted_at column.
+    * `:default` - the default value for the `:inserted_at` column.
       default value is `fragment("CURRENT_TIMESTAMP")`
       Setting it to `false` disables a default value.
 
