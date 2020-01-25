@@ -936,6 +936,9 @@ defmodule Ecto.Migration do
       Setting it to `false` disables the column.
     * `:type` - the type of the `:inserted_at` and `:updated_at` columns.
       Defaults to `:naive_datetime`.
+    * `:default` - the default value for the inserted_at column.
+      default value is `fragment("CURRENT_TIMESTAMP")`
+      Setting it to `false` disables a default value.
 
   """
   def timestamps(opts \\ []) when is_list(opts) do
@@ -946,7 +949,14 @@ defmodule Ecto.Migration do
     {inserted_at, opts} = Keyword.pop(opts, :inserted_at, :inserted_at)
     {updated_at, opts} = Keyword.pop(opts, :updated_at, :updated_at)
 
-    if inserted_at != false, do: add(inserted_at, type, opts)
+    if inserted_at != false do
+      default = Keyword.get(opts, :default, fragment("CURRENT_TIMESTAMP"))
+      if default != false do
+        add(inserted_at, type, Keyword.merge([default: default], opts))
+      else
+        add(inserted_at, type, opts)
+      end
+    end
     if updated_at != false, do: add(updated_at, type, opts)
   end
 
