@@ -53,7 +53,10 @@ ExUnit.start(
     # and after insert we need to turn it on, must be run manually in transaction
     :pk_insert,
     # Tds allows nested transactions so this will never raise and SQL query should be "BEGIN TRAN"
-    :transaction_checkout_raises
+    :transaction_checkout_raises,
+    # JSON_VALUE always returns strings (even for e.g. integers) and returns null for
+    # arrays/objects (JSON_QUERY must be used for these)
+    :json_extract_path
   ]
 )
 

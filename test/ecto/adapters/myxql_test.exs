@@ -492,6 +492,20 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT CAST(? AS char) FROM `schema` AS s0}
   end
 
+  test "json_extract_path" do
+    query = Schema |> select([r], json_extract_path(r, [0, 1])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0, '$[0][1]') FROM `schema` AS s0}
+
+    query = Schema |> select([r], json_extract_path(r, ["a", "b"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0, '$."a"."b"') FROM `schema` AS s0}
+
+    query = Schema |> select([r], json_extract_path(r, ["'a"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0, '$."''a"') FROM `schema` AS s0}
+
+    query = Schema |> select([r], json_extract_path(r, ["\"a"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0, '$."\\\\"a"') FROM `schema` AS s0}
+  end
+
   test "nested expressions" do
     z = 123
     query = from(r in Schema, []) |> select([r], r.x > 0 and (r.y > ^(-z)) or true) |> plan()

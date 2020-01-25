@@ -204,7 +204,7 @@ defmodule Ecto.Adapters.TdsTest do
       |> select([r], r.x)
       |> plan()
 
-    assert_raise Ecto.QueryError, ~r"Unfortunately Tds adapter does not support fragment in CTE", fn ->
+    assert_raise Ecto.QueryError, ~r"Tds adapter does not support fragment in CTE", fn ->
       all(query)
     end
   end
