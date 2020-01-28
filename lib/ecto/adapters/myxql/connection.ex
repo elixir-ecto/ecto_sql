@@ -615,13 +615,14 @@ if Code.ensure_loaded?(MyXQL) do
       ["INTERVAL ", expr(count, sources, query), ?\s | interval]
     end
 
-    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
-      paren_expr(expr, sources, query)
-    end
+    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
+      do: paren_expr(expr, sources, query)
 
-    defp op_to_binary(expr, sources, query) do
-      expr(expr, sources, query)
-    end
+    defp op_to_binary({:is_nil, _, [_]} = expr, sources, query),
+      do: paren_expr(expr, sources, query)
+
+    defp op_to_binary(expr, sources, query),
+      do: expr(expr, sources, query)
 
     defp create_names(%{sources: sources}) do
       create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
