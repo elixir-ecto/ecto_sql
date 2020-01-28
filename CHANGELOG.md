@@ -1,5 +1,16 @@
 # Changelog for v3.x
 
+## v3.3.3 (2020-01-28)
+
+### Enhancements
+
+  * [myxql] Allow not setting the encoding when creating a database
+
+### Bug fixes
+
+  * [myxql] Removing prefixed table name from constraints on latest MySQL versions
+  * [sql] Fix precedence of `is_nil` when inside a comparison operator
+
 ## v3.3.2 (2019-12-15)
 
 ### Bug fixes
