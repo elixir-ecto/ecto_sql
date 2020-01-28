@@ -492,35 +492,16 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def load_embed(type, value) do
     Ecto.Type.load(type, value, fn
-      {:embed, _} = type, value ->
-        load_embed(type, value)
-
-      type, value ->
-        # TODO: use embedded_load when bumping the Ecto requirement
-        case Ecto.Type.embed_as(type, :json) do
-          :self ->
-            case Ecto.Type.cast(type, value) do
-              {:ok, _} = ok -> ok
-              _ -> :error
-            end
-          :dump ->
-            Ecto.Type.load(type, value)
-        end
+      {:embed, _} = type, value -> load_embed(type, value)
+      type, value -> Ecto.Type.embedded_load(type, value, :json)
     end)
   end
 
   @doc false
   def dump_embed(type, value) do
     Ecto.Type.dump(type, value, fn
-      {:embed, _} = type, value ->
-        dump_embed(type, value)
-
-      type, value ->
-        # TODO: use embedded_dump when bumping the Ecto requirement
-        case Ecto.Type.embed_as(type, :json) do
-          :self -> {:ok, value}
-          :dump -> Ecto.Type.dump(type, value)
-        end
+      {:embed, _} = type, value -> dump_embed(type, value)
+      type, value -> Ecto.Type.embedded_dump(type, value, :json)
     end)
   end
 
