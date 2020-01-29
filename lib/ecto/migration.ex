@@ -154,8 +154,8 @@ defmodule Ecto.Migration do
   terminates.
 
   However, in some situations you may want to guarantee that all of the
-  previous steps have been executed before continuing. This is useful when 
-  you need to apply a set of changes to the table before continuing with the 
+  previous steps have been executed before continuing. This is useful when
+  you need to apply a set of changes to the table before continuing with the
   migration. This can be done with `flush/0`:
 
       def up do
@@ -315,6 +315,7 @@ defmodule Ecto.Migration do
               unique: false,
               concurrently: false,
               using: nil,
+              include: [],
               where: nil,
               comment: nil,
               options: nil
@@ -327,6 +328,7 @@ defmodule Ecto.Migration do
       unique: boolean,
       concurrently: boolean,
       using: atom | String.t,
+      include: [atom | String.t],
       where: atom | String.t,
       comment: String.t | nil,
       options: String.t
@@ -624,6 +626,7 @@ defmodule Ecto.Migration do
       concurrently.
     * `:using` - configures the index type.
     * `:prefix` - specify an optional prefix for the index.
+    * `:include` - specify fields for a covering index.
     * `:where` - specify conditions for a partial index.
 
   ## Adding/dropping indexes concurrently
@@ -695,6 +698,9 @@ defmodule Ecto.Migration do
 
       # Partial indexes are created by specifying a :where option
       create index("products", [:user_id], where: "price = 0", name: :free_products_index)
+
+      # Covering indexes are created by specifying a :include option
+      create index("products", [:user_id], include: [:category_id])
 
   Indexes also support custom expressions. Some databases may require the
   index expression to be written between parentheses:
