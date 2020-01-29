@@ -540,28 +540,38 @@ defmodule Ecto.Adapters.MsSqlTest do
   end
 
   test "interpolated values" do
-    query =
-      Model
-      |> select([m], {m.id, ^0})
-      |> join(:inner, [], Model3, on: fragment("?", ^true))
-      |> join(:inner, [], Model3, on: fragment("?", ^false))
+    cte1 = "model1" |> select([m], %{id: m.id, smth: ^true}) |> where([], fragment("?", ^1))
+    union = "model1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^5))
+    union_all = "model2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^6))
+
+    query = "model"
+      |> with_cte("cte1", as: ^cte1)
+      |> select([m], {m.id, ^true})
+      |> join(:inner, [], Model2, on: fragment("?", ^true))
+      |> join(:inner, [], Model2, on: fragment("?", ^false))
       |> where([], fragment("?", ^true))
       |> where([], fragment("?", ^false))
       |> having([], fragment("?", ^true))
       |> having([], fragment("?", ^false))
-      |> group_by([], fragment("?", ^1))
-      |> group_by([], fragment("?", ^2))
-      |> order_by([], fragment("?", ^3))
-      |> order_by([], ^:x)
-      |> limit([], ^4)
-      |> offset([], ^5)
+      |> group_by([], fragment("?", ^3))
+      |> group_by([], fragment("?", ^4))
+      |> union(^union)
+      |> union_all(^union_all)
+      |> order_by([], fragment("?", ^7))
+      |> limit([], ^8)
+      |> offset([], ^9)
       |> plan()
 
     result =
-      "SELECT m0.[id], @1 FROM [model] AS m0 INNER JOIN [foo].[model3] AS m1 ON @2 " <>
-        "INNER JOIN [foo].[model3] AS m2 ON @3 WHERE (@4) AND (@5) " <>
-        "GROUP BY @6, @7 HAVING (@8) AND (@9) " <>
-        "ORDER BY @10, m0.[x] OFFSET @12 ROW FETCH NEXT @11 ROWS ONLY"
+      ~s{WITH [cte1] ([id], [smth]) AS } <>
+      ~s{(SELECT m0.[id] AS [id], @1 AS [smth] FROM [model1] AS m0 WHERE (@2)) } <>
+      ~s{SELECT m0.[id], @3 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON @4 } <>
+      ~s{INNER JOIN [model2] AS m2 ON @5 } <>
+      ~s{WHERE (@6) AND (@7) } <>
+      ~s{GROUP BY @8, @9 HAVING (@10) AND (@11) } <>
+      ~s{UNION (SELECT m0.[id], @12 FROM [model1] AS m0 WHERE (@13)) } <>
+      ~s{UNION ALL (SELECT m0.[id], @14 FROM [model2] AS m0 WHERE (@15)) } <>
+      ~s{ORDER BY @16 OFFSET @18 ROW FETCH NEXT @17 ROWS ONLY}
 
     assert all(query) == String.trim_trailing(result)
   end
