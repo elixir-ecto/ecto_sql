@@ -247,7 +247,7 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
 
-      [cte, "UPDATE ", name, " SET ", fields, from, join, where | returning(query, 0, "INSERTED")]
+      [cte, "UPDATE ", name, " SET ", fields, returning(query, 0, "INSERTED"), from, join | where]
     end
 
     @impl true

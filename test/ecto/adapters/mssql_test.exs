@@ -235,9 +235,9 @@ defmodule Ecto.Adapters.MsSqlTest do
       ~s{(SELECT TOP(10) m0.[id] AS [id] FROM [model] AS m0 WITH(NOLOCK) ORDER BY m0.[id]) } <>
       ~s{UPDATE m0 } <>
       ~s{SET m0.[x] = 123 } <>
+      ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] } <>
       ~s{FROM [model] AS m0 } <>
-      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id] } <>
-      ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w]}
+      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id]}
   end
 
   test "CTE delete_all" do
