@@ -7,10 +7,11 @@ ExUnit.start(
     :array_type,
     # :case_sensitive,
     :modify_foreign_key_on_update,
-    :modify_foreign_key_on_delete
+    :modify_foreign_key_on_delete,
     # :uses_usec,
     # :lock_for_update,
-    # :with_conflict_target,
+    :with_conflict_target,
+    :without_conflict_target,
     # :with_conflict_ignore
   ]
 )
