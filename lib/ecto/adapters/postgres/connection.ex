@@ -752,6 +752,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     def execute_ddl({:create, %Index{} = index}) do
       fields = intersperse_map(index.columns, ", ", &index_expr/1)
+      include_fields = intersperse_map(index.include, ", ", &index_expr/1)
 
       queries = [["CREATE ",
                   if_do(index.unique, "UNIQUE "),
@@ -762,6 +763,7 @@ if Code.ensure_loaded?(Postgrex) do
                   quote_table(index.prefix, index.table),
                   if_do(index.using, [" USING " , to_string(index.using)]),
                   ?\s, ?(, fields, ?),
+                  if_do(include_fields != [], [" INCLUDE ", ?(, include_fields, ?)]),
                   if_do(index.where, [" WHERE ", to_string(index.where)])]]
 
       queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)

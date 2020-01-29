@@ -1532,6 +1532,16 @@ defmodule Ecto.Adapters.PostgresTest do
       [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") WHERE public|]
   end
 
+  test "create index with include fields" do
+    create = {:create, index(:posts, [:permalink], unique: true, include: [:public])}
+    assert execute_ddl(create) ==
+      [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") INCLUDE ("public")|]
+
+    create = {:create, index(:posts, [:permalink], unique: true, include: [:public], where: "public IS TRUE")}
+    assert execute_ddl(create) ==
+      [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") INCLUDE ("public") WHERE public IS TRUE|]
+  end
+
   test "create index concurrently" do
     index = index(:posts, [:permalink])
     create = {:create, %{index | concurrently: true}}
