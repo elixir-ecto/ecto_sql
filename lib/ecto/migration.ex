@@ -626,8 +626,10 @@ defmodule Ecto.Migration do
       concurrently.
     * `:using` - configures the index type.
     * `:prefix` - specify an optional prefix for the index.
-    * `:include` - specify fields for a covering index.
     * `:where` - specify conditions for a partial index.
+    * `:include` - specify fields for a covering index. This is not supported
+      by all databases. For more information on PostgreSQL support, please
+      [read the official docs](https://www.postgresql.org/docs/11/indexes-index-only-scans.html).
 
   ## Adding/dropping indexes concurrently
 
