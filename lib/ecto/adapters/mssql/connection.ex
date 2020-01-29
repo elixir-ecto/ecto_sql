@@ -384,20 +384,20 @@ if Code.ensure_loaded?(Tds) do
     ## Query generation
 
     binary_ops = [
-      ==: "=",
-      !=: "<>",
-      <=: "<=",
-      >=: ">=",
-      <: "<",
-      >: ">",
-      +: "+",
-      -: "-",
-      *: "*",
-      /: "/",
-      and: "AND",
-      or: "OR",
-      ilike: "LIKE",
-      like: "LIKE"
+      ==: " = ",
+      !=: " <> ",
+      <=: " <= ",
+      >=: " >= ",
+      <: " < ",
+      >: " > ",
+      +: " + ",
+      -: " - ",
+      *: " * ",
+      /: " / ",
+      and: " AND ",
+      or: " OR ",
+      ilike: " LIKE ",
+      like: " LIKE "
     ]
 
     @binary_ops Keyword.keys(binary_ops)
@@ -838,10 +838,10 @@ if Code.ensure_loaded?(Tds) do
       case handle_call(fun, length(args)) do
         {:binary_op, op} ->
           [left, right] = args
-          op_to_binary(left, sources, query) <> " #{op} " <> op_to_binary(right, sources, query)
+          [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
 
         {:fun, fun} ->
-          "#{fun}(" <> modifier <> Enum.map_join(args, ", ", &expr(&1, sources, query)) <> ")"
+          [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
       end
     end
 
@@ -915,7 +915,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
-      "(" <> expr(expr, sources, query) <> ")"
+      paren_expr(expr, sources, query)
     end
 
     defp op_to_binary(expr, sources, query) do
@@ -942,11 +942,11 @@ if Code.ensure_loaded?(Tds) do
 
     defp returning(%{select: nil}, _, _),
       do: []
-    defp returning(%{select: %{fields: fields}}, idx, verb),
+    defp returning(%{select: %{fields: fields}} = query, idx, verb),
       do: [
         " OUTPUT " | intersperse_map(fields, ", ", fn
           {{:., _, [{:&, _, [^idx]}, key]}, _, _} -> [verb, ?., quote_name(key)]
-          _ -> []
+          _ -> error!(query, "MsSql can only return table #{verb} columns")
       end)]
 
     defp create_names(%{sources: sources}) do
