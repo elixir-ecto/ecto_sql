@@ -70,6 +70,9 @@ jobs:
       matrix:
         mssql_version: ["2017-latest", "2019-latest"]
         
+    env:
+      ACCEPT_EULA: Y
+      
     steps:
       - name: Install MsSql Client Tools
         run: |
