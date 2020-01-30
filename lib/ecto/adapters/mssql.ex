@@ -80,6 +80,8 @@ defmodule Ecto.Adapters.MsSql do
   def loaders(:naive_datetime_usec, type), do: [&datetime_decode/1, type]
   def loaders(:utc_datetime, type), do: [&utc_datetime_decode/1, type]
   def loaders(:utc_datetime_usec, type), do: [&utc_datetime_decode/1, type]
+  def loaders(:date, type), do: [&date_decode/1, type]
+  def loaders(:time, type), do: [&time_decode/1, type]
   def loaders(_, type), do: [type]
 
   @impl true
@@ -92,6 +94,7 @@ defmodule Ecto.Adapters.MsSql do
   def dumpers(:naive_datetime_usec, type), do: [type, &usec_naivedatetime_encode/1]
   def dumpers(:utc_datetime, type), do: [type, &naivedatetime_encode/1]
   def dumpers(:utc_datetime_usec, type), do: [type, &usec_naivedatetime_encode/1]
+  def dumpers(:time, type), do: [type, &time_encode/1]
   def dumpers(_, type), do: [type]
 
   defp naivedatetime_encode(nil), do: {:ok, nil}
@@ -118,6 +121,24 @@ defmodule Ecto.Adapters.MsSql do
     {:ok, {date, {h, m, s, ms}}}
   rescue
     _ -> :error
+  end
+
+  defp time_encode(t) do
+    case t do
+      %Time{} ->
+        {h, m, s} = Time.to_erl(t)
+        {ms, 0} = t.microsecond
+        {:ok, {h, m, s, ms}}
+
+      nil ->
+        {:ok, nil}
+
+      {_, _, _, _} ->
+        {:ok, t}
+
+      _ ->
+        {:error, "MsSql adapter does not suport given time structure or format"}
+    end
   end
 
   defp datetime_decode(nil), do: {:ok, nil}
@@ -160,6 +181,28 @@ defmodule Ecto.Adapters.MsSql do
       error -> error
     end
   end
+
+  defp date_decode(value) when is_tuple(value), do: Date.from_erl(value)
+  defp date_decode(value), do: {:ok, value}
+
+  defp time_decode({h, m, s, ms}) do
+    ms =
+      cond do
+        ms == 0 ->
+          {0, 0}
+
+        ms > 999_999 ->
+          rms = Integer.floor_div(ms, 10)
+          {rms, 6}
+
+        true ->
+          {ms, 6}
+      end
+
+    Time.from_erl({h, m, s}, ms)
+  end
+
+  defp time_decode(value), do: {:ok, value}
 
   defp bool_decode(<<0>>), do: {:ok, false}
   defp bool_decode(<<1>>), do: {:ok, true}
