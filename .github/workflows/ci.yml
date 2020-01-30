@@ -72,7 +72,7 @@ jobs:
         
     env:
       ACCEPT_EULA: Y
-      
+
     steps:
       - name: Install MsSql Client Tools
         run: |
@@ -84,9 +84,14 @@ jobs:
           apt-get install -y mssql-tools unixodbc-dev
           export PATH="/opt/mssql-tools/bin:$PATH"
       - uses: actions/checkout@v1
-      - name: Testing MsSql Adapter
-        run: ECTO_ADAPTER=mssql mix test
-
+      - name: Install Dependencies
+        run: |
+          apt-get install -y git
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - run: ECTO_ADAPTER=mssql mix test
+          
   test-pg:
     runs-on: ubuntu-18.04
 
