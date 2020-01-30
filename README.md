@@ -30,13 +30,10 @@ You can run tests against a specific Ecto adapter by using the `ECTO_ADAPTER` en
 
     $ ECTO_ADAPTER=pg mix test
 
-## Copyright and License
+## License
 
-"Ecto" and the Ecto logo are Copyright (c) 2012 Plataformatec.
-
-The source code is under the Apache License 2.0.
-
-Copyright (c) 2012 Plataformatec
+Copyright (c) 2012 Plataformatec \
+Copyright (c) 2020 Dashbit
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

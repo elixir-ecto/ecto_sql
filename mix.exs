@@ -1,8 +1,8 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.3.2"
-  @adapters ~w(pg myxql mssql)
+  @version "3.3.3"
+  @adapters ~w(pg myxql, mssql)
 
   def project do
     [
@@ -71,7 +71,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, "~> 3.3"}
+      {:ecto, "~> 3.4 or ~> 3.3.2"}
     end
   end
 

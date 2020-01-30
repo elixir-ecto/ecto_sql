@@ -468,6 +468,9 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = Schema |> select([r], not is_nil(r.x)) |> plan()
     assert all(query) == ~s{SELECT NOT (s0."x" IS NULL) FROM "schema" AS s0}
+
+    query = "schema" |> select([r], r.x == is_nil(r.y)) |> plan()
+    assert all(query) == ~s{SELECT s0."x" = (s0."y" IS NULL) FROM "schema" AS s0}
   end
 
   test "fragments" do
@@ -1527,6 +1530,16 @@ defmodule Ecto.Adapters.PostgresTest do
     create = {:create, index(:posts, [:permalink], unique: true, where: :public)}
     assert execute_ddl(create) ==
       [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") WHERE public|]
+  end
+
+  test "create index with include fields" do
+    create = {:create, index(:posts, [:permalink], unique: true, include: [:public])}
+    assert execute_ddl(create) ==
+      [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") INCLUDE ("public")|]
+
+    create = {:create, index(:posts, [:permalink], unique: true, include: [:public], where: "public IS TRUE")}
+    assert execute_ddl(create) ==
+      [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") INCLUDE ("public") WHERE public IS TRUE|]
   end
 
   test "create index concurrently" do

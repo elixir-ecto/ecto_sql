@@ -43,26 +43,41 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     @impl true
-    def to_constraints(%MyXQL.Error{mysql: %{name: :ER_DUP_ENTRY}, message: message}) do
+    def to_constraints(error) do
+      to_constraints(error, [])
+    end
+
+    @doc false
+    def to_constraints(%MyXQL.Error{mysql: %{name: :ER_DUP_ENTRY}, message: message}, opts) do
       case :binary.split(message, " for key ") do
-        [_, quoted] -> [unique: strip_quotes(quoted)]
+        [_, quoted] -> [unique: normalize_index_name(quoted, opts[:source])]
         _ -> []
       end
     end
-    def to_constraints(%MyXQL.Error{mysql: %{name: name}, message: message})
+    def to_constraints(%MyXQL.Error{mysql: %{name: name}, message: message}, _opts)
         when name in [:ER_ROW_IS_REFERENCED_2, :ER_NO_REFERENCED_ROW_2] do
       case :binary.split(message, [" CONSTRAINT ", " FOREIGN KEY "], [:global]) do
         [_, quoted, _] -> [foreign_key: strip_quotes(quoted)]
         _ -> []
       end
     end
-    def to_constraints(_),
+    def to_constraints(_, _),
       do: []
 
     defp strip_quotes(quoted) do
       size = byte_size(quoted) - 2
       <<_, unquoted::binary-size(size), _>> = quoted
       unquoted
+    end
+
+    defp normalize_index_name(quoted, source) do
+      name = strip_quotes(quoted)
+
+      if source do
+        String.trim_leading(name, "#{source}.")
+      else
+        name
+      end
     end
 
     ## Query
@@ -600,13 +615,14 @@ if Code.ensure_loaded?(MyXQL) do
       ["INTERVAL ", expr(count, sources, query), ?\s | interval]
     end
 
-    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
-      paren_expr(expr, sources, query)
-    end
+    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
+      do: paren_expr(expr, sources, query)
 
-    defp op_to_binary(expr, sources, query) do
-      expr(expr, sources, query)
-    end
+    defp op_to_binary({:is_nil, _, [_]} = expr, sources, query),
+      do: paren_expr(expr, sources, query)
+
+    defp op_to_binary(expr, sources, query),
+      do: expr(expr, sources, query)
 
     defp create_names(%{sources: sources}) do
       create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()

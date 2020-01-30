@@ -34,7 +34,7 @@ defmodule Ecto.Migration do
   usually the timestamp of when the migration was created. The NAME
   must also be unique and it quickly identifies what the migration
   does. For example, if you need to track the "weather" in your system,
-  you can start a new file at "priv/repo/migrations/2019041714000_add_weather_table.exs"
+  you can start a new file at "priv/repo/migrations/20190417140000_add_weather_table.exs"
   that will have the following contents:
 
       defmodule MyRepo.Migrations.AddWeatherTable do
@@ -154,8 +154,8 @@ defmodule Ecto.Migration do
   terminates.
 
   However, in some situations you may want to guarantee that all of the
-  previous steps have been executed before continuing. This is useful when 
-  you need to apply a set of changes to the table before continuing with the 
+  previous steps have been executed before continuing. This is useful when
+  you need to apply a set of changes to the table before continuing with the
   migration. This can be done with `flush/0`:
 
       def up do
@@ -214,7 +214,7 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_default_prefix: "my_prefix"
 
-    * `:priv` - the priv diretory for the repo with the location of important assets,
+    * `:priv` - the priv directory for the repo with the location of important assets,
       such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to
       "priv/foo_repo" and migrations should be placed at "priv/foo_repo/migrations"
 
@@ -315,6 +315,7 @@ defmodule Ecto.Migration do
               unique: false,
               concurrently: false,
               using: nil,
+              include: [],
               where: nil,
               comment: nil,
               options: nil
@@ -327,6 +328,7 @@ defmodule Ecto.Migration do
       unique: boolean,
       concurrently: boolean,
       using: atom | String.t,
+      include: [atom | String.t],
       where: atom | String.t,
       comment: String.t | nil,
       options: String.t
@@ -625,6 +627,9 @@ defmodule Ecto.Migration do
     * `:using` - configures the index type.
     * `:prefix` - specify an optional prefix for the index.
     * `:where` - specify conditions for a partial index.
+    * `:include` - specify fields for a covering index. This is not supported
+      by all databases. For more information on PostgreSQL support, please
+      [read the official docs](https://www.postgresql.org/docs/11/indexes-index-only-scans.html).
 
   ## Adding/dropping indexes concurrently
 
@@ -695,6 +700,9 @@ defmodule Ecto.Migration do
 
       # Partial indexes are created by specifying a :where option
       create index("products", [:user_id], where: "price = 0", name: :free_products_index)
+
+      # Covering indexes are created by specifying a :include option
+      create index("products", [:user_id], include: [:category_id])
 
   Indexes also support custom expressions. Some databases may require the
   index expression to be written between parentheses:
