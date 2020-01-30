@@ -154,7 +154,7 @@ defmodule Ecto.Adapters.MsSqlTest do
                ~s{UNION ALL } <>
                ~s{(SELECT c0.[id], t1.[depth] + 1 FROM [categories] AS c0 } <>
                ~s{INNER JOIN [tree] AS t1 ON t1.[id] = c0.[parent_id])) } <>
-               ~s{SELECT m0.[x], t1.[id], CAST(t1.[depth] AS integer) } <>
+               ~s{SELECT m0.[x], t1.[id], CAST(t1.[depth] AS bigint) } <>
                ~s{FROM [model] AS m0 } <>
                ~s{INNER JOIN [tree] AS t1 ON t1.[id] = m0.[category_id]}
   end
