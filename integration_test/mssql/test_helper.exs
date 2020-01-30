@@ -12,7 +12,15 @@ ExUnit.start(
     # :lock_for_update,
     :with_conflict_target,
     :without_conflict_target,
-    # :with_conflict_ignore
+    # :with_conflict_ignore,
+    :upsert_all,
+    :upsert,
+    :insert_cell_wise_defaults,
+    :select_not,
+    :map_type_schemaless,
+    :text_compare,
+    :decimal_type_cast,
+    :union_with_literals
   ]
 )
 
@@ -63,7 +71,7 @@ defmodule Ecto.Integration.TestRepo do
 end
 
 Code.require_file("#{ecto}/integration_test/support/schemas.exs", __DIR__)
-Code.require_file("../support/migration.exs", __DIR__)
+Code.require_file("migration.exs", __DIR__)
 
 alias Ecto.Integration.PoolRepo
 
