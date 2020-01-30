@@ -1537,24 +1537,28 @@ if Code.ensure_loaded?(Tds) do
 
     defp if_table_not_exists(condition, name, prefix) do
       if_do(condition, [
-        "IF NOT EXISTS ( SELECT * FROM [INFORMATION_SCHEMA].[TABLES] info ",
-        "WHERE info.[TABLE_NAME] = '",
-        quote_table(prefix, name),
-        "' AND ('",
-        quote_name(prefix),
-        "' = '' OR info.[TABLE_SCHEMA] = '",
-        quote_name(prefix),
-        "') ) BEGIN "
+        "IF NOT EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[TABLES] ",
+        "WHERE ",
+        "[TABLE_NAME] = ",
+        ?', "#{name}", ?',
+        if_do(prefix != nil, [
+          " AND [TABLE_SCHEMA] = ",
+          ?', "#{prefix}", ?'
+        ]),
+        ") BEGIN "
       ])
     end
 
     defp if_table_exists(condition, name, prefix) do
       if_do(condition, [
-        "IF EXISTS ( ",
-        "SELECT * ",
-        "FROM [INFORMATION_SCHEMA].[TABLES] info ",
-        "WHERE info.[TABLE_NAME] = '#{name}' ",
-        "AND ('#{prefix}' = '' OR info.[TABLE_SCHEMA] = '#{prefix}') ",
+        "IF EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[TABLES] ",
+        "WHERE ",
+        "[TABLE_NAME] = ",
+        ?', "#{name}", ?',
+        if_do(prefix != nil, [
+          " AND [TABLE_SCHEMA] = ",
+          ?', "#{prefix}", ?'
+        ]),
         ") BEGIN "
       ])
     end
