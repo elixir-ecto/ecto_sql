@@ -71,9 +71,17 @@ jobs:
         mssql_version: ["2017-latest", "2019-latest"]
         
     steps:
+      - name: Install MsSql Client Tools
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+          curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list | tee /etc/apt/sources.list.d/msprod.list
+          apt-get update
+          apt-get install -y mssql-tools unixodbc-dev
+          export PATH="/opt/mssql-tools/bin:$PATH"
+
       - uses: actions/checkout@v1
       - name: Testing MsSql Adapter
-      - run: ECTO_ADAPTER=mssql mix test
+        run: ECTO_ADAPTER=mssql mix test
 
   test-pg:
     runs-on: ubuntu-18.04
