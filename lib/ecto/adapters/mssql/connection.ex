@@ -261,7 +261,7 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
 
-      [cte, delete, from, join, where | returning(query, 0, "DELETED")]
+      [cte, delete, returning(query, 0, "DELETED"), from, join | where]
     end
 
     @impl true
