@@ -27,16 +27,6 @@ defmodule Ecto.Integration.Migration do
       timestamps(null: true)
     end
 
-    create table(:post_translations, primary_key: false) do
-      add :locale, :string, size: 10, primary_key: true
-      add :post_id, references(:posts), primary_key: true
-
-      add :title, :string, size: 100
-      add :summary, :binary
-
-      timestamps(null: true)
-    end
-
     create table(:posts_users, primary_key: false) do
       add :post_id, references(:posts)
       add :user_id, references(:users)
@@ -55,6 +45,7 @@ defmodule Ecto.Integration.Migration do
 
     create table(:permalinks) do
       add :uniform_resource_locator, :string
+      add :title, :string
       add :post_id, references(:posts)
       add :user_id, references(:users)
     end
