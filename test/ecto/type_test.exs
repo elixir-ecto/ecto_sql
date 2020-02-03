@@ -16,11 +16,8 @@ defmodule Ecto.TypeTest do
     assert adapter_dump(Postgres, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
            {:ok, %{"a" => @uuid_string}}
 
-    assert adapter_dump(MsSql, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, ~s({"a":"#{@uuid_string}"})}
-
     assert adapter_dump(MsSql, {:map, Tds.Types.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, ~s({"a":"#{@uuid_string}"})}
+           {:ok, %{"a" => @uuid_string}}
   end
 
   # Therefore we need to support both binaries and strings when loading

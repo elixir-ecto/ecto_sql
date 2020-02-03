@@ -85,10 +85,9 @@ defmodule Ecto.Adapters.MsSql do
   def loaders(_, type), do: [type]
 
   @impl true
-  def dumpers({:embed, _} = type, _),
-    do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
+  def dumpers({:embed, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+  def dumpers({:map, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
 
-  def dumpers({:map, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1), &json_encode/1]
   def dumpers(:binary_id, type), do: [type, Tds.Types.UUID]
   def dumpers(:naive_datetime, type), do: [type, &naivedatetime_encode/1]
   def dumpers(:naive_datetime_usec, type), do: [type, &usec_naivedatetime_encode/1]
@@ -213,8 +212,6 @@ defmodule Ecto.Adapters.MsSql do
   defp json_decode(x) when is_binary(x), do: {:ok, Tds.json_library().decode!(x)}
   defp json_decode(x), do: {:ok, x}
 
-  defp json_encode(x), do: {:ok, Tds.json_library().encode!(x)}
-
   # Storage API
   @doc false
   @impl true
@@ -282,6 +279,7 @@ defmodule Ecto.Adapters.MsSql do
   end
 
   defp run_query(opts, sql_command) do
+    {:ok, _} = Application.ensure_all_started(:ecto_sql)
     {:ok, _} = Application.ensure_all_started(:tds)
 
     timeout = Keyword.get(opts, :timeout, 15_000)

@@ -95,7 +95,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("TDS_PATH") do
       {:tds, path: path}
     else
-      {:tds, git: "https://github.com/livehelpnow/tds", optional: true}
+      {:tds, "~> 2.0.1-rc2" , optional: true}
     end
   end
 

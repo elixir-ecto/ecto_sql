@@ -84,7 +84,7 @@ defmodule Ecto.Integration.Migration do
     end
 
     create table(:orders) do
-      add :instructions, :text
+      add :instructions, :string, size: :max
       add :item, :map
       add :permalink_id, references(:permalinks)
     end

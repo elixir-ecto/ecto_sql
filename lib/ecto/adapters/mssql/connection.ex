@@ -198,7 +198,7 @@ if Code.ensure_loaded?(Tds) do
     defp prepare_raw_param(value), do: {value, nil}
 
     defp json_library() do
-      Application.get_env(:tds, :json_library)
+      Application.get_env(:tds, :json_library, Jason)
     end
 
     ## Query

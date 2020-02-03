@@ -255,9 +255,9 @@ defmodule Ecto.Adapters.MsSqlTest do
       ~s{WITH [target_rows] ([id]) AS } <>
       ~s{(SELECT TOP(10) m0.[id] AS [id] FROM [model] AS m0 ORDER BY m0.[id]) } <>
       ~s{DELETE m0 } <>
+      ~s{OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] } <>
       ~s{FROM [model] AS m0 } <>
-      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id] } <>
-      ~s{OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w]}
+      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id]}
   end
 
   test "select" do
