@@ -3,31 +3,45 @@ Logger.configure(level: :info)
 ExUnit.start(
   exclude: [
     :aggregate_filters,
-    # :assigns_id_type,
+    :subquery_aggregates,
     :array_type,
-    # :case_sensitive,
     :modify_foreign_key_on_update,
     :modify_foreign_key_on_delete,
-    # :uses_usec,
-    # :lock_for_update,
     :with_conflict_target,
     :without_conflict_target,
-    # :with_conflict_ignore,
     :upsert_all,
     :upsert,
+    :uses_msec,
     :insert_cell_wise_defaults,
     :select_not,
+    :coalesce_type,
+    :assigns_id_type,
     :map_type_schemaless,
+    :map_boolean_in_expression,
     :text_compare,
     :decimal_type_cast,
-    :union_with_literals
+    :union_with_literals,
+    :db_engine_can_maintain_precision,
+    :inline_order_by,
+    :uses_usec,
+    # running destruction of PK columns requires that constraint is dropped first
+    :alter_primary_key,
+    :modify_column_with_from,
+    :on_replace_nulify,
+    :on_replace_update,
+    :unique_constraint_conflict,
+    :pk_insert,
+    :transaction_checkout_raises,
+    :transaction_multi_repo_calls,
+    # requires transaction isolation level to be set to ON and transaction isolation to :snapshot
+    :transaction_not_shared
   ]
 )
 
 Application.put_env(:tds, :json_library, Jason)
 Application.put_env(:ecto, :primary_key_type, :id)
 Application.put_env(:ecto, :async_integration_tests, false)
-Application.put_env(:ecto_sql, :lock_for_update, "FOR UPDATE")
+Application.put_env(:ecto_sql, :lock_for_update, "(UPDLOCK)")
 
 Application.put_env(
   :ecto_sql,
@@ -37,7 +51,6 @@ Application.put_env(
 
 alias Ecto.Integration.TestRepo
 
-Application.put_env(:ecto_sql, :lock_for_update, "(UPDLOCK)")
 # Load support files
 ecto = Mix.Project.deps_paths()[:ecto]
 Code.require_file("../support/repo.exs", __DIR__)
@@ -46,8 +59,7 @@ Application.put_env(
   :ecto_sql,
   TestRepo,
   url: Application.get_env(:ecto_sql, :mssql_test_url) <> "/ecto_test",
-  pool: Ecto.Adapters.SQL.Sandbox,
-  set_allow_snapshot_isolation: :on
+  pool: Ecto.Adapters.SQL.Sandbox
 )
 
 defmodule Ecto.Integration.TestRepo do
@@ -78,9 +90,7 @@ alias Ecto.Integration.PoolRepo
 Application.put_env(
   :ecto_sql,
   PoolRepo,
-  url: "#{Application.get_env(:ecto_sql, :mssql_test_url)}/ecto_test",
-  set_allow_snapshot_isolation: :on,
-  set_transaction_isolation_level: :snapshot
+  url: "#{Application.get_env(:ecto_sql, :mssql_test_url)}/ecto_test"
 )
 
 defmodule Ecto.Integration.PoolRepo do

@@ -52,7 +52,10 @@ defmodule Ecto.Integration.TransactionTest do
     end
   end
 
+  @tag :transaction_multi_repo_calls
   test "transaction commits" do
+    # mssql adapter only can pass this test if :snapshot transaction mode is used
+    # but TestRepo is used to run migrations where schema tables do not have row versioning hence this is not possible
     PoolRepo.transaction(fn ->
       e = PoolRepo.insert!(%Trans{num: 1})
       assert [^e] = PoolRepo.all(Trans)
@@ -62,6 +65,7 @@ defmodule Ecto.Integration.TransactionTest do
     assert [%Trans{num: 1}] = PoolRepo.all(Trans)
   end
 
+  @tag :transaction_multi_repo_calls
   test "transaction rolls back" do
     try do
       PoolRepo.transaction(fn ->
@@ -91,6 +95,7 @@ defmodule Ecto.Integration.TransactionTest do
     end
   end
 
+  @tag :pk_insert
   test "transaction rolls back with reason on aborted transaction" do
     e1 = PoolRepo.insert!(%Trans{num: 13})
 
@@ -148,6 +153,7 @@ defmodule Ecto.Integration.TransactionTest do
     assert [] = TestRepo.all(Trans)
   end
 
+  @tag :transaction_not_shared
   test "transactions are not shared in repo" do
     pid = self()
 
@@ -205,6 +211,7 @@ defmodule Ecto.Integration.TransactionTest do
       end)
     end
 
+    @tag :transaction_checkout_raises
     test "checkout raises on transaction attempt" do
       assert_raise DBConnection.ConnectionError, ~r"connection was checked out with status", fn ->
         PoolRepo.checkout(fn -> PoolRepo.query!("BEGIN") end)

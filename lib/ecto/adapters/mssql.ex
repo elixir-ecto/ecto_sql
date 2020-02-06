@@ -61,6 +61,7 @@ defmodule Ecto.Adapters.MsSql do
   require Logger
 
   @behaviour Ecto.Adapter.Storage
+  # @conn Ecto.Adapters.MsSql.Connection
 
   ## Custom MSSQL types
 
@@ -87,7 +88,6 @@ defmodule Ecto.Adapters.MsSql do
   @impl true
   def dumpers({:embed, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
   def dumpers({:map, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-
   def dumpers(:binary_id, type), do: [type, Tds.Types.UUID]
   def dumpers(:naive_datetime, type), do: [type, &naivedatetime_encode/1]
   def dumpers(:naive_datetime_usec, type), do: [type, &usec_naivedatetime_encode/1]

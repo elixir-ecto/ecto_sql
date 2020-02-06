@@ -74,7 +74,7 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def stream(_conn, _sql, _params, _opts) do
-      {:error, :not_implemented}
+      raise RuntimeError, "Not supported"
     end
 
     @impl true
@@ -89,8 +89,7 @@ if Code.ensure_loaded?(Tds) do
         {:ok, %Tds.Result{} = result} ->
           {:ok, Map.from_struct(result)}
 
-        {:error, %Tds.Error{}} = err ->
-          err
+        other -> other
       end
     end
 
@@ -98,6 +97,8 @@ if Code.ensure_loaded?(Tds) do
     def to_constraints(%Tds.Error{mssql: %{number: code, msg_text: message}}) do
       Tds.Error.get_constraint_violations(code, message)
     end
+
+    def to_constraints(_), do: []
 
     # Boolean
     defp prepare_param(%Tagged{value: true, type: :boolean}), do: {1, :boolean}
@@ -268,7 +269,6 @@ if Code.ensure_loaded?(Tds) do
     def insert(prefix, table, header, rows, on_conflict, returning) do
       [] = on_conflict(on_conflict, header)
       returning = returning(returning, "INSERTED")
-
       values =
         if header == [] do
           [returning, " DEFAULT VALUES"]
@@ -535,15 +535,16 @@ if Code.ensure_loaded?(Tds) do
             end
 
             {join, name} = get_source(query, sources, ix, source)
-            qual = join_qual(qual)
+            qual_text = join_qual(qual)
             join = join || "(" <> expr(source, sources, query) <> ")"
             lock = if_do(lock, lock(lock))
-            [qual, join, " AS ", name, lock | join_on(qual, expr, sources, query)]
+            [qual_text, join, " AS ", name, lock | join_on(qual, expr, sources, query)]
         end)
       ]
     end
 
     defp join_on(:cross, true, _sources, _query), do: []
+    defp join_on(_qual, true, _sources, _query), do: [" ON 1 = 1 "]
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
     defp join_qual(:inner), do: "INNER JOIN "
@@ -701,6 +702,14 @@ if Code.ensure_loaded?(Tds) do
     defp operator_to_boolean(:and), do: " AND "
     defp operator_to_boolean(:or), do: " OR "
 
+    defp paren_expr(true, _sources, _query) do
+      ["(1 = 1)"]
+    end
+
+    defp paren_expr(false, _sources, _query) do
+      ["(1 = 0)"]
+    end
+
     defp paren_expr(expr, sources, query) do
       [?(, expr(expr, sources, query), ?)]
     end
@@ -810,7 +819,7 @@ if Code.ensure_loaded?(Tds) do
         interval <>
         ", " <>
         interval_count(count, sources, query) <>
-        ", " <> expr(datetime, sources, query) <> ") AS datetime2)"
+        ", " <> expr(datetime, sources, query) <> ") AS datetime2(6))"
     end
 
     defp expr({:date_add, _, [date, count, interval]}, sources, query) do
@@ -823,7 +832,7 @@ if Code.ensure_loaded?(Tds) do
           date,
           sources,
           query
-        ) <> " AS datetime2)" <> ") AS date)"
+        ) <> " AS datetime2(6))" <> ") AS date)"
     end
 
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
@@ -1375,10 +1384,12 @@ if Code.ensure_loaded?(Tds) do
 
     defp reference_on_delete(:nilify_all), do: " ON DELETE SET NULL"
     defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
+    defp reference_on_delete(:nothing), do: " ON DELETE NO ACTION"
     defp reference_on_delete(_), do: []
 
     defp reference_on_update(:nilify_all), do: " ON UPDATE SET NULL"
     defp reference_on_update(:update_all), do: " ON UPDATE CASCADE"
+    defp reference_on_update(:nothing), do: " ON UPDATE NO ACTION"
     defp reference_on_update(_), do: []
 
     ## Helpers
@@ -1437,12 +1448,11 @@ if Code.ensure_loaded?(Tds) do
       name
     end
 
-    defp intersperse_map(list, separator, mapper, acc \\ [])
-    defp intersperse_map([], _separator, _mapper, acc), do: acc
-    defp intersperse_map([elem], _separator, mapper, acc), do: [acc | mapper.(elem)]
+    defp intersperse_map([], _separator, _mapper), do: []
+    defp intersperse_map([elem], _separator, mapper), do: mapper.(elem)
 
-    defp intersperse_map([elem | rest], separator, mapper, acc) do
-      intersperse_map(rest, separator, mapper, [acc, mapper.(elem), separator])
+    defp intersperse_map([elem | rest], separator, mapper) do
+      [mapper.(elem), separator | intersperse_map(rest, separator, mapper)]
     end
 
     defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])

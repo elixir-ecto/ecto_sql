@@ -677,7 +677,7 @@ defmodule Ecto.Adapters.MsSqlTest do
 
     assert all(query) ==
              ~s{SELECT 0 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z] } <>
-               ~s{INNER JOIN [model] AS m2 ON 1}
+               ~s{INNER JOIN [model] AS m2 ON 1 = 1 }
   end
 
   test "join with nothing bound" do
@@ -721,8 +721,8 @@ defmodule Ecto.Adapters.MsSqlTest do
 
     assert all(query) ==
              ~s{SELECT m0.[id], @1 FROM [model] AS m0 INNER JOIN } <>
-               ~s{(SELECT * FROM model2 AS m2 WHERE m2.id = m0.[x] AND m2.field = @2) AS f1 ON 1 } <>
-               ~s{WHERE ((m0.[id] > 0) AND (m0.[id] < @3))}
+               ~s{(SELECT * FROM model2 AS m2 WHERE m2.id = m0.[x] AND m2.field = @2) AS f1 ON 1 = 1 } <>
+               ~s{ WHERE ((m0.[id] > 0) AND (m0.[id] < @3))}
   end
 
   ## Associations
@@ -754,7 +754,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     query = plan(query)
 
     assert all(query) ==
-             "SELECT m0.[id], m2.[id] FROM [model] AS m0 INNER JOIN [model2] AS m1 ON 1 INNER JOIN [model2] AS m2 ON 1"
+             "SELECT m0.[id], m2.[id] FROM [model] AS m0 INNER JOIN [model2] AS m1 ON 1 = 1  INNER JOIN [model2] AS m2 ON 1 = 1 "
   end
 
   # # Model based
@@ -858,7 +858,8 @@ defmodule Ecto.Adapters.MsSqlTest do
              """
              CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
              CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-             REFERENCES [categories]([id]), CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
+             REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
              """
              |> remove_newlines
            ]
@@ -894,7 +895,8 @@ defmodule Ecto.Adapters.MsSqlTest do
              [
                """
                CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
-               CONSTRAINT [foo_bar] FOREIGN KEY ([category_id]) REFERENCES [categories]([id]),
+               CONSTRAINT [foo_bar] FOREIGN KEY ([category_id]) REFERENCES [categories]([id])
+               ON DELETE NO ACTION ON UPDATE NO ACTION,
                CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
                """
                |> remove_newlines
@@ -914,7 +916,7 @@ defmodule Ecto.Adapters.MsSqlTest do
                """
                CREATE TABLE [posts] ([id] bigint IDENTITY(1,1), [category_id] BIGINT,
                CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-               REFERENCES [categories]([id]), CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
+               REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION, CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
                """
                |> remove_newlines
              ]
@@ -933,7 +935,7 @@ defmodule Ecto.Adapters.MsSqlTest do
                """
                CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
                CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-               REFERENCES [categories]([id]) ON DELETE SET NULL,
+               REFERENCES [categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
                CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
                """
                |> remove_newlines
@@ -953,7 +955,7 @@ defmodule Ecto.Adapters.MsSqlTest do
                """
                CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
                CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-               REFERENCES [categories]([id]) ON DELETE CASCADE,
+               REFERENCES [categories]([id]) ON DELETE CASCADE ON UPDATE NO ACTION,
                CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
                """
                |> remove_newlines
@@ -1031,7 +1033,7 @@ defmodule Ecto.Adapters.MsSqlTest do
       """
       ALTER TABLE [foo].[posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF_foo_posts_title] DEFAULT (N'Untitled');
       ALTER TABLE [foo].[posts] ADD [author_id] BIGINT;
-      ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_author_id_fkey] FOREIGN KEY ([author_id]) REFERENCES [foo].[author]([id]);
+      ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_author_id_fkey] FOREIGN KEY ([author_id]) REFERENCES [foo].[author]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
       IF (OBJECT_ID(N'[DF_foo_posts_price]', 'D') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_price];  END;
       ALTER TABLE [foo].[posts] ALTER COLUMN [price] numeric(8,2) NULL;
       IF (OBJECT_ID(N'[DF_foo_posts_cost]', 'D') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_cost];  END;
@@ -1039,7 +1041,7 @@ defmodule Ecto.Adapters.MsSqlTest do
       ALTER TABLE [foo].[posts] ADD CONSTRAINT [DF_foo_posts_cost] DEFAULT (NULL) FOR [cost];
       IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [posts_permalink_id_fkey];  END;
       ALTER TABLE [foo].[posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL;
-      ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [foo].[permalinks]([id]);
+      ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [foo].[permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
       ALTER TABLE [foo].[posts] DROP COLUMN [summary];
       """
       |> remove_newlines
@@ -1056,7 +1058,8 @@ defmodule Ecto.Adapters.MsSqlTest do
              [
                """
                ALTER TABLE [posts] ADD [comment_id] BIGINT;
-               ALTER TABLE [posts] ADD CONSTRAINT [posts_comment_id_fkey] FOREIGN KEY ([comment_id]) REFERENCES [comments]([id]);
+               ALTER TABLE [posts] ADD CONSTRAINT [posts_comment_id_fkey] FOREIGN KEY ([comment_id]) REFERENCES [comments]([id])
+               ON DELETE NO ACTION ON UPDATE NO ACTION;
                """
                |> remove_newlines
                |> Kernel.<>(" ")
@@ -1076,7 +1079,7 @@ defmodule Ecto.Adapters.MsSqlTest do
                """
                IF (OBJECT_ID(N'[posts_user_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [posts_user_id_fkey];  END;
                ALTER TABLE [posts] ALTER COLUMN [user_id] BIGINT;
-               ALTER TABLE [posts] ADD CONSTRAINT [posts_user_id_fkey] FOREIGN KEY ([user_id]) REFERENCES [users]([id]) ON DELETE CASCADE;
+               ALTER TABLE [posts] ADD CONSTRAINT [posts_user_id_fkey] FOREIGN KEY ([user_id]) REFERENCES [users]([id]) ON DELETE CASCADE ON UPDATE NO ACTION;
                """
                |> remove_newlines
                |> Kernel.<>(" ")
