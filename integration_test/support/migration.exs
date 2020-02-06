@@ -45,6 +45,7 @@ defmodule Ecto.Integration.Migration do
 
     create table(:permalinks) do
       add :uniform_resource_locator, :string
+      add :title, :string
       add :post_id, references(:posts)
       add :user_id, references(:users)
     end
