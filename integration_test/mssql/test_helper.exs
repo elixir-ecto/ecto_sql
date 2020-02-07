@@ -83,6 +83,7 @@ defmodule Ecto.Integration.TestRepo do
 end
 
 Code.require_file("#{ecto}/integration_test/support/schemas.exs", __DIR__)
+Code.require_file("../support/migration.exs", __DIR__)
 Code.require_file("migration.exs", __DIR__)
 
 alias Ecto.Integration.PoolRepo
@@ -124,5 +125,6 @@ _ = Ecto.Adapters.MsSql.storage_down(TestRepo.config())
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: :debug)
+:ok = Ecto.Migrator.up(TestRepo, 1, Ecto.Integration.Migration2, log: :debug)
 Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
 Process.flag(:trap_exit, true)
