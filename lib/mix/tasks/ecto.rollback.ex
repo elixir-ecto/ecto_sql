@@ -14,7 +14,6 @@ defmodule Mix.Tasks.Ecto.Rollback do
     all: :boolean,
     step: :integer,
     to: :integer,
-    start: :boolean,
     quiet: :boolean,
     prefix: :string,
     pool_size: :integer,
@@ -41,11 +40,10 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
       config :my_app, MyApp.Repo, priv: "priv/custom_repo"
 
-  This task runs all pending migrations by default. Runs the last
-  applied migration by default. To roll back to a version number,
-  supply `--to version_number`. To roll back a specific number of
-  times, use `--step n`. To undo all applied migrations, provide
-  `--all`.
+  This task rolls back the last applied migration by default. To roll
+  back to a version number, supply `--to version_number`. To roll 
+  back a specific number of times, use `--step n`. To undo all applied 
+  migrations, provide `--all`.
 
   The repositories to rollback are the ones specified under the
   `:ecto_repos` option in the current app configuration. However,
