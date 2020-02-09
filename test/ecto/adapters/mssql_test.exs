@@ -287,7 +287,7 @@ defmodule Ecto.Adapters.MsSqlTest do
   #   assert all(query) == ~s{SELECT count(CASE WHEN m0.[x] > 10 THEN 1 ELSE NULL) FROM [model] AS m0}
 
   #   query = Model |> select([r], count(r.x) |> filter(r.x > 10 and r.x < 50)) |> plan()
-  #   assert all(query) == ~s{SELECT count(CASE WHEN (m0.[x] > 10) AND (m.[x] < 50) THEN 1 ELSE NULL) FROM "schema" AS s0}
+  #   assert all(query) == ~s{SELECT count(CASE WHEN (m0.[x] > 10) AND (m.[x] < 50) THEN 1 ELSE NULL) FROM [schema] AS s0}
 
   #   query = Model |> select([r], count() |> filter(r.x > 10)) |> plan()
   #   assert all(query) == ~s{SELECT count(CASE WHEN m0.[x] > 10 THEN 1 ELSE NULL) FROM [model] AS m0}
@@ -352,22 +352,22 @@ defmodule Ecto.Adapters.MsSqlTest do
   end
 
   test "limit and offset" do
-    query = Model |> limit([r], 3) |> select([], 0) |> plan()
-    assert all(query) == ~s{SELECT TOP(3) 0 FROM [model] AS m0}
+    query = Model |> limit([r], 3) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TOP(3) CAST(1 as bit) FROM [model] AS m0}
 
-    query = Model |> order_by([r], r.x) |> offset([r], 5) |> select([], 0) |> plan()
+    query = Model |> order_by([r], r.x) |> offset([r], 5) |> select([], true) |> plan()
 
     assert_raise Ecto.QueryError, fn ->
       all(query)
     end
 
     query =
-      Model |> order_by([r], r.x) |> offset([r], 5) |> limit([r], 3) |> select([], 0) |> plan()
+      Model |> order_by([r], r.x) |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT 0 FROM [model] AS m0 ORDER BY m0.[x] OFFSET 5 ROW FETCH NEXT 3 ROWS ONLY}
+             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 ORDER BY m0.[x] OFFSET 5 ROW FETCH NEXT 3 ROWS ONLY}
 
-    query = Model |> offset([r], 5) |> limit([r], 3) |> select([], 0) |> plan()
+    query = Model |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
 
     assert_raise Ecto.QueryError, fn ->
       all(query)
@@ -375,18 +375,18 @@ defmodule Ecto.Adapters.MsSqlTest do
   end
 
   test "lock" do
-    query = Model |> lock("WITH(NOLOCK)") |> select([], 0) |> plan()
-    assert all(query) == ~s{SELECT 0 FROM [model] AS m0 WITH(NOLOCK)}
+    query = Model |> lock("WITH(NOLOCK)") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [model] AS m0 WITH(NOLOCK)}
   end
 
   test "string escape" do
-    query = Model |> select([], "'\\  ") |> plan()
+    query = "model" |> where(foo: "'\\  ") |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT CONVERT(nvarchar(4), 0x27005c0020002000) FROM [model] AS m0}
+             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 WHERE (m0.[foo] = CONVERT(nvarchar(4), 0x27005c0020002000))}
 
-    query = Model |> select([], "'") |> plan()
-    assert all(query) == ~s{SELECT N'''' FROM [model] AS m0}
+    query = "model" |> where(foo: "'") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [model] AS m0 WHERE (m0.[foo] = N'''')}
   end
 
   test "binary ops" do
@@ -439,23 +439,23 @@ defmodule Ecto.Adapters.MsSqlTest do
   end
 
   test "literals" do
-    query = "model" |> select([], nil) |> plan()
-    assert all(query) == ~s{SELECT NULL FROM [model] AS m0}
+    query = "schema" |> where(foo: true) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 1)}
 
-    query = "model" |> where(foo: true) |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT 1 FROM [model] AS m0 WHERE (m0.[foo] = 1)}
+    query = "schema" |> where(foo: false) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 0)}
 
-    query = "model" |> select([], false) |> plan()
-    assert all(query) == ~s{SELECT 0 FROM [model] AS m0}
+    query = "schema" |> where(foo: "abc") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'abc')}
 
-    query = "model" |> select([], "abc") |> plan()
-    assert all(query) == ~s{SELECT N'abc' FROM [model] AS m0}
+    query = "schema" |> where(foo: <<0,?a,?b,?c>>) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 0x00616263)}
 
-    query = "model" |> select([], 123) |> plan()
-    assert all(query) == ~s{SELECT 123 FROM [model] AS m0}
+    query = "schema" |> where(foo: 123) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 123)}
 
-    query = "model" |> select([], 123.0) |> plan()
-    assert all(query) == ~s{SELECT 123.0 FROM [model] AS m0}
+    query = "schema" |> where(foo: 123.0) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 123.0)}
   end
 
   test "tagged type" do
@@ -663,36 +663,36 @@ defmodule Ecto.Adapters.MsSqlTest do
   # ## Joins
 
   test "join" do
-    query = Model |> join(:inner, [p], q in Model2, on: p.x == q.z) |> select([], 0) |> plan()
+    query = Model |> join(:inner, [p], q in Model2, on: p.x == q.z) |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT 0 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z]}
+             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z]}
 
     query =
       Model
       |> join(:inner, [p], q in Model2, on: p.x == q.z)
       |> join(:inner, [], Model, on: true)
-      |> select([], 0)
+      |> select([], true)
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT 0 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z] } <>
+             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z] } <>
                ~s{INNER JOIN [model] AS m2 ON 1 = 1 }
   end
 
   test "join with nothing bound" do
-    query = Model |> join(:inner, [], q in Model2, on: q.z == q.z) |> select([], 0) |> plan()
+    query = Model |> join(:inner, [], q in Model2, on: q.z == q.z) |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT 0 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m1.[z] = m1.[z]}
+             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m1.[z] = m1.[z]}
   end
 
   test "join without model" do
     query =
-      "posts" |> join(:inner, [p], q in "comments", on: p.x == q.z) |> select([], 0) |> plan()
+      "posts" |> join(:inner, [p], q in "comments", on: p.x == q.z) |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT 0 FROM [posts] AS p0 INNER JOIN [comments] AS c1 ON p0.[x] = c1.[z]}
+             ~s{SELECT CAST(1 as bit) FROM [posts] AS p0 INNER JOIN [comments] AS c1 ON p0.[x] = c1.[z]}
   end
 
   test "join with prefix" do
@@ -700,11 +700,11 @@ defmodule Ecto.Adapters.MsSqlTest do
       Model
       |> join(:inner, [p], q in Model2, on: p.x == q.z)
       |> Map.put(:prefix, "prefix")
-      |> select([], 0)
+      |> select([], true)
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT 0 FROM [prefix].[model] AS m0 INNER JOIN [prefix].[model2] AS m1 ON m0.[x] = m1.[z]}
+             ~s{SELECT CAST(1 as bit) FROM [prefix].[model] AS m0 INNER JOIN [prefix].[model2] AS m1 ON m0.[x] = m1.[z]}
   end
 
   test "join with fragment" do
@@ -728,24 +728,24 @@ defmodule Ecto.Adapters.MsSqlTest do
   ## Associations
 
   test "association join belongs_to" do
-    query = Model2 |> join(:inner, [c], p in assoc(c, :post)) |> select([], 0) |> plan()
+    query = Model2 |> join(:inner, [c], p in assoc(c, :post)) |> select([], true) |> plan()
 
     assert all(query) ==
-             "SELECT 0 FROM [model2] AS m0 INNER JOIN [model] AS m1 ON m1.[x] = m0.[z]"
+             "SELECT CAST(1 as bit) FROM [model2] AS m0 INNER JOIN [model] AS m1 ON m1.[x] = m0.[z]"
   end
 
   test "association join has_many" do
-    query = Model |> join(:inner, [p], c in assoc(p, :comments)) |> select([], 0) |> plan()
+    query = Model |> join(:inner, [p], c in assoc(p, :comments)) |> select([], true) |> plan()
 
     assert all(query) ==
-             "SELECT 0 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m1.[z] = m0.[x]"
+             "SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m1.[z] = m0.[x]"
   end
 
   test "association join has_one" do
-    query = Model |> join(:inner, [p], pp in assoc(p, :permalink)) |> select([], 0) |> plan()
+    query = Model |> join(:inner, [p], pp in assoc(p, :permalink)) |> select([], true) |> plan()
 
     assert all(query) ==
-             "SELECT 0 FROM [model] AS m0 INNER JOIN [foo].[model3] AS m1 ON m1.[id] = m0.[y]"
+             "SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [foo].[model3] AS m1 ON m1.[id] = m0.[y]"
   end
 
   test "join produces correct bindings" do

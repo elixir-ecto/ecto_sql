@@ -429,20 +429,23 @@ if Code.ensure_loaded?(Tds) do
       )
     end
 
-    defp select([], sources, %{select: %SelectExpr{expr: val}} = query) do
-      expr(val, sources, query)
+    defp select([], sources, query) do
+      "CAST(1 as bit)"
     end
 
     defp select(fields, sources, query) do
       intersperse_map(fields, ", ", fn
         {:&, _, [idx]} ->
-          {table, _name, _schema} = elem(sources, idx)
-
-          error!(
-            query,
-            "MSSQL adapter does not support selecting all fields from #{table} without a schema. " <>
-              "Please specify a schema or specify exactly which fields you want in projection"
-          )
+          case elem(sources, idx) do
+            {source, _, nil} ->
+              error!(
+                query,
+                "MSSQL adapter does not support selecting all fields from #{source} without a schema. " <>
+                "Please specify a schema or specify exactly which fields you want in projection"
+              )
+            {_, source, _} ->
+                source
+          end
 
         {key, value} ->
           [expr(value, sources, query), " AS ", quote_name(key)]
@@ -815,11 +818,15 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
-      "DATEADD(" <>
-        interval <>
-        ", " <>
-        interval_count(count, sources, query) <>
-        ", CAST(" <> expr(datetime, sources, query) <> " AS datetime2(6)))" |> IO.inspect()
+      [
+        "DATEADD(",
+        interval,
+        ", ",
+        interval_count(count, sources, query),
+        ", CAST(",
+        expr(datetime, sources, query),
+        " AS datetime2(6)))"
+      ]
     end
 
     defp expr({:date_add, _, [date, count, interval]}, sources, query) do
@@ -921,6 +928,10 @@ if Code.ensure_loaded?(Tds) do
 
     defp expr(literal, _sources, _query) when is_float(literal) do
       Float.to_string(literal)
+    end
+
+    defp expr(field, sources, query) do
+      error!(query, "MSSQL adapter does not support keyword or interpolated whatever \n#{inspect(inspect([field: field, sources: sources, query: query], structs: false))}")
     end
 
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
