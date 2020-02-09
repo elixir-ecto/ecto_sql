@@ -534,7 +534,7 @@ if Code.ensure_loaded?(Tds) do
         intersperse_map(joins, ?\s, fn
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
             if hints != [] do
-              error!(query, "table hints are not supported by MsSQL")
+              error!(query, "table hints are not supported by MsSQL adapter at the moment, use `lock: ...` if possible")
             end
 
             {join, name} = get_source(query, sources, ix, source)

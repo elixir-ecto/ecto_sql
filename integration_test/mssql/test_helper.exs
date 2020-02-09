@@ -122,7 +122,8 @@ alias Ecto.Integration.PoolRepo
 Application.put_env(
   :ecto_sql,
   PoolRepo,
-  url: "#{Application.get_env(:ecto_sql, :mssql_test_url)}/ecto_test"
+  url: "#{Application.get_env(:ecto_sql, :mssql_test_url)}/ecto_test",
+  pool_size: 10
 )
 
 defmodule Ecto.Integration.PoolRepo do

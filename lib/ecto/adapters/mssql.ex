@@ -56,7 +56,7 @@ defmodule Ecto.Adapters.MsSql do
 
   use Ecto.Adapters.SQL,
     driver: :tds,
-    migration_lock: nil
+    migration_lock: "(UPDLOCK)"
 
   require Logger
 
