@@ -205,8 +205,6 @@ if Code.ensure_loaded?(Tds) do
     ## Query
 
     alias Ecto.Query
-    # alias Ecto.Query.SelectExpr, QueryExpr, JoinExpr, BooleanExpr, WithExpr}
-    alias Ecto.Query.SelectExpr
     alias Ecto.Query.QueryExpr
     alias Ecto.Query.JoinExpr
     alias Ecto.Query.BooleanExpr
@@ -429,7 +427,7 @@ if Code.ensure_loaded?(Tds) do
       )
     end
 
-    defp select([], sources, query) do
+    defp select([], _sources, _query) do
       "CAST(1 as bit)"
     end
 
