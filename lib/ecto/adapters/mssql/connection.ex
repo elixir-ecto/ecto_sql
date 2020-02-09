@@ -815,11 +815,11 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
-      "CAST(DATEADD(" <>
+      "DATEADD(" <>
         interval <>
         ", " <>
         interval_count(count, sources, query) <>
-        ", " <> expr(datetime, sources, query) <> ") AS datetime2(6))"
+        ", CAST(" <> expr(datetime, sources, query) <> " AS datetime2(6)))" |> IO.inspect()
     end
 
     defp expr({:date_add, _, [date, count, interval]}, sources, query) do
@@ -1481,8 +1481,8 @@ if Code.ensure_loaded?(Tds) do
 
     defp ecto_cast_to_db(:integer, _opts), do: "bigint"
     # defp ecto_cast_to_db(:string, _opts), do: "char"
-    defp ecto_cast_to_db(:utc_datetime_usec, _opts), do: "datetime(6)"
-    defp ecto_cast_to_db(:naive_datetime_usec, _opts), do: "datetime(6)"
+    defp ecto_cast_to_db(:utc_datetime_usec, _opts), do: "datetime2(6)"
+    defp ecto_cast_to_db(:naive_datetime_usec, _opts), do: "datetime2(6)"
     defp ecto_cast_to_db(type, opts) do
       size = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)
