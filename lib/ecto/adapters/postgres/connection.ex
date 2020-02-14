@@ -119,7 +119,7 @@ if Code.ensure_loaded?(Postgrex) do
       order_by = order_by(query, order_by_distinct, sources)
       limit = limit(query, sources)
       offset = offset(query, sources)
-      lock = lock(query.lock)
+      lock = lock(query, sources)
 
       [cte, select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
     end
@@ -476,8 +476,9 @@ if Code.ensure_loaded?(Postgrex) do
       end)
     end
 
-    defp lock(nil), do: []
-    defp lock(lock_clause), do: [?\s | lock_clause]
+    defp lock(%{lock: nil}, _sources), do: []
+    defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | binary]
+    defp lock(%{lock: expr} = query, sources), do: [?\s | expr(expr, sources, query)]
 
     defp boolean(_name, [], _sources, _query), do: []
     defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do

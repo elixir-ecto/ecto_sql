@@ -429,6 +429,9 @@ defmodule Ecto.Adapters.PostgresTest do
   test "lock" do
     query = Schema |> lock("FOR SHARE NOWAIT") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 FOR SHARE NOWAIT}
+
+    query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 UPDATE on s0}
   end
 
   test "string escape" do
