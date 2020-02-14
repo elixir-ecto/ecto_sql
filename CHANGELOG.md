@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.3.4 (2020-02-14)
+
+### Enhancements
+
+  * [adapters] Support fragments in locks
+  * [migration] Add `:include` option to support covering indexes
+
 ## v3.3.3 (2020-01-28)
 
 ### Enhancements
