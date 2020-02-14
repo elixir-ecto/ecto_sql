@@ -179,7 +179,7 @@ defmodule Ecto.Integration.MigratorTest do
     Application.put_env(:ecto_sql, __MODULE__.SingleConnectionRepo, config)
 
     defmodule SingleConnectionRepo do
-      use Ecto.Repo, otp_app: :ecto_sql, adapter: PoolRepo.__adapter__
+      use Ecto.Repo, otp_app: :ecto_sql, adapter: PoolRepo.__adapter__()
     end
 
     {:ok, _pid} = SingleConnectionRepo.start_link()
@@ -199,7 +199,7 @@ defmodule Ecto.Integration.MigratorTest do
     Application.put_env(:ecto_sql, __MODULE__.SingleConnectionNoLockRepo, config)
 
     defmodule SingleConnectionNoLockRepo do
-      use Ecto.Repo, otp_app: :ecto_sql, adapter: PoolRepo.__adapter__
+      use Ecto.Repo, otp_app: :ecto_sql, adapter: PoolRepo.__adapter__()
     end
 
     {:ok, _pid} = SingleConnectionNoLockRepo.start_link()

@@ -169,11 +169,11 @@ defmodule Ecto.Integration.SandboxTest do
       Sandbox.checkout(TestRepo)
 
       TestRepo.checkout(fn ->
-        refute TestRepo.in_transaction?
+        refute TestRepo.in_transaction?()
         TestRepo.transaction(fn ->
-          assert TestRepo.in_transaction?
+          assert TestRepo.in_transaction?()
         end)
-        refute TestRepo.in_transaction?
+        refute TestRepo.in_transaction?()
       end)
     end
 
@@ -181,11 +181,11 @@ defmodule Ecto.Integration.SandboxTest do
       Sandbox.checkout(TestRepo)
 
       TestRepo.transaction(fn ->
-        assert TestRepo.in_transaction?
+        assert TestRepo.in_transaction?()
         TestRepo.checkout(fn ->
-          assert TestRepo.in_transaction?
+          assert TestRepo.in_transaction?()
         end)
-        assert TestRepo.in_transaction?
+        assert TestRepo.in_transaction?()
       end)
     end
   end
