@@ -385,6 +385,9 @@ defmodule Ecto.Adapters.MyXQLTest do
   test "lock" do
     query = Schema |> lock("LOCK IN SHARE MODE") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 LOCK IN SHARE MODE}
+
+    query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 UPDATE on s0}
   end
 
   test "coalesce" do
