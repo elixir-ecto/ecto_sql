@@ -589,9 +589,11 @@ defmodule Ecto.Migrator do
   end
 
   defp load_migration!({version, _, file}) when is_binary(file) do
-    loaded_modules = file |> Code.load_file() |> Enum.map(&elem(&1, 0))
+    mod =
+      Code.compile_file(file)
+      |> Enum.find_value(fn {module, _code} -> migration?(module) && module end)
 
-    if mod = Enum.find(loaded_modules, &migration?/1) do
+    if mod do
       {version, mod}
     else
       raise Ecto.MigrationError, "file #{Path.relative_to_cwd(file)} does not define an Ecto.Migration"
