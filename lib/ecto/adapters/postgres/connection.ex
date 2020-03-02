@@ -583,6 +583,19 @@ if Code.ensure_loaded?(Postgrex) do
       [?(, expr(expr, sources, query), "#>'{", path, "}')"]
     end
 
+    defp expr({:embed_extract_path, _, [expr, path]}, sources, query) do
+      path =
+        intersperse_map(path, ?,, fn
+          atom when is_atom(atom) ->
+            Atom.to_string(atom)
+
+          integer when is_integer(integer) ->
+            Integer.to_string(integer)
+        end)
+
+      [?(, expr(expr, sources, query), "#>'{", path, "}')"]
+    end
+
     defp expr({:filter, _, [agg, filter]}, sources, query) do
       aggregate = expr(agg, sources, query)
       [aggregate, " FILTER (WHERE ", expr(filter, sources, query), ?)]

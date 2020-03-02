@@ -560,6 +560,19 @@ if Code.ensure_loaded?(MyXQL) do
       ["json_extract(", expr(expr, sources, query), ", '$", path, "')"]
     end
 
+    defp expr({:embed_extract_path, _, [expr, path]}, sources, query) do
+      path =
+        Enum.map(path, fn
+          atom when is_atom(atom) ->
+            ".\"#{atom}\""
+
+          integer when is_integer(integer) ->
+            "[#{integer}]"
+        end)
+
+      ["json_extract(", expr(expr, sources, query), ", '$", path, "')"]
+    end
+
     defp expr({fun, _, args}, sources, query) when is_atom(fun) and is_list(args) do
       {modifier, args} =
         case args do

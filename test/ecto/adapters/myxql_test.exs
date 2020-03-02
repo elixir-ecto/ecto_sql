@@ -7,6 +7,14 @@ defmodule Ecto.Adapters.MyXQLTest do
   alias Ecto.Adapters.MyXQL.Connection, as: SQL
   alias Ecto.Migration.Reference
 
+  defmodule Embed do
+    use Ecto.Schema
+
+    embedded_schema do
+      field :binary, :binary
+    end
+  end
+
   defmodule Schema do
     use Ecto.Schema
 
@@ -21,6 +29,9 @@ defmodule Ecto.Adapters.MyXQLTest do
       has_one :permalink, Ecto.Adapters.MyXQLTest.Schema3,
         references: :y,
         foreign_key: :id
+
+      embeds_one :embed, Embed
+      embeds_many :embeds, Embed
     end
   end
 
@@ -504,6 +515,14 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = Schema |> select([r], json_extract_path(r, ["\"a"])) |> plan()
     assert all(query) == ~s{SELECT json_extract(s0, '$."\\\\"a"') FROM `schema` AS s0}
+  end
+
+  test "embed_extract_path" do
+    query = Schema |> select([r], embed_extract_path(r.embed, [:binary])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`embed`, '$."binary"') FROM `schema` AS s0}
+
+    query = Schema |> select([r], embed_extract_path(r.embeds, [0, :binary])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`embeds`, '$[0]."binary"') FROM `schema` AS s0}
   end
 
   test "nested expressions" do

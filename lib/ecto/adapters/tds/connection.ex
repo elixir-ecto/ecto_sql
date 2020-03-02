@@ -707,7 +707,15 @@ if Code.ensure_loaded?(Tds) do
     defp expr({:json_extract_path, _, _}, _sources, query) do
       error!(
         query,
-        "Tds adapter does not support json_extract_path expression" <>
+        "Tds adapter does not support `json_extract_path` expression" <>
+          ", use fragment with JSON_VALUE/JSON_QUERY"
+      )
+    end
+
+    defp expr({:embed_extract_path, _, _}, _sources, query) do
+      error!(
+        query,
+        "Tds adapter does not support `embed_extract_path` expression" <>
           ", use fragment with JSON_VALUE/JSON_QUERY"
       )
     end
