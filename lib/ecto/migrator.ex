@@ -589,7 +589,7 @@ defmodule Ecto.Migrator do
   end
 
   defp load_migration!({version, _, file}) when is_binary(file) do
-    loaded_modules = file |> Code.load_file() |> Enum.map(&elem(&1, 0))
+    loaded_modules = file |> Code.require_file() |> Enum.map(&elem(&1, 0))
 
     if mod = Enum.find(loaded_modules, &migration?/1) do
       {version, mod}
