@@ -238,38 +238,8 @@ defmodule Ecto.Adapters.MyXQL do
         {:ok, last_insert_id(key, last_insert_id)}
 
       {:error, err} ->
-        case @conn.to_constraints(err, [source: source]) do
+        case @conn.to_constraints(err, source: source) do
           []          -> raise err
-          constraints -> {:invalid, constraints}
-        end
-    end
-  end
-
-  @impl true
-  def update(adapter_meta, %{source: source, prefix: prefix}, fields, params, returning, opts) do
-    {fields, field_values} = :lists.unzip(fields)
-    filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
-    values = field_values ++ filter_values
-    sql = @conn.update(prefix, source, fields, params, returning)
-    cache_statement = "ecto_update_#{source}"
-
-    case Ecto.Adapters.SQL.query(adapter_meta, sql, values, [cache_statement: cache_statement] ++ opts) do
-      {:ok, %{rows: nil, num_rows: 1}} ->
-        {:ok, []}
-
-      {:ok, %{rows: [values], num_rows: 1}} ->
-        {:ok, Enum.zip(returning, values)}
-
-      {:ok, %{num_rows: 0}} ->
-        {:error, :stale}
-
-      {:ok, %{num_rows: num_rows}} when num_rows > 1 ->
-        raise Ecto.MultiplePrimaryKeyError,
-              source: source, params: params, count: num_rows, operation: :update
-
-      {:error, err} ->
-        case @conn.to_constraints(err, [source: source]) do
-          [] -> raise_sql_call_error err
           constraints -> {:invalid, constraints}
         end
     end
@@ -281,13 +251,6 @@ defmodule Ecto.Adapters.MyXQL do
     raise ArgumentError, "MySQL does not support :read_after_writes in schemas for non-primary keys. " <>
                          "The following fields in #{inspect schema} are tagged as such: #{inspect returning}"
   end
-
-  defp raise_sql_call_error(%DBConnection.OwnershipError{} = err) do
-    message = err.message <> "\nSee Ecto.Adapters.SQL.Sandbox docs for more information."
-    raise %{err | message: message}
-  end
-
-  defp raise_sql_call_error(err), do: raise err
 
   defp last_insert_id(nil, _last_insert_id), do: []
   defp last_insert_id(_key, 0), do: []

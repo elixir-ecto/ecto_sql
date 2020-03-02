@@ -661,7 +661,13 @@ defmodule Ecto.Adapters.SQL do
               source: source, params: params, count: num_rows, operation: operation
 
       {:error, err} ->
-        case conn.to_constraints(err) do
+        # TODO: Deprecate to_constraints should be removed in future versions
+        if function_exported?(conn, :to_constraints, 1) do
+          conn.to_constraints(err)
+        else
+          conn.to_constraints(err, source: source)
+        end
+        |> case do
           [] -> raise_sql_call_error err
           constraints -> {:invalid, constraints}
         end

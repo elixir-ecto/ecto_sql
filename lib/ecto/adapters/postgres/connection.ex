@@ -15,24 +15,24 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, constraint: constraint}}, _opts),
       do: [unique: constraint]
-    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, constraint: constraint}}, _opts),
       do: [foreign_key: constraint]
-    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, constraint: constraint}}, _opts),
       do: [exclusion: constraint]
-    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, constraint: constraint}}, _opts),
       do: [check: constraint]
 
     # Postgres 9.2 and earlier does not provide the constraint field
     @impl true
-    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, message: message}}, _opts) do
       case :binary.split(message, " unique constraint ") do
         [_, quoted] -> [unique: strip_quotes(quoted)]
         _ -> []
       end
     end
-    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, message: message}}, _opts) do
       case :binary.split(message, " foreign key constraint ") do
         [_, quoted] ->
           [quoted | _] = :binary.split(quoted, " on table ")
@@ -41,20 +41,20 @@ if Code.ensure_loaded?(Postgrex) do
           []
       end
     end
-    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, message: message}}, _opts) do
       case :binary.split(message, " exclusion constraint ") do
         [_, quoted] -> [exclusion: strip_quotes(quoted)]
         _ -> []
       end
     end
-    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, message: message}}, _opts) do
       case :binary.split(message, " check constraint ") do
         [_, quoted] -> [check: strip_quotes(quoted)]
         _ -> []
       end
     end
 
-    def to_constraints(_),
+    def to_constraints(_, _opts),
       do: []
 
     defp strip_quotes(quoted) do

@@ -58,7 +58,7 @@ defmodule Ecto.Adapters.SQL.Connection do
   Must return an empty list if the error does not come
   from any constraint.
   """
-  @callback to_constraints(exception :: Exception.t) :: Keyword.t
+  @callback to_constraints(exception :: Exception.t, options :: Keyword.t) :: Keyword.t
 
   ## Queries
 
