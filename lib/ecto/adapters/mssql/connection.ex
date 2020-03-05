@@ -14,7 +14,9 @@ if Code.ensure_loaded?(Tds) do
     @impl true
     @doc false
     def child_spec(opts) do
-      Tds.child_spec(opts)
+      opts
+      |> Keyword.put_new(:use_elixir_calendar_types, true)
+      |> Tds.child_spec()
     end
 
     @impl true
@@ -89,7 +91,8 @@ if Code.ensure_loaded?(Tds) do
         {:ok, %Tds.Result{} = result} ->
           {:ok, Map.from_struct(result)}
 
-        other -> other
+        other ->
+          other
       end
     end
 
@@ -100,30 +103,21 @@ if Code.ensure_loaded?(Tds) do
 
     def to_constraints(_), do: []
 
+    defp prepare_params(params) do
+      params
+      |> Enum.map_reduce(1, fn param, acc ->
+        {value, type} = prepare_param(param)
+        {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+      end)
+      |> elem(0)
+    end
+
     # Boolean
-    defp prepare_param(%Tagged{value: true, type: :boolean}), do: {1, :boolean}
-    defp prepare_param(%Tagged{value: false, type: :boolean}), do: {0, :boolean}
-    # Tds.Ecto.VarChar
-    defp prepare_param(%Tagged{value: value, type: :varchar}) do
-      {value, :varchar}
-    end
+    defp prepare_param(%Tagged{value: value, type: :boolean}), do: {value, :boolean}
 
-    # String parameter
+    defp prepare_param(%Tagged{value: value, type: :varchar}), do: {value, :varchar}
+
     defp prepare_param(%Tagged{value: value, type: :string}), do: {value, :string}
-    # DateTime
-    defp prepare_param(%Tagged{
-           value: {{y, m, d}, {hh, mm, ss, us}},
-           type: :datetime
-         })
-         when us > 0,
-         do: {{{y, m, d}, {hh, mm, ss, us}}, :datetime2}
-
-    defp prepare_param(%Tagged{
-           value: {{y, m, d}, {hh, mm, ss, _}},
-           type: :datetime
-         }) do
-      {{{y, m, d}, {hh, mm, ss}}, :datetime}
-    end
 
     # UUID and BinaryID
     defp prepare_param(%Tagged{value: value, type: type}) when type in [:binary_id, :uuid] do
@@ -151,17 +145,25 @@ if Code.ensure_loaded?(Tds) do
 
     # Binary
     defp prepare_param(%Tagged{value: value, type: :binary}), do: {value, :binary}
+
     # Decimal
     defp prepare_param(%Decimal{} = value) do
       {value, :decimal}
     end
 
+    defp prepare_param(%Tagged{value: {_, {_, _, _, us}} = value, type: :datetime})
+         when us > 0,
+         do: {value, :datetime2}
+
+    defp prepare_param(%Tagged{value: {date, {h, m, s, _}}, type: :datetime}),
+      do: {{date, {h, m, s}}, :datetime}
+
     defp prepare_param(%NaiveDateTime{} = value) do
-      {value, :datetime}
+      {value, :datetime2}
     end
 
     defp prepare_param(%DateTime{} = value) do
-      {value, :datetime2}
+      {value, :datetimeoffset}
     end
 
     defp prepare_param(%Date{} = value) do
@@ -193,14 +195,12 @@ if Code.ensure_loaded?(Tds) do
     defp prepare_raw_param(value) when value == true, do: {1, :boolean}
     defp prepare_raw_param(value) when value == false, do: {0, :boolean}
     defp prepare_raw_param(value) when is_integer(value), do: {value, :integer}
-    defp prepare_raw_param(value) when is_number(value), do: {value, :float}
-    defp prepare_raw_param(%Decimal{} = value), do: {Decimal.new(value), :decimal}
+    defp prepare_raw_param(value) when is_float(value), do: {value, :float}
+    defp prepare_raw_param(%Decimal{} = value), do: {value, :decimal}
     defp prepare_raw_param({_, :varchar} = value), do: value
     defp prepare_raw_param(value), do: {value, nil}
 
-    defp json_library() do
-      Application.get_env(:tds, :json_library, Jason)
-    end
+    defp json_library(), do: Application.get_env(:tds, :json_library, Jason)
 
     ## Query
 
@@ -267,6 +267,7 @@ if Code.ensure_loaded?(Tds) do
     def insert(prefix, table, header, rows, on_conflict, returning) do
       [] = on_conflict(on_conflict, header)
       returning = returning(returning, "INSERTED")
+
       values =
         if header == [] do
           [returning, " DEFAULT VALUES"]
@@ -439,10 +440,11 @@ if Code.ensure_loaded?(Tds) do
               error!(
                 query,
                 "MSSQL adapter does not support selecting all fields from #{source} without a schema. " <>
-                "Please specify a schema or specify exactly which fields you want in projection"
+                  "Please specify a schema or specify exactly which fields you want in projection"
               )
+
             {_, source, _} ->
-                source
+              source
           end
 
         {key, value} ->
@@ -532,7 +534,10 @@ if Code.ensure_loaded?(Tds) do
         intersperse_map(joins, ?\s, fn
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
             if hints != [] do
-              error!(query, "table hints are not supported by MsSQL adapter at the moment, use `lock: ...` if possible")
+              error!(
+                query,
+                "table hints are not supported by MsSQL adapter at the moment, use `lock: ...` if possible"
+              )
             end
 
             {join, name} = get_source(query, sources, ix, source)
@@ -655,8 +660,6 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp options(_query, _sources), do: []
-
-
 
     defp combinations(%{combinations: combinations}) do
       Enum.map(combinations, fn
@@ -929,7 +932,12 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr(field, sources, query) do
-      error!(query, "MSSQL adapter does not support keyword or interpolated whatever \n#{inspect(inspect([field: field, sources: sources, query: query], structs: false))}")
+      error!(
+        query,
+        "MSSQL adapter does not support keyword or interpolated whatever \n#{
+          inspect(inspect([field: field, sources: sources, query: query], structs: false))
+        }"
+      )
     end
 
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
@@ -960,12 +968,15 @@ if Code.ensure_loaded?(Tds) do
 
     defp returning(%{select: nil}, _, _),
       do: []
+
     defp returning(%{select: %{fields: fields}} = query, idx, verb),
       do: [
-        " OUTPUT " | intersperse_map(fields, ", ", fn
-          {{:., _, [{:&, _, [^idx]}, key]}, _, _} -> [verb, ?., quote_name(key)]
-          _ -> error!(query, "MsSql can only return table #{verb} columns")
-      end)]
+        " OUTPUT "
+        | intersperse_map(fields, ", ", fn
+            {{:., _, [{:&, _, [^idx]}, key]}, _, _} -> [verb, ?., quote_name(key)]
+            _ -> error!(query, "MsSql can only return table #{verb} columns")
+          end)
+      ]
 
     defp create_names(%{sources: sources}) do
       create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
@@ -1488,10 +1499,6 @@ if Code.ensure_loaded?(Tds) do
       |> :binary.replace("'", "''", [:global])
     end
 
-    defp ecto_cast_to_db(:integer, _opts), do: "bigint"
-    # defp ecto_cast_to_db(:string, _opts), do: "char"
-    defp ecto_cast_to_db(:utc_datetime_usec, _opts), do: "datetime2(6)"
-    defp ecto_cast_to_db(:naive_datetime_usec, _opts), do: "datetime2(6)"
     defp ecto_cast_to_db(type, opts) do
       size = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)
@@ -1505,45 +1512,35 @@ if Code.ensure_loaded?(Tds) do
       do: error!(query, "Array type is not supported by TDS")
 
     defp ecto_to_db(:id, _, _, _, _), do: "bigint"
+    defp ecto_to_db(:integer, _, _, _, _), do: "bigint"
     defp ecto_to_db(:serial, _, _, _, _), do: "int IDENTITY(1,1)"
     defp ecto_to_db(:bigserial, _, _, _, _), do: "bigint IDENTITY(1,1)"
     defp ecto_to_db(:binary_id, _, _, _, _), do: "uniqueidentifier"
     defp ecto_to_db(:boolean, _, _, _, _), do: "bit"
-
-    defp ecto_to_db(:string, size, _, _, _)
-         when is_integer(size) and size > 0,
-         do: "nvarchar(#{size})"
-
+    defp ecto_to_db(:string, nil, _, _, _), do: "nvarchar(255)"
     defp ecto_to_db(:string, :max, _, _, _), do: "nvarchar(max)"
-    defp ecto_to_db(:string, _, _, _, _), do: "nvarchar(255)"
-    defp ecto_to_db(:float, _, _, _, _), do: "float"
-
-    defp ecto_to_db(:binary, size, _, _, _)
-         when is_integer(size) and size > 0,
-         do: "varbinary(#{size})"
-
-    defp ecto_to_db(:binary, :max, _, _, _), do: "varbinary(max)"
+    defp ecto_to_db(:string, s, _, _, _) when s in 1..4_000, do: "nvarchar(#{s})"
+    defp ecto_to_db(:float, nil, _, _, _), do: "float"
+    defp ecto_to_db(:float, s, _, _, _) when s in 1..53, do: "float(#{s})"
     defp ecto_to_db(:binary, nil, _, _, _), do: "varbinary(2000)"
+    defp ecto_to_db(:binary, :max, _, _, _), do: "varbinary(max)"
+    defp ecto_to_db(:binary, s, _, _, _) when s in 1..8_000, do: "varbinary(#{s})"
     defp ecto_to_db(:uuid, _, _, _, _), do: "uniqueidentifier"
-
-    defp ecto_to_db(:map, size, _, _, _)
-         when is_integer(size) and size > 0,
-         do: "nvarchar(#{size})"
-
+    defp ecto_to_db(:map, nil, _, _, _), do: "nvarchar(2000)"
     defp ecto_to_db(:map, :max, _, _, _), do: "nvarchar(max)"
-    defp ecto_to_db(:map, _, _, _, _), do: "nvarchar(2000)"
-
-    defp ecto_to_db({:map, _}, size, _, _, _)
-         when is_integer(size) and size > 0,
-         do: "nvarchar(#{size})"
-
+    defp ecto_to_db(:map, s, _, _, _) when s in 0..4_000, do: "nvarchar(#{s})"
+    defp ecto_to_db({:map, _}, nil, _, _, _), do: "nvarchar(2000)"
+    defp ecto_to_db({:map, _}, s, _, _, _) when s in 1..4_000, do: "nvarchar(#{s})"
     defp ecto_to_db({:map, _}, :max, _, _, _), do: "nvarchar(max)"
-    defp ecto_to_db({:map, _}, _, _, _, _), do: "nvarchar(2000)"
-    defp ecto_to_db(:time_usec, _, _, _, _), do: "time"
-    defp ecto_to_db(:utc_datetime, _, _, _, _), do: "datetime"
-    defp ecto_to_db(:utc_datetime_usec, _, _, _, _), do: "datetime2"
+    defp ecto_to_db(:time, _, _, _, _), do: "time(0)"
+    defp ecto_to_db(:time_usec, _, p, _, _) when p in 0..7, do: "time(#{p}})"
+    defp ecto_to_db(:time_usec, _, _, _, _), do: "time(6)"
+    defp ecto_to_db(:utc_datetime, _, _, _, _), do: "datetimeoffset(0)"
+    defp ecto_to_db(:utc_datetime_usec, _, p, _, _) when p in 0..7, do: "datetimeoffset(#{p})"
+    defp ecto_to_db(:utc_datetime_usec, _, _, _, _), do: "datetimeoffset(6)"
     defp ecto_to_db(:naive_datetime, _, _, _, _), do: "datetime"
-    defp ecto_to_db(:naive_datetime_usec, _, _, _, _), do: "datetime2"
+    defp ecto_to_db(:naive_datetime_usec, _, p, _, _) when p in 0..7, do: "datetime2(#{p}})"
+    defp ecto_to_db(:naive_datetime_usec, _, _, _, _), do: "datetime2(6)"
 
     defp ecto_to_db(other, size, _, _, _) when is_integer(size) do
       "#{Atom.to_string(other)}(#{size})"
@@ -1570,10 +1567,14 @@ if Code.ensure_loaded?(Tds) do
         "IF NOT EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[TABLES] ",
         "WHERE ",
         "[TABLE_NAME] = ",
-        ?', "#{name}", ?',
+        ?',
+        "#{name}",
+        ?',
         if_do(prefix != nil, [
           " AND [TABLE_SCHEMA] = ",
-          ?', "#{prefix}", ?'
+          ?',
+          "#{prefix}",
+          ?'
         ]),
         ") BEGIN "
       ])
@@ -1584,10 +1585,14 @@ if Code.ensure_loaded?(Tds) do
         "IF EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[TABLES] ",
         "WHERE ",
         "[TABLE_NAME] = ",
-        ?', "#{name}", ?',
+        ?',
+        "#{name}",
+        ?',
         if_do(prefix != nil, [
           " AND [TABLE_SCHEMA] = ",
-          ?', "#{prefix}", ?'
+          ?',
+          "#{prefix}",
+          ?'
         ]),
         ") BEGIN "
       ])

@@ -33,12 +33,10 @@ ExUnit.start(
     :map_boolean_in_expression,
     # Decimal casting can not be precise in MSSQL adapter since precision is kept in migration file :(
     # or in case of schema-less queries we don't know at all about precision
-    :decimal_type_cast,
-    # this fails because schema-less queryies in select uses Decimal casting,
-    # see below comment about :average_with_precision exclusion or :decimal_type_cast
+    :decimal_precision,
+    # this fails because schema-less queries in select uses Decimal casting,
+    # see below comment about :decimal_type_cast exclusion or :decimal_type_cast
     :union_with_literals,
-    # Decimal casting can not be precise in MSSQL adapter since precision is kept in migration file :(
-    :average_with_precision,
     # inline queries can't use order by
     :inline_order_by,
     # Even tho MSSQL support DATETIME2 (7 digitis precision) it is not precise since we must round it to 6 digits :) so
