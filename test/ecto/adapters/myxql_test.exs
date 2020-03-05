@@ -1164,9 +1164,9 @@ defmodule Ecto.Adapters.MyXQLTest do
   test "alter table" do
     alter = {:alter, table(:posts),
                [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
-                {:add, :author_id, %Reference{table: :author}, []},
+                {:add, :author_id, %Reference{table: :author}, [after: :title]},
                 {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
-                {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
+                {:add_if_not_exists, :editor_id, %Reference{table: :editor}, [after: :subtitle]},
                 {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
                 {:modify, :cost, :integer, [null: false, default: nil]},
                 {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
@@ -1181,10 +1181,10 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE `posts` ADD `title` varchar(100) DEFAULT 'Untitled' NOT NULL,
-    ADD `author_id` BIGINT UNSIGNED,
+    ADD `author_id` BIGINT UNSIGNED AFTER `title`,
     ADD CONSTRAINT `posts_author_id_fkey` FOREIGN KEY (`author_id`) REFERENCES `author`(`id`),
     ADD IF NOT EXISTS `subtitle` varchar(100) NOT NULL,
-    ADD IF NOT EXISTS `editor_id` BIGINT UNSIGNED,
+    ADD IF NOT EXISTS `editor_id` BIGINT UNSIGNED AFTER `subtitle`,
     ADD CONSTRAINT `posts_editor_id_fkey` FOREIGN KEY IF NOT EXISTS (`editor_id`) REFERENCES `editor`(`id`),
     MODIFY `price` numeric(8,2) NULL, MODIFY `cost` integer DEFAULT NULL NOT NULL,
     MODIFY `permalink_id` BIGINT UNSIGNED NOT NULL,
