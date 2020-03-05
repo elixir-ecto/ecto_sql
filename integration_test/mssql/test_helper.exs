@@ -2,7 +2,7 @@ Logger.configure(level: :info)
 
 ExUnit.start(
   exclude: [
-    # not sure how to support this
+    # not sure how to support this yet
     :aggregate_filters,
     # subquery contains ORDER BY and that is not supported
     :subquery_aggregates,
@@ -56,8 +56,7 @@ ExUnit.start(
     # MSSQL allows nested transactions so this will never raise and SQL query should be "BEGIN TRAN"
     :transaction_checkout_raises,
     # works only if both repo connections are configured to allow_snapshot_isolation: :on
-    # and set_transaction_isolation: :snapshot BUT if we do this then migrations will fail since schema tables do not
-    # support versioning
+    # and both calls are wraped in transaction with option `isolation_level: :snapshot`
     :transaction_multi_repo_calls,
     # requires transaction isolation level to be set to ON and transaction isolation to :snapshot
     :transaction_not_shared
