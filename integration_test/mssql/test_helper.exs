@@ -39,9 +39,6 @@ ExUnit.start(
     :union_with_literals,
     # inline queries can't use order by
     :inline_order_by,
-    # Even tho MSSQL support DATETIME2 (7 digitis precision) it is not precise since we must round it to 6 digits :) so
-    # below fails e.g. ~U[2014-01-01 02:00:00.001501Z] != ~U[2014-01-01 02:00:00.000150Z] NOTE last digit :)
-    :uses_usec,
     # running destruction of PK columns requires that constraint is dropped first
     :alter_primary_key,
     :modify_column_with_from,
