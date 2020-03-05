@@ -863,6 +863,7 @@ defmodule Ecto.Migration do
     * `:precision` - the precision for a numeric type. Required when `:scale` is
       specified.
     * `:scale` - the scale of a numeric type. Defaults to `0`.
+    * `:after` - positions field after the specified one (only for MySQL)
 
   """
   def add(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
