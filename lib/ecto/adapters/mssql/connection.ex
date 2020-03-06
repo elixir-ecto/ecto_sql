@@ -22,12 +22,7 @@ if Code.ensure_loaded?(Tds) do
     @impl true
     def prepare_execute(pid, _name, statement, params, opts \\ []) do
       query = %Query{statement: statement}
-
-      {params, _} =
-        Enum.map_reduce(params, 1, fn param, acc ->
-          {value, type} = prepare_param(param)
-          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
-        end)
+      params = prepare_params(params)
 
       opts = Keyword.put(opts, :parameters, params)
       DBConnection.prepare_execute(pid, query, params, opts)
@@ -36,13 +31,7 @@ if Code.ensure_loaded?(Tds) do
     @impl true
     def execute(pid, statement, params, opts) when is_binary(statement) or is_list(statement) do
       query = %Query{statement: statement}
-
-      {params, _} =
-        Enum.map_reduce(params, 1, fn param, acc ->
-          {value, type} = prepare_param(param)
-          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
-        end)
-
+      params = prepare_params(params)
       opts = Keyword.put(opts, :parameters, params)
 
       case DBConnection.prepare_execute(pid, query, params, opts) do
@@ -59,13 +48,7 @@ if Code.ensure_loaded?(Tds) do
 
     def execute(pid, %{} = query, params, opts) do
       opts = Keyword.put_new(opts, :parameters, params)
-
-      {params, _} =
-        Enum.map_reduce(params, 1, fn param, acc ->
-          {value, type} = prepare_param(param)
-          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
-        end)
-
+      params = prepare_params(params)
       opts = Keyword.put(opts, :parameters, params)
 
       case DBConnection.prepare_execute(pid, query, params, opts) do
@@ -81,11 +64,7 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def query(conn, sql, params, opts) do
-      {params, _} =
-        Enum.map_reduce(params, 1, fn param, acc ->
-          {value, type} = prepare_param(param)
-          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
-        end)
+      params = prepare_params(params)
 
       case Tds.query(conn, sql, params, opts) do
         {:ok, %Tds.Result{} = result} ->
@@ -104,59 +83,19 @@ if Code.ensure_loaded?(Tds) do
     def to_constraints(_), do: []
 
     defp prepare_params(params) do
+      {params, _} =
+        Enum.map_reduce(params, 1, fn param, acc ->
+          {value, type} = prepare_param(param)
+          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+        end)
+
       params
-      |> Enum.map_reduce(1, fn param, acc ->
-        {value, type} = prepare_param(param)
-        {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
-      end)
-      |> elem(0)
     end
-
-    # Boolean
-    defp prepare_param(%Tagged{value: value, type: :boolean}), do: {value, :boolean}
-
-    defp prepare_param(%Tagged{value: value, type: :varchar}), do: {value, :varchar}
-
-    defp prepare_param(%Tagged{value: value, type: :string}), do: {value, :string}
-
-    # UUID and BinaryID
-    defp prepare_param(%Tagged{value: value, type: type}) when type in [:binary_id, :uuid] do
-      case value do
-        <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> ->
-          {:ok, value} = Tds.Types.UUID.dump(value)
-          {value, :uuid}
-
-        any ->
-          {any, :uuid}
-      end
-    end
-
-    defp prepare_param(%Tagged{value: _, tag: Tds.Types.VarChar} = p),
-      do: prepare_param(%{p | type: :varchar})
-
-    defp prepare_param(%Tagged{value: _, tag: Tds.Types.UUID} = p),
-      do: prepare_param(%{p | type: :uuid})
-
-    # any binary
-    defp prepare_param(%Tagged{value: value, type: nil}) when is_binary(value) do
-      type = if String.valid?(value), do: :string, else: :binary
-      {value, type}
-    end
-
-    # Binary
-    defp prepare_param(%Tagged{value: value, type: :binary}), do: {value, :binary}
 
     # Decimal
     defp prepare_param(%Decimal{} = value) do
       {value, :decimal}
     end
-
-    defp prepare_param(%Tagged{value: {_, {_, _, _, us}} = value, type: :datetime})
-         when us > 0,
-         do: {value, :datetime2}
-
-    defp prepare_param(%Tagged{value: {date, {h, m, s, _}}, type: :datetime}),
-      do: {{date, {h, m, s}}, :datetime}
 
     defp prepare_param(%NaiveDateTime{} = value) do
       {value, :datetime2}
@@ -188,15 +127,15 @@ if Code.ensure_loaded?(Tds) do
       {value, type}
     end
 
-    defp prepare_raw_param({y, m, d} = value)
-         when is_integer(y) and is_integer(m) and is_integer(d),
-         do: {value, :date}
+    # defp prepare_raw_param({y, m, d} = value)
+    #      when is_integer(y) and is_integer(m) and is_integer(d),
+    #      do: {value, :date}
 
     defp prepare_raw_param(value) when value == true, do: {1, :boolean}
     defp prepare_raw_param(value) when value == false, do: {0, :boolean}
-    defp prepare_raw_param(value) when is_integer(value), do: {value, :integer}
-    defp prepare_raw_param(value) when is_float(value), do: {value, :float}
-    defp prepare_raw_param(%Decimal{} = value), do: {value, :decimal}
+    # defp prepare_raw_param(value) when is_integer(value), do: {value, :integer}
+    # defp prepare_raw_param(value) when is_float(value), do: {value, :float}
+    # defp prepare_raw_param(%Decimal{} = value), do: {value, :decimal}
     defp prepare_raw_param({_, :varchar} = value), do: value
     defp prepare_raw_param(value), do: {value, nil}
 
@@ -691,18 +630,6 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    # defp boolean(name, query_exprs, sources, query) do
-    #   name <> " " <>
-    #     Enum.map_join(query_exprs, " AND ", fn
-    #       %QueryExpr{expr: true, op: op} ->
-    #         {op, "(1 = 1)"}
-    #       %QueryExpr{expr: false, op: op} ->
-    #         {op, "(0 = 1)"}
-    #       %QueryExpr{expr: expr, op: op} ->
-    #         {op, paren_expr(expr, sources, query)}
-    #     end)
-    # end
-
     defp operator_to_boolean(:and), do: " AND "
     defp operator_to_boolean(:or), do: " OR "
 
@@ -909,6 +836,10 @@ if Code.ensure_loaded?(Tds) do
     defp expr(%Tagged{value: other, type: type}, sources, query)
          when type in [:varchar, :nvarchar] do
       "CAST(#{expr(other, sources, query)} AS #{column_type(type, [])}(max))"
+    end
+
+    defp expr(%Tagged{value: other, type: :integer}, sources, query) do
+      "CAST(#{expr(other, sources, query)} AS bigint)"
     end
 
     defp expr(%Tagged{value: other, type: type}, sources, query) do
@@ -1512,8 +1443,7 @@ if Code.ensure_loaded?(Tds) do
       do: error!(query, "Array type is not supported by TDS")
 
     defp ecto_to_db(:id, _, _, _, _), do: "bigint"
-    defp ecto_to_db(:integer, _, _, _, _), do: "integer"
-    defp ecto_to_db(:bigint, _, _, _, _), do: "bigint"
+    # defp ecto_to_db(:integer, _, _, _, _), do: "bigint"
     defp ecto_to_db(:serial, _, _, _, _), do: "int IDENTITY(1,1)"
     defp ecto_to_db(:bigserial, _, _, _, _), do: "bigint IDENTITY(1,1)"
     defp ecto_to_db(:binary_id, _, _, _, _), do: "uniqueidentifier"
