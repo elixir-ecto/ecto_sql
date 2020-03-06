@@ -67,8 +67,6 @@ jobs:
         ports:
           - 1433:1433
 
-    container: elixir:1.9-slim
-
     strategy:
       matrix:
         mssql_version: ["2017-latest", "2019-latest"]
@@ -85,11 +83,13 @@ jobs:
           apt-get install -y curl wget ca-certificates gnupg 
           curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
           curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list | tee /etc/apt/sources.list.d/msprod.list
-          add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/16.04/mssql-server-2019.list)"
           apt-get update
           apt-get install -y mssql-tools unixodbc-dev
-          apt-get install -y mssql-server
       - uses: actions/checkout@v1
+      - uses: actions/setup-elixir@v1
+        with:
+          otp-version: 22.2
+          elixir-version: 1.9.4
       - name: Install Dependencies
         run: |
           apt-get install -y git
