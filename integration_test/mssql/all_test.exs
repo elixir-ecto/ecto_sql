@@ -7,9 +7,7 @@ Code.require_file "#{ecto}/integration_test/cases/repo.exs", __DIR__
 Code.require_file "#{ecto}/integration_test/cases/type.exs", __DIR__
 
  Code.require_file "../sql/alter.exs", __DIR__
- # lock for update works, but other unit tests require transaction snapshot isolation to be ON
- # so this test is skipped and must run manually
- # Code.require_file "../sql/lock.exs", __DIR__
+ Code.require_file "../sql/lock.exs", __DIR__
  Code.require_file "../sql/logging.exs", __DIR__
  Code.require_file "../sql/migration.exs", __DIR__
  Code.require_file "../sql/migrator.exs", __DIR__

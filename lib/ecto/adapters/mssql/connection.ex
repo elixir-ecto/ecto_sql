@@ -161,7 +161,7 @@ if Code.ensure_loaded?(Tds) do
       where = where(query, sources)
       group_by = group_by(query, sources)
       having = having(query, sources)
-      # window - not supported
+      _window = window(query, sources)
       combinations = combinations(query)
       order_by = order_by(query, sources)
       # limit = is handled in select (TOP X)
@@ -512,6 +512,11 @@ if Code.ensure_loaded?(Tds) do
       boolean(" HAVING ", havings, sources, query)
     end
 
+    defp window(%{windows: []}, _sources), do: []
+
+    defp window(_query, _sources),
+      do: raise(RuntimeError, "Tds adapter does not support window functions")
+
     defp group_by(%{group_bys: []}, _sources), do: []
 
     defp group_by(%{group_bys: group_bys} = query, sources) do
@@ -522,22 +527,6 @@ if Code.ensure_loaded?(Tds) do
           end)
       ]
     end
-
-    # defp window_exprs(kw, sources, query) do
-    #   [?(, intersperse_map(kw, ?\s, &window_expr(&1, sources, query)), ?)]
-    # end
-
-    # defp window_expr({:partition_by, fields}, sources, query) do
-    #   ["PARTITION BY " | intersperse_map(fields, ", ", &expr(&1, sources, query))]
-    # end
-
-    # defp window_expr({:order_by, fields}, sources, query) do
-    #   ["ORDER BY " | intersperse_map(fields, ", ", &order_by_expr(&1, sources, query))]
-    # end
-
-    # defp window_expr({:frame, {:fragment, _, _} = fragment}, sources, query) do
-    #   expr(fragment, sources, query)
-    # end
 
     defp order_by(%{order_bys: []}, _sources), do: []
 
@@ -722,16 +711,6 @@ if Code.ensure_loaded?(Tds) do
       error!(query, "Tds adapter does not support aggregate filters")
     end
 
-    # defp expr({:over, _, [agg, name]}, sources, query) when is_atom(name) do
-    #   aggregate = expr(agg, sources, query)
-    #   [aggregate, " OVER ", "(GROUP BY ", quote_name(name), ?)]
-    # end
-
-    # defp expr({:over, _, [agg, kw]}, sources, query) do
-    #   aggregate = expr(agg, sources, query)
-    #   [aggregate, " OVER ", ?(, window_exprs(kw, sources, query), ?)]
-    # end
-
     defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
       all(query)
     end
@@ -845,7 +824,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr(%Tagged{value: other, type: type}, sources, query) do
-      "CAST(#{expr(other, sources, query)} AS #{ecto_cast_to_db(type, [])})"
+      "CAST(#{expr(other, sources, query)} AS #{column_type(type, [])})"
     end
 
     defp expr(nil, _sources, _query), do: "NULL"
@@ -882,7 +861,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp interval_count(count, _sources, _query) when is_integer(count) do
-      String.Chars.Integer.to_string(count)
+      Integer.to_string(count)
     end
 
     defp interval_count(count, _sources, _query) when is_float(count) do
@@ -1377,7 +1356,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp quote_name(name) do
-      if String.contains?(name, "[") or String.contains?(name, "]") do
+      if String.contains?(name, ["[", "]"]) do
         error!(nil, "bad field name #{inspect(name)} '[' and ']' are not permited")
       end
 
@@ -1414,7 +1393,7 @@ if Code.ensure_loaded?(Tds) do
     defp unquoted_name(name) when is_atom(name), do: unquoted_name(Atom.to_string(name))
 
     defp unquoted_name(name) do
-      if String.contains?(name, "[") or String.contains?(name, "]") do
+      if String.contains?(name, ["[", "]"]) do
         error!(nil, "bad table name #{inspect(name)} '[' and ']' are not permited")
       end
 
@@ -1450,13 +1429,6 @@ if Code.ensure_loaded?(Tds) do
     defp escape_string(value) when is_binary(value) do
       value
       |> :binary.replace("'", "''", [:global])
-    end
-
-    defp ecto_cast_to_db(type, opts) do
-      size = Keyword.get(opts, :size)
-      precision = Keyword.get(opts, :precision)
-      scale = Keyword.get(opts, :scale)
-      ecto_to_db(type, size, precision, scale)
     end
 
     defp ecto_to_db(type, size, precision, scale, query \\ nil)

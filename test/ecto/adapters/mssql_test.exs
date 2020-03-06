@@ -95,7 +95,7 @@ defmodule Ecto.Adapters.MsSqlTest do
 
     # probably not good idea to support "asterisk" but here it is :)
     assert_raise Ecto.QueryError,
-                 ~r"MSSQL adapter does not support selecting all fields from",
+                 ~r"Tds adapter does not support selecting all fields from",
                  fn ->
                    query = "model" |> select([r], fragment("?", r)) |> plan()
                    all(query) == ~s{SELECT m0.* FROM [model] AS m0}
@@ -108,7 +108,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     assert all(query) == ~s{SELECT t0.[x] FROM [0odel] AS t0}
 
     assert_raise Ecto.QueryError,
-                 ~r"MSSQL adapter does not support selecting all fields from",
+                 ~r"Tds adapter does not support selecting all fields from",
                  fn ->
                    query = from(m in "model", select: [m]) |> plan()
                    all(query) == ~s{SELECT m0.* FROM [model] AS m0}
@@ -211,7 +211,7 @@ defmodule Ecto.Adapters.MsSqlTest do
 
     assert_raise(
       Ecto.QueryError,
-      ~r"Unfortunately MsSQL adapter does not support fragment in CTE",
+      ~r"Unfortunately Tds adapter does not support fragment in CTE",
       fn ->
         all(query)
       end
@@ -432,7 +432,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     query = Model |> select([], fragment(title: 2)) |> plan()
 
     assert_raise Ecto.QueryError,
-                 ~r"MSSQL adapter does not support keyword or interpolated fragments",
+                 ~r"Tds adapter does not support keyword or interpolated fragments",
                  fn ->
                    all(query)
                  end
@@ -1177,7 +1177,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     create = {:create, index(:posts, [:permalink], name: "posts$main", concurrently: true)}
 
     assert execute_ddl(create) ==
-             [~s|CREATE INDEX [posts$main] ON [posts] ([permalink]) LOCK=NONE;|]
+             [~s|CREATE INDEX [posts$main] ON [posts] ([permalink]) WITH(ONLINE=ON);|]
   end
 
   test "create unique index" do
@@ -1195,7 +1195,7 @@ defmodule Ecto.Adapters.MsSqlTest do
   test "create an index using a different type" do
     create = {:create, index(:posts, [:permalink], using: :hash)}
 
-    assert_raise ArgumentError, ~r"MSSQL adapter does not support using in indexes.", fn ->
+    assert_raise ArgumentError, ~r"MSSQL does not support using in indexes.", fn ->
       execute_ddl(create)
     end
   end
