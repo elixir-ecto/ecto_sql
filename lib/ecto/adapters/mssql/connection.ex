@@ -506,7 +506,7 @@ if Code.ensure_loaded?(Tds) do
         {key, value} <- kw,
         do: update_op(op, key, value, sources, query)
       )
-      |> Enum.join(", ")
+      |> Enum.intersperse(", ")
     end
 
     defp update_op(:set, key, value, sources, query) do
