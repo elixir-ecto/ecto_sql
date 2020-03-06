@@ -35,7 +35,8 @@ if Code.ensure_loaded?(Tds) do
       opts = Keyword.put(opts, :parameters, params)
 
       case DBConnection.prepare_execute(pid, query, params, opts) do
-        {:ok, _, %Tds.Result{columns: nil, num_rows: num_rows, rows: []}} when num_rows > -1 ->
+        {:ok, _, %Tds.Result{columns: nil, num_rows: num_rows, rows: []}}
+        when num_rows >= 0 ->
           {:ok, %Tds.Result{columns: nil, num_rows: num_rows, rows: nil}}
 
         {:ok, _, query} ->
@@ -59,7 +60,7 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def stream(_conn, _sql, _params, _opts) do
-      raise RuntimeError, "Not supported"
+      raise RuntimeError, "Repo.stream is not supported in Tds adapter"
     end
 
     @impl true
@@ -243,7 +244,7 @@ if Code.ensure_loaded?(Tds) do
     defp on_conflict({_query, _, []}, _header) do
       error!(
         nil,
-        "The query as option for on_conflict is not supported in insert/insert_all by MsSql yet."
+        "The query as option for on_conflict is not supported in insert/insert_all by MsSql."
       )
     end
 
@@ -378,7 +379,7 @@ if Code.ensure_loaded?(Tds) do
             {source, _, nil} ->
               error!(
                 query,
-                "MSSQL adapter does not support selecting all fields from #{source} without a schema. " <>
+                "Tds adapter does not support selecting all fields from #{source} without a schema. " <>
                   "Please specify a schema or specify exactly which fields you want in projection"
               )
 
@@ -414,7 +415,7 @@ if Code.ensure_loaded?(Tds) do
     defp cte_header(%QueryExpr{}, query) do
       error!(
         query,
-        "Unfortunately MsSQL adapter does not support fragment in CTE"
+        "Unfortunately Tds adapter does not support fragment in CTE."
       )
     end
 
@@ -428,7 +429,8 @@ if Code.ensure_loaded?(Tds) do
           other ->
             error!(
               query,
-              "MSSQL adapter got expected field name or alias, instead got #{inspect(other)}"
+              "Tds adapter expected field name or alias in CTE header," <>
+                " instead got #{inspect(other)}"
             )
         end),
         ?)
@@ -475,7 +477,7 @@ if Code.ensure_loaded?(Tds) do
             if hints != [] do
               error!(
                 query,
-                "table hints are not supported by MsSQL adapter at the moment, use `lock: ...` if possible"
+                "table hints are not supported in Tds adapter at the moment, use `lock: ...` if possible"
               )
             end
 
@@ -554,7 +556,7 @@ if Code.ensure_loaded?(Tds) do
       case dir do
         :asc -> str
         :desc -> [str | " DESC"]
-        _ -> error!(query, "#{dir} is not supported in ORDER BY in MsSql")
+        _ -> error!(query, "#{dir} is not supported ORDER BY direction in MsSql")
       end
     end
 
@@ -662,7 +664,7 @@ if Code.ensure_loaded?(Tds) do
 
       error!(
         query,
-        "MSSQL adapter does not support selecting all fields from #{table} without a schema. " <>
+        "Tds adapter does not support selecting all fields from #{table} without a schema. " <>
           "Please specify a schema or specify exactly which fields you want in projection"
       )
     end
@@ -673,7 +675,7 @@ if Code.ensure_loaded?(Tds) do
       if is_nil(schema) and is_nil(fields) do
         error!(
           query,
-          "MSSQL adapter requires a schema module when using selector #{inspect(name)} but " <>
+          "Tds adapter requires a schema module when using selector #{inspect(name)} but " <>
             "none was given. Please specify schema " <>
             "or specify exactly which fields from #{inspect(name)} you what in projection"
         )
@@ -717,7 +719,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:filter, _, _}, _sources, query) do
-      error!(query, "MSSQL adapter does not support aggregate filters")
+      error!(query, "Tds adapter does not support aggregate filters")
     end
 
     # defp expr({:over, _, [agg, name]}, sources, query) when is_atom(name) do
@@ -735,7 +737,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
-      error!(query, "MSSQL adapter does not support keyword or interpolated fragments")
+      error!(query, "Tds adapter does not support keyword or interpolated fragments")
     end
 
     defp expr({:fragment, _, parts}, sources, query) do
@@ -865,8 +867,8 @@ if Code.ensure_loaded?(Tds) do
     defp expr(field, sources, query) do
       error!(
         query,
-        "MSSQL adapter does not support keyword or interpolated whatever \n#{
-          inspect(inspect([field: field, sources: sources, query: query], structs: false))
+        "MSSQL adapter does not support keyword or interpolated or whatever is \n#{
+          inspect([field: field, sources: sources, query: query], structs: false)
         }"
       )
     end
@@ -1019,8 +1021,27 @@ if Code.ensure_loaded?(Tds) do
       prefix = index.prefix
 
       if index.using do
-        error!(nil, "MSSQL adapter does not support using in indexes.")
+        error!(nil, "MSSQL does not support using in indexes.")
       end
+
+      with_options =
+        if index.concurrently or index.options != nil do
+          [
+            " WITH",
+            ?(,
+            if_do(index.concurrently, "ONLINE=ON"),
+            if_do(index.concurrently and index.options != nil, ","),
+            if_do(index.options != nil, index.options),
+            ?)
+          ]
+        else
+          []
+        end
+
+      include =
+        index.include
+        |> List.wrap()
+        |> intersperse_map(", ", &index_expr/1)
 
       [
         [
@@ -1035,12 +1056,13 @@ if Code.ensure_loaded?(Tds) do
           quote_name(index.name),
           " ON ",
           quote_table(prefix, index.table),
-          " ",
-          "(#{intersperse_map(index.columns, ", ", &index_expr/1)})",
-          # if_do(is_list(index.include), [" INCLUDE (", intersperse_map(index.columns, ", ", &index_expr/1), ")"]),
-          if_do(index.using, [" USING ", to_string(index.using)]),
-          if_do(index.concurrently, " LOCK=NONE"),
-          ";"
+          " (",
+          intersperse_map(index.columns, ", ", &index_expr/1),
+          ?),
+          if_do(include != [], [" INCLUDE ", ?(, include, ?)]),
+          if_do(index.where, [" WHERE (", index.where, ?)]),
+          with_options,
+          ?;
         ]
       ]
     end
