@@ -55,11 +55,6 @@ ExUnit.start(
     :pk_insert,
     # MSSQL allows nested transactions so this will never raise and SQL query should be "BEGIN TRAN"
     :transaction_checkout_raises,
-    # works only if both repo connections are configured to allow_snapshot_isolation: :on
-    # and both calls are wraped in transaction with option `isolation_level: :snapshot`
-    :transaction_multi_repo_calls,
-    # requires transaction isolation level to be set to ON and transaction isolation to :snapshot
-    :transaction_not_shared
   ]
 )
 
@@ -84,7 +79,8 @@ Application.put_env(
   :ecto_sql,
   TestRepo,
   url: Application.get_env(:ecto_sql, :mssql_test_url) <> "/ecto_test",
-  pool: Ecto.Adapters.SQL.Sandbox
+  pool: Ecto.Adapters.SQL.Sandbox,
+  set_allow_snapshot_isolation: :on
 )
 
 defmodule Ecto.Integration.TestRepo do
@@ -117,7 +113,8 @@ Application.put_env(
   :ecto_sql,
   PoolRepo,
   url: "#{Application.get_env(:ecto_sql, :mssql_test_url)}/ecto_test",
-  pool_size: 10
+  pool_size: 10,
+  set_allow_snapshot_isolation: :on
 )
 
 defmodule Ecto.Integration.PoolRepo do
@@ -137,8 +134,9 @@ end
 defmodule Ecto.Integration.Case do
   use ExUnit.CaseTemplate
 
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo)
+  setup context do
+    level = Map.get(context, :isolation_level, :read_committed)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo, [isolation_level: level])
   end
 end
 
