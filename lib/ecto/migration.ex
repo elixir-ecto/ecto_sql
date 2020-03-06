@@ -265,7 +265,7 @@ defmodule Ecto.Migration do
   You can do so by defining `c:after_begin/0` and `c:before_commit/0` callbacks to
   your migration.
 
-  However, if you need do so for every migration module, implemment this callback
+  However, if you need do so for every migration module, implement this callback
   for every migration can be quite repetitive. Luckily, you can handle this by
   providing your migration module:
 
