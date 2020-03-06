@@ -64,6 +64,7 @@ jobs:
         env:
           ACCEPT_EULA: Y
           SA_PASSWORD: some!Password
+          MSSQL_URL: sa:some!Password@mssql
         ports:
           - 1433:1433
 
@@ -85,7 +86,6 @@ jobs:
           curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list | tee /etc/apt/sources.list.d/msprod.list
           apt-get update
           apt-get install -y mssql-tools unixodbc-dev
-          export PATH="/opt/mssql-tools/bin:$PATH"
       - uses: actions/checkout@v1
       - name: Install Dependencies
         run: |
@@ -93,7 +93,9 @@ jobs:
           mix local.rebar --force
           mix local.hex --force
           mix deps.get
-      - run: MSSQL_URL=sa:some!Password@mssql ECTO_ADAPTER=mssql mix test
+      - run: |
+          export PATH="/opt/mssql-tools/bin:$PATH"
+          ECTO_ADAPTER=mssql mix test
           
   test-pg:
     runs-on: ubuntu-18.04
