@@ -77,11 +77,11 @@ if Code.ensure_loaded?(Tds) do
     end
 
     @impl true
-    def to_constraints(%Tds.Error{mssql: %{number: code, msg_text: message}}) do
+    def to_constraints(%Tds.Error{mssql: %{number: code, msg_text: message}}, _opts) do
       Tds.Error.get_constraint_violations(code, message)
     end
 
-    def to_constraints(_), do: []
+    def to_constraints(_, _opts), do: []
 
     defp prepare_params(params) do
       {params, _} =
