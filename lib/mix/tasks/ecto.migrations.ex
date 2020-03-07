@@ -6,8 +6,7 @@ defmodule Mix.Tasks.Ecto.Migrations do
   @shortdoc "Displays the repository migration status"
 
   @aliases [
-    r: :repo,
-    n: :step
+    r: :repo
   ]
 
   @switches [

@@ -43,11 +43,6 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     @impl true
-    def to_constraints(error) do
-      to_constraints(error, [])
-    end
-
-    @doc false
     def to_constraints(%MyXQL.Error{mysql: %{name: :ER_DUP_ENTRY}, message: message}, opts) do
       case :binary.split(message, " for key ") do
         [_, quoted] -> [unique: normalize_index_name(quoted, opts[:source])]
@@ -100,7 +95,7 @@ if Code.ensure_loaded?(MyXQL) do
       order_by = order_by(query, sources)
       limit = limit(query, sources)
       offset = offset(query, sources)
-      lock = lock(query.lock)
+      lock = lock(query, sources)
 
       [cte, select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
     end
@@ -427,8 +422,9 @@ if Code.ensure_loaded?(MyXQL) do
       end)
     end
 
-    defp lock(nil), do: []
-    defp lock(lock_clause), do: [?\s | lock_clause]
+    defp lock(%{lock: nil}, _sources), do: []
+    defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | binary]
+    defp lock(%{lock: expr} = query, sources), do: [?\s | expr(expr, sources, query)]
 
     defp boolean(_name, [], _sources, _query), do: []
     defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do

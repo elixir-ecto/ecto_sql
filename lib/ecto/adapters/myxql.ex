@@ -198,7 +198,7 @@ defmodule Ecto.Adapters.MyXQL do
         {:error, exit_to_exception(exit)}
     end
   end
-  
+
   @impl Ecto.Adapter.Storage
   def storage_status(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
@@ -238,7 +238,7 @@ defmodule Ecto.Adapters.MyXQL do
         {:ok, last_insert_id(key, last_insert_id)}
 
       {:error, err} ->
-        case @conn.to_constraints(err, [source: source]) do
+        case @conn.to_constraints(err, source: source) do
           []          -> raise err
           constraints -> {:invalid, constraints}
         end
