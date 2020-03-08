@@ -4,11 +4,8 @@ defmodule Ecto.Integration.StorageTest do
   use ExUnit.Case
 
   @moduletag :capture_log
-  # @base_migration 5_000_000
 
-  # import Support.FileHelpers
   alias Ecto.Adapters.MsSql
-  # alias Ecto.Integration.{PoolRepo, TestRepo}
 
   def params do
     url = Application.get_env(:ecto_sql, :mssql_test_url) <> "/storage_mgt"
@@ -64,5 +61,29 @@ defmodule Ecto.Integration.StorageTest do
     refute :ok == MsSql.storage_down(wrong_params())
   after
     drop_database()
+  end
+
+  defmodule Migration do
+    use Ecto.Migration
+    def change, do: :ok
+  end
+
+  test "storage status is up when database is created" do
+    create_database()
+    assert :up == MsSql.storage_status(params())
+  after
+    drop_database()
+  end
+
+  test "storage status is down when database is not created" do
+    create_database()
+    drop_database()
+    assert :down == MsSql.storage_status(params())
+  end
+
+  test "storage status is an error when wrong credentials are passed" do
+    assert ExUnit.CaptureLog.capture_log(fn ->
+             assert {:error, _} = MsSql.storage_status(wrong_params())
+           end) =~ ~r"Login failed for user 'randomuser'"
   end
 end

@@ -119,7 +119,7 @@ defmodule Ecto.Adapters.MsSql do
     database =
       Keyword.fetch!(opts, :database) || raise ":database is nil in repostory configuration"
 
-    opts = Keyword.delete(opts, :database)
+    opts = Keyword.put(opts, :database, "master")
 
     check_database_query =
       "SELECT [name] FROM [master].[sys].[databases] WHERE [name] = '#{database}'"
