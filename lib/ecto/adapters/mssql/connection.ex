@@ -1437,7 +1437,6 @@ if Code.ensure_loaded?(Tds) do
       do: error!(query, "Array type is not supported by TDS")
 
     defp ecto_to_db(:id, _, _, _, _), do: "bigint"
-    # defp ecto_to_db(:integer, _, _, _, _), do: "bigint"
     defp ecto_to_db(:serial, _, _, _, _), do: "int IDENTITY(1,1)"
     defp ecto_to_db(:bigserial, _, _, _, _), do: "bigint IDENTITY(1,1)"
     defp ecto_to_db(:binary_id, _, _, _, _), do: "uniqueidentifier"
