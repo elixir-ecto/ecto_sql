@@ -1,5 +1,5 @@
 if Code.ensure_loaded?(Tds) do
-  defmodule Ecto.Adapters.MsSql.Connection do
+  defmodule Ecto.Adapters.Tds.Connection do
     @moduledoc false
     require Logger
     alias Tds.Query

@@ -16,14 +16,14 @@ ExUnit.start(
     :without_conflict_target,
     :upsert_all,
     :upsert,
-    # I'm not sure why, but if decimal is passed as parameter mssql will round differently ecto/integration_test/cases/interval.exs:186
+    # I'm not sure why, but if decimal is passed as parameter mssql server will round differently ecto/integration_test/cases/interval.exs:186
     :uses_msec,
     # Unique index compares even NULL values for post_id, so below fails inserting permalinks without setting valid post_id
     :insert_cell_wise_defaults,
     # SELECT NOT(t.bool_column) not supported
     :select_not,
     # COALESCE is supported but binary parameter is converted into nvarchar so it loses first byte in conversion as invalid string
-    # I had to change migration in order other tests to pass, see integration_test/mssql/migration.exs file
+    # I had to change migration in order other tests to pass, see integration_test/tds/migration.exs file
     :coalesce_type,
     # IDENTITY_INSERT ON/OFF  must be manually executed
     :assigns_id_type,
@@ -53,7 +53,7 @@ ExUnit.start(
     # `SET IDENTITY_INSERT [ [ database_name . ] schema_name . ] table_name  ON`
     # and after insert we need to turn it on, must be run manually in transaction
     :pk_insert,
-    # MSSQL allows nested transactions so this will never raise and SQL query should be "BEGIN TRAN"
+    # Tds allows nested transactions so this will never raise and SQL query should be "BEGIN TRAN"
     :transaction_checkout_raises,
   ]
 )
@@ -65,7 +65,7 @@ Application.put_env(:ecto_sql, :lock_for_update, "(UPDLOCK)")
 
 Application.put_env(
   :ecto_sql,
-  :mssql_test_url,
+  :tds_test_url,
   "ecto://" <> (System.get_env("MSSQL_URL") || "sa:some!Password@localhost")
 )
 
@@ -78,7 +78,7 @@ Code.require_file("../support/repo.exs", __DIR__)
 Application.put_env(
   :ecto_sql,
   TestRepo,
-  url: Application.get_env(:ecto_sql, :mssql_test_url) <> "/ecto_test",
+  url: Application.get_env(:ecto_sql, :tds_test_url) <> "/ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   set_allow_snapshot_isolation: :on
 )
@@ -86,7 +86,7 @@ Application.put_env(
 defmodule Ecto.Integration.TestRepo do
   use Ecto.Integration.Repo,
     otp_app: :ecto_sql,
-    adapter: Ecto.Adapters.MsSql
+    adapter: Ecto.Adapters.Tds
 
   def uuid, do: Tds.Types.UUID
 
@@ -112,7 +112,7 @@ alias Ecto.Integration.PoolRepo
 Application.put_env(
   :ecto_sql,
   PoolRepo,
-  url: "#{Application.get_env(:ecto_sql, :mssql_test_url)}/ecto_test",
+  url: "#{Application.get_env(:ecto_sql, :tds_test_url)}/ecto_test",
   pool_size: 10,
   set_allow_snapshot_isolation: :on
 )
@@ -120,7 +120,7 @@ Application.put_env(
 defmodule Ecto.Integration.PoolRepo do
   use Ecto.Integration.Repo,
     otp_app: :ecto_sql,
-    adapter: Ecto.Adapters.MsSql
+    adapter: Ecto.Adapters.Tds
 
   def create_prefix(prefix) do
     "create schema #{prefix}"
@@ -140,11 +140,11 @@ defmodule Ecto.Integration.Case do
   end
 end
 
-{:ok, _} = Ecto.Adapters.MsSql.ensure_all_started(TestRepo.config(), :temporary)
+{:ok, _} = Ecto.Adapters.Tds.ensure_all_started(TestRepo.config(), :temporary)
 
 # Load up the repository, start it, and run migrations
-_ = Ecto.Adapters.MsSql.storage_down(TestRepo.config())
-:ok = Ecto.Adapters.MsSql.storage_up(TestRepo.config())
+_ = Ecto.Adapters.Tds.storage_down(TestRepo.config())
+:ok = Ecto.Adapters.Tds.storage_up(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()

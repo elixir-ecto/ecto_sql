@@ -2,7 +2,7 @@ defmodule EctoSQL.MixProject do
   use Mix.Project
 
   @version "3.3.4"
-  @adapters ~w(pg myxql mssql)
+  @adapters ~w(pg myxql tds)
 
   def project do
     [
@@ -18,7 +18,7 @@ defmodule EctoSQL.MixProject do
           Postgrex,
           Ecto.Adapters.Postgres.Connection,
           Tds,
-          Ecto.Adapters.MsSql.Connection
+          Ecto.Adapters.Tds.Connection
         ]
       ],
 
@@ -148,7 +148,7 @@ defmodule EctoSQL.MixProject do
 
         "Built-in adapters": [
           Ecto.Adapters.MyXQL,
-          Ecto.Adapters.MsSql,
+          Ecto.Adapters.Tds,
           Ecto.Adapters.Postgres
         ],
         "Adapter specification": [

@@ -1,10 +1,10 @@
-defmodule Ecto.Adapters.MsSqlTest do
+defmodule Ecto.Adapters.TdsTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query
 
   alias Ecto.Queryable
-  alias Ecto.Adapters.MsSql.Connection, as: SQL
+  alias Ecto.Adapters.Tds.Connection, as: SQL
   alias Ecto.Migration.Reference
 
   defmodule Model do
@@ -16,11 +16,11 @@ defmodule Ecto.Adapters.MsSqlTest do
       field :z, :integer
       field :w, :decimal
 
-      has_many :comments, Ecto.Adapters.MsSqlTest.Model2,
+      has_many :comments, Ecto.Adapters.TdsTest.Model2,
         references: :x,
         foreign_key: :z
 
-      has_one :permalink, Ecto.Adapters.MsSqlTest.Model3,
+      has_one :permalink, Ecto.Adapters.TdsTest.Model3,
         references: :y,
         foreign_key: :id
     end
@@ -32,7 +32,7 @@ defmodule Ecto.Adapters.MsSqlTest do
     import Ecto.Query
 
     schema "model2" do
-      belongs_to :post, Ecto.Adapters.MsSqlTest.Model,
+      belongs_to :post, Ecto.Adapters.TdsTest.Model,
         references: :x,
         foreign_key: :z
     end
@@ -50,7 +50,7 @@ defmodule Ecto.Adapters.MsSqlTest do
   end
 
   defp plan(query, operation \\ :all) do
-    {query, _} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.MsSql, query)
+    {query, _} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.Tds, query)
     query
   end
 

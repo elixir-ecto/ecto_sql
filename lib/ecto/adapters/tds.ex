@@ -1,6 +1,6 @@
-defmodule Ecto.Adapters.MsSql do
+defmodule Ecto.Adapters.Tds do
   @moduledoc """
-  Adapter module for MsSql.
+  Adapter module for MsSql Server.
 
   It uses `tds` for communicating to the database.
 
@@ -27,7 +27,6 @@ defmodule Ecto.Adapters.MsSql do
     * `:collation` - the database collation, used during database creation but it is ignored later
 
   """
-  require Tds
 
   use Ecto.Adapters.SQL,
     driver: :tds,
@@ -36,9 +35,6 @@ defmodule Ecto.Adapters.MsSql do
   require Logger
 
   @behaviour Ecto.Adapter.Storage
-  # @conn Ecto.Adapters.MsSql.Connection
-
-  ## Custom MSSQL types
 
   @doc false
   def autogenerate(:binary_id), do: Tds.Types.UUID.bingenerate()
@@ -153,7 +149,7 @@ defmodule Ecto.Adapters.MsSql do
     task =
       Task.Supervisor.async_nolink(pid, fn ->
         {:ok, conn} = Tds.start_link(opts)
-        value = Ecto.Adapters.MsSql.Connection.execute(conn, sql_command, [], opts)
+        value = Ecto.Adapters.Tds.Connection.execute(conn, sql_command, [], opts)
         GenServer.stop(conn)
         value
       end)
