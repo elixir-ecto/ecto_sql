@@ -24,22 +24,22 @@ defmodule Ecto.Adapters.Tds do
   options for driver.
 
   ### Storage options
-    * `:collation` - the database collation, used during database creation but it is ignored later
+    * `:collation` - the database collation. Used during database creation but it is ignored later
 
-  If you need collation other than Latin1, add `tds_encoding` as dependency to your project
-  and below line in your `config/config.ex` file:
+  If you need collation other than Latin1, add `tds_encoding` as dependency in
+  your project `mix.exs` file then amend `config/config.ex` by adding:
 
   ```
-  config :tds, :text_encoder, Tds.Encoding
+  config :tds, :tds_encoding, Tds.Encoding
   ```
 
-  This should give you extended set of most encoding. For cemplete list check `Tds.Encoding`
-  documentation.
+  This should give you extended set of most encoding. For cemplete list check
+  `Tds.Encoding` [documentation](https://hexdocs.pm/tds_encoding).
 
   ### After connect flags
 
-  After connectiong to MsSql server TDS will check if there are any flags set on
-  connection that should affect connection session behaviour. All flags are
+  After connectiong to MsSql server TDS will check if there are any flags set in
+  connection options that should affect connection session behaviour. All flags are
   MsSql standard *SET* options. The folowing flags are currently supported:
 
     * `:set_language` - sets session language (consult stored procedure output
