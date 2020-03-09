@@ -1216,7 +1216,7 @@ defmodule Ecto.Migration do
     end) 
     |> case() do
         [] -> field
-        filtered when is_list(filtered) -> {name, :identity, old_opts ++ filtered}
+        filtered -> {name, :identity, old_opts ++ filtered}
     end
   end
 end
