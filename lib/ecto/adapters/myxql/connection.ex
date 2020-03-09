@@ -813,8 +813,14 @@ if Code.ensure_loaded?(MyXQL) do
     defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
       null    = Keyword.get(opts, :null)
-      [default_expr(default), null_expr(null)]
+      after_column = Keyword.get(opts, :after)
+
+      [default_expr(default), null_expr(null), after_expr(after_column)]
     end
+
+    defp after_expr(nil), do: []
+    defp after_expr(column) when is_atom(column) or is_binary(column), do: " AFTER `#{column}`"
+    defp after_expr(_), do: []
 
     defp null_expr(false), do: " NOT NULL"
     defp null_expr(true), do: " NULL"

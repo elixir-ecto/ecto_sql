@@ -956,6 +956,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_options(type, opts) do
       default = Keyword.fetch(opts, :default)
       null    = Keyword.get(opts, :null)
+
       [default_expr(default, type), null_expr(null)]
     end
 
