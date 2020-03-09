@@ -6,7 +6,7 @@ defmodule Ecto.Adapters.Tds do
 
   ## Options
 
-  MsSql options split in different categories described
+  Tds options split in different categories described
   below. All options can be given via the repository
   configuration.
 
@@ -25,6 +25,92 @@ defmodule Ecto.Adapters.Tds do
 
   ### Storage options
     * `:collation` - the database collation, used during database creation but it is ignored later
+
+  If you need collation other than Latin1, add `tds_encoding` as dependency to your project
+  and below line in your `config/config.ex` file:
+
+  ```
+  config :tds, :text_encoder, Tds.Encoding
+  ```
+
+  This should give you extended set of most encoding. For cemplete list check `Tds.Encoding`
+  documentation.
+
+  ### After connect flags
+
+  After connectiong to MsSql server TDS will check if there are any flags set on
+  connection that should affect connection session behaviour. All flags are
+  MsSql standard *SET* options. The folowing flags are currently supported:
+
+    * `:set_language` - sets session language (consult stored procedure output
+       `exec sp_helplanguage` for valid values)
+    * `:set_datefirst` - number in range 1..7
+    * `:set_dateformat` - atom, one of `:mdy | :dmy | :ymd | :ydm | :myd | :dym`
+    * `:set_deadlock_priority` - atom, one of `:low | :high | :normal | -10..10`
+    * `:set_lock_timeout` - number in milliseconds > 0
+    * `:set_remote_proc_transactions` - atom, one of `:on | :off`
+    * `:set_implicit_transactions` - atom, one of `:on | :off`
+    * `:set_allow_snapshot_isolation` - atom, one of `:on | :off`
+       (required if `Repo.transaction(fn -> ... end, isolation_level: :snapshot)` is used)
+    * `:set_read_committed_snapshot` - atom, one of `:on | :off`
+
+  ## Limitations
+
+  ### UUIDs
+
+  MsSql server has slighlty different binary storage format for UUIDs (`uniqueidenitifer`)
+  there is `Tds.Types.UUID` type that should be used to generate value or as fied type.
+  Please avoid using `Ecto.UUID` since it may cause unpredictable application behaviour.
+
+  ### Sql `Char`, `VarChar` and `Text` types
+  If you want, you can use this types, but there are some limitions you should be aware:
+    - Strings that should be stored in mentioned sql types must be encoded to column
+      codepage (defined in collation) if collation is different than database collation
+      it is not possible to store correct value into database since connection is
+      respecting database collation. Ecto do not provide way to override parameter
+      codepage hence TDS can't encode it properly and still have to respect database
+      collation.
+    - Workaronud for point above. If you need other than Latin1 or other than your
+      database default collation, as mentioned in "Storage Options" section, then
+      manualy encode strings using `Tds.Encoding.encode/2` into desired codepage and then
+      tag parameter as `:binary`.
+      Please be aware that queryies that uses this approach in where calues can be 10x slower
+      due increased logical reads in database.
+    - You can't store VarChar codepoints encoded in one collation/codepage
+      to column that is encoded in different collation/codepage.
+      You will always get wrong result. This is not adapter od driver limitation
+      but rather the way how string encoding works for single byte encoded string
+      in MsSql server. Don't be confuse cause you are seeing latin1 chars always,
+      they are simply in each codepoint table.
+
+  For VarChar column type, there is `Tds.Types.VarChar` model field type.
+
+  To avoid above limitations always use `:string` (NVarChar) type for text if possible.
+
+  ### JSON support
+  Even tho adapter will convert `:map` fields into JSON back and forth, actual
+  value is stored in NVarChar column
+
+  ### Multi Repo calls in transactions
+  To avoid deadlocks in your app, we exposed `:isolation_level`  repo transaction option.
+  This will tell to SQL Server Transaction Manager how to begin transaction.
+  By default, if this option is ommited, isolation level is set to `:read_committed`.
+
+  Each attempt to send manualy query such as
+
+  ```
+  Ecto.Adapter.SQL.query("SET TRANSACTION ISOLATION LEVEL XYZ")
+  ```
+
+  will fail once explicit transaction is started using `Ecto.Repo.transaction/2`
+  and reset back to :read_commited.
+
+  There is query `Ecto.Query.lock/3` funcation that should help with `WITH(NOLOCK)`.
+  This should allow you to do eventualy consistent reads and avoid locks on given table
+  if you don't need to write to database.
+
+  NOTE: after explicit transaction ends (commit or rollback) implicit transactions will
+  run as READ_COMMITTED.
 
   """
 
