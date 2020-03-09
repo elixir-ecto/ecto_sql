@@ -30,7 +30,7 @@ defmodule Ecto.Adapters.Tds do
   your project `mix.exs` file then amend `config/config.ex` by adding:
 
   ```
-  config :tds, :tds_encoding, Tds.Encoding
+  config :tds, :text_encoder, Tds.Encoding
   ```
 
   This should give you extended set of most encoding. For cemplete list check
