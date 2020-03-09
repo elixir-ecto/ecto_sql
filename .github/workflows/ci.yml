@@ -93,7 +93,7 @@ jobs:
         run: mix deps.get
       - run: |
           export PATH="/opt/mssql-tools/bin:$PATH"
-          ECTO_ADAPTER=mssql mix test
+          ECTO_ADAPTER=tds mix test
           
   test-pg:
     runs-on: ubuntu-18.04
