@@ -68,7 +68,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, "~> 3.4 or ~> 3.3.3"}
+      {:ecto, "~> 3.4 or ~> 3.3.3 or 3.3.4"}
     end
   end
 
