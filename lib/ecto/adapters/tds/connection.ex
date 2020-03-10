@@ -1,0 +1,1567 @@
+if Code.ensure_loaded?(Tds) do
+  defmodule Ecto.Adapters.Tds.Connection do
+    @moduledoc false
+    require Logger
+    alias Tds.Query
+    alias Ecto.Query.Tagged
+    require Ecto.Schema
+
+    @behaviour Ecto.Adapters.SQL.Connection
+    # @behaviour Ecto.Adapters.SQL.Query
+
+    @unsafe_query_strings ["'\\"]
+
+    @impl true
+    @doc false
+    def child_spec(opts) do
+      opts
+      |> Keyword.put_new(:use_elixir_calendar_types, true)
+      |> Tds.child_spec()
+    end
+
+    @impl true
+    def prepare_execute(pid, _name, statement, params, opts \\ []) do
+      query = %Query{statement: statement}
+      params = prepare_params(params)
+
+      opts = Keyword.put(opts, :parameters, params)
+      DBConnection.prepare_execute(pid, query, params, opts)
+    end
+
+    @impl true
+    def execute(pid, statement, params, opts) when is_binary(statement) or is_list(statement) do
+      query = %Query{statement: statement}
+      params = prepare_params(params)
+      opts = Keyword.put(opts, :parameters, params)
+
+      case DBConnection.prepare_execute(pid, query, params, opts) do
+        {:ok, _, %Tds.Result{columns: nil, num_rows: num_rows, rows: []}}
+        when num_rows >= 0 ->
+          {:ok, %Tds.Result{columns: nil, num_rows: num_rows, rows: nil}}
+
+        {:ok, _, query} ->
+          {:ok, query}
+
+        {:error, _} = err ->
+          err
+      end
+    end
+
+    def execute(pid, %{} = query, params, opts) do
+      opts = Keyword.put_new(opts, :parameters, params)
+      params = prepare_params(params)
+      opts = Keyword.put(opts, :parameters, params)
+
+      case DBConnection.prepare_execute(pid, query, params, opts) do
+        {:ok, _, query} -> {:ok, query}
+        {:error, _} = err -> err
+      end
+    end
+
+    @impl true
+    def stream(_conn, _sql, _params, _opts) do
+      raise RuntimeError, "Repo.stream is not supported in Tds adapter"
+    end
+
+    @impl true
+    def query(conn, sql, params, opts) do
+      params = prepare_params(params)
+
+      case Tds.query(conn, sql, params, opts) do
+        {:ok, %Tds.Result{} = result} ->
+          {:ok, Map.from_struct(result)}
+
+        other ->
+          other
+      end
+    end
+
+    @impl true
+    def to_constraints(%Tds.Error{mssql: %{number: code, msg_text: message}}, _opts) do
+      Tds.Error.get_constraint_violations(code, message)
+    end
+
+    def to_constraints(_, _opts), do: []
+
+    defp prepare_params(params) do
+      {params, _} =
+        Enum.map_reduce(params, 1, fn param, acc ->
+          {value, type} = prepare_param(param)
+          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+        end)
+
+      params
+    end
+
+    # Decimal
+    defp prepare_param(%Decimal{} = value) do
+      {value, :decimal}
+    end
+
+    defp prepare_param(%NaiveDateTime{} = value) do
+      {value, :datetime2}
+    end
+
+    defp prepare_param(%DateTime{} = value) do
+      {value, :datetimeoffset}
+    end
+
+    defp prepare_param(%Date{} = value) do
+      {value, :date}
+    end
+
+    defp prepare_param(%Time{} = value) do
+      {value, :time}
+    end
+
+    defp prepare_param(%{__struct__: module} = _value) do
+      # just in case dumpers/loaders are not defined for the this struct
+      raise Tds.Error,
+            "Tds is unable to convert struct `#{inspect(module)}` into supported MsSql types"
+    end
+
+    defp prepare_param(%{} = value), do: {json_library().encode!(value), :string}
+    defp prepare_param(value), do: prepare_raw_param(value)
+
+    defp prepare_raw_param(value) when is_binary(value) do
+      type = if String.printable?(value), do: :string, else: :binary
+      {value, type}
+    end
+
+    # defp prepare_raw_param({y, m, d} = value)
+    #      when is_integer(y) and is_integer(m) and is_integer(d),
+    #      do: {value, :date}
+
+    defp prepare_raw_param(value) when value == true, do: {1, :boolean}
+    defp prepare_raw_param(value) when value == false, do: {0, :boolean}
+    # defp prepare_raw_param(value) when is_integer(value), do: {value, :integer}
+    # defp prepare_raw_param(value) when is_float(value), do: {value, :float}
+    # defp prepare_raw_param(%Decimal{} = value), do: {value, :decimal}
+    defp prepare_raw_param({_, :varchar} = value), do: value
+    defp prepare_raw_param(value), do: {value, nil}
+
+    defp json_library(), do: Application.get_env(:tds, :json_library, Jason)
+
+    ## Query
+
+    alias Ecto.Query
+    alias Ecto.Query.QueryExpr
+    alias Ecto.Query.JoinExpr
+    alias Ecto.Query.BooleanExpr
+    alias Ecto.Query.WithExpr
+
+    @impl true
+    def all(query) do
+      sources = create_names(query)
+
+      cte = cte(query, sources)
+      from = from(query, sources)
+      select = select(query, sources)
+      join = join(query, sources)
+      where = where(query, sources)
+      group_by = group_by(query, sources)
+      having = having(query, sources)
+      _window = window(query, sources)
+      combinations = combinations(query)
+      order_by = order_by(query, sources)
+      # limit = is handled in select (TOP X)
+      offset = offset(query, sources)
+      # lock = is handled in FROM
+      options = options(query, sources)
+
+      if query.offset != nil and query.order_bys == [],
+        do: error!(query, "ORDER BY is mandatory when OFFSET is set")
+
+      [cte, select, from, join, where, group_by, having, combinations, order_by, offset | options]
+    end
+
+    @impl true
+    def update_all(query) do
+      sources = create_names(query)
+      cte = cte(query, sources)
+      {table, name, _model} = elem(sources, 0)
+
+      fields = update_fields(query, sources)
+      from = " FROM #{table} AS #{name}"
+      join = join(query, sources)
+      where = where(query, sources)
+
+      [cte, "UPDATE ", name, " SET ", fields, returning(query, 0, "INSERTED"), from, join | where]
+    end
+
+    @impl true
+    def delete_all(query) do
+      sources = create_names(query)
+      cte = cte(query, sources)
+      {table, name, _model} = elem(sources, 0)
+
+      delete = "DELETE #{name}"
+      from = " FROM #{table} AS #{name}"
+      join = join(query, sources)
+      where = where(query, sources)
+
+      [cte, delete, returning(query, 0, "DELETED"), from, join | where]
+    end
+
+    @impl true
+    def insert(prefix, table, header, rows, on_conflict, returning) do
+      [] = on_conflict(on_conflict, header)
+      returning = returning(returning, "INSERTED")
+
+      values =
+        if header == [] do
+          [returning, " DEFAULT VALUES"]
+        else
+          [
+            ?\s,
+            ?(,
+            intersperse_map(header, ", ", &quote_name/1),
+            ?),
+            returning,
+            " VALUES " | insert_all(rows, 1)
+          ]
+        end
+
+      ["INSERT INTO ", quote_table(prefix, table), values]
+    end
+
+    defp on_conflict({_, _, [_ | _]}, _header) do
+      error!(nil, "The :conflict_target option is not supported in insert/insert_all by MsSql")
+    end
+
+    defp on_conflict({:raise, _, []}, _header) do
+      []
+    end
+
+    defp on_conflict({:nothing, _, []}, [_field | _]) do
+      error!(nil, "The :nothing option is not supported in insert/insert_all by MsSql")
+    end
+
+    defp on_conflict({:replace_all, _, []}, _header) do
+      error!(nil, "The :replace_all option is not supported in insert/insert_all by MsSql")
+    end
+
+    defp on_conflict({_query, _, []}, _header) do
+      error!(
+        nil,
+        "The query as option for on_conflict is not supported in insert/insert_all by MsSql."
+      )
+    end
+
+    defp insert_all(rows, counter) do
+      intersperse_reduce(rows, ",", counter, fn row, counter ->
+        {row, counter} = insert_each(row, counter)
+        {[?(, row, ?)], counter}
+      end)
+      |> elem(0)
+    end
+
+    defp insert_each(values, counter) do
+      intersperse_reduce(values, ", ", counter, fn
+        nil, counter ->
+          {"DEFAULT", counter}
+
+        {%Query{} = query, params_counter}, counter ->
+          {[?(, all(query), ?)], counter + params_counter}
+
+        _, counter ->
+          {[?@ | Integer.to_string(counter)], counter + 1}
+      end)
+    end
+
+    @impl true
+    def update(prefix, table, fields, filters, returning) do
+      {fields, count} =
+        intersperse_reduce(fields, ", ", 1, fn field, acc ->
+          {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
+        end)
+
+      {filters, _count} =
+        intersperse_reduce(filters, " AND ", count, fn
+          {field, nil}, acc ->
+            {[quote_name(field), " IS NULL"], acc + 1}
+
+          {field, _value}, acc ->
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
+
+          field, acc ->
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
+        end)
+
+      [
+        "UPDATE ",
+        quote_table(prefix, table),
+        " SET ",
+        fields,
+        returning(returning, "INSERTED"),
+        " WHERE " | filters
+      ]
+    end
+
+    @impl true
+    def delete(prefix, table, filters, returning) do
+      {filters, _} =
+        intersperse_reduce(filters, " AND ", 1, fn
+          {field, nil}, acc ->
+            {[quote_name(field), " IS NULL"], acc + 1}
+
+          {field, _value}, acc ->
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
+
+          field, acc ->
+            {[quote_name(field), " = @", Integer.to_string(acc)], acc + 1}
+        end)
+
+      [
+        "DELETE FROM ",
+        quote_table(prefix, table),
+        returning(returning, "DELETED"),
+        " WHERE " | filters
+      ]
+    end
+
+    ## Query generation
+
+    binary_ops = [
+      ==: " = ",
+      !=: " <> ",
+      <=: " <= ",
+      >=: " >= ",
+      <: " < ",
+      >: " > ",
+      +: " + ",
+      -: " - ",
+      *: " * ",
+      /: " / ",
+      and: " AND ",
+      or: " OR ",
+      ilike: " LIKE ",
+      like: " LIKE "
+    ]
+
+    @binary_ops Keyword.keys(binary_ops)
+
+    Enum.map(binary_ops, fn {op, str} ->
+      defp handle_call(unquote(op), 2), do: {:binary_op, unquote(str)}
+    end)
+
+    defp handle_call(fun, _arity), do: {:fun, Atom.to_string(fun)}
+
+    defp select(%{select: %{fields: fields}, distinct: distinct} = query, sources) do
+      [
+        "SELECT ",
+        distinct(distinct, sources, query),
+        limit(query, sources),
+        select(fields, sources, query)
+      ]
+    end
+
+    defp distinct(nil, _sources, _query), do: []
+    defp distinct(%QueryExpr{expr: true}, _sources, _query), do: "DISTINCT "
+    defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
+
+    defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
+      error!(
+        query,
+        "DISTINCT with multiple columns is not supported by MsSQL. " <>
+          "Please use distinct(true) if you need distinct resultset"
+      )
+    end
+
+    defp select([], _sources, _query) do
+      "CAST(1 as bit)"
+    end
+
+    defp select(fields, sources, query) do
+      intersperse_map(fields, ", ", fn
+        {:&, _, [idx]} ->
+          case elem(sources, idx) do
+            {source, _, nil} ->
+              error!(
+                query,
+                "Tds adapter does not support selecting all fields from #{source} without a schema. " <>
+                  "Please specify a schema or specify exactly which fields you want in projection"
+              )
+
+            {_, source, _} ->
+              source
+          end
+
+        {key, value} ->
+          [expr(value, sources, query), " AS ", quote_name(key)]
+
+        value ->
+          expr(value, sources, query)
+      end)
+    end
+
+    defp from(%{from: %{source: source}, lock: lock} = query, sources) do
+      {from, name} = get_source(query, sources, 0, source)
+
+      [" FROM ", from, " AS ", name, if_do(lock, lock(lock))]
+    end
+
+    defp cte(%{with_ctes: %WithExpr{queries: [_ | _] = queries}} = query, sources) do
+      ctes = intersperse_map(queries, ", ", &cte_expr(&1, sources, query))
+      ["WITH ", ctes, " "]
+    end
+
+    defp cte(%{with_ctes: _}, _), do: []
+
+    defp cte_expr({name, cte}, sources, query) do
+      [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query)]
+    end
+
+    defp cte_header(%QueryExpr{}, query) do
+      error!(
+        query,
+        "Unfortunately Tds adapter does not support fragment in CTE."
+      )
+    end
+
+    defp cte_header(%Ecto.Query{select: %{fields: fields}} = query, _) do
+      [
+        " (",
+        intersperse_map(fields, ", ", fn
+          {key, _} ->
+            [quote_name(key)]
+
+          other ->
+            error!(
+              query,
+              "Tds adapter expected field name or alias in CTE header," <>
+                " instead got #{inspect(other)}"
+            )
+        end),
+        ?)
+      ]
+    end
+
+    defp cte_query(%Ecto.Query{} = query, _, _), do: [?(, all(query), ?)]
+    # defp cte_query(%QueryExpr{expr: expr}, sources, query), do: expr(expr, sources, query)
+
+    defp update_fields(%Query{updates: updates} = query, sources) do
+      for(
+        %{expr: expr} <- updates,
+        {op, kw} <- expr,
+        {key, value} <- kw,
+        do: update_op(op, key, value, sources, query)
+      )
+      |> Enum.intersperse(", ")
+    end
+
+    defp update_op(:set, key, value, sources, query) do
+      {_table, name, _model} = elem(sources, 0)
+      name <> "." <> quote_name(key) <> " = " <> expr(value, sources, query)
+    end
+
+    defp update_op(:inc, key, value, sources, query) do
+      {_table, name, _model} = elem(sources, 0)
+      quoted = quote_name(key)
+
+      name <>
+        "." <> quoted <> " = " <> name <> "." <> quoted <> " + " <> expr(value, sources, query)
+    end
+
+    defp update_op(command, _key, _value, _sources, query) do
+      error!(query, "Unknown update operation #{inspect(command)} for TDS")
+    end
+
+    defp join(%{joins: []}, _sources), do: []
+
+    defp join(%{joins: joins, lock: lock} = query, sources) do
+      [
+        ?\s,
+        intersperse_map(joins, ?\s, fn
+          %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
+            if hints != [] do
+              error!(
+                query,
+                "table hints are not supported in Tds adapter at the moment, use `lock: ...` if possible"
+              )
+            end
+
+            {join, name} = get_source(query, sources, ix, source)
+            qual_text = join_qual(qual)
+            join = join || "(" <> expr(source, sources, query) <> ")"
+            lock = if_do(lock, lock(lock))
+            [qual_text, join, " AS ", name, lock | join_on(qual, expr, sources, query)]
+        end)
+      ]
+    end
+
+    defp join_on(:cross, true, _sources, _query), do: []
+    defp join_on(_qual, true, _sources, _query), do: [" ON 1 = 1 "]
+    defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
+
+    defp join_qual(:inner), do: "INNER JOIN "
+    defp join_qual(:inner_loop), do: "INNER LOOP JOIN "
+    defp join_qual(:inner_hash), do: "INNER HASH JOIN "
+    defp join_qual(:inner_merge), do: "INNER MERGE JOIN "
+    defp join_qual(:inner_remote), do: "INNER REMOTE JOIN "
+    defp join_qual(:left), do: "LEFT OUTER JOIN "
+    defp join_qual(:right), do: "RIGHT OUTER JOIN "
+    defp join_qual(:full), do: "FULL OUTER JOIN "
+    defp join_qual(:cross), do: "CROSS JOIN "
+
+    defp where(%Query{wheres: wheres} = query, sources) do
+      boolean(" WHERE ", wheres, sources, query)
+    end
+
+    defp having(%Query{havings: havings} = query, sources) do
+      boolean(" HAVING ", havings, sources, query)
+    end
+
+    defp window(%{windows: []}, _sources), do: []
+
+    defp window(_query, _sources),
+      do: raise(RuntimeError, "Tds adapter does not support window functions")
+
+    defp group_by(%{group_bys: []}, _sources), do: []
+
+    defp group_by(%{group_bys: group_bys} = query, sources) do
+      [
+        " GROUP BY "
+        | intersperse_map(group_bys, ", ", fn %QueryExpr{expr: expr} ->
+            intersperse_map(expr, ", ", &expr(&1, sources, query))
+          end)
+      ]
+    end
+
+    defp order_by(%{order_bys: []}, _sources), do: []
+
+    defp order_by(%{order_bys: order_bys} = query, sources) do
+      [
+        " ORDER BY "
+        | intersperse_map(order_bys, ", ", fn %QueryExpr{expr: expr} ->
+            intersperse_map(expr, ", ", &order_by_expr(&1, sources, query))
+          end)
+      ]
+    end
+
+    defp order_by_expr({dir, expr}, sources, query) do
+      str = expr(expr, sources, query)
+
+      case dir do
+        :asc -> str
+        :desc -> [str | " DESC"]
+        _ -> error!(query, "#{dir} is not supported ORDER BY direction in MsSql")
+      end
+    end
+
+    defp limit(%Query{limit: nil}, _sources), do: []
+
+    defp limit(
+           %Query{
+             limit: %QueryExpr{
+               expr: expr
+             }
+           } = query,
+           sources
+         ) do
+      case Map.get(query, :offset) do
+        nil ->
+          ["TOP(", expr(expr, sources, query), ") "]
+
+        _ ->
+          []
+      end
+    end
+
+    defp offset(%{offset: nil}, _sources), do: []
+
+    defp offset(%Query{offset: _, limit: nil} = query, _sources) do
+      error!(query, "You must provide a limit while using an offset")
+    end
+
+    defp offset(%{offset: offset, limit: limit} = query, sources) do
+      [
+        " OFFSET ",
+        expr(offset.expr, sources, query),
+        " ROW",
+        " FETCH NEXT ",
+        expr(limit.expr, sources, query),
+        " ROWS ONLY"
+      ]
+    end
+
+    defp options(%{from: %{hints: [_ | _] = hints}}, _sources) do
+      [" OPTION ", ?(, intersperse_map(hints, ", ", &[&1]), ?)]
+    end
+
+    defp options(_query, _sources), do: []
+
+    defp combinations(%{combinations: combinations}) do
+      Enum.map(combinations, fn
+        {:union, query} -> [" UNION (", all(query), ")"]
+        {:union_all, query} -> [" UNION ALL (", all(query), ")"]
+        {:except, query} -> [" EXCEPT (", all(query), ")"]
+        {:except_all, query} -> [" EXCEPT ALL (", all(query), ")"]
+        {:intersect, query} -> [" INTERSECT (", all(query), ")"]
+        {:intersect_all, query} -> [" INTERSECT ALL (", all(query), ")"]
+      end)
+    end
+
+    defp lock(nil), do: []
+    defp lock(lock_clause), do: [?\s, lock_clause]
+
+    defp boolean(_name, [], _sources, _query), do: []
+
+    defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do
+      [
+        name
+        | Enum.reduce(query_exprs, {op, paren_expr(expr, sources, query)}, fn
+            %BooleanExpr{expr: expr, op: op}, {op, acc} ->
+              {op, [acc, operator_to_boolean(op), paren_expr(expr, sources, query)]}
+
+            %BooleanExpr{expr: expr, op: op}, {_, acc} ->
+              {op, [?(, acc, ?), operator_to_boolean(op), paren_expr(expr, sources, query)]}
+          end)
+          |> elem(1)
+      ]
+    end
+
+    defp operator_to_boolean(:and), do: " AND "
+    defp operator_to_boolean(:or), do: " OR "
+
+    defp paren_expr(true, _sources, _query) do
+      ["(1 = 1)"]
+    end
+
+    defp paren_expr(false, _sources, _query) do
+      ["(1 = 0)"]
+    end
+
+    defp paren_expr(expr, sources, query) do
+      [?(, expr(expr, sources, query), ?)]
+    end
+
+    # :^ - represents parameter ix is index number
+    defp expr({:^, [], [idx]}, _sources, _query) do
+      "@#{idx + 1}"
+    end
+
+    # :. - attribure, table alias name can be get from sources by passing index
+    defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query)
+         when is_atom(field) or is_binary(field) do
+      {_, name, _} = elem(sources, idx)
+      "#{name}.#{quote_name(field)}"
+    end
+
+    defp expr({:&, _, [idx]}, sources, query) do
+      {table, _name, _schema} = elem(sources, idx)
+
+      error!(
+        query,
+        "Tds adapter does not support selecting all fields from #{table} without a schema. " <>
+          "Please specify a schema or specify exactly which fields you want in projection"
+      )
+    end
+
+    defp expr({:&, _, [idx, fields, _counter]}, sources, query) do
+      {_table, name, schema} = elem(sources, idx)
+
+      if is_nil(schema) and is_nil(fields) do
+        error!(
+          query,
+          "Tds adapter requires a schema module when using selector #{inspect(name)} but " <>
+            "none was given. Please specify schema " <>
+            "or specify exactly which fields from #{inspect(name)} you what in projection"
+        )
+      end
+
+      Enum.map_join(fields, ", ", &"#{name}.#{quote_name(&1)}")
+    end
+
+    #         {:in, [], [1,   {:^, [], [0, 0]}]}
+
+    defp expr({:in, _, [_left, []]}, _sources, _query) do
+      "0=1"
+    end
+
+    # example from(p in Post, where: p.id in [1,2, ^some_id])
+    defp expr({:in, _, [left, right]}, sources, query) when is_list(right) do
+      args = Enum.map_join(right, ",", &expr(&1, sources, query))
+      expr(left, sources, query) <> " IN (" <> args <> ")"
+    end
+
+    # example from(p in Post, where: p.id in [])
+    defp expr({:in, _, [_, {:^, _, [_, 0]}]}, _sources, _query), do: "0=1"
+
+    # example from(p in Post, where: p.id in ^some_list)
+    # or from(p in Post, where: p.id in ^[])
+    defp expr({:in, _, [left, {:^, _, [idx, length]}]}, sources, query) do
+      args = list_param_to_args(idx, length)
+      expr(left, sources, query) <> " IN (" <> args <> ")"
+    end
+
+    defp expr({:in, _, [left, right]}, sources, query) do
+      expr(left, sources, query) <> " IN (" <> expr(right, sources, query) <> ")"
+    end
+
+    defp expr({:is_nil, _, [arg]}, sources, query) do
+      "#{expr(arg, sources, query)} IS NULL"
+    end
+
+    defp expr({:not, _, [expr]}, sources, query) do
+      "NOT (" <> expr(expr, sources, query) <> ")"
+    end
+
+    defp expr({:filter, _, _}, _sources, query) do
+      error!(query, "Tds adapter does not support aggregate filters")
+    end
+
+    defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
+      all(query)
+    end
+
+    defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
+      error!(query, "Tds adapter does not support keyword or interpolated fragments")
+    end
+
+    defp expr({:fragment, _, parts}, sources, query) do
+      Enum.map_join(parts, "", fn
+        {:raw, part} -> part
+        {:expr, expr} -> expr(expr, sources, query)
+      end)
+    end
+
+    defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
+      [
+        "DATEADD(",
+        interval,
+        ", ",
+        interval_count(count, sources, query),
+        ", CAST(",
+        expr(datetime, sources, query),
+        " AS datetime2(6)))"
+      ]
+    end
+
+    defp expr({:date_add, _, [date, count, interval]}, sources, query) do
+      "CAST(DATEADD(" <>
+        interval <>
+        ", " <>
+        interval_count(count, sources, query) <>
+        ", CAST(" <>
+        expr(
+          date,
+          sources,
+          query
+        ) <> " AS datetime2(6))" <> ") AS date)"
+    end
+
+    defp expr({:count, _, []}, _sources, _query), do: "count(*)"
+
+    defp expr({fun, _, args}, sources, query) when is_atom(fun) and is_list(args) do
+      {modifier, args} =
+        case args do
+          [rest, :distinct] -> {"DISTINCT ", [rest]}
+          _ -> {"", args}
+        end
+
+      case handle_call(fun, length(args)) do
+        {:binary_op, op} ->
+          [left, right] = args
+          [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
+
+        {:fun, fun} ->
+          [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
+      end
+    end
+
+    defp expr(list, sources, query) when is_list(list) do
+      Enum.map_join(list, ", ", &expr(&1, sources, query))
+    end
+
+    defp expr({string, :varchar}, _sources, _query)
+         when is_binary(string) do
+      "'#{escape_string(string)}'"
+    end
+
+    defp expr(string, _sources, _query) when is_binary(string) do
+      if String.contains?(string, @unsafe_query_strings) do
+        len = String.length(string)
+
+        hex =
+          string
+          |> :unicode.characters_to_binary(:utf8, {:utf16, :little})
+          |> Base.encode16(case: :lower)
+
+        "CONVERT(nvarchar(#{len}), 0x#{hex})"
+      else
+        "N'#{escape_string(string)}'"
+      end
+    end
+
+    defp expr(%Decimal{} = decimal, _sources, _query) do
+      Decimal.to_string(decimal, :normal)
+    end
+
+    defp expr(%Tagged{value: binary, type: :binary}, _sources, _query) when is_binary(binary) do
+      hex = Base.encode16(binary, case: :lower)
+      "0x#{hex}"
+    end
+
+    defp expr(%Tagged{value: binary, type: :uuid}, _sources, _query) when is_binary(binary) do
+      case binary do
+        <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> ->
+          {:ok, value} = Tds.Types.UUID.dump(binary)
+          value
+
+        any ->
+          any
+      end
+    end
+
+    defp expr(%Tagged{value: other, type: type}, sources, query)
+         when type in [:varchar, :nvarchar] do
+      "CAST(#{expr(other, sources, query)} AS #{column_type(type, [])}(max))"
+    end
+
+    defp expr(%Tagged{value: other, type: :integer}, sources, query) do
+      "CAST(#{expr(other, sources, query)} AS bigint)"
+    end
+
+    defp expr(%Tagged{value: other, type: type}, sources, query) do
+      "CAST(#{expr(other, sources, query)} AS #{column_type(type, [])})"
+    end
+
+    defp expr(nil, _sources, _query), do: "NULL"
+    defp expr(true, _sources, _query), do: "1"
+    defp expr(false, _sources, _query), do: "0"
+
+    defp expr(literal, _sources, _query) when is_binary(literal) do
+      "'#{escape_string(literal)}'"
+    end
+
+    defp expr(literal, _sources, _query) when is_integer(literal) do
+      Integer.to_string(literal)
+    end
+
+    defp expr(literal, _sources, _query) when is_float(literal) do
+      Float.to_string(literal)
+    end
+
+    defp expr(field, sources, query) do
+      error!(
+        query,
+        "MSSQL adapter does not support keyword or interpolated or whatever is \n#{
+          inspect([field: field, sources: sources, query: query], structs: false)
+        }"
+      )
+    end
+
+    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
+      paren_expr(expr, sources, query)
+    end
+
+    defp op_to_binary(expr, sources, query) do
+      expr(expr, sources, query)
+    end
+
+    defp interval_count(count, _sources, _query) when is_integer(count) do
+      Integer.to_string(count)
+    end
+
+    defp interval_count(count, _sources, _query) when is_float(count) do
+      :erlang.float_to_binary(count, [:compact, decimals: 16])
+    end
+
+    defp interval_count(count, sources, query) do
+      expr(count, sources, query)
+    end
+
+    defp returning([], _verb), do: []
+
+    defp returning(returning, verb) when is_list(returning) do
+      [" OUTPUT ", intersperse_map(returning, ", ", &[verb, ?., quote_name(&1)])]
+    end
+
+    defp returning(%{select: nil}, _, _),
+      do: []
+
+    defp returning(%{select: %{fields: fields}} = query, idx, verb),
+      do: [
+        " OUTPUT "
+        | intersperse_map(fields, ", ", fn
+            {{:., _, [{:&, _, [^idx]}, key]}, _, _} -> [verb, ?., quote_name(key)]
+            _ -> error!(query, "MsSql can only return table #{verb} columns")
+          end)
+      ]
+
+    defp create_names(%{sources: sources}) do
+      create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
+    end
+
+    defp create_names(sources, pos, limit) when pos < limit do
+      [create_name(sources, pos) | create_names(sources, pos + 1, limit)]
+    end
+
+    defp create_names(_sources, pos, pos) do
+      []
+    end
+
+    defp create_name(sources, pos) do
+      case elem(sources, pos) do
+        {:fragment, _, _} ->
+          {nil, "f" <> Integer.to_string(pos), nil}
+
+        {table, model, prefix} ->
+          name = create_alias(table) <> Integer.to_string(pos)
+          {quote_table(prefix, table), name, model}
+
+        %Ecto.SubQuery{} ->
+          {nil, "s" <> Integer.to_string(pos), nil}
+      end
+    end
+
+    defp create_alias(<<first, _rest::binary>>) when first in ?a..?z when first in ?A..?Z do
+      <<first>>
+    end
+
+    defp create_alias(_) do
+      "t"
+    end
+
+    # DDL
+    alias Ecto.Migration.{Table, Index, Reference, Constraint}
+
+    @impl true
+    def execute_ddl({command, %Table{} = table, columns})
+        when command in [:create, :create_if_not_exists] do
+      prefix = table.prefix
+
+      pk_name =
+        if table.prefix,
+          do: "#{table.prefix}_#{table.name}",
+          else: table.name
+
+      table_structure =
+        case column_definitions(table, columns) ++
+               pk_definitions(
+                 columns,
+                 ", CONSTRAINT [#{pk_name}_pkey] "
+               ) do
+          [] -> []
+          list -> [" (", list, ?)]
+        end
+
+      [
+        [
+          if_table_not_exists(command == :create_if_not_exists, table.name, prefix),
+          "CREATE TABLE ",
+          quote_table(prefix, table.name),
+          table_structure,
+          engine_expr(table.engine),
+          options_expr(table.options),
+          if_do(command == :create_if_not_exists, "END ")
+        ]
+      ]
+    end
+
+    def execute_ddl({command, %Table{} = table}) when command in [:drop, :drop_if_exists] do
+      prefix = table.prefix
+
+      [
+        [
+          if_table_exists(command == :drop_if_exists, table.name, prefix),
+          "DROP TABLE ",
+          quote_table(prefix, table.name),
+          if_do(command == :drop_if_exists, "END ")
+        ]
+      ]
+    end
+
+    def execute_ddl({:alter, %Table{} = table, changes}) do
+      statement_prefix = ["ALTER TABLE ", quote_table(table.prefix, table.name), " "]
+
+      pk_name =
+        if table.prefix,
+          do: "#{table.prefix}_#{table.name}",
+          else: table.name
+
+      pkeys =
+        case pk_definitions(changes, " CONSTRAINT [#{pk_name}_pkey] ") do
+          [] -> []
+          sql -> [statement_prefix, "ADD", sql]
+        end
+
+      [
+        [
+          column_changes(statement_prefix, table, changes),
+          pkeys
+        ]
+      ]
+    end
+
+    def execute_ddl({command, %Index{} = index})
+        when command in [:create, :create_if_not_exists] do
+      prefix = index.prefix
+
+      if index.using do
+        error!(nil, "MSSQL does not support using in indexes.")
+      end
+
+      with_options =
+        if index.concurrently or index.options != nil do
+          [
+            " WITH",
+            ?(,
+            if_do(index.concurrently, "ONLINE=ON"),
+            if_do(index.concurrently and index.options != nil, ","),
+            if_do(index.options != nil, index.options),
+            ?)
+          ]
+        else
+          []
+        end
+
+      include =
+        index.include
+        |> List.wrap()
+        |> intersperse_map(", ", &index_expr/1)
+
+      [
+        [
+          if_index_not_exists(
+            command == :create_if_not_exists,
+            index.name,
+            unquoted_name(prefix, index.table)
+          ),
+          "CREATE",
+          if_do(index.unique, " UNIQUE"),
+          " INDEX ",
+          quote_name(index.name),
+          " ON ",
+          quote_table(prefix, index.table),
+          " (",
+          intersperse_map(index.columns, ", ", &index_expr/1),
+          ?),
+          if_do(include != [], [" INCLUDE ", ?(, include, ?)]),
+          if_do(index.where, [" WHERE (", index.where, ?)]),
+          with_options,
+          ?;
+        ]
+      ]
+    end
+
+    def execute_ddl({:create, %Constraint{check: check}}) when is_binary(check),
+      do: error!(nil, "MSSQL adapter does not support check constraints")
+
+    def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
+      do: error!(nil, "MSSQL adapter does not support exclusion constraints")
+
+    def execute_ddl({command, %Index{} = index}) when command in [:drop, :drop_if_exists] do
+      prefix = index.prefix
+
+      [
+        [
+          if_index_exists(
+            command == :drop_if_exists,
+            index.name,
+            unquoted_name(prefix, index.table)
+          ),
+          "DROP INDEX ",
+          quote_name(index.name),
+          " ON ",
+          quote_table(prefix, index.table),
+          if_do(index.concurrently, " LOCK=NONE"),
+          ";"
+        ]
+      ]
+    end
+
+    def execute_ddl({:drop, %Constraint{}}),
+      do: error!(nil, "MSSQL adapter does not support constraints")
+
+    def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
+      [
+        [
+          "EXEC sp_rename '",
+          unquoted_name(current_table.prefix, current_table.name),
+          "', '",
+          unquoted_name(new_table.prefix, new_table.name),
+          "'"
+        ]
+      ]
+    end
+
+    def execute_ddl({:rename, table, current_column, new_column}) do
+      [
+        [
+          "EXEC sp_rename '",
+          unquoted_name(table.prefix, table.name, current_column),
+          "', '",
+          unquoted_name(new_column),
+          "', 'COLUMN'"
+        ]
+      ]
+    end
+
+    def execute_ddl(string) when is_binary(string), do: [string]
+
+    def execute_ddl(keyword) when is_list(keyword),
+      do: error!(nil, "MSSQL adapter does not support keyword lists in execute")
+
+    @impl true
+    def ddl_logs(_), do: []
+
+    @impl true
+    def table_exists_query(table) do
+      {"SELECT 1 FROM sys.tables WHERE [name] = @1", [table]}
+    end
+
+    defp pk_definitions(columns, prefix) do
+      pks =
+        for {_, name, _, opts} <- columns,
+            opts[:primary_key],
+            do: name
+
+      case pks do
+        [] ->
+          []
+
+        _ ->
+          [prefix, "PRIMARY KEY CLUSTERED (#{intersperse_map(pks, ", ", &quote_name/1)})"]
+      end
+    end
+
+    defp column_definitions(table, columns) do
+      intersperse_map(columns, ", ", &column_definition(table, &1))
+    end
+
+    defp column_definition(table, {:add, name, %Reference{} = ref, opts}) do
+      [
+        quote_name(name),
+        " ",
+        reference_column_type(ref.type, opts),
+        column_options(table, name, opts),
+        reference_expr(ref, table, name)
+      ]
+    end
+
+    defp column_definition(table, {:add, name, type, opts}) do
+      [quote_name(name), " ", column_type(type, opts), column_options(table, name, opts)]
+    end
+
+    defp column_changes(statement, table, columns) do
+      # intersperse_map(columns, " ", &column_change(statement, table, &1))
+      for column <- columns do
+        column_change(statement, table, column)
+      end
+    end
+
+    defp column_change(statement_prefix, table, {:add, name, %Reference{} = ref, opts}) do
+      [
+        [
+          statement_prefix,
+          "ADD ",
+          quote_name(name),
+          " ",
+          reference_column_type(ref.type, opts),
+          column_options(table, name, opts),
+          "; "
+        ],
+        [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "]
+      ]
+    end
+
+    defp column_change(statement_prefix, table, {:add, name, type, opts}) do
+      [
+        [
+          statement_prefix,
+          "ADD ",
+          quote_name(name),
+          " ",
+          column_type(type, opts),
+          column_options(table, name, opts),
+          "; "
+        ]
+      ]
+    end
+
+    defp column_change(statement_prefix, table, {:modify, name, %Reference{} = ref, opts}) do
+      fk_name = reference_name(ref, table, name)
+
+      [
+        [
+          if_object_exists(
+            fk_name,
+            "F",
+            "#{statement_prefix}DROP CONSTRAINT #{fk_name}; "
+          )
+        ],
+        [
+          statement_prefix,
+          "ALTER COLUMN ",
+          quote_name(name),
+          " ",
+          reference_column_type(ref.type, opts),
+          column_options(table, name, opts),
+          "; "
+        ],
+        [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "]
+      ]
+    end
+
+    defp column_change(statement_prefix, table, {:modify, name, type, opts}) do
+      fk_name = constraint_name("DF", table, name)
+      # has_default = Keyword.has_key?(opts, :default)
+      [
+        [
+          if_object_exists(
+            fk_name,
+            "D",
+            "#{statement_prefix}DROP CONSTRAINT #{fk_name}; "
+          )
+        ],
+        [
+          statement_prefix,
+          "ALTER COLUMN ",
+          quote_name(name),
+          " ",
+          column_type(type, opts),
+          null_expr(Keyword.get(opts, :null)),
+          "; "
+        ],
+        [column_default_value(statement_prefix, table, name, opts)]
+      ]
+    end
+
+    defp column_change(statement_prefix, _table, {:remove, name}) do
+      [statement_prefix, "DROP COLUMN ", quote_name(name), "; "]
+    end
+
+    defp column_options(table, name, opts) do
+      default = Keyword.fetch(opts, :default)
+      null = Keyword.get(opts, :null)
+      [null_expr(null), default_expr(table, name, default)]
+    end
+
+    defp column_default_value(statement_prefix, table, name, opts) do
+      default_expression = default_expr(table, name, Keyword.fetch(opts, :default))
+
+      case default_expression do
+        [] -> []
+        _ -> [statement_prefix, "ADD", default_expression, " FOR ", quote_name(name), "; "]
+      end
+    end
+
+    defp null_expr(false), do: [" NOT NULL"]
+    defp null_expr(true), do: [" NULL"]
+    defp null_expr(_), do: []
+
+    defp default_expr(table, name, {:ok, nil}),
+      do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (NULL)"]
+
+    defp default_expr(table, name, {:ok, literal}) when is_binary(literal),
+      do: [
+        " CONSTRAINT ",
+        constraint_name("DF", table, name),
+        " DEFAULT (N'",
+        escape_string(literal),
+        "')"
+      ]
+
+    defp default_expr(table, name, {:ok, true}),
+      do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (1)"]
+
+    defp default_expr(table, name, {:ok, false}),
+      do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (0)"]
+
+    defp default_expr(table, name, {:ok, literal}) when is_number(literal),
+      do: [
+        " CONSTRAINT ",
+        constraint_name("DF", table, name),
+        " DEFAULT (",
+        to_string(literal),
+        ")"
+      ]
+
+    defp default_expr(table, name, {:ok, {:fragment, expr}}),
+      do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (", expr, ")"]
+
+    defp default_expr(_table, _name, :error), do: []
+
+    defp constraint_name(type, table, name),
+      do: quote_name("#{type}_#{table.prefix}_#{table.name}_#{name}")
+
+    defp index_expr(literal) when is_binary(literal), do: literal
+    defp index_expr(literal), do: quote_name(literal)
+
+    defp engine_expr(_storage_engine), do: [""]
+
+    defp options_expr(nil), do: []
+
+    defp options_expr(keyword) when is_list(keyword),
+      do: error!(nil, "MSSQL adapter does not support keyword lists in :options")
+
+    defp options_expr(options), do: [" ", to_string(options)]
+
+    defp column_type(type, opts) do
+      size = Keyword.get(opts, :size)
+      precision = Keyword.get(opts, :precision)
+      scale = Keyword.get(opts, :scale)
+      ecto_to_db(type, size, precision, scale)
+    end
+
+    defp constraint_expr(%Reference{} = ref, table, name) do
+      [
+        " CONSTRAINT ",
+        reference_name(ref, table, name),
+        " FOREIGN KEY (#{quote_name(name)})",
+        " REFERENCES ",
+        quote_table(table.prefix, ref.table),
+        "(#{quote_name(ref.column)})",
+        reference_on_delete(ref.on_delete),
+        reference_on_update(ref.on_update)
+      ]
+    end
+
+    defp reference_expr(%Reference{} = ref, table, name) do
+      [",", constraint_expr(ref, table, name)]
+      |> Enum.map_join("", &"#{&1}")
+    end
+
+    defp reference_name(%Reference{name: nil}, table, column),
+      do: quote_name("#{table.name}_#{column}_fkey")
+
+    defp reference_name(%Reference{name: name}, _table, _column), do: quote_name(name)
+
+    defp reference_column_type(:id, _opts), do: "BIGINT"
+    defp reference_column_type(:serial, _opts), do: "INT"
+    defp reference_column_type(:bigserial, _opts), do: "BIGINT"
+    defp reference_column_type(type, opts), do: column_type(type, opts)
+
+    defp reference_on_delete(:nilify_all), do: " ON DELETE SET NULL"
+    defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
+    defp reference_on_delete(:nothing), do: " ON DELETE NO ACTION"
+    defp reference_on_delete(_), do: []
+
+    defp reference_on_update(:nilify_all), do: " ON UPDATE SET NULL"
+    defp reference_on_update(:update_all), do: " ON UPDATE CASCADE"
+    defp reference_on_update(:nothing), do: " ON UPDATE NO ACTION"
+    defp reference_on_update(_), do: []
+
+    ## Helpers
+
+    defp get_source(query, sources, ix, source) do
+      {expr, name, _schema} = elem(sources, ix)
+      {expr || paren_expr(source, sources, query), name}
+    end
+
+    defp quote_name(name) when is_atom(name) do
+      quote_name(Atom.to_string(name))
+    end
+
+    defp quote_name(name) do
+      if String.contains?(name, ["[", "]"]) do
+        error!(nil, "bad field name #{inspect(name)} '[' and ']' are not permited")
+      end
+
+      "[#{name}]"
+    end
+
+    defp quote_table(nil, name), do: quote_table(name)
+
+    defp quote_table(prefix, name),
+      do: Enum.map_join([quote_table(prefix), ".", quote_table(name)], "", &"#{&1}")
+
+    defp quote_table(name) when is_atom(name), do: quote_table(Atom.to_string(name))
+
+    defp quote_table(name) do
+      if String.contains?(name, "[") or String.contains?(name, "]") do
+        error!(nil, "bad table name #{inspect(name)} '[' and ']' are not permited")
+      end
+
+      "[#{name}]"
+    end
+
+    defp unquoted_name(prefix, name, column_name),
+      do: unquoted_name(unquoted_name(prefix, name), column_name)
+
+    defp unquoted_name(nil, name), do: unquoted_name(name)
+
+    defp unquoted_name(prefix, name) do
+      prefix = if is_atom(prefix), do: Atom.to_string(prefix), else: prefix
+      name = if is_atom(name), do: Atom.to_string(name), else: name
+
+      [prefix, ".", name]
+    end
+
+    defp unquoted_name(name) when is_atom(name), do: unquoted_name(Atom.to_string(name))
+
+    defp unquoted_name(name) do
+      if String.contains?(name, ["[", "]"]) do
+        error!(nil, "bad table name #{inspect(name)} '[' and ']' are not permited")
+      end
+
+      name
+    end
+
+    defp intersperse_map([], _separator, _mapper), do: []
+    defp intersperse_map([elem], _separator, mapper), do: mapper.(elem)
+
+    defp intersperse_map([elem | rest], separator, mapper) do
+      [mapper.(elem), separator | intersperse_map(rest, separator, mapper)]
+    end
+
+    defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])
+
+    defp intersperse_reduce([], _separator, user_acc, _reducer, acc),
+      do: {acc, user_acc}
+
+    defp intersperse_reduce([elem], _separator, user_acc, reducer, acc) do
+      {elem, user_acc} = reducer.(elem, user_acc)
+      {[acc | elem], user_acc}
+    end
+
+    defp intersperse_reduce([elem | rest], separator, user_acc, reducer, acc) do
+      {elem, user_acc} = reducer.(elem, user_acc)
+      intersperse_reduce(rest, separator, user_acc, reducer, [acc, elem, separator])
+    end
+
+    defp if_do(condition, value) do
+      if condition, do: value, else: []
+    end
+
+    defp escape_string(value) when is_binary(value) do
+      value
+      |> :binary.replace("'", "''", [:global])
+    end
+
+    defp ecto_to_db(type, size, precision, scale, query \\ nil)
+
+    defp ecto_to_db({:array, _}, _, _, _, query),
+      do: error!(query, "Array type is not supported by TDS")
+
+    defp ecto_to_db(:id, _, _, _, _), do: "bigint"
+    defp ecto_to_db(:serial, _, _, _, _), do: "int IDENTITY(1,1)"
+    defp ecto_to_db(:bigserial, _, _, _, _), do: "bigint IDENTITY(1,1)"
+    defp ecto_to_db(:binary_id, _, _, _, _), do: "uniqueidentifier"
+    defp ecto_to_db(:boolean, _, _, _, _), do: "bit"
+    defp ecto_to_db(:string, nil, _, _, _), do: "nvarchar(255)"
+    defp ecto_to_db(:string, :max, _, _, _), do: "nvarchar(max)"
+    defp ecto_to_db(:string, s, _, _, _) when s in 1..4_000, do: "nvarchar(#{s})"
+    defp ecto_to_db(:float, nil, _, _, _), do: "float"
+    defp ecto_to_db(:float, s, _, _, _) when s in 1..53, do: "float(#{s})"
+    defp ecto_to_db(:binary, nil, _, _, _), do: "varbinary(2000)"
+    defp ecto_to_db(:binary, :max, _, _, _), do: "varbinary(max)"
+    defp ecto_to_db(:binary, s, _, _, _) when s in 1..8_000, do: "varbinary(#{s})"
+    defp ecto_to_db(:uuid, _, _, _, _), do: "uniqueidentifier"
+    defp ecto_to_db(:map, nil, _, _, _), do: "nvarchar(2000)"
+    defp ecto_to_db(:map, :max, _, _, _), do: "nvarchar(max)"
+    defp ecto_to_db(:map, s, _, _, _) when s in 0..4_000, do: "nvarchar(#{s})"
+    defp ecto_to_db({:map, _}, nil, _, _, _), do: "nvarchar(2000)"
+    defp ecto_to_db({:map, _}, s, _, _, _) when s in 1..4_000, do: "nvarchar(#{s})"
+    defp ecto_to_db({:map, _}, :max, _, _, _), do: "nvarchar(max)"
+    defp ecto_to_db(:time, _, _, _, _), do: "time(0)"
+    defp ecto_to_db(:time_usec, _, p, _, _) when p in 0..7, do: "time(#{p}})"
+    defp ecto_to_db(:time_usec, _, _, _, _), do: "time(6)"
+    defp ecto_to_db(:utc_datetime, _, _, _, _), do: "datetime"
+    defp ecto_to_db(:utc_datetime_usec, _, p, _, _) when p in 0..7, do: "datetime2(#{p})"
+    defp ecto_to_db(:utc_datetime_usec, _, _, _, _), do: "datetime2(6)"
+    defp ecto_to_db(:naive_datetime, _, _, _, _), do: "datetime"
+    defp ecto_to_db(:naive_datetime_usec, _, p, _, _) when p in 0..7, do: "datetime2(#{p}})"
+    defp ecto_to_db(:naive_datetime_usec, _, _, _, _), do: "datetime2(6)"
+
+    defp ecto_to_db(other, size, _, _, _) when is_integer(size) do
+      "#{Atom.to_string(other)}(#{size})"
+    end
+
+    defp ecto_to_db(other, _, precision, scale, _) when is_integer(precision) do
+      "#{Atom.to_string(other)}(#{precision},#{scale || 0})"
+    end
+
+    defp ecto_to_db(other, nil, nil, nil, _) do
+      Atom.to_string(other)
+    end
+
+    defp error!(nil, message) do
+      raise ArgumentError, message
+    end
+
+    defp error!(query, message) do
+      raise Ecto.QueryError, query: query, message: message
+    end
+
+    defp if_table_not_exists(condition, name, prefix) do
+      if_do(condition, [
+        "IF NOT EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[TABLES] ",
+        "WHERE ",
+        "[TABLE_NAME] = ",
+        ?',
+        "#{name}",
+        ?',
+        if_do(prefix != nil, [
+          " AND [TABLE_SCHEMA] = ",
+          ?',
+          "#{prefix}",
+          ?'
+        ]),
+        ") BEGIN "
+      ])
+    end
+
+    defp if_table_exists(condition, name, prefix) do
+      if_do(condition, [
+        "IF EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[TABLES] ",
+        "WHERE ",
+        "[TABLE_NAME] = ",
+        ?',
+        "#{name}",
+        ?',
+        if_do(prefix != nil, [
+          " AND [TABLE_SCHEMA] = ",
+          ?',
+          "#{prefix}",
+          ?'
+        ]),
+        ") BEGIN "
+      ])
+    end
+
+    defp list_param_to_args(idx, length) do
+      Enum.map_join(1..length, ",", &"@#{idx + &1}")
+    end
+
+    defp as_string(atom) when is_atom(atom), do: Atom.to_string(atom)
+    defp as_string(str), do: str
+
+    defp if_index_exists(condition, index_name, table_name) do
+      if_do(condition, [
+        "IF EXISTS (SELECT name FROM sys.indexes WHERE name = N'",
+        as_string(index_name),
+        "' AND object_id = OBJECT_ID(N'",
+        as_string(table_name),
+        "')) "
+      ])
+    end
+
+    defp if_index_not_exists(condition, index_name, table_name) do
+      if_do(condition, [
+        "IF NOT EXISTS (SELECT name FROM sys.indexes WHERE name = N'",
+        as_string(index_name),
+        "' AND object_id = OBJECT_ID(N'",
+        as_string(table_name),
+        "')) "
+      ])
+    end
+
+    # types
+    # "U" - table,
+    # "C", "PK", "UQ", "F ", "D " - constraints
+    defp if_object_exists(name, type, statement) do
+      [
+        "IF (OBJECT_ID(N'",
+        name,
+        "', '",
+        type,
+        "') IS NOT NULL) BEGIN ",
+        statement,
+        " END; "
+      ]
+    end
+  end
+end

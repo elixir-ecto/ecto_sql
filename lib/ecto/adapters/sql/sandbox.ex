@@ -424,7 +424,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         pool_opts
       end
 
-    pool_opts_overrides = Keyword.take(opts, [:ownership_timeout])
+    pool_opts_overrides = Keyword.take(opts, [:ownership_timeout, :isolation_level])
     pool_opts = Keyword.merge(pool_opts, pool_opts_overrides)
 
     case DBConnection.Ownership.ownership_checkout(pool, pool_opts) do

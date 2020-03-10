@@ -59,6 +59,7 @@ defmodule Ecto.Integration.SubQueryTest do
            TestRepo.all(from p in subquery(query), select: p)
   end
 
+  @tag :subquery_aggregates
   test "from: subqueries with aggregates" do
     TestRepo.insert!(%Post{visits: 10})
     TestRepo.insert!(%Post{visits: 11})

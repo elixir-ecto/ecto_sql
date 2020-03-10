@@ -143,6 +143,6 @@ defmodule Ecto.Integration.StorageTest do
   test "storage status is an error when wrong credentials are passed" do
     assert ExUnit.CaptureLog.capture_log(fn ->
              assert {:error, _} = Postgres.storage_status(wrong_params())
-           end) =~ "FATAL 28000"
+           end) =~ ~r"FATAL (28000|28P01)"
   end
 end

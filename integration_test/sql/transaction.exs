@@ -52,24 +52,32 @@ defmodule Ecto.Integration.TransactionTest do
     end
   end
 
+  # tag is required for TestRepo, since it is checkout in
+  # Ecto.Integration.Case setup
+  @tag isolation_level: :snapshot
   test "transaction commits" do
+    # mssql requires that all transactions that use same shared lock are set
+    # to :snapshot isolation level
+    opts = [isolation_level: :snapshot]
     PoolRepo.transaction(fn ->
       e = PoolRepo.insert!(%Trans{num: 1})
       assert [^e] = PoolRepo.all(Trans)
       assert [] = TestRepo.all(Trans)
-    end)
+    end, opts)
 
     assert [%Trans{num: 1}] = PoolRepo.all(Trans)
   end
 
+  @tag isolation_level: :snapshot
   test "transaction rolls back" do
+    opts = [isolation_level: :snapshot]
     try do
       PoolRepo.transaction(fn ->
         e = PoolRepo.insert!(%Trans{num: 2})
         assert [^e] = PoolRepo.all(Trans)
         assert [] = TestRepo.all(Trans)
         raise UniqueError
-      end)
+      end, opts)
     rescue
       UniqueError -> :ok
     end
@@ -91,6 +99,7 @@ defmodule Ecto.Integration.TransactionTest do
     end
   end
 
+  @tag :pk_insert
   test "transaction rolls back with reason on aborted transaction" do
     e1 = PoolRepo.insert!(%Trans{num: 13})
 
@@ -150,6 +159,7 @@ defmodule Ecto.Integration.TransactionTest do
 
   test "transactions are not shared in repo" do
     pid = self()
+    opts = [isolation_level: :snapshot]
 
     new_pid = spawn_link fn ->
       PoolRepo.transaction(fn ->
@@ -161,7 +171,7 @@ defmodule Ecto.Integration.TransactionTest do
         after
           5000 -> raise "timeout"
         end
-      end)
+      end, opts)
       send(pid, :committed)
     end
 
@@ -170,7 +180,13 @@ defmodule Ecto.Integration.TransactionTest do
     after
       5000 -> raise "timeout"
     end
-    assert [] = PoolRepo.all(Trans)
+
+    # mssql requires that all transactions that use same shared lock
+    # set transaction isolation level to "snapshot" so this must be wrapped into
+    # explicit transaction
+    PoolRepo.transaction(fn ->
+      assert [] = PoolRepo.all(Trans)
+    end, opts)
 
     send(new_pid, :commit)
     receive do
@@ -205,6 +221,7 @@ defmodule Ecto.Integration.TransactionTest do
       end)
     end
 
+    @tag :transaction_checkout_raises
     test "checkout raises on transaction attempt" do
       assert_raise DBConnection.ConnectionError, ~r"connection was checked out with status", fn ->
         PoolRepo.checkout(fn -> PoolRepo.query!("BEGIN") end)
