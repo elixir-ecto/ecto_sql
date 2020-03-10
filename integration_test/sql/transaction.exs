@@ -59,6 +59,7 @@ defmodule Ecto.Integration.TransactionTest do
     # mssql requires that all transactions that use same shared lock are set
     # to :snapshot isolation level
     opts = [isolation_level: :snapshot]
+
     PoolRepo.transaction(fn ->
       e = PoolRepo.insert!(%Trans{num: 1})
       assert [^e] = PoolRepo.all(Trans)

@@ -7,11 +7,11 @@ defmodule Ecto.Integration.SubQueryTest do
   alias Ecto.Integration.Comment
 
   test "from: subqueries with select source" do
-    TestRepo.insert!(%Post{text: "hello", public: true})
+    TestRepo.insert!(%Post{title: "hello", public: true})
 
     query = from p in Post, select: p
     assert ["hello"] =
-           TestRepo.all(from p in subquery(query), select: p.text)
+           TestRepo.all(from p in subquery(query), select: p.title)
     assert [post] =
            TestRepo.all(from p in subquery(query), select: p)
 
@@ -21,41 +21,41 @@ defmodule Ecto.Integration.SubQueryTest do
 
   @tag :map_boolean_in_expression
   test "from: subqueries with map and select expression" do
-    TestRepo.insert!(%Post{text: "hello", public: true})
+    TestRepo.insert!(%Post{title: "hello", public: true})
 
-    query = from p in Post, select: %{text: p.text, pub: not p.public}
+    query = from p in Post, select: %{title: p.title, pub: not p.public}
     assert ["hello"] =
-           TestRepo.all(from p in subquery(query), select: p.text)
-    assert [%{text: "hello", pub: false}] =
+           TestRepo.all(from p in subquery(query), select: p.title)
+    assert [%{title: "hello", pub: false}] =
            TestRepo.all(from p in subquery(query), select: p)
-    assert [{"hello", %{text: "hello", pub: false}}] =
-           TestRepo.all(from p in subquery(query), select: {p.text, p})
-    assert [{%{text: "hello", pub: false}, false}] =
+    assert [{"hello", %{title: "hello", pub: false}}] =
+           TestRepo.all(from p in subquery(query), select: {p.title, p})
+    assert [{%{title: "hello", pub: false}, false}] =
            TestRepo.all(from p in subquery(query), select: {p, p.pub})
   end
 
   @tag :map_boolean_in_expression
   test "from: subqueries with map update and select expression" do
-    TestRepo.insert!(%Post{text: "hello", public: true})
+    TestRepo.insert!(%Post{title: "hello", public: true})
 
     query = from p in Post, select: %{p | public: not p.public}
     assert ["hello"] =
-           TestRepo.all(from p in subquery(query), select: p.text)
-    assert [%Post{text: "hello", public: false}] =
+           TestRepo.all(from p in subquery(query), select: p.title)
+    assert [%Post{title: "hello", public: false}] =
            TestRepo.all(from p in subquery(query), select: p)
-    assert [{"hello", %Post{text: "hello", public: false}}] =
-           TestRepo.all(from p in subquery(query), select: {p.text, p})
-    assert [{%Post{text: "hello", public: false}, false}] =
+    assert [{"hello", %Post{title: "hello", public: false}}] =
+           TestRepo.all(from p in subquery(query), select: {p.title, p})
+    assert [{%Post{title: "hello", public: false}, false}] =
            TestRepo.all(from p in subquery(query), select: {p, p.public})
   end
 
   test "from: subqueries with map update on virtual field and select expression" do
-    TestRepo.insert!(%Post{text: "hello"})
+    TestRepo.insert!(%Post{title: "hello"})
 
-    query = from p in Post, select: %{p | temp: p.text}
+    query = from p in Post, select: %{p | temp: p.title}
     assert ["hello"] =
            TestRepo.all(from p in subquery(query), select: p.temp)
-    assert [%Post{text: "hello", temp: "hello"}] =
+    assert [%Post{title: "hello", temp: "hello"}] =
            TestRepo.all(from p in subquery(query), select: p)
   end
 
@@ -77,37 +77,37 @@ defmodule Ecto.Integration.SubQueryTest do
   end
 
   test "from: subqueries with parameters" do
-    TestRepo.insert!(%Post{visits: 10, text: "hello"})
-    TestRepo.insert!(%Post{visits: 11, text: "hello"})
-    TestRepo.insert!(%Post{visits: 13, text: "world"})
+    TestRepo.insert!(%Post{visits: 10, title: "hello"})
+    TestRepo.insert!(%Post{visits: 11, title: "hello"})
+    TestRepo.insert!(%Post{visits: 13, title: "world"})
 
     query = from p in Post, where: p.visits >= ^11 and p.visits <= ^13
-    query = from p in subquery(query), where: p.text == ^"hello", select: fragment("? + ?", p.visits, ^1)
+    query = from p in subquery(query), where: p.title == ^"hello", select: fragment("? + ?", p.visits, ^1)
     assert [12] = TestRepo.all(query)
   end
 
   test "join: subqueries with select source" do
-    %{id: id} = TestRepo.insert!(%Post{text: "hello", public: true})
+    %{id: id} = TestRepo.insert!(%Post{title: "hello", public: true})
     TestRepo.insert!(%Comment{post_id: id})
 
     query = from p in Post, select: p
     assert ["hello"] =
-           TestRepo.all(from c in Comment, join: p in subquery(query), on: c.post_id == p.id, select: p.text)
+           TestRepo.all(from c in Comment, join: p in subquery(query), on: c.post_id == p.id, select: p.title)
     assert [%Post{inserted_at: %NaiveDateTime{}}] =
            TestRepo.all(from c in Comment, join: p in subquery(query), on: c.post_id == p.id, select: p)
   end
 
   test "join: subqueries with parameters" do
-    TestRepo.insert!(%Post{visits: 10, text: "hello"})
-    TestRepo.insert!(%Post{visits: 11, text: "hello"})
-    TestRepo.insert!(%Post{visits: 13, text: "world"})
+    TestRepo.insert!(%Post{visits: 10, title: "hello"})
+    TestRepo.insert!(%Post{visits: 11, title: "hello"})
+    TestRepo.insert!(%Post{visits: 13, title: "world"})
     TestRepo.insert!(%Comment{})
     TestRepo.insert!(%Comment{})
 
     query = from p in Post, where: p.visits >= ^11 and p.visits <= ^13
     query = from c in Comment,
               join: p in subquery(query),
-              where: p.text == ^"hello",
+              where: p.title == ^"hello",
               select: fragment("? + ?", p.visits, ^1)
     assert [12, 12] = TestRepo.all(query)
   end

@@ -22,9 +22,8 @@ ExUnit.start(
     :insert_cell_wise_defaults,
     # SELECT NOT(t.bool_column) not supported
     :select_not,
-    # COALESCE is supported but binary parameter is converted into nvarchar so it loses first byte in conversion as invalid string
-    # I had to change migration in order other tests to pass, see integration_test/tds/migration.exs file
-    :coalesce_type,
+    # MSSQL does not support strings on text fields
+    :text_type_as_string,
     # IDENTITY_INSERT ON/OFF  must be manually executed
     :assigns_id_type,
     # without schema we don't know anything about :map and :embeds, where value is kept in nvarchar(max) column
@@ -105,7 +104,6 @@ end
 
 Code.require_file("#{ecto}/integration_test/support/schemas.exs", __DIR__)
 Code.require_file("../support/migration.exs", __DIR__)
-Code.require_file("migration.exs", __DIR__)
 
 alias Ecto.Integration.PoolRepo
 
@@ -149,6 +147,5 @@ _ = Ecto.Adapters.Tds.storage_down(TestRepo.config())
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: :debug)
-:ok = Ecto.Migrator.up(TestRepo, 1, Ecto.Integration.Migration2, log: :debug)
 Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
 Process.flag(:trap_exit, true)

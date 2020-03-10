@@ -11,7 +11,7 @@ defmodule Ecto.Integration.Migration do
     create table(:posts) do
       add :title, :string, size: 100
       add :counter, :integer
-      add :text, :binary
+      add :blob, :binary
       add :bid, :binary_id
       add :uuid, :uuid
       add :meta, :map
@@ -85,7 +85,6 @@ defmodule Ecto.Integration.Migration do
     end
 
     create table(:orders) do
-      add :instructions, :text
       add :item, :map
       add :permalink_id, references(:permalinks)
     end
