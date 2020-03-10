@@ -1053,7 +1053,7 @@ if Code.ensure_loaded?(Postgrex) do
 
        case sequence do
           [] -> type_name
-          _ -> [type_name, " (", Enum.join(sequence, " "), ") "]#"(", Enum.join(sequence, " "), ")"]  
+          _ -> [type_name, " (", Enum.join(sequence, " "), ") "]
        end 
     
      
