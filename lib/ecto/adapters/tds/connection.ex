@@ -7,12 +7,9 @@ if Code.ensure_loaded?(Tds) do
     require Ecto.Schema
 
     @behaviour Ecto.Adapters.SQL.Connection
-    # @behaviour Ecto.Adapters.SQL.Query
-
     @unsafe_query_strings ["'\\"]
 
     @impl true
-    @doc false
     def child_spec(opts) do
       opts
       |> Keyword.put_new(:use_elixir_calendar_types, true)

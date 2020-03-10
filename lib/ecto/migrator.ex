@@ -296,7 +296,7 @@ defmodule Ecto.Migrator do
       catch
         kind, error ->
           Task.shutdown(task, :brutal_kill)
-          :erlang.raise(kind, error, System.stacktrace())
+          :erlang.raise(kind, error, __STACKTRACE__)
       end
     end
 
@@ -328,7 +328,7 @@ defmodule Ecto.Migrator do
       result
     end
   catch kind, reason ->
-    send_and_receive(parent, ref, {kind, reason, System.stacktrace()})
+    send_and_receive(parent, ref, {kind, reason, __STACKTRACE__})
   end
 
   defp send_and_receive(parent, ref, value) do
@@ -589,7 +589,7 @@ defmodule Ecto.Migrator do
   end
 
   defp load_migration!({version, _, file}) when is_binary(file) do
-    loaded_modules = file |> Code.load_file() |> Enum.map(&elem(&1, 0))
+    loaded_modules = file |> Code.compile_file() |> Enum.map(&elem(&1, 0))
 
     if mod = Enum.find(loaded_modules, &migration?/1) do
       {version, mod}
@@ -655,7 +655,7 @@ defmodule Ecto.Migrator do
 
         The full error report is shown below.
         """
-        reraise error, System.stacktrace()
+        reraise error, __STACKTRACE__
     end
   end
 

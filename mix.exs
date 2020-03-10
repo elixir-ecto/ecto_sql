@@ -8,7 +8,7 @@ defmodule EctoSQL.MixProject do
     [
       app: :ecto_sql,
       version: @version,
-      elixir: "~> 1.6",
+      elixir: "~> 1.7",
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [
@@ -38,7 +38,7 @@ defmodule EctoSQL.MixProject do
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :eex],
       env: [postgres_map_type: "jsonb"],
       mod: {Ecto.Adapters.SQL.Application, []}
     ]
