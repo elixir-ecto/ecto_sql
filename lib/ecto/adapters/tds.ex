@@ -1,8 +1,6 @@
 defmodule Ecto.Adapters.Tds do
   @moduledoc """
-  Adapter module for MsSql Server.
-
-  It uses `tds` for communicating to the database.
+  Adapter module for MSSQL Server using the TDS protocol.
 
   ## Options
 
@@ -11,6 +9,7 @@ defmodule Ecto.Adapters.Tds do
   configuration.
 
   ### Connection options
+
     * `:hostname` - Server hostname
     * `:port` - Server port (default: 1433)
     * `:username` - Username
@@ -20,27 +19,27 @@ defmodule Ecto.Adapters.Tds do
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
 
-  We also recommend developers to consult the `Tds.start_link/1` documentation for a complete list of all supported
-  options for driver.
+  We also recommend developers to consult the `Tds.start_link/1` documentation
+  for a complete list of all supported options for driver.
 
   ### Storage options
-    * `:collation` - the database collation. Used during database creation but it is ignored later
 
-  If you need collation other than Latin1, add `tds_encoding` as dependency in
+    * `:collation` - the database collation. Used during database creation but
+      it is ignored later
+
+  If you need collation other than Latin1, add `tds_encoding` as dependency to
   your project `mix.exs` file then amend `config/config.ex` by adding:
 
-  ```
-  config :tds, :text_encoder, Tds.Encoding
-  ```
+      config :tds, :text_encoder, Tds.Encoding
 
   This should give you extended set of most encoding. For cemplete list check
   `Tds.Encoding` [documentation](https://hexdocs.pm/tds_encoding).
 
   ### After connect flags
 
-  After connectiong to MsSql server TDS will check if there are any flags set in
+  After connectiong to MSSQL server, TDS will check if there are any flags set in
   connection options that should affect connection session behaviour. All flags are
-  MsSql standard *SET* options. The folowing flags are currently supported:
+  MSSQL standard *SET* options. The folowing flags are currently supported:
 
     * `:set_language` - sets session language (consult stored procedure output
        `exec sp_helplanguage` for valid values)
@@ -58,60 +57,61 @@ defmodule Ecto.Adapters.Tds do
 
   ### UUIDs
 
-  MsSql server has slighlty different binary storage format for UUIDs (`uniqueidenitifer`)
-  there is `Tds.Types.UUID` type that should be used to generate value or as fied type.
-  Please avoid using `Ecto.UUID` since it may cause unpredictable application behaviour.
+  MSSQL server has slighlty different binary storage format for UUIDs (`uniqueidenitifer`).
+  If you use `:binary_id`, the proper choice is made. Otherwise you must use the `Tds.Types.UUID`
+  type. Avoid using `Ecto.UUID` since it may cause unpredictable application behaviour.
 
-  ### Sql `Char`, `VarChar` and `Text` types
-  If you want, you can use this types, but there are some limitions you should be aware:
+  ### SQL `Char`, `VarChar` and `Text` types
+
+  When working with binaries and strings,there are some limitions you should be aware of:
+
     - Strings that should be stored in mentioned sql types must be encoded to column
-      codepage (defined in collation) if collation is different than database collation
-      it is not possible to store correct value into database since connection is
-      respecting database collation. Ecto do not provide way to override parameter
-      codepage hence TDS can't encode it properly and still have to respect database
-      collation.
-    - Workaronud for point above. If you need other than Latin1 or other than your
-      database default collation, as mentioned in "Storage Options" section, then
-      manualy encode strings using `Tds.Encoding.encode/2` into desired codepage and then
-      tag parameter as `:binary`.
-      Please be aware that queryies that uses this approach in where calues can be 10x slower
+      codepage (defined in collation). If collation is different than database collation,
+      it is not possible to store correct value into database since the connection
+      respects the database collation. Ecto does not provide way to override parameter
+      codepage.
+
+    - If you need other than Latin1 or other than your database default collation, as
+      mentioned in "Storage Options" section, then manualy encode strings using
+      `Tds.Encoding.encode/2` into desired codepage and then tag parameter as `:binary`.
+      Please be aware that queries that use this approach in where calues can be 10x slower
       due increased logical reads in database.
-    - You can't store VarChar codepoints encoded in one collation/codepage
-      to column that is encoded in different collation/codepage.
-      You will always get wrong result. This is not adapter od driver limitation
-      but rather the way how string encoding works for single byte encoded string
-      in MsSql server. Don't be confuse cause you are seeing latin1 chars always,
+
+    - You can't store VarChar codepoints encoded in one collation/codepage to column that
+      is encoded in different collation/codepage. You will always get wrong result. This is 
+      not adapter or driver limitation but rather how string encoding works for single byte
+      encoded strings in MSSQL server. Don't be confused if you are always seeing latin1 chars,
       they are simply in each codepoint table.
 
-  For VarChar column type, there is `Tds.Types.VarChar` model field type.
-
+  In particular, if a field has the type `:text`, only raw binaries will be allowed.
   To avoid above limitations always use `:string` (NVarChar) type for text if possible.
+  If you really need to use VarChar's column type, you can use the `Tds.Types.VarChar`
+  Ecto type.
 
   ### JSON support
-  Even tho adapter will convert `:map` fields into JSON back and forth, actual
-  value is stored in NVarChar column
+
+  Even though the adapter will convert `:map` fields into JSON back and forth,
+  actual value is stored in NVarChar column.
 
   ### Multi Repo calls in transactions
+
   To avoid deadlocks in your app, we exposed `:isolation_level`  repo transaction option.
   This will tell to SQL Server Transaction Manager how to begin transaction.
   By default, if this option is ommited, isolation level is set to `:read_committed`.
 
-  Each attempt to send manualy query such as
+  Any attempt to manualy set the transaction isolation via queries, such as
 
-  ```
-  Ecto.Adapter.SQL.query("SET TRANSACTION ISOLATION LEVEL XYZ")
-  ```
+      Ecto.Adapter.SQL.query("SET TRANSACTION ISOLATION LEVEL XYZ")
 
   will fail once explicit transaction is started using `Ecto.Repo.transaction/2`
   and reset back to :read_commited.
 
-  There is query `Ecto.Query.lock/3` funcation that should help with `WITH(NOLOCK)`.
-  This should allow you to do eventualy consistent reads and avoid locks on given table
-  if you don't need to write to database.
+  There is `Ecto.Query.lock/3` function can help by setting it to `WITH(NOLOCK)`.
+  This should allow you to do eventualy consistent reads and avoid locks on given
+  table if you don't need to write to database.
 
-  NOTE: after explicit transaction ends (commit or rollback) implicit transactions will
-  run as READ_COMMITTED.
-
+  NOTE: after explicit transaction ends (commit or rollback) implicit transactions
+  will run as READ_COMMITTED.
   """
 
   use Ecto.Adapters.SQL,
