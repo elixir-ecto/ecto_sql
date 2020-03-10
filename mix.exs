@@ -1,7 +1,7 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.3.4"
+  @version "3.4.0-dev"
   @adapters ~w(pg myxql tds)
 
   def project do
@@ -59,7 +59,7 @@ defmodule EctoSQL.MixProject do
       {:jason, ">= 0.0.0", only: [:test, :docs]},
 
       # Docs
-      {:ex_doc, "~> 0.19", only: :docs},
+      {:ex_doc, "~> 0.21", only: :docs},
 
       # Benchmarks
       {:benchee, "~> 0.11.0", only: :bench},
@@ -71,8 +71,8 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      # {:ecto, "~> 3.4 or ~> 3.3.3"}
-      {:ecto, git: "https://github.com/elixir-ecto/ecto.git", branch: "master"}
+      # {:ecto, "~> 3.4"}
+      {:ecto, git: "https://github.com/elixir-ecto/ecto.git"}
     end
   end
 

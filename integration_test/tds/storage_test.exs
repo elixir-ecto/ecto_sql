@@ -18,49 +18,25 @@ defmodule Ecto.Integration.StorageTest do
        password: "password1234"]
   end
 
-  def drop_database do
-    database = params()[:database]
-    run_sqlcmd("DROP DATABASE [#{database}];", ["-d", "master"])
-  end
-
-  def create_database do
-    database = params()[:database]
-    run_sqlcmd("CREATE DATABASE [#{database}];", ["-d", "master"])
-  end
-
-  def create_posts do
-    run_sqlcmd("CREATE TABLE posts (title nvarchar(20));", ["-d", params()[:database]])
-  end
-
-  def run_sqlcmd(sql, args \\ []) do
-    params = params()
-    args = [
-      "-U", params[:username],
-      "-P", params[:password],
-      "-S", params[:hostname],
-      "-Q", ~s(#{sql}) | args]
-    System.cmd "sqlcmd", args
-  end
-
   test "storage up (twice in a row)" do
     assert :ok == Tds.storage_up(params())
     assert {:error, :already_up} == Tds.storage_up(params())
   after
-    drop_database()
+    Tds.storage_down(params())
   end
 
   test "storage down (twice in a row)" do
-    {_, 0} = create_database()
+    assert :ok == Tds.storage_up(params())
     assert :ok == Tds.storage_down(params())
     assert {:error, :already_down} == Tds.storage_down(params())
   end
 
   test "storage up and down (wrong credentials)" do
     refute :ok == Tds.storage_up(wrong_params())
-    {_, 0} = create_database()
+    assert :ok == Tds.storage_up(params())
     refute :ok == Tds.storage_down(wrong_params())
   after
-    drop_database()
+    Tds.storage_down(params())
   end
 
   defmodule Migration do
@@ -69,15 +45,15 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   test "storage status is up when database is created" do
-    create_database()
+    Tds.storage_up(params())
     assert :up == Tds.storage_status(params())
   after
-    drop_database()
+    Tds.storage_down(params())
   end
 
   test "storage status is down when database is not created" do
-    create_database()
-    drop_database()
+    Tds.storage_up(params())
+    Tds.storage_down(params())
     assert :down == Tds.storage_status(params())
   end
 

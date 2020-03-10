@@ -5,7 +5,7 @@ Ecto SQL
 Ecto SQL ([documentation](https://hexdocs.pm/ecto_sql)) provides building blocks for writing SQL adapters for Ecto. It features:
 
   * The Ecto.Adapters.SQL module as an entry point for all SQL-based adapters
-  * Default implementations for Postgres (Ecto.Adapters.Postgres) and MySQL (Ecto.Adapters.MyXQL)
+  * Default implementations for Postgres (Ecto.Adapters.Postgres), MySQL (Ecto.Adapters.MyXQL), and MSSQL (Ecto.Adapters.Tds)
   * A test sandbox (Ecto.Adapters.SQL.Sandbox) that concurrently runs database tests inside transactions
   * Support for database migrations via Mix tasks
 
@@ -20,7 +20,7 @@ Clone the repo and fetch its dependencies:
     $ mix deps.get
     $ mix test.all
 
-Note that `mix test.all` runs the tests in `test/` and in the `integration_test` folder of the `ecto` dependency.
+Note that `mix test.all` runs the tests in `test/` and the `integration_test`s for each adapter: `pg`, `myxql` and `tds`.
 
 You can also use a local Ecto checkout if desired:
 
@@ -29,6 +29,10 @@ You can also use a local Ecto checkout if desired:
 You can run tests against a specific Ecto adapter by using the `ECTO_ADAPTER` environment variable:
 
     $ ECTO_ADAPTER=pg mix test
+
+MySQL and PostgreSQL can be installed directly on most systems. For MSSQL, you may need to run it as a Docker image:
+
+    docker run -d -p 1433:1433 --name mssql -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=some!Password' mcr.microsoft.com/mssql/server:2017-latest
 
 ## License
 
