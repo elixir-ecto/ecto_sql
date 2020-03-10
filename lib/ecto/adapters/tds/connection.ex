@@ -57,20 +57,13 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def stream(_conn, _sql, _params, _opts) do
-      raise RuntimeError, "Repo.stream is not supported in Tds adapter"
+      error!(nil, "Repo.stream is not supported in Tds adapter")
     end
 
     @impl true
     def query(conn, sql, params, opts) do
       params = prepare_params(params)
-
-      case Tds.query(conn, sql, params, opts) do
-        {:ok, %Tds.Result{} = result} ->
-          {:ok, Map.from_struct(result)}
-
-        other ->
-          other
-      end
+      Tds.query(conn, sql, params, opts)
     end
 
     @impl true
@@ -113,8 +106,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp prepare_param(%{__struct__: module} = _value) do
       # just in case dumpers/loaders are not defined for the this struct
-      raise Tds.Error,
-            "Tds is unable to convert struct `#{inspect(module)}` into supported MsSql types"
+      error!(nil,  "TSD is unable to convert struct `#{inspect(module)}` into supported MSSQL types")
     end
 
     defp prepare_param(%{} = value), do: {json_library().encode!(value), :string}
@@ -125,15 +117,8 @@ if Code.ensure_loaded?(Tds) do
       {value, type}
     end
 
-    # defp prepare_raw_param({y, m, d} = value)
-    #      when is_integer(y) and is_integer(m) and is_integer(d),
-    #      do: {value, :date}
-
     defp prepare_raw_param(value) when value == true, do: {1, :boolean}
     defp prepare_raw_param(value) when value == false, do: {0, :boolean}
-    # defp prepare_raw_param(value) when is_integer(value), do: {value, :integer}
-    # defp prepare_raw_param(value) when is_float(value), do: {value, :float}
-    # defp prepare_raw_param(%Decimal{} = value), do: {value, :decimal}
     defp prepare_raw_param({_, :varchar} = value), do: value
     defp prepare_raw_param(value), do: {value, nil}
 
@@ -223,7 +208,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp on_conflict({_, _, [_ | _]}, _header) do
-      error!(nil, "The :conflict_target option is not supported in insert/insert_all by MsSql")
+      error!(nil, "The :conflict_target option is not supported in insert/insert_all by MSSQL")
     end
 
     defp on_conflict({:raise, _, []}, _header) do
@@ -231,17 +216,17 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp on_conflict({:nothing, _, []}, [_field | _]) do
-      error!(nil, "The :nothing option is not supported in insert/insert_all by MsSql")
+      error!(nil, "The :nothing option is not supported in insert/insert_all by MSSQL")
     end
 
     defp on_conflict({:replace_all, _, []}, _header) do
-      error!(nil, "The :replace_all option is not supported in insert/insert_all by MsSql")
+      error!(nil, "The :replace_all option is not supported in insert/insert_all by MSSQL")
     end
 
     defp on_conflict({_query, _, []}, _header) do
       error!(
         nil,
-        "The query as option for on_conflict is not supported in insert/insert_all by MsSql."
+        "The query as option for on_conflict is not supported in insert/insert_all by MSSQL"
       )
     end
 
@@ -412,7 +397,7 @@ if Code.ensure_loaded?(Tds) do
     defp cte_header(%QueryExpr{}, query) do
       error!(
         query,
-        "Unfortunately Tds adapter does not support fragment in CTE."
+        "Unfortunately Tds adapter does not support fragment in CTE"
       )
     end
 
@@ -542,7 +527,7 @@ if Code.ensure_loaded?(Tds) do
       case dir do
         :asc -> str
         :desc -> [str | " DESC"]
-        _ -> error!(query, "#{dir} is not supported ORDER BY direction in MsSql")
+        _ -> error!(query, "#{dir} is not supported ORDER BY direction in MSSQL")
       end
     end
 
@@ -841,12 +826,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr(field, sources, query) do
-      error!(
-        query,
-        "MSSQL adapter does not support keyword or interpolated or whatever is \n#{
-          inspect([field: field, sources: sources, query: query], structs: false)
-        }"
-      )
+      error!(query, "unsupported MSSQL expressions: `#{inspect(field)}`")
     end
 
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
@@ -883,7 +863,7 @@ if Code.ensure_loaded?(Tds) do
         " OUTPUT "
         | intersperse_map(fields, ", ", fn
             {{:., _, [{:&, _, [^idx]}, key]}, _, _} -> [verb, ?., quote_name(key)]
-            _ -> error!(query, "MsSql can only return table #{verb} columns")
+            _ -> error!(query, "MSSQL can only return table #{verb} columns")
           end)
       ]
 
@@ -997,7 +977,7 @@ if Code.ensure_loaded?(Tds) do
       prefix = index.prefix
 
       if index.using do
-        error!(nil, "MSSQL does not support using in indexes.")
+        error!(nil, "MSSQL does not support `using` in indexes")
       end
 
       with_options =
@@ -1143,7 +1123,6 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_changes(statement, table, columns) do
-      # intersperse_map(columns, " ", &column_change(statement, table, &1))
       for column <- columns do
         column_change(statement, table, column)
       end
@@ -1204,7 +1183,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp column_change(statement_prefix, table, {:modify, name, type, opts}) do
       fk_name = constraint_name("DF", table, name)
-      # has_default = Keyword.has_key?(opts, :default)
+
       [
         [
           if_object_exists(

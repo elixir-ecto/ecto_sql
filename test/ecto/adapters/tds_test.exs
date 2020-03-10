@@ -1195,7 +1195,7 @@ defmodule Ecto.Adapters.TdsTest do
   test "create an index using a different type" do
     create = {:create, index(:posts, [:permalink], using: :hash)}
 
-    assert_raise ArgumentError, ~r"MSSQL does not support using in indexes.", fn ->
+    assert_raise ArgumentError, ~r"MSSQL does not support `using` in indexes", fn ->
       execute_ddl(create)
     end
   end
