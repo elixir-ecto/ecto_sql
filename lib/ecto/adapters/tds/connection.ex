@@ -450,7 +450,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp join_on(:cross, true, _sources, _query), do: []
-    defp join_on(_qual, true, _sources, _query), do: [" ON 1 = 1 "]
+    defp join_on(_qual, true, _sources, _query), do: [" ON 1 = 1"]
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
     defp join_qual(:inner), do: "INNER JOIN "
@@ -1261,7 +1261,7 @@ if Code.ensure_loaded?(Tds) do
         reference_name(ref, table, name),
         " FOREIGN KEY (#{quote_name(name)})",
         " REFERENCES ",
-        quote_table(table.prefix, ref.table),
+        quote_table(ref.prefix || table.prefix, ref.table),
         "(#{quote_name(ref.column)})",
         reference_on_delete(ref.on_delete),
         reference_on_update(ref.on_update)

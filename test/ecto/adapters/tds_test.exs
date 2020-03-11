@@ -760,7 +760,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert all(query) ==
              ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] } <>
-               ~s{INNER JOIN [schema] AS s2 ON 1 = 1 }
+               ~s{INNER JOIN [schema] AS s2 ON 1 = 1}
   end
 
   test "join with hints" do
@@ -768,7 +768,7 @@ defmodule Ecto.Adapters.TdsTest do
            |> join(:inner, [p], q in Schema2, hints: ["USE INDEX FOO", "USE INDEX BAR"])
            |> select([], true)
            |> plan()
-           |> all() == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 WITH (USE INDEX FOO, USE INDEX BAR) ON 1 = 1 }
+           |> all() == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 WITH (USE INDEX FOO, USE INDEX BAR) ON 1 = 1}
   end
 
   test "join with nothing bound" do
@@ -813,7 +813,31 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) ==
              ~s{SELECT s0.[id], @1 FROM [schema] AS s0 INNER JOIN } <>
                ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @2) AS f1 ON 1 = 1 } <>
-               ~s{ WHERE ((s0.[id] > 0) AND (s0.[id] < @3))}
+               ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @3))}
+  end
+
+  test "join with fragment and on defined" do
+    query = Schema
+            |> join(:inner, [p], q in fragment("SELECT * FROM schema2"), on: q.id == p.id)
+            |> select([p], {p.id, ^0})
+            |> plan()
+    assert all(query) ==
+           "SELECT s0.[id], @1 FROM [schema] AS s0 INNER JOIN (SELECT * FROM schema2) AS f1 ON f1.[id] = s0.[id]"
+  end
+
+  test "join with query interpolation" do
+    inner = Ecto.Queryable.to_query(Schema2)
+    query = from(p in Schema, left_join: c in ^inner, select: {p.id, c.id}) |> plan()
+    assert all(query) ==
+           "SELECT s0.[id], s1.[id] FROM [schema] AS s0 LEFT OUTER JOIN [schema2] AS s1 ON 1 = 1"
+  end
+
+  test "join produces correct bindings" do
+    query = from(p in Schema, join: c in Schema2, on: true)
+    query = from(p in query, join: c in Schema2, on: true, select: {p.id, c.id})
+    query = plan(query)
+    assert all(query) ==
+           "SELECT s0.[id], s2.[id] FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON 1 = 1 INNER JOIN [schema2] AS s2 ON 1 = 1"
   end
 
   ## Associations
@@ -837,15 +861,6 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert all(query) ==
              "SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [foo].[schema3] AS s1 ON s1.[id] = s0.[y]"
-  end
-
-  test "join produces correct bindings" do
-    query = from(p in Schema, join: c in Schema2, on: true)
-    query = from(p in query, join: c in Schema2, on: true, select: {p.id, c.id})
-    query = plan(query)
-
-    assert all(query) ==
-             "SELECT s0.[id], s2.[id] FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON 1 = 1  INNER JOIN [schema2] AS s2 ON 1 = 1 "
   end
 
   # Schema based
@@ -895,7 +910,7 @@ defmodule Ecto.Adapters.TdsTest do
     assert query == ~s{DELETE FROM [prefix].[schema] WHERE [x] = @1 AND [y] = @2}
   end
 
-  # # DDL
+  ## DDL
 
   import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3]
 
@@ -903,63 +918,85 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl("example") == ["example"]
   end
 
+  test "create empty table" do
+    create = {:create, table(:posts), []}
+
+    assert execute_ddl(create) == ["CREATE TABLE [posts]"]
+  end
+
   test "create table" do
-    create =
-      {:create, table(:posts),
-       [
-         {:add, :id, :bigserial, [primary_key: true]},
-         {:add, :title, :string, []},
-         {:add, :created_at, :datetime, []}
-       ]}
+    create = {:create, table(:posts),
+               [{:add, :name, :string, [default: "Untitled", size: 20, null: false]},
+                {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
+                {:add, :on_hand, :integer, [default: 0, null: true]},
+                {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
+                {:add, :published_at, :"datetime(6)", [null: true]},
+                {:add, :is_active, :boolean, [default: true]}]}
 
     assert execute_ddl(create) == [
              """
-             CREATE TABLE [posts] ([id] bigint IDENTITY(1,1), [title] nvarchar(255), [created_at] datetime,
-             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
+             CREATE TABLE [posts] ([name] nvarchar(20) NOT NULL CONSTRAINT [DF__posts_name] DEFAULT (N'Untitled'),
+             [price] numeric(8,2) CONSTRAINT [DF__posts_price] DEFAULT (expr),
+             [on_hand] integer NULL CONSTRAINT [DF__posts_on_hand] DEFAULT (0),
+             [likes] smallint unsigned NOT NULL CONSTRAINT [DF__posts_likes] DEFAULT (0),
+             [published_at] datetime(6) NULL,
+             [is_active] bit CONSTRAINT [DF__posts_is_active] DEFAULT (1))
              """
              |> remove_newlines
            ]
   end
 
   test "create table with prefix" do
-    create =
-      {:create, table(:posts, prefix: :foo),
-       [
-         {:add, :name, :string, [default: "Untitled", size: 20, null: false]},
-         {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
-         {:add, :on_hand, :integer, [default: 0, null: true]},
-         {:add, :is_active, :boolean, [default: true]}
-       ]}
+    create = {:create, table(:posts, prefix: :foo),
+               [{:add, :category_0, %Reference{table: :categories}, []}]}
 
-    assert execute_ddl(create) == [
-             """
-             CREATE TABLE [foo].[posts]
-             ([name] nvarchar(20) NOT NULL CONSTRAINT [DF_foo_posts_name] DEFAULT (N'Untitled'),
-             [price] numeric(8,2) CONSTRAINT [DF_foo_posts_price] DEFAULT (expr),
-             [on_hand] integer NULL CONSTRAINT [DF_foo_posts_on_hand] DEFAULT (0),
-             [is_active] bit CONSTRAINT [DF_foo_posts_is_active] DEFAULT (1))
-             """
-             |> remove_newlines
-           ]
+    assert execute_ddl(create) == ["""
+    CREATE TABLE [foo].[posts] ([category_0] BIGINT,
+    CONSTRAINT [posts_category_0_fkey] FOREIGN KEY ([category_0]) REFERENCES [foo].[categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION)
+    """ |> remove_newlines]
   end
 
   test "create table with reference" do
-    create =
-      {:create, table(:posts),
-       [
-         {:add, :id, :serial, [primary_key: true]},
-         {:add, :category_id, %Reference{table: :categories}, []}
-       ]}
+    create = {:create, table(:posts),
+               [{:add, :id, :serial, [primary_key: true]},
+                {:add, :category_0, %Reference{table: :categories}, []},
+                {:add, :category_1, %Reference{table: :categories, name: :foo_bar}, []},
+                {:add, :category_2, %Reference{table: :categories, on_delete: :nothing}, []},
+                {:add, :category_3, %Reference{table: :categories, on_delete: :delete_all}, [null: false]},
+                {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
+                {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all}, []}]}
 
-    assert execute_ddl(create) == [
-             """
-             CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
-             CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-             REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
-             """
-             |> remove_newlines
-           ]
+    assert execute_ddl(create) == ["""
+    CREATE TABLE [posts] ([id] int IDENTITY(1,1),
+    [category_0] BIGINT,
+    CONSTRAINT [posts_category_0_fkey] FOREIGN KEY ([category_0]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    [category_1] BIGINT,
+    CONSTRAINT [foo_bar] FOREIGN KEY ([category_1]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    [category_2] BIGINT,
+    CONSTRAINT [posts_category_2_fkey] FOREIGN KEY ([category_2]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    [category_3] BIGINT NOT NULL,
+    CONSTRAINT [posts_category_3_fkey] FOREIGN KEY ([category_3]) REFERENCES [categories]([id]) ON DELETE CASCADE ON UPDATE NO ACTION,
+    [category_4] BIGINT,
+    CONSTRAINT [posts_category_4_fkey] FOREIGN KEY ([category_4]) REFERENCES [categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
+    [category_5] BIGINT,
+    CONSTRAINT [posts_category_5_fkey] FOREIGN KEY ([category_5]) REFERENCES [foo].[categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
+    CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
+    """ |> remove_newlines]
+  end
+
+  test "create table with options" do
+    create =
+      {:create, table(:posts, options: "WITH FOO=BAR"),
+       [{:add, :id, :serial, [primary_key: true]}, {:add, :created_at, :datetime, []}]}
+
+    assert execute_ddl(create) ==
+             [
+               """
+               CREATE TABLE [posts] ([id] int IDENTITY(1,1), [created_at] datetime,
+               CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id])) WITH FOO=BAR
+               """
+               |> remove_newlines
+             ]
   end
 
   test "create table with composite key" do
@@ -980,106 +1017,20 @@ defmodule Ecto.Adapters.TdsTest do
            ]
   end
 
-  test "create table with named reference" do
-    create =
-      {:create, table(:posts),
-       [
-         {:add, :id, :serial, [primary_key: true]},
-         {:add, :category_id, %Reference{table: :categories, name: :foo_bar}, []}
-       ]}
+  test "create table with binary column and UTF-8 default" do
+    create = {:create, table(:blobs),
+              [{:add, :blob, :binary, [default: "foo"]}]}
 
     assert execute_ddl(create) ==
-             [
-               """
-               CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
-               CONSTRAINT [foo_bar] FOREIGN KEY ([category_id]) REFERENCES [categories]([id])
-               ON DELETE NO ACTION ON UPDATE NO ACTION,
-               CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
-               """
-               |> remove_newlines
-             ]
+             ["CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'foo'))"]
   end
 
-  test "create table with reference and on_delete: :nothing clause" do
-    create =
-      {:create, table(:posts),
-       [
-         {:add, :id, :bigserial, [primary_key: true]},
-         {:add, :category_id, %Reference{table: :categories, on_delete: :nothing}, []}
-       ]}
+  test "create table with binary column and hex bytea literal default" do
+    create = {:create, table(:blobs),
+              [{:add, :blob, :binary, [default: "\\x666F6F"]}]}
 
     assert execute_ddl(create) ==
-             [
-               """
-               CREATE TABLE [posts] ([id] bigint IDENTITY(1,1), [category_id] BIGINT,
-               CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-               REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION, CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
-               """
-               |> remove_newlines
-             ]
-  end
-
-  test "create table with reference and on_delete: :nilify_all clause" do
-    create =
-      {:create, table(:posts),
-       [
-         {:add, :id, :serial, [primary_key: true]},
-         {:add, :category_id, %Reference{table: :categories, on_delete: :nilify_all}, []}
-       ]}
-
-    assert execute_ddl(create) ==
-             [
-               """
-               CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
-               CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-               REFERENCES [categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
-               CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
-               """
-               |> remove_newlines
-             ]
-  end
-
-  test "create table with reference and on_delete: :delete_all clause" do
-    create =
-      {:create, table(:posts),
-       [
-         {:add, :id, :serial, [primary_key: true]},
-         {:add, :category_id, %Reference{table: :categories, on_delete: :delete_all}, []}
-       ]}
-
-    assert execute_ddl(create) ==
-             [
-               """
-               CREATE TABLE [posts] ([id] int IDENTITY(1,1), [category_id] BIGINT,
-               CONSTRAINT [posts_category_id_fkey] FOREIGN KEY ([category_id])
-               REFERENCES [categories]([id]) ON DELETE CASCADE ON UPDATE NO ACTION,
-               CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
-               """
-               |> remove_newlines
-             ]
-  end
-
-  test "create table with column options" do
-    create =
-      {:create, table(:posts),
-       [
-         {:add, :name, :string, [default: "Untitled", size: 20, null: false]},
-         {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
-         {:add, :on_hand, :integer, [default: 0, null: true]},
-         {:add, :is_active, :boolean, [default: true]}
-       ]}
-
-    assert execute_ddl(create) ==
-             [
-               """
-               CREATE TABLE [posts]
-               ([name] nvarchar(20) NOT NULL CONSTRAINT [DF__posts_name] DEFAULT (N'Untitled'),
-               [price] numeric(8,2) CONSTRAINT [DF__posts_price] DEFAULT (expr),
-               [on_hand] integer NULL CONSTRAINT [DF__posts_on_hand] DEFAULT (0),
-               [is_active] bit CONSTRAINT [DF__posts_is_active] DEFAULT (1))
-               """
-               |> remove_newlines
-             ]
+             ["CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'\\x666F6F'))"]
   end
 
   test "drop table" do
@@ -1097,49 +1048,27 @@ defmodule Ecto.Adapters.TdsTest do
       {:alter, table(:posts),
        [
          {:add, :title, :string, [default: "Untitled", size: 100, null: false]},
-         {:modify, :price, :numeric, [precision: 8, scale: 2]},
-         {:remove, :summary}
-       ]}
-
-    assert execute_ddl(alter) ==
-             [
-               """
-               ALTER TABLE [posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF__posts_title] DEFAULT (N'Untitled');
-               IF (OBJECT_ID(N'[DF__posts_price]', 'D') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_price];  END;
-               ALTER TABLE [posts] ALTER COLUMN [price] numeric(8,2);
-               ALTER TABLE [posts] DROP COLUMN [summary];
-               """
-               |> remove_newlines
-               |> Kernel.<>(" ")
-             ]
-  end
-
-  test "alter table with prefix" do
-    alter =
-      {:alter, table(:posts, prefix: :foo),
-       [
-         {:add, :title, :string, [default: "Untitled", size: 100, null: false]},
          {:add, :author_id, %Reference{table: :author}, []},
          {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
          {:modify, :cost, :integer, [null: true, default: nil]},
-         {:modify, :permalink_id, %Reference{table: :permalinks, prefix: :foo}, null: false},
+         {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
          {:remove, :summary}
        ]}
 
     expected_ddl = [
       """
-      ALTER TABLE [foo].[posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF_foo_posts_title] DEFAULT (N'Untitled');
-      ALTER TABLE [foo].[posts] ADD [author_id] BIGINT;
-      ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_author_id_fkey] FOREIGN KEY ([author_id]) REFERENCES [foo].[author]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
-      IF (OBJECT_ID(N'[DF_foo_posts_price]', 'D') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_price];  END;
-      ALTER TABLE [foo].[posts] ALTER COLUMN [price] numeric(8,2) NULL;
-      IF (OBJECT_ID(N'[DF_foo_posts_cost]', 'D') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_cost];  END;
-      ALTER TABLE [foo].[posts] ALTER COLUMN [cost] integer NULL;
-      ALTER TABLE [foo].[posts] ADD CONSTRAINT [DF_foo_posts_cost] DEFAULT (NULL) FOR [cost];
-      IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [posts_permalink_id_fkey];  END;
-      ALTER TABLE [foo].[posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL;
-      ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [foo].[permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
-      ALTER TABLE [foo].[posts] DROP COLUMN [summary];
+      ALTER TABLE [posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF__posts_title] DEFAULT (N'Untitled');
+      ALTER TABLE [posts] ADD [author_id] BIGINT;
+      ALTER TABLE [posts] ADD CONSTRAINT [posts_author_id_fkey] FOREIGN KEY ([author_id]) REFERENCES [author]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+      IF (OBJECT_ID(N'[DF__posts_price]', 'D') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_price];  END;
+      ALTER TABLE [posts] ALTER COLUMN [price] numeric(8,2) NULL;
+      IF (OBJECT_ID(N'[DF__posts_cost]', 'D') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_cost];  END;
+      ALTER TABLE [posts] ALTER COLUMN [cost] integer NULL;
+      ALTER TABLE [posts] ADD CONSTRAINT [DF__posts_cost] DEFAULT (NULL) FOR [cost];
+      IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [posts_permalink_id_fkey];  END;
+      ALTER TABLE [posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL;
+      ALTER TABLE [posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+      ALTER TABLE [posts] DROP COLUMN [summary];
       """
       |> remove_newlines
       |> Kernel.<>(" ")
@@ -1148,53 +1077,27 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl(alter) == expected_ddl
   end
 
-  test "alter table with reference" do
-    alter = {:alter, table(:posts), [{:add, :comment_id, %Reference{table: :comments}, []}]}
-
-    assert execute_ddl(alter) ==
-             [
-               """
-               ALTER TABLE [posts] ADD [comment_id] BIGINT;
-               ALTER TABLE [posts] ADD CONSTRAINT [posts_comment_id_fkey] FOREIGN KEY ([comment_id]) REFERENCES [comments]([id])
-               ON DELETE NO ACTION ON UPDATE NO ACTION;
-               """
-               |> remove_newlines
-               |> Kernel.<>(" ")
-             ]
-  end
-
-  test "alter table with adding foreign key constraint" do
+  test "alter table with prefix" do
     alter =
-      {:alter, table(:posts),
+      {:alter, table(:posts, prefix: "foo"),
        [
-         {:modify, :user_id, %Reference{table: :users, on_delete: :delete_all, type: :bigserial},
-          []}
+         {:add, :title, :string, [default: "Untitled", size: 100, null: false]},
+         {:modify, :price, :numeric, [precision: 8, scale: 2]},
+         {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
+         {:remove, :summary}
        ]}
 
     assert execute_ddl(alter) ==
              [
                """
-               IF (OBJECT_ID(N'[posts_user_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [posts_user_id_fkey];  END;
-               ALTER TABLE [posts] ALTER COLUMN [user_id] BIGINT;
-               ALTER TABLE [posts] ADD CONSTRAINT [posts_user_id_fkey] FOREIGN KEY ([user_id]) REFERENCES [users]([id]) ON DELETE CASCADE ON UPDATE NO ACTION;
+               ALTER TABLE [foo].[posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF_foo_posts_title] DEFAULT (N'Untitled');
+               IF (OBJECT_ID(N'[DF_foo_posts_price]', 'D') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_price];  END;
+               ALTER TABLE [foo].[posts] ALTER COLUMN [price] numeric(8,2);
+               IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [posts_permalink_id_fkey];  END; ALTER TABLE [foo].[posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL; ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [foo].[permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+               ALTER TABLE [foo].[posts] DROP COLUMN [summary];
                """
                |> remove_newlines
                |> Kernel.<>(" ")
-             ]
-  end
-
-  test "create table with options" do
-    create =
-      {:create, table(:posts, options: "WITH FOO=BAR"),
-       [{:add, :id, :serial, [primary_key: true]}, {:add, :created_at, :datetime, []}]}
-
-    assert execute_ddl(create) ==
-             [
-               """
-               CREATE TABLE [posts] ([id] int IDENTITY(1,1), [created_at] datetime,
-               CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id])) WITH FOO=BAR
-               """
-               |> remove_newlines
              ]
   end
 
@@ -1229,12 +1132,6 @@ defmodule Ecto.Adapters.TdsTest do
              [
                "CREATE INDEX [posts_category_id_permalink_index] ON [posts] ([category_id], [permalink]);"
              ]
-
-    # below should be handled with collation on column which is indexed
-
-    # create = {:create, index(:posts, ["lower(permalink)"], name: "posts$main")}
-    # assert execute_ddl(create) ==
-    #        ~s|CREATE INDEX [posts$main] ON [posts] ([lower(permalink)])|
 
     create =
       {:create,

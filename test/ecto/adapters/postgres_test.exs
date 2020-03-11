@@ -1390,17 +1390,17 @@ defmodule Ecto.Adapters.PostgresTest do
              {:add, :author_id, %Reference{table: :author}, []},
              {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
              {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
-              {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
-              {:modify, :cost, :integer, [null: false, default: nil]},
-              {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
-              {:modify, :status, :string, from: :integer},
-              {:modify, :user_id, :integer, from: %Reference{table: :users}},
-              {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
-              {:remove, :summary},
-              {:remove, :body, :text, []},
-              {:remove, :space_id, %Reference{table: :author}, []},
-              {:remove_if_exists, :body, :text},
-              {:remove_if_exists, :space_id, %Reference{table: :author}}]}
+             {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
+             {:modify, :cost, :integer, [null: false, default: nil]},
+             {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
+             {:modify, :status, :string, from: :integer},
+             {:modify, :user_id, :integer, from: %Reference{table: :users}},
+             {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
+             {:remove, :summary},
+             {:remove, :body, :text, []},
+             {:remove, :space_id, %Reference{table: :author}, []},
+             {:remove_if_exists, :body, :text},
+             {:remove_if_exists, :space_id, %Reference{table: :author}}]}
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE "posts"
