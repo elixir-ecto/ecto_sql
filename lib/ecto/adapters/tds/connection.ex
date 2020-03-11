@@ -1416,13 +1416,13 @@ if Code.ensure_loaded?(Tds) do
     defp ecto_to_db({:map, _}, s, _, _, _) when s in 1..4_000, do: "nvarchar(#{s})"
     defp ecto_to_db({:map, _}, :max, _, _, _), do: "nvarchar(max)"
     defp ecto_to_db(:time, _, _, _, _), do: "time(0)"
-    defp ecto_to_db(:time_usec, _, p, _, _) when p in 0..7, do: "time(#{p}})"
+    defp ecto_to_db(:time_usec, _, p, _, _) when p in 0..7, do: "time(#{p})"
     defp ecto_to_db(:time_usec, _, _, _, _), do: "time(6)"
     defp ecto_to_db(:utc_datetime, _, _, _, _), do: "datetime"
     defp ecto_to_db(:utc_datetime_usec, _, p, _, _) when p in 0..7, do: "datetime2(#{p})"
     defp ecto_to_db(:utc_datetime_usec, _, _, _, _), do: "datetime2(6)"
     defp ecto_to_db(:naive_datetime, _, _, _, _), do: "datetime"
-    defp ecto_to_db(:naive_datetime_usec, _, p, _, _) when p in 0..7, do: "datetime2(#{p}})"
+    defp ecto_to_db(:naive_datetime_usec, _, p, _, _) when p in 0..7, do: "datetime2(#{p})"
     defp ecto_to_db(:naive_datetime_usec, _, _, _, _), do: "datetime2(6)"
 
     defp ecto_to_db(other, size, _, _, _) when is_integer(size) do
