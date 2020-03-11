@@ -588,6 +588,19 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == String.trim(result)
   end
 
+  test "fragments allow ? to be escaped with backslash" do
+    query =
+      plan  from(e in "schema",
+        where: fragment("? = \"query\\?\"", e.start_time),
+        select: true)
+
+    result =
+      "SELECT TRUE FROM `schema` AS s0 " <>
+      "WHERE (s0.`start_time` = \"query?\")"
+
+    assert all(query) == String.trim(result)
+  end
+
   ## *_all
 
   test "update all" do

@@ -587,7 +587,6 @@ defmodule Ecto.Adapters.TdsTest do
              ~s{SELECT s0.[y], s0.[x] FROM [schema] AS s0 HAVING (s0.[x] = s0.[x]) OR (s0.[y] = s0.[y])}
   end
 
-
   test "group by" do
     query = Schema |> group_by([r], r.x) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 GROUP BY s0.[x]}
@@ -642,6 +641,19 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) == String.trim_trailing(result)
   end
 
+  test "fragments allow ? to be escaped with backslash" do
+    query =
+      plan  from(e in "schema",
+        where: fragment("? = \"query\\?\"", e.start_time),
+        select: true)
+
+    result =
+      "SELECT CAST(1 as bit) FROM [schema] AS s0 " <>
+      "WHERE (s0.[start_time] = \"query?\")"
+
+    assert all(query) == String.trim(result)
+  end
+
   # ## *_all
 
   test "update all" do
@@ -657,9 +669,6 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert update_all(query) ==
              ~s{UPDATE s0 SET s0.[x] = 0 FROM [schema] AS s0 WHERE (s0.[x] = 123)}
-
-    # TODO:
-    # nvarchar(max) conversion
 
     query = from(m in Schema, update: [set: [x: 0, y: 123]]) |> plan(:update_all)
     assert update_all(query) == ~s{UPDATE s0 SET s0.[x] = 0, s0.[y] = 123 FROM [schema] AS s0}
@@ -823,12 +832,12 @@ defmodule Ecto.Adapters.TdsTest do
              "SELECT s0.[id], s2.[id] FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON 1 = 1  INNER JOIN [schema2] AS s2 ON 1 = 1 "
   end
 
-  # # Schema based
+  # Schema based
 
   test "insert" do
     # prefx, table, header, rows, on_conflict, returning
-    query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [:id])
-    assert query == ~s{INSERT INTO [schema] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2)}
+    query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [])
+    assert query == ~s{INSERT INTO [schema] ([x], [y]) VALUES (@1, @2)}
 
     query = insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id])
 
@@ -840,6 +849,12 @@ defmodule Ecto.Adapters.TdsTest do
 
     query = insert("prefix", "schema", [], [[]], {:raise, [], []}, [:id])
     assert query == ~s{INSERT INTO [prefix].[schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
+  end
+
+  test "insert with query" do
+    select_query = from("schema", select: [:id]) |> plan(:all)
+    query = insert(nil, "schema", [:x, :y, :z], [[:x, {select_query, 2}, :z], [nil, nil, {select_query, 1}]], {:raise, [], []}, [])
+    assert query == ~s{INSERT INTO [schema] ([x], [y], [z]) VALUES (@1, (SELECT s0.[id] FROM [schema] AS s0), @4),(DEFAULT, DEFAULT, (SELECT s0.[id] FROM [schema] AS s0))}
   end
 
   test "update" do

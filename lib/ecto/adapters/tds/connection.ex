@@ -106,7 +106,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp prepare_param(%{__struct__: module} = _value) do
       # just in case dumpers/loaders are not defined for the this struct
-      error!(nil,  "Tds is unable to convert struct `#{inspect(module)}` into supported MSSQL types")
+      error!(nil, "Tds is unable to convert struct `#{inspect(module)}` into supported MSSQL types")
     end
 
     defp prepare_param(%{} = value), do: {json_library().encode!(value), :string}
@@ -207,27 +207,12 @@ if Code.ensure_loaded?(Tds) do
       ["INSERT INTO ", quote_table(prefix, table), values]
     end
 
-    defp on_conflict({_, _, [_ | _]}, _header) do
-      error!(nil, "The :conflict_target option is not supported in insert/insert_all by MSSQL")
-    end
-
     defp on_conflict({:raise, _, []}, _header) do
       []
     end
 
-    defp on_conflict({:nothing, _, []}, [_field | _]) do
-      error!(nil, "The :nothing option is not supported in insert/insert_all by MSSQL")
-    end
-
-    defp on_conflict({:replace_all, _, []}, _header) do
-      error!(nil, "The :replace_all option is not supported in insert/insert_all by MSSQL")
-    end
-
-    defp on_conflict({_query, _, []}, _header) do
-      error!(
-        nil,
-        "The query as option for on_conflict is not supported in insert/insert_all by MSSQL"
-      )
+    defp on_conflict({_, _, _}, _header) do
+      error!(nil, "MSSQL supports only on_conflict: :raise")
     end
 
     defp insert_all(rows, counter) do
@@ -420,7 +405,6 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp cte_query(%Ecto.Query{} = query, _, _), do: [?(, all(query), ?)]
-    # defp cte_query(%QueryExpr{expr: expr}, sources, query), do: expr(expr, sources, query)
 
     defp update_fields(%Query{updates: updates} = query, sources) do
       for(
