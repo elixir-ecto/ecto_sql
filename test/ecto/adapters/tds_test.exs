@@ -7,44 +7,44 @@ defmodule Ecto.Adapters.TdsTest do
   alias Ecto.Adapters.Tds.Connection, as: SQL
   alias Ecto.Migration.Reference
 
-  defmodule Model do
+  defmodule Schema do
     use Ecto.Schema
 
-    schema "model" do
+    schema "schema" do
       field :x, :integer
       field :y, :integer
       field :z, :integer
       field :w, :decimal
 
-      has_many :comments, Ecto.Adapters.TdsTest.Model2,
+      has_many :comments, Ecto.Adapters.TdsTest.Schema2,
         references: :x,
         foreign_key: :z
 
-      has_one :permalink, Ecto.Adapters.TdsTest.Model3,
+      has_one :permalink, Ecto.Adapters.TdsTest.Schema3,
         references: :y,
         foreign_key: :id
     end
   end
 
-  defmodule Model2 do
+  defmodule Schema2 do
     use Ecto.Schema
 
     import Ecto.Query
 
-    schema "model2" do
-      belongs_to :post, Ecto.Adapters.TdsTest.Model,
+    schema "schema2" do
+      belongs_to :post, Ecto.Adapters.TdsTest.Schema,
         references: :x,
         foreign_key: :z
     end
   end
 
-  defmodule Model3 do
+  defmodule Schema3 do
     use Ecto.Schema
 
     import Ecto.Query
 
     @schema_prefix "foo"
-    schema "model3" do
+    schema "schema3" do
       field :binary, :binary
     end
   end
@@ -72,37 +72,32 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "from" do
-    query = Model |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0}
+    query = Schema |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0}
   end
 
   test "from with hints" do
     query =
-      Model |> from(hints: ["MAXDOP 1", "OPTIMIZE FOR UNKNOWN"]) |> select([r], r.x) |> plan()
+      Schema |> from(hints: ["MAXDOP 1", "OPTIMIZE FOR UNKNOWN"]) |> select([r], r.x) |> plan()
 
     assert all(query) ==
-             ~s{SELECT m0.[x] FROM [model] AS m0 OPTION (MAXDOP 1, OPTIMIZE FOR UNKNOWN)}
+             ~s{SELECT s0.[x] FROM [schema] AS s0 OPTION (MAXDOP 1, OPTIMIZE FOR UNKNOWN)}
   end
 
-  test "from Model3 with schema foo" do
-    query = Model3 |> select([r], r.binary) |> plan()
-    assert all(query) == ~s{SELECT m0.[binary] FROM [foo].[model3] AS m0}
+  test "from with schema prefix" do
+    query = Schema3 |> select([r], r.binary) |> plan()
+    assert all(query) == ~s{SELECT s0.[binary] FROM [foo].[schema3] AS s0}
   end
 
   test "from without schema" do
-    query = "model" |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0}
+    query = "schema" |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0}
 
-    # probably not good idea to support "asterisk" but here it is :)
-    assert_raise Ecto.QueryError,
-                 ~r"Tds adapter does not support selecting all fields from",
-                 fn ->
-                   query = "model" |> select([r], fragment("?", r)) |> plan()
-                   all(query) == ~s{SELECT m0.* FROM [model] AS m0}
-                 end
+    query = "schema" |> select([r], fragment("?", r)) |> plan()
+    assert all(query) == ~s{SELECT s0 FROM [schema] AS s0}
 
-    query = "Model" |> select([:x]) |> plan()
-    assert all(query) == ~s{SELECT M0.[x] FROM [Model] AS M0}
+    query = "Schema" |> select([:x]) |> plan()
+    assert all(query) == ~s{SELECT S0.[x] FROM [Schema] AS S0}
 
     query = "0odel" |> select([:x]) |> plan()
     assert all(query) == ~s{SELECT t0.[x] FROM [0odel] AS t0}
@@ -110,8 +105,8 @@ defmodule Ecto.Adapters.TdsTest do
     assert_raise Ecto.QueryError,
                  ~r"Tds adapter does not support selecting all fields from",
                  fn ->
-                   query = from(m in "model", select: [m]) |> plan()
-                   all(query) == ~s{SELECT m0.* FROM [model] AS m0}
+                   query = from(m in "schema", select: [m]) |> plan()
+                   all(query) == ~s{SELECT s0.* FROM [schema] AS s0}
                  end
   end
 
@@ -141,7 +136,7 @@ defmodule Ecto.Adapters.TdsTest do
     cte_query = initial_query |> union_all(^iteration_query)
 
     query =
-      Model
+      Schema
       |> recursive_ctes(true)
       |> with_cte("tree", as: ^cte_query)
       |> join(:inner, [r], t in "tree", on: t.id == r.category_id)
@@ -154,9 +149,9 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{UNION ALL } <>
                ~s{(SELECT c0.[id], t1.[depth] + 1 FROM [categories] AS c0 } <>
                ~s{INNER JOIN [tree] AS t1 ON t1.[id] = c0.[parent_id])) } <>
-               ~s{SELECT m0.[x], t1.[id], CAST(t1.[depth] AS bigint) } <>
-               ~s{FROM [model] AS m0 } <>
-               ~s{INNER JOIN [tree] AS t1 ON t1.[id] = m0.[category_id]}
+               ~s{SELECT s0.[x], t1.[id], CAST(t1.[depth] AS bigint) } <>
+               ~s{FROM [schema] AS s0 } <>
+               ~s{INNER JOIN [tree] AS t1 ON t1.[id] = s0.[category_id]}
   end
 
   @raw_sql_cte """
@@ -202,28 +197,24 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "fragment CTE" do
     query =
-      Model
+      Schema
       |> recursive_ctes(true)
       |> with_cte("tree", as: fragment(@raw_sql_cte))
       |> join(:inner, [p], c in "tree", on: c.id == p.category_id)
       |> select([r], r.x)
       |> plan()
 
-    assert_raise(
-      Ecto.QueryError,
-      ~r"Unfortunately Tds adapter does not support fragment in CTE",
-      fn ->
-        all(query)
-      end
-    )
+    assert_raise Ecto.QueryError, ~r"Unfortunately Tds adapter does not support fragment in CTE", fn ->
+      all(query)
+    end
   end
 
   test "CTE update_all" do
     cte_query =
-      from(x in Model, order_by: [asc: :id], limit: 10, lock: "WITH(NOLOCK)", select: %{id: x.id})
+      from(x in Schema, order_by: [asc: :id], limit: 10, lock: "WITH(NOLOCK)", select: %{id: x.id})
 
     query =
-      Model
+      Schema
       |> with_cte("target_rows", as: ^cte_query)
       |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
       |> select([r, t], r)
@@ -232,20 +223,20 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert update_all(query) ==
       ~s{WITH [target_rows] ([id]) AS } <>
-      ~s{(SELECT TOP(10) m0.[id] AS [id] FROM [model] AS m0 WITH(NOLOCK) ORDER BY m0.[id]) } <>
-      ~s{UPDATE m0 } <>
-      ~s{SET m0.[x] = 123 } <>
+      ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 WITH(NOLOCK) ORDER BY s0.[id]) } <>
+      ~s{UPDATE s0 } <>
+      ~s{SET s0.[x] = 123 } <>
       ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] } <>
-      ~s{FROM [model] AS m0 } <>
-      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id]}
+      ~s{FROM [schema] AS s0 } <>
+      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
   end
 
   test "CTE delete_all" do
     cte_query =
-      from(x in Model, order_by: [asc: :id], limit: 10, select: %{id: x.id})
+      from(x in Schema, order_by: [asc: :id], limit: 10, select: %{id: x.id})
 
     query =
-      Model
+      Schema
       |> with_cte("target_rows", as: ^cte_query)
       |> join(:inner, [row], target in "target_rows", on: target.id == row.id)
       |> select([r, t], r)
@@ -253,121 +244,187 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert delete_all(query) ==
       ~s{WITH [target_rows] ([id]) AS } <>
-      ~s{(SELECT TOP(10) m0.[id] AS [id] FROM [model] AS m0 ORDER BY m0.[id]) } <>
-      ~s{DELETE m0 } <>
+      ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id]) } <>
+      ~s{DELETE s0 } <>
       ~s{OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] } <>
-      ~s{FROM [model] AS m0 } <>
-      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = m0.[id]}
+      ~s{FROM [schema] AS s0 } <>
+      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
   end
 
   test "select" do
-    query = Model |> select([r], {r.x, r.y}) |> plan()
-    assert all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
+    query = Schema |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT s0.[x], s0.[y] FROM [schema] AS s0}
 
-    query = Model |> select([r], [r.x, r.y]) |> plan()
-    assert all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
+    query = Schema |> select([r], [r.x, r.y]) |> plan()
+    assert all(query) == ~s{SELECT s0.[x], s0.[y] FROM [schema] AS s0}
 
-    query = Model |> select([r], struct(r, [:x, :y])) |> plan()
-    assert all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
+    query = Schema |> select([r], struct(r, [:x, :y])) |> plan()
+    assert all(query) == ~s{SELECT s0.[x], s0.[y] FROM [schema] AS s0}
   end
 
   test "aggregates" do
-    query = Model |> select([r], count(r.x)) |> plan()
-    assert all(query) == ~s{SELECT count(m0.[x]) FROM [model] AS m0}
+    query = Schema |> select([r], count(r.x)) |> plan()
+    assert all(query) == ~s{SELECT count(s0.[x]) FROM [schema] AS s0}
 
-    query = Model |> select([r], count(r.x, :distinct)) |> plan()
-    assert all(query) == ~s{SELECT count(DISTINCT m0.[x]) FROM [model] AS m0}
+    query = Schema |> select([r], count(r.x, :distinct)) |> plan()
+    assert all(query) == ~s{SELECT count(DISTINCT s0.[x]) FROM [schema] AS s0}
 
-    query = Model |> select([r], count()) |> plan()
-    assert all(query) == ~s{SELECT count(*) FROM [model] AS m0}
+    query = Schema |> select([r], count()) |> plan()
+    assert all(query) == ~s{SELECT count(*) FROM [schema] AS s0}
   end
 
-  # test "aggregate filters" do
-  #   query = Model |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
-  #   assert all(query) == ~s{SELECT count(CASE WHEN m0.[x] > 10 THEN 1 ELSE NULL) FROM [model] AS m0}
-
-  #   query = Model |> select([r], count(r.x) |> filter(r.x > 10 and r.x < 50)) |> plan()
-  #   assert all(query) == ~s{SELECT count(CASE WHEN (m0.[x] > 10) AND (m.[x] < 50) THEN 1 ELSE NULL) FROM [schema] AS s0}
-
-  #   query = Model |> select([r], count() |> filter(r.x > 10)) |> plan()
-  #   assert all(query) == ~s{SELECT count(CASE WHEN m0.[x] > 10 THEN 1 ELSE NULL) FROM [model] AS m0}
-  # end
-
-
-
-  test "select with operation" do
-    query = Model |> select([r], r.x * 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] * 2 FROM [model] AS m0}
-
-    query = Model |> select([r], r.x / 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] / 2 FROM [model] AS m0}
-
-    query = Model |> select([r], r.x + 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] + 2 FROM [model] AS m0}
-
-    query = Model |> select([r], r.x - 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] - 2 FROM [model] AS m0}
+  test "aggregate filters" do
+    query = Schema |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
+    assert_raise Ecto.QueryError, ~r/Tds adapter does not support aggregate filters in query/, fn ->
+      all(query)
+    end
   end
 
   test "distinct" do
-    query = Model |> distinct([r], true) |> select([r], {r.x, r.y}) |> plan()
-    assert all(query) == ~s{SELECT DISTINCT m0.[x], m0.[y] FROM [model] AS m0}
+    query = Schema |> distinct([r], true) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT DISTINCT s0.[x], s0.[y] FROM [schema] AS s0}
 
-    query = Model |> distinct([r], false) |> select([r], {r.x, r.y}) |> plan()
-    assert all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
+    query = Schema |> distinct([r], false) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT s0.[x], s0.[y] FROM [schema] AS s0}
 
-    query = Model |> distinct(true) |> select([r], {r.x, r.y}) |> plan()
-    assert all(query) == ~s{SELECT DISTINCT m0.[x], m0.[y] FROM [model] AS m0}
+    query = Schema |> distinct(true) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT DISTINCT s0.[x], s0.[y] FROM [schema] AS s0}
 
-    query = Model |> distinct(false) |> select([r], {r.x, r.y}) |> plan()
-    assert all(query) == ~s{SELECT m0.[x], m0.[y] FROM [model] AS m0}
+    query = Schema |> distinct(false) |> select([r], {r.x, r.y}) |> plan()
+    assert all(query) == ~s{SELECT s0.[x], s0.[y] FROM [schema] AS s0}
 
     assert_raise Ecto.QueryError,
                  ~r"DISTINCT with multiple columns is not supported by MsSQL",
                  fn ->
-                   query = Model |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
+                   query = Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
                    all(query)
                  end
   end
 
+  test "select with operation" do
+    query = Schema |> select([r], r.x * 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] * 2 FROM [schema] AS s0}
+
+    query = Schema |> select([r], r.x / 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] / 2 FROM [schema] AS s0}
+
+    query = Schema |> select([r], r.x + 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] + 2 FROM [schema] AS s0}
+
+    query = Schema |> select([r], r.x - 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] - 2 FROM [schema] AS s0}
+  end
+
   test "where" do
-    query = Model |> where([r], r.x == 42) |> where([r], r.y != 43) |> select([r], r.x) |> plan()
+    query = Schema |> where([r], r.x == 42) |> where([r], r.y != 43) |> select([r], r.x) |> plan()
 
     assert all(query) ==
-             ~s{SELECT m0.[x] FROM [model] AS m0 WHERE (m0.[x] = 42) AND (m0.[y] <> 43)}
+             ~s{SELECT s0.[x] FROM [schema] AS s0 WHERE (s0.[x] = 42) AND (s0.[y] <> 43)}
   end
 
   test "order by" do
-    query = Model |> order_by([r], r.x) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0 ORDER BY m0.[x]}
+    query = Schema |> order_by([r], r.x) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 ORDER BY s0.[x]}
 
-    query = Model |> order_by([r], [r.x, r.y]) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0 ORDER BY m0.[x], m0.[y]}
+    query = Schema |> order_by([r], [r.x, r.y]) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 ORDER BY s0.[x], s0.[y]}
 
-    query = Model |> order_by([r], asc: r.x, desc: r.y) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0 ORDER BY m0.[x], m0.[y] DESC}
+    query = Schema |> order_by([r], asc: r.x, desc: r.y) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 ORDER BY s0.[x], s0.[y] DESC}
 
-    query = Model |> order_by([r], []) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0}
+    query = Schema |> order_by([r], []) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0}
+
+    for dir <- [:asc_nulls_first, :asc_nulls_last, :desc_nulls_first, :desc_nulls_last] do
+      assert_raise Ecto.QueryError, ~r"#{dir} is not supported in ORDER BY in MSSQL", fn ->
+        Schema |> order_by([r], [{^dir, r.x}]) |> select([r], r.x) |> plan() |> all()
+      end
+    end
+  end
+
+  test "union and union all" do
+    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+    union_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
+    union_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
+
+    query = base_query |> union(^union_query1) |> union(^union_query2) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 } <>
+               ~s{UNION (SELECT s0.[y] FROM [schema] AS s0 ORDER BY s0.[y] OFFSET 20 ROW FETCH NEXT 40 ROWS ONLY) } <>
+               ~s{UNION (SELECT s0.[z] FROM [schema] AS s0 ORDER BY s0.[z] OFFSET 30 ROW FETCH NEXT 60 ROWS ONLY) } <>
+               ~s{ORDER BY rand OFFSET 10 ROW FETCH NEXT 5 ROWS ONLY}
+
+    query = base_query |> union_all(^union_query1) |> union_all(^union_query2) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 } <>
+               ~s{UNION ALL (SELECT s0.[y] FROM [schema] AS s0 ORDER BY s0.[y] OFFSET 20 ROW FETCH NEXT 40 ROWS ONLY) } <>
+               ~s{UNION ALL (SELECT s0.[z] FROM [schema] AS s0 ORDER BY s0.[z] OFFSET 30 ROW FETCH NEXT 60 ROWS ONLY) } <>
+               ~s{ORDER BY rand OFFSET 10 ROW FETCH NEXT 5 ROWS ONLY}
+  end
+
+  test "except and except all" do
+    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+    except_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
+    except_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
+
+    query = base_query |> except(^except_query1) |> except(^except_query2) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 } <>
+               ~s{EXCEPT (SELECT s0.[y] FROM [schema] AS s0 ORDER BY s0.[y] OFFSET 20 ROW FETCH NEXT 40 ROWS ONLY) } <>
+               ~s{EXCEPT (SELECT s0.[z] FROM [schema] AS s0 ORDER BY s0.[z] OFFSET 30 ROW FETCH NEXT 60 ROWS ONLY) } <>
+               ~s{ORDER BY rand OFFSET 10 ROW FETCH NEXT 5 ROWS ONLY}
+
+    query = base_query |> except_all(^except_query1) |> except_all(^except_query2) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 } <>
+               ~s{EXCEPT ALL (SELECT s0.[y] FROM [schema] AS s0 ORDER BY s0.[y] OFFSET 20 ROW FETCH NEXT 40 ROWS ONLY) } <>
+               ~s{EXCEPT ALL (SELECT s0.[z] FROM [schema] AS s0 ORDER BY s0.[z] OFFSET 30 ROW FETCH NEXT 60 ROWS ONLY) } <>
+               ~s{ORDER BY rand OFFSET 10 ROW FETCH NEXT 5 ROWS ONLY}
+  end
+
+  test "intersect and intersect all" do
+    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+    intersect_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
+    intersect_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
+
+    query = base_query |> intersect(^intersect_query1) |> intersect(^intersect_query2) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 } <>
+               ~s{INTERSECT (SELECT s0.[y] FROM [schema] AS s0 ORDER BY s0.[y] OFFSET 20 ROW FETCH NEXT 40 ROWS ONLY) } <>
+               ~s{INTERSECT (SELECT s0.[z] FROM [schema] AS s0 ORDER BY s0.[z] OFFSET 30 ROW FETCH NEXT 60 ROWS ONLY) } <>
+               ~s{ORDER BY rand OFFSET 10 ROW FETCH NEXT 5 ROWS ONLY}
+
+    query = base_query |> intersect_all(^intersect_query1) |> intersect_all(^intersect_query2) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 } <>
+               ~s{INTERSECT ALL (SELECT s0.[y] FROM [schema] AS s0 ORDER BY s0.[y] OFFSET 20 ROW FETCH NEXT 40 ROWS ONLY) } <>
+               ~s{INTERSECT ALL (SELECT s0.[z] FROM [schema] AS s0 ORDER BY s0.[z] OFFSET 30 ROW FETCH NEXT 60 ROWS ONLY) } <>
+               ~s{ORDER BY rand OFFSET 10 ROW FETCH NEXT 5 ROWS ONLY}
   end
 
   test "limit and offset" do
-    query = Model |> limit([r], 3) |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT TOP(3) CAST(1 as bit) FROM [model] AS m0}
+    query = Schema |> limit([r], 3) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TOP(3) CAST(1 as bit) FROM [schema] AS s0}
 
-    query = Model |> order_by([r], r.x) |> offset([r], 5) |> select([], true) |> plan()
+    query = Schema |> order_by([r], r.x) |> offset([r], 5) |> select([], true) |> plan()
 
     assert_raise Ecto.QueryError, fn ->
       all(query)
     end
 
     query =
-      Model |> order_by([r], r.x) |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
+      Schema |> order_by([r], r.x) |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 ORDER BY m0.[x] OFFSET 5 ROW FETCH NEXT 3 ROWS ONLY}
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 ORDER BY s0.[x] OFFSET 5 ROW FETCH NEXT 3 ROWS ONLY}
 
-    query = Model |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
+    query = Schema |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
 
     assert_raise Ecto.QueryError, fn ->
       all(query)
@@ -375,61 +432,67 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "lock" do
-    query = Model |> lock("WITH(NOLOCK)") |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [model] AS m0 WITH(NOLOCK)}
+    query = Schema |> lock("WITH(NOLOCK)") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WITH(NOLOCK)}
+
+    query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 UPDATE on s0}
   end
 
   test "string escape" do
-    query = "model" |> where(foo: "'\\  ") |> select([], true) |> plan()
+    query = "schema" |> where(foo: "'\\  ") |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 WHERE (m0.[foo] = CONVERT(nvarchar(4), 0x27005c0020002000))}
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = CONVERT(nvarchar(4), 0x27005c0020002000))}
 
-    query = "model" |> where(foo: "'") |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [model] AS m0 WHERE (m0.[foo] = N'''')}
+    query = "schema" |> where(foo: "'") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'''')}
   end
 
   test "binary ops" do
-    query = Model |> select([r], r.x == 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] = 2 FROM [model] AS m0}
+    query = Schema |> select([r], r.x == 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] = 2 FROM [schema] AS s0}
 
-    query = Model |> select([r], r.x != 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] <> 2 FROM [model] AS m0}
+    query = Schema |> select([r], r.x != 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] <> 2 FROM [schema] AS s0}
 
-    query = Model |> select([r], r.x <= 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] <= 2 FROM [model] AS m0}
+    query = Schema |> select([r], r.x <= 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] <= 2 FROM [schema] AS s0}
 
-    query = Model |> select([r], r.x >= 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] >= 2 FROM [model] AS m0}
+    query = Schema |> select([r], r.x >= 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] >= 2 FROM [schema] AS s0}
 
-    query = Model |> select([r], r.x < 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] < 2 FROM [model] AS m0}
+    query = Schema |> select([r], r.x < 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] < 2 FROM [schema] AS s0}
 
-    query = Model |> select([r], r.x > 2) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] > 2 FROM [model] AS m0}
+    query = Schema |> select([r], r.x > 2) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] > 2 FROM [schema] AS s0}
   end
 
   test "is_nil" do
-    query = Model |> select([r], is_nil(r.x)) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] IS NULL FROM [model] AS m0}
+    query = Schema |> select([r], is_nil(r.x)) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] IS NULL FROM [schema] AS s0}
 
-    query = Model |> select([r], not is_nil(r.x)) |> plan()
-    assert all(query) == ~s{SELECT NOT (m0.[x] IS NULL) FROM [model] AS m0}
+    query = Schema |> select([r], not is_nil(r.x)) |> plan()
+    assert all(query) == ~s{SELECT NOT (s0.[x] IS NULL) FROM [schema] AS s0}
+
+    query = Schema |> select([r], r.x == is_nil(r.y)) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] = (s0.[y] IS NULL) FROM [schema] AS s0}
   end
 
   test "fragments" do
     query =
-      Model
+      Schema
       |> select([r], fragment("lower(?)", r.x))
       |> plan()
 
-    assert all(query) == ~s{SELECT lower(m0.[x]) FROM [model] AS m0}
+    assert all(query) == ~s{SELECT lower(s0.[x]) FROM [schema] AS s0}
 
     value = 13
-    query = Model |> select([r], fragment("lower(?)", ^value)) |> plan()
-    assert all(query) == ~s{SELECT lower(@1) FROM [model] AS m0}
+    query = Schema |> select([r], fragment("lower(?)", ^value)) |> plan()
+    assert all(query) == ~s{SELECT lower(@1) FROM [schema] AS s0}
 
-    query = Model |> select([], fragment(title: 2)) |> plan()
+    query = Schema |> select([], fragment(title: 2)) |> plan()
 
     assert_raise Ecto.QueryError,
                  ~r"Tds adapter does not support keyword or interpolated fragments",
@@ -460,95 +523,98 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "tagged type" do
     query =
-      Model |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Tds.Types.UUID)) |> plan()
+      Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Tds.Types.UUID)) |> plan()
 
-    assert all(query) == ~s{SELECT CAST(@1 AS uniqueidentifier) FROM [model] AS m0}
+    assert all(query) == ~s{SELECT CAST(@1 AS uniqueidentifier) FROM [schema] AS s0}
   end
 
   test "nested expressions" do
     z = 123
-    query = from(r in Model, []) |> select([r], (r.x > 0 and r.y > ^(-z)) or true) |> plan()
-    assert all(query) == ~s{SELECT ((m0.[x] > 0) AND (m0.[y] > @1)) OR 1 FROM [model] AS m0}
+    query = from(r in Schema, []) |> select([r], (r.x > 0 and r.y > ^(-z)) or true) |> plan()
+    assert all(query) == ~s{SELECT ((s0.[x] > 0) AND (s0.[y] > @1)) OR 1 FROM [schema] AS s0}
   end
 
   test "in expression" do
-    query = Model |> select([e], 1 in []) |> plan()
-    assert all(query) == ~s{SELECT 0=1 FROM [model] AS m0}
+    query = Schema |> select([e], 1 in []) |> plan()
+    assert all(query) == ~s{SELECT 0=1 FROM [schema] AS s0}
 
-    query = Model |> select([e], 1 in [1, e.x, 3]) |> plan()
-    assert all(query) == ~s{SELECT 1 IN (1,m0.[x],3) FROM [model] AS m0}
+    query = Schema |> select([e], 1 in [1, e.x, 3]) |> plan()
+    assert all(query) == ~s{SELECT 1 IN (1,s0.[x],3) FROM [schema] AS s0}
 
-    query = Model |> select([e], 1 in ^[]) |> plan()
-    # SelectExpr fields in Ecto v1 == [{:in, [], [1, []]}]
-    # SelectExpr fields in Ecto v2 == [{:in, [], [1, {:^, [], [0, 0]}]}]
-    assert all(query) == ~s{SELECT 0=1 FROM [model] AS m0}
+    query = Schema |> select([e], 1 in ^[]) |> plan()
+    assert all(query) == ~s{SELECT 0=1 FROM [schema] AS s0}
 
-    query = Model |> select([e], 1 in ^[1, 2, 3]) |> plan()
-    assert all(query) == ~s{SELECT 1 IN (@1,@2,@3) FROM [model] AS m0}
+    query = Schema |> select([e], 1 in ^[1, 2, 3]) |> plan()
+    assert all(query) == ~s{SELECT 1 IN (@1,@2,@3) FROM [schema] AS s0}
 
-    query = Model |> select([e], 1 in [1, ^2, 3]) |> plan()
-    assert all(query) == ~s{SELECT 1 IN (1,@1,3) FROM [model] AS m0}
-  end
+    query = Schema |> select([e], 1 in [1, ^2, 3]) |> plan()
+    assert all(query) == ~s{SELECT 1 IN (1,@1,3) FROM [schema] AS s0}
 
-  test "in expression with multiple where conditions" do
-    xs = [1, 2, 3]
-    y = 4
+    query = Schema |> select([e], 1 in fragment("foo")) |> plan()
+    assert all(query) == ~s{SELECT 1 = ANY(foo) FROM [schema] AS s0}
 
-    query =
-      Model
-      |> where([m], m.x in ^xs)
-      |> where([m], m.y == ^y)
-      |> select([m], m.x)
-
-    assert all(query |> plan) ==
-             ~s{SELECT m0.[x] FROM [model] AS m0 WHERE (m0.[x] IN (@1,@2,@3)) AND (m0.[y] = @4)}
+    query = Schema |> select([e], e.x == ^0 or e.x in ^[1, 2, 3] or e.x == ^4) |> plan()
+    assert all(query) == ~s{SELECT ((s0.[x] = @1) OR s0.[x] IN (@2,@3,@4)) OR (s0.[x] = @5) FROM [schema] AS s0}
   end
 
   test "having" do
-    query = Model |> having([p], p.x == p.x) |> select([p], p.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0 HAVING (m0.[x] = m0.[x])}
+    query = Schema |> having([p], p.x == p.x) |> select([p], p.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 HAVING (s0.[x] = s0.[x])}
 
     query =
-      Model
+      Schema
       |> having([p], p.x == p.x)
       |> having([p], p.y == p.y)
       |> select([p], [p.y, p.x])
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT m0.[y], m0.[x] FROM [model] AS m0 HAVING (m0.[x] = m0.[x]) AND (m0.[y] = m0.[y])}
-
-    query = Model |> select([e], 1 in fragment("foo")) |> plan()
-    assert all(query) == ~s{SELECT 1 IN (foo) FROM [model] AS m0}
+             ~s{SELECT s0.[y], s0.[x] FROM [schema] AS s0 HAVING (s0.[x] = s0.[x]) AND (s0.[y] = s0.[y])}
   end
 
+  test "or_having" do
+    query = Schema |> or_having([p], p.x == p.x) |> select([p], p.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 HAVING (s0.[x] = s0.[x])}
+
+    query =
+      Schema
+      |> or_having([p], p.x == p.x)
+      |> or_having([p], p.y == p.y)
+      |> select([p], [p.y, p.x])
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[y], s0.[x] FROM [schema] AS s0 HAVING (s0.[x] = s0.[x]) OR (s0.[y] = s0.[y])}
+  end
+
+
   test "group by" do
-    query = Model |> group_by([r], r.x) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0 GROUP BY m0.[x]}
+    query = Schema |> group_by([r], r.x) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 GROUP BY s0.[x]}
 
-    query = Model |> group_by([r], 2) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0 GROUP BY 2}
+    query = Schema |> group_by([r], 2) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 GROUP BY 2}
 
-    query = Model3 |> group_by([r], 2) |> select([r], r.binary) |> plan()
-    assert all(query) == ~s{SELECT m0.[binary] FROM [foo].[model3] AS m0 GROUP BY 2}
+    query = Schema3 |> group_by([r], 2) |> select([r], r.binary) |> plan()
+    assert all(query) == ~s{SELECT s0.[binary] FROM [foo].[schema3] AS s0 GROUP BY 2}
 
-    query = Model |> group_by([r], [r.x, r.y]) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0 GROUP BY m0.[x], m0.[y]}
+    query = Schema |> group_by([r], [r.x, r.y]) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 GROUP BY s0.[x], s0.[y]}
 
-    query = Model |> group_by([r], []) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT m0.[x] FROM [model] AS m0}
+    query = Schema |> group_by([r], []) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0}
   end
 
   test "interpolated values" do
-    cte1 = "model1" |> select([m], %{id: m.id, smth: ^true}) |> where([], fragment("?", ^1))
-    union = "model1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^5))
-    union_all = "model2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^6))
+    cte1 = "schema1" |> select([m], %{id: m.id, smth: ^true}) |> where([], fragment("?", ^1))
+    union = "schema1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^5))
+    union_all = "schema2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^6))
 
-    query = "model"
+    query = "schema"
       |> with_cte("cte1", as: ^cte1)
       |> select([m], {m.id, ^true})
-      |> join(:inner, [], Model2, on: fragment("?", ^true))
-      |> join(:inner, [], Model2, on: fragment("?", ^false))
+      |> join(:inner, [], Schema2, on: fragment("?", ^true))
+      |> join(:inner, [], Schema2, on: fragment("?", ^false))
       |> where([], fragment("?", ^true))
       |> where([], fragment("?", ^false))
       |> having([], fragment("?", ^true))
@@ -564,13 +630,13 @@ defmodule Ecto.Adapters.TdsTest do
 
     result =
       ~s{WITH [cte1] ([id], [smth]) AS } <>
-      ~s{(SELECT m0.[id] AS [id], @1 AS [smth] FROM [model1] AS m0 WHERE (@2)) } <>
-      ~s{SELECT m0.[id], @3 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON @4 } <>
-      ~s{INNER JOIN [model2] AS m2 ON @5 } <>
+      ~s{(SELECT s0.[id] AS [id], @1 AS [smth] FROM [schema1] AS s0 WHERE (@2)) } <>
+      ~s{SELECT s0.[id], @3 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON @4 } <>
+      ~s{INNER JOIN [schema2] AS s2 ON @5 } <>
       ~s{WHERE (@6) AND (@7) } <>
       ~s{GROUP BY @8, @9 HAVING (@10) AND (@11) } <>
-      ~s{UNION (SELECT m0.[id], @12 FROM [model1] AS m0 WHERE (@13)) } <>
-      ~s{UNION ALL (SELECT m0.[id], @14 FROM [model2] AS m0 WHERE (@15)) } <>
+      ~s{UNION (SELECT s0.[id], @12 FROM [schema1] AS s0 WHERE (@13)) } <>
+      ~s{UNION ALL (SELECT s0.[id], @14 FROM [schema2] AS s0 WHERE (@15)) } <>
       ~s{ORDER BY @16 OFFSET @18 ROW FETCH NEXT @17 ROWS ONLY}
 
     assert all(query) == String.trim_trailing(result)
@@ -579,115 +645,115 @@ defmodule Ecto.Adapters.TdsTest do
   # ## *_all
 
   test "update all" do
-    query = from(m in Model, update: [set: [x: 0]]) |> plan(:update_all)
-    assert update_all(query) == ~s{UPDATE m0 SET m0.[x] = 0 FROM [model] AS m0}
+    query = from(m in Schema, update: [set: [x: 0]]) |> plan(:update_all)
+    assert update_all(query) == ~s{UPDATE s0 SET s0.[x] = 0 FROM [schema] AS s0}
 
-    query = from(m in Model, update: [set: [x: 0], inc: [y: 1, z: -3]]) |> plan(:update_all)
-
-    assert update_all(query) ==
-             ~s{UPDATE m0 SET m0.[x] = 0, m0.[y] = m0.[y] + 1, m0.[z] = m0.[z] + -3 FROM [model] AS m0}
-
-    query = from(e in Model, where: e.x == 123, update: [set: [x: 0]]) |> plan(:update_all)
+    query = from(m in Schema, update: [set: [x: 0], inc: [y: 1, z: -3]]) |> plan(:update_all)
 
     assert update_all(query) ==
-             ~s{UPDATE m0 SET m0.[x] = 0 FROM [model] AS m0 WHERE (m0.[x] = 123)}
+             ~s{UPDATE s0 SET s0.[x] = 0, s0.[y] = s0.[y] + 1, s0.[z] = s0.[z] + -3 FROM [schema] AS s0}
+
+    query = from(e in Schema, where: e.x == 123, update: [set: [x: 0]]) |> plan(:update_all)
+
+    assert update_all(query) ==
+             ~s{UPDATE s0 SET s0.[x] = 0 FROM [schema] AS s0 WHERE (s0.[x] = 123)}
 
     # TODO:
     # nvarchar(max) conversion
 
-    query = from(m in Model, update: [set: [x: 0, y: 123]]) |> plan(:update_all)
-    assert update_all(query) == ~s{UPDATE m0 SET m0.[x] = 0, m0.[y] = 123 FROM [model] AS m0}
+    query = from(m in Schema, update: [set: [x: 0, y: 123]]) |> plan(:update_all)
+    assert update_all(query) == ~s{UPDATE s0 SET s0.[x] = 0, s0.[y] = 123 FROM [schema] AS s0}
 
-    query = from(m in Model, update: [set: [x: ^0]]) |> plan(:update_all)
-    assert update_all(query) == ~s{UPDATE m0 SET m0.[x] = @1 FROM [model] AS m0}
+    query = from(m in Schema, update: [set: [x: ^0]]) |> plan(:update_all)
+    assert update_all(query) == ~s{UPDATE s0 SET s0.[x] = @1 FROM [schema] AS s0}
 
     query =
-      Model
-      |> join(:inner, [p], q in Model2, on: p.x == q.z)
+      Schema
+      |> join(:inner, [p], q in Schema2, on: p.x == q.z)
       |> update([_], set: [x: 0])
       |> plan(:update_all)
 
     assert update_all(query) ==
-             ~s{UPDATE m0 SET m0.[x] = 0 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z]}
+             ~s{UPDATE s0 SET s0.[x] = 0 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z]}
 
     query =
       from(
-        e in Model,
+        e in Schema,
         where: e.x == 123,
         update: [set: [x: 0]],
-        join: q in Model2,
+        join: q in Schema2,
         on: e.x == q.z
       )
       |> plan(:update_all)
 
     assert update_all(query) ==
-             ~s{UPDATE m0 SET m0.[x] = 0 FROM [model] AS m0 } <>
-               ~s{INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z] WHERE (m0.[x] = 123)}
+             ~s{UPDATE s0 SET s0.[x] = 0 FROM [schema] AS s0 } <>
+               ~s{INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] WHERE (s0.[x] = 123)}
   end
 
   test "update all with prefix" do
     query =
-      from(m in Model, update: [set: [x: 0]]) |> Map.put(:prefix, "prefix") |> plan(:update_all)
+      from(m in Schema, update: [set: [x: 0]]) |> Map.put(:prefix, "prefix") |> plan(:update_all)
 
     assert update_all(query) ==
-             ~s{UPDATE m0 SET m0.[x] = 0 FROM [prefix].[model] AS m0}
+             ~s{UPDATE s0 SET s0.[x] = 0 FROM [prefix].[schema] AS s0}
   end
 
   test "delete all" do
-    query = Model |> Queryable.to_query() |> plan()
-    assert delete_all(query) == ~s{DELETE m0 FROM [model] AS m0}
+    query = Schema |> Queryable.to_query() |> plan()
+    assert delete_all(query) == ~s{DELETE s0 FROM [schema] AS s0}
 
-    query = from(e in Model, where: e.x == 123) |> plan()
-    assert delete_all(query) == ~s{DELETE m0 FROM [model] AS m0 WHERE (m0.[x] = 123)}
+    query = from(e in Schema, where: e.x == 123) |> plan()
+    assert delete_all(query) == ~s{DELETE s0 FROM [schema] AS s0 WHERE (s0.[x] = 123)}
 
-    query = Model |> join(:inner, [p], q in Model2, on: p.x == q.z) |> plan()
-
-    assert delete_all(query) ==
-             ~s{DELETE m0 FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z]}
-
-    query = from(e in Model, where: e.x == 123, join: q in Model2, on: e.x == q.z) |> plan()
+    query = Schema |> join(:inner, [p], q in Schema2, on: p.x == q.z) |> plan()
 
     assert delete_all(query) ==
-             ~s{DELETE m0 FROM [model] AS m0 } <>
-               ~s{INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z] WHERE (m0.[x] = 123)}
+             ~s{DELETE s0 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z]}
+
+    query = from(e in Schema, where: e.x == 123, join: q in Schema2, on: e.x == q.z) |> plan()
+
+    assert delete_all(query) ==
+             ~s{DELETE s0 FROM [schema] AS s0 } <>
+               ~s{INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] WHERE (s0.[x] = 123)}
   end
 
   test "delete all with prefix" do
-    query = Model |> Queryable.to_query() |> Map.put(:prefix, "prefix") |> plan()
-    assert delete_all(query) == ~s{DELETE m0 FROM [prefix].[model] AS m0}
+    query = Schema |> Queryable.to_query() |> Map.put(:prefix, "prefix") |> plan()
+    assert delete_all(query) == ~s{DELETE s0 FROM [prefix].[schema] AS s0}
 
-    query = Model |> from(prefix: "first") |> Map.put(:prefix, "prefix") |> plan()
-    assert delete_all(query) == ~s{DELETE m0 FROM [first].[model] AS m0}
+    query = Schema |> from(prefix: "first") |> Map.put(:prefix, "prefix") |> plan()
+    assert delete_all(query) == ~s{DELETE s0 FROM [first].[schema] AS s0}
   end
 
   # ## Joins
 
   test "join" do
-    query = Model |> join(:inner, [p], q in Model2, on: p.x == q.z) |> select([], true) |> plan()
+    query = Schema |> join(:inner, [p], q in Schema2, on: p.x == q.z) |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z]}
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z]}
 
     query =
-      Model
-      |> join(:inner, [p], q in Model2, on: p.x == q.z)
-      |> join(:inner, [], Model, on: true)
+      Schema
+      |> join(:inner, [p], q in Schema2, on: p.x == q.z)
+      |> join(:inner, [], Schema, on: true)
       |> select([], true)
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m0.[x] = m1.[z] } <>
-               ~s{INNER JOIN [model] AS m2 ON 1 = 1 }
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] } <>
+               ~s{INNER JOIN [schema] AS s2 ON 1 = 1 }
   end
 
   test "join with nothing bound" do
-    query = Model |> join(:inner, [], q in Model2, on: q.z == q.z) |> select([], true) |> plan()
+    query = Schema |> join(:inner, [], q in Schema2, on: q.z == q.z) |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m1.[z] = m1.[z]}
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s1.[z] = s1.[z]}
   end
 
-  test "join without model" do
+  test "join without schema" do
     query =
       "posts" |> join(:inner, [p], q in "comments", on: p.x == q.z) |> select([], true) |> plan()
 
@@ -697,105 +763,105 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "join with prefix" do
     query =
-      Model
-      |> join(:inner, [p], q in Model2, on: p.x == q.z)
+      Schema
+      |> join(:inner, [p], q in Schema2, on: p.x == q.z)
       |> Map.put(:prefix, "prefix")
       |> select([], true)
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT CAST(1 as bit) FROM [prefix].[model] AS m0 INNER JOIN [prefix].[model2] AS m1 ON m0.[x] = m1.[z]}
+             ~s{SELECT CAST(1 as bit) FROM [prefix].[schema] AS s0 INNER JOIN [prefix].[schema2] AS s1 ON s0.[x] = s1.[z]}
   end
 
   test "join with fragment" do
     query =
-      Model
+      Schema
       |> join(
         :inner,
         [p],
-        q in fragment("SELECT * FROM model2 AS m2 WHERE m2.id = ? AND m2.field = ?", p.x, ^10)
+        q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10)
       )
       |> select([p], {p.id, ^0})
       |> where([p], p.id > 0 and p.id < ^100)
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT m0.[id], @1 FROM [model] AS m0 INNER JOIN } <>
-               ~s{(SELECT * FROM model2 AS m2 WHERE m2.id = m0.[x] AND m2.field = @2) AS f1 ON 1 = 1 } <>
-               ~s{ WHERE ((m0.[id] > 0) AND (m0.[id] < @3))}
+             ~s{SELECT s0.[id], @1 FROM [schema] AS s0 INNER JOIN } <>
+               ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @2) AS f1 ON 1 = 1 } <>
+               ~s{ WHERE ((s0.[id] > 0) AND (s0.[id] < @3))}
   end
 
   ## Associations
 
   test "association join belongs_to" do
-    query = Model2 |> join(:inner, [c], p in assoc(c, :post)) |> select([], true) |> plan()
+    query = Schema2 |> join(:inner, [c], p in assoc(c, :post)) |> select([], true) |> plan()
 
     assert all(query) ==
-             "SELECT CAST(1 as bit) FROM [model2] AS m0 INNER JOIN [model] AS m1 ON m1.[x] = m0.[z]"
+             "SELECT CAST(1 as bit) FROM [schema2] AS s0 INNER JOIN [schema] AS s1 ON s1.[x] = s0.[z]"
   end
 
   test "association join has_many" do
-    query = Model |> join(:inner, [p], c in assoc(p, :comments)) |> select([], true) |> plan()
+    query = Schema |> join(:inner, [p], c in assoc(p, :comments)) |> select([], true) |> plan()
 
     assert all(query) ==
-             "SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [model2] AS m1 ON m1.[z] = m0.[x]"
+             "SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s1.[z] = s0.[x]"
   end
 
   test "association join has_one" do
-    query = Model |> join(:inner, [p], pp in assoc(p, :permalink)) |> select([], true) |> plan()
+    query = Schema |> join(:inner, [p], pp in assoc(p, :permalink)) |> select([], true) |> plan()
 
     assert all(query) ==
-             "SELECT CAST(1 as bit) FROM [model] AS m0 INNER JOIN [foo].[model3] AS m1 ON m1.[id] = m0.[y]"
+             "SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [foo].[schema3] AS s1 ON s1.[id] = s0.[y]"
   end
 
   test "join produces correct bindings" do
-    query = from(p in Model, join: c in Model2, on: true)
-    query = from(p in query, join: c in Model2, on: true, select: {p.id, c.id})
+    query = from(p in Schema, join: c in Schema2, on: true)
+    query = from(p in query, join: c in Schema2, on: true, select: {p.id, c.id})
     query = plan(query)
 
     assert all(query) ==
-             "SELECT m0.[id], m2.[id] FROM [model] AS m0 INNER JOIN [model2] AS m1 ON 1 = 1  INNER JOIN [model2] AS m2 ON 1 = 1 "
+             "SELECT s0.[id], s2.[id] FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON 1 = 1  INNER JOIN [schema2] AS s2 ON 1 = 1 "
   end
 
-  # # Model based
+  # # Schema based
 
   test "insert" do
     # prefx, table, header, rows, on_conflict, returning
-    query = insert(nil, "model", [:x, :y], [[:x, :y]], {:raise, [], []}, [:id])
-    assert query == ~s{INSERT INTO [model] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2)}
+    query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [:id])
+    assert query == ~s{INSERT INTO [schema] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2)}
 
-    query = insert(nil, "model", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id])
+    query = insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id])
 
     assert query ==
-             ~s{INSERT INTO [model] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2),(DEFAULT, @3)}
+             ~s{INSERT INTO [schema] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2),(DEFAULT, @3)}
 
-    query = insert(nil, "model", [], [[]], {:raise, [], []}, [:id])
-    assert query == ~s{INSERT INTO [model] OUTPUT INSERTED.[id] DEFAULT VALUES}
+    query = insert(nil, "schema", [], [[]], {:raise, [], []}, [:id])
+    assert query == ~s{INSERT INTO [schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
 
-    query = insert("prefix", "model", [], [[]], {:raise, [], []}, [:id])
-    assert query == ~s{INSERT INTO [prefix].[model] OUTPUT INSERTED.[id] DEFAULT VALUES}
+    query = insert("prefix", "schema", [], [[]], {:raise, [], []}, [:id])
+    assert query == ~s{INSERT INTO [prefix].[schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
   end
 
   test "update" do
-    query = update(nil, "model", [:id], [:x, :y], [])
-    assert query == ~s{UPDATE [model] SET [id] = @1 WHERE [x] = @2 AND [y] = @3}
+    query = update(nil, "schema", [:id], [:x, :y], [])
+    assert query == ~s{UPDATE [schema] SET [id] = @1 WHERE [x] = @2 AND [y] = @3}
 
-    query = update(nil, "model", [:x, :y], [:id], [:z])
-    assert query == ~s{UPDATE [model] SET [x] = @1, [y] = @2 OUTPUT INSERTED.[z] WHERE [id] = @3}
+    query = update(nil, "schema", [:x, :y], [:id], [:z])
+    assert query == ~s{UPDATE [schema] SET [x] = @1, [y] = @2 OUTPUT INSERTED.[z] WHERE [id] = @3}
 
-    query = update("prefix", "model", [:x, :y], [:id], [])
-    assert query == ~s{UPDATE [prefix].[model] SET [x] = @1, [y] = @2 WHERE [id] = @3}
+    query = update("prefix", "schema", [:x, :y], [:id], [])
+    assert query == ~s{UPDATE [prefix].[schema] SET [x] = @1, [y] = @2 WHERE [id] = @3}
   end
 
   test "delete" do
-    query = delete(nil, "model", [:x, :y], [])
-    assert query == ~s{DELETE FROM [model] WHERE [x] = @1 AND [y] = @2}
+    query = delete(nil, "schema", [:x, :y], [])
+    assert query == ~s{DELETE FROM [schema] WHERE [x] = @1 AND [y] = @2}
 
-    query = delete(nil, "model", [:x, :y], [:z])
-    assert query == ~s{DELETE FROM [model] OUTPUT DELETED.[z] WHERE [x] = @1 AND [y] = @2}
+    query = delete(nil, "schema", [:x, :y], [:z])
+    assert query == ~s{DELETE FROM [schema] OUTPUT DELETED.[z] WHERE [x] = @1 AND [y] = @2}
 
-    query = delete("prefix", "model", [:x, :y], [])
-    assert query == ~s{DELETE FROM [prefix].[model] WHERE [x] = @1 AND [y] = @2}
+    query = delete("prefix", "schema", [:x, :y], [])
+    assert query == ~s{DELETE FROM [prefix].[schema] WHERE [x] = @1 AND [y] = @2}
   end
 
   # # DDL

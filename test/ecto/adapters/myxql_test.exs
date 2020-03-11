@@ -237,6 +237,18 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT s0.`x`, s0.`y` FROM `schema` AS s0}
   end
 
+  test "aggregates" do
+    query = Schema |> select(count()) |> plan()
+    assert all(query) == ~s{SELECT count(*) FROM `schema` AS s0}
+  end
+
+  test "aggregate filters" do
+    query = Schema |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
+    assert_raise Ecto.QueryError, ~r/MySQL adapter does not support aggregate filters in query/, fn ->
+      all(query)
+    end
+  end
+
   test "distinct" do
     query = Schema |> distinct([r], true) |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT DISTINCT s0.`x`, s0.`y` FROM `schema` AS s0}
@@ -254,6 +266,11 @@ defmodule Ecto.Adapters.MyXQLTest do
       query = Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
       all(query)
     end
+  end
+
+  test "coalesce" do
+    query = Schema |> select([s], coalesce(s.x, 5)) |> plan()
+    assert all(query) == ~s{SELECT coalesce(s0.`x`, 5) FROM `schema` AS s0}
   end
 
   test "where" do
@@ -370,29 +387,12 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 LIMIT 3 OFFSET 5}
   end
 
-  test "aggregates" do
-    query = Schema |> select(count()) |> plan()
-    assert all(query) == ~s{SELECT count(*) FROM `schema` AS s0}
-  end
-
-  test "aggregate filters" do
-    query = Schema |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
-    assert_raise Ecto.QueryError, ~r/MySQL adapter does not support aggregate filters in query/, fn ->
-      all(query)
-    end
-  end
-
   test "lock" do
     query = Schema |> lock("LOCK IN SHARE MODE") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 LOCK IN SHARE MODE}
 
     query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 UPDATE on s0}
-  end
-
-  test "coalesce" do
-    query = Schema |> select([s], coalesce(s.x, 5)) |> plan()
-    assert all(query) == ~s{SELECT coalesce(s0.`x`, 5) FROM `schema` AS s0}
   end
 
   test "string escape" do

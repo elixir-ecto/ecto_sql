@@ -106,7 +106,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp prepare_param(%{__struct__: module} = _value) do
       # just in case dumpers/loaders are not defined for the this struct
-      error!(nil,  "TSD is unable to convert struct `#{inspect(module)}` into supported MSSQL types")
+      error!(nil,  "Tds is unable to convert struct `#{inspect(module)}` into supported MSSQL types")
     end
 
     defp prepare_param(%{} = value), do: {json_library().encode!(value), :string}
@@ -380,7 +380,7 @@ if Code.ensure_loaded?(Tds) do
     defp from(%{from: %{source: source}, lock: lock} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
 
-      [" FROM ", from, " AS ", name, if_do(lock, lock(lock))]
+      [" FROM ", from, " AS ", name, lock(lock, sources)]
     end
 
     defp cte(%{with_ctes: %WithExpr{queries: [_ | _] = queries}} = query, sources) do
@@ -466,7 +466,7 @@ if Code.ensure_loaded?(Tds) do
             {join, name} = get_source(query, sources, ix, source)
             qual_text = join_qual(qual)
             join = join || "(" <> expr(source, sources, query) <> ")"
-            lock = if_do(lock, lock(lock))
+            lock = lock(lock, sources)
             [qual_text, join, " AS ", name, lock | join_on(qual, expr, sources, query)]
         end)
       ]
@@ -527,7 +527,7 @@ if Code.ensure_loaded?(Tds) do
       case dir do
         :asc -> str
         :desc -> [str | " DESC"]
-        _ -> error!(query, "#{dir} is not supported ORDER BY direction in MSSQL")
+        _ -> error!(query, "#{dir} is not supported in ORDER BY in MSSQL")
       end
     end
 
@@ -584,8 +584,9 @@ if Code.ensure_loaded?(Tds) do
       end)
     end
 
-    defp lock(nil), do: []
-    defp lock(lock_clause), do: [?\s, lock_clause]
+    defp lock(nil, _sources), do: []
+    defp lock(binary, _sources) when is_binary(binary), do: [?\s | binary]
+    defp lock(expr = query, sources), do: [?\s | expr(expr, sources, query)]
 
     defp boolean(_name, [], _sources, _query), do: []
 
@@ -630,14 +631,9 @@ if Code.ensure_loaded?(Tds) do
       "#{name}.#{quote_name(field)}"
     end
 
-    defp expr({:&, _, [idx]}, sources, query) do
-      {table, _name, _schema} = elem(sources, idx)
-
-      error!(
-        query,
-        "Tds adapter does not support selecting all fields from #{table} without a schema. " <>
-          "Please specify a schema or specify exactly which fields you want in projection"
-      )
+    defp expr({:&, _, [idx]}, sources, _query) do
+      {_table, source, _schema} = elem(sources, idx)
+      source
     end
 
     defp expr({:&, _, [idx, fields, _counter]}, sources, query) do
@@ -655,8 +651,7 @@ if Code.ensure_loaded?(Tds) do
       Enum.map_join(fields, ", ", &"#{name}.#{quote_name(&1)}")
     end
 
-    #         {:in, [], [1,   {:^, [], [0, 0]}]}
-
+    # eaxmple from {:in, [], [1,   {:^, [], [0, 0]}]}
     defp expr({:in, _, [_left, []]}, _sources, _query) do
       "0=1"
     end
@@ -678,7 +673,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:in, _, [left, right]}, sources, query) do
-      expr(left, sources, query) <> " IN (" <> expr(right, sources, query) <> ")"
+      expr(left, sources, query) <> " = ANY(" <> expr(right, sources, query) <> ")"
     end
 
     defp expr({:is_nil, _, [arg]}, sources, query) do
@@ -825,11 +820,15 @@ if Code.ensure_loaded?(Tds) do
       Float.to_string(literal)
     end
 
-    defp expr(field, sources, query) do
+    defp expr(field, _sources, query) do
       error!(query, "unsupported MSSQL expressions: `#{inspect(field)}`")
     end
 
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
+      paren_expr(expr, sources, query)
+    end
+
+    defp op_to_binary({:is_nil, _, [_]} = expr, sources, query) do
       paren_expr(expr, sources, query)
     end
 
