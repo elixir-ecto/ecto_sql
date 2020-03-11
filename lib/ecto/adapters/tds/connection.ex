@@ -148,13 +148,12 @@ if Code.ensure_loaded?(Tds) do
       order_by = order_by(query, sources)
       # limit = is handled in select (TOP X)
       offset = offset(query, sources)
-      # lock = is handled in FROM
-      options = options(query, sources)
+      lock = lock(query, sources)
 
       if query.offset != nil and query.order_bys == [],
         do: error!(query, "ORDER BY is mandatory when OFFSET is set")
 
-      [cte, select, from, join, where, group_by, having, combinations, order_by, offset | options]
+      [cte, select, from, join, where, group_by, having, combinations, order_by, lock | offset]
     end
 
     @impl true
@@ -167,8 +166,9 @@ if Code.ensure_loaded?(Tds) do
       from = " FROM #{table} AS #{name}"
       join = join(query, sources)
       where = where(query, sources)
+      lock = lock(query, sources)
 
-      [cte, "UPDATE ", name, " SET ", fields, returning(query, 0, "INSERTED"), from, join | where]
+      [cte, "UPDATE ", name, " SET ", fields, returning(query, 0, "INSERTED"), from, join, where | lock]
     end
 
     @impl true
@@ -181,8 +181,9 @@ if Code.ensure_loaded?(Tds) do
       from = " FROM #{table} AS #{name}"
       join = join(query, sources)
       where = where(query, sources)
+      lock = lock(query, sources)
 
-      [cte, delete, returning(query, 0, "DELETED"), from, join | where]
+      [cte, delete, returning(query, 0, "DELETED"), from, join, where | lock]
     end
 
     @impl true
@@ -362,10 +363,10 @@ if Code.ensure_loaded?(Tds) do
       end)
     end
 
-    defp from(%{from: %{source: source}, lock: lock} = query, sources) do
+    defp from(%{from: %{source: source, hints: hints}} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
 
-      [" FROM ", from, " AS ", name, lock(lock, sources)]
+      [" FROM ", from, " AS ", name, hints(hints)]
     end
 
     defp cte(%{with_ctes: %WithExpr{queries: [_ | _] = queries}} = query, sources) do
@@ -435,23 +436,15 @@ if Code.ensure_loaded?(Tds) do
 
     defp join(%{joins: []}, _sources), do: []
 
-    defp join(%{joins: joins, lock: lock} = query, sources) do
+    defp join(%{joins: joins} = query, sources) do
       [
         ?\s,
         intersperse_map(joins, ?\s, fn
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
-            if hints != [] do
-              error!(
-                query,
-                "table hints are not supported in Tds adapter at the moment, use `lock: ...` if possible"
-              )
-            end
-
             {join, name} = get_source(query, sources, ix, source)
             qual_text = join_qual(qual)
             join = join || "(" <> expr(source, sources, query) <> ")"
-            lock = lock(lock, sources)
-            [qual_text, join, " AS ", name, lock | join_on(qual, expr, sources, query)]
+            [qual_text, join, " AS ", name, hints(hints) | join_on(qual, expr, sources, query)]
         end)
       ]
     end
@@ -551,11 +544,12 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    defp options(%{from: %{hints: [_ | _] = hints}}, _sources) do
-      [" OPTION ", ?(, intersperse_map(hints, ", ", &[&1]), ?)]
-    end
+    defp hints([_ | _] = hints), do: [" WITH (", Enum.intersperse(hints, ", "), ?)]
+    defp hints([]), do: []
 
-    defp options(_query, _sources), do: []
+    defp lock(%{lock: nil}, _sources), do: []
+    defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [" OPTION (", binary, ?)]
+    defp lock(%{lock: expr} = query, sources), do: [" OPTION (", expr(expr, sources, query), ?)]
 
     defp combinations(%{combinations: combinations}) do
       Enum.map(combinations, fn
@@ -567,10 +561,6 @@ if Code.ensure_loaded?(Tds) do
         {:intersect_all, query} -> [" INTERSECT ALL (", all(query), ")"]
       end)
     end
-
-    defp lock(nil, _sources), do: []
-    defp lock(binary, _sources) when is_binary(binary), do: [?\s | binary]
-    defp lock(expr = query, sources), do: [?\s | expr(expr, sources, query)]
 
     defp boolean(_name, [], _sources, _query), do: []
 

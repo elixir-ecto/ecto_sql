@@ -79,7 +79,7 @@ defmodule Ecto.Adapters.SQL do
       opts = unquote(opts)
       @conn __MODULE__.Connection
       @driver Keyword.fetch!(opts, :driver)
-      @migration_lock Keyword.fetch!(opts, :migration_lock)
+      @migration_lock Keyword.get(opts, :migration_lock)
 
       @impl true
       defmacro __before_compile__(env) do
@@ -728,7 +728,8 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp raise_pool_size_error do
+  @doc false
+  def raise_pool_size_error do
     raise Ecto.MigrationError, """
     Migrations failed to run because the connection pool size is less than 2.
 

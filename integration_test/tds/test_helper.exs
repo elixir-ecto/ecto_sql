@@ -53,7 +53,7 @@ ExUnit.start(
     # and after insert we need to turn it on, must be run manually in transaction
     :pk_insert,
     # Tds allows nested transactions so this will never raise and SQL query should be "BEGIN TRAN"
-    :transaction_checkout_raises,
+    :transaction_checkout_raises
   ]
 )
 

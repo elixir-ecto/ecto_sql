@@ -81,7 +81,7 @@ defmodule Ecto.Adapters.TdsTest do
       Schema |> from(hints: ["MAXDOP 1", "OPTIMIZE FOR UNKNOWN"]) |> select([r], r.x) |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.[x] FROM [schema] AS s0 OPTION (MAXDOP 1, OPTIMIZE FOR UNKNOWN)}
+             ~s{SELECT s0.[x] FROM [schema] AS s0 WITH (MAXDOP 1, OPTIMIZE FOR UNKNOWN)}
   end
 
   test "from with schema prefix" do
@@ -211,7 +211,7 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "CTE update_all" do
     cte_query =
-      from(x in Schema, order_by: [asc: :id], limit: 10, lock: "WITH(NOLOCK)", select: %{id: x.id})
+      from(x in Schema, order_by: [asc: :id], limit: 10, lock: "MERGE JOIN", select: %{id: x.id})
 
     query =
       Schema
@@ -223,7 +223,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert update_all(query) ==
       ~s{WITH [target_rows] ([id]) AS } <>
-      ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 WITH(NOLOCK) ORDER BY s0.[id]) } <>
+      ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id] OPTION (MERGE JOIN)) } <>
       ~s{UPDATE s0 } <>
       ~s{SET s0.[x] = 123 } <>
       ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] } <>
@@ -432,11 +432,11 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "lock" do
-    query = Schema |> lock("WITH(NOLOCK)") |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WITH(NOLOCK)}
+    query = Schema |> lock("NOLOCK") |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 OPTION (NOLOCK)}
 
     query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 UPDATE on s0}
+    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 OPTION (UPDATE on s0)}
   end
 
   test "string escape" do
@@ -654,7 +654,7 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) == String.trim(result)
   end
 
-  # ## *_all
+  ## *_all
 
   test "update all" do
     query = from(m in Schema, update: [set: [x: 0]]) |> plan(:update_all)
@@ -677,15 +677,6 @@ defmodule Ecto.Adapters.TdsTest do
     assert update_all(query) == ~s{UPDATE s0 SET s0.[x] = @1 FROM [schema] AS s0}
 
     query =
-      Schema
-      |> join(:inner, [p], q in Schema2, on: p.x == q.z)
-      |> update([_], set: [x: 0])
-      |> plan(:update_all)
-
-    assert update_all(query) ==
-             ~s{UPDATE s0 SET s0.[x] = 0 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z]}
-
-    query =
       from(
         e in Schema,
         where: e.x == 123,
@@ -700,12 +691,24 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] WHERE (s0.[x] = 123)}
   end
 
+  test "update all with returning" do
+    query = from(m in Schema, update: [set: [x: 0]]) |> select([m], m) |> plan(:update_all)
+    assert update_all(query) ==
+           ~s{UPDATE s0 SET s0.[x] = 0 OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] FROM [schema] AS s0}
+  end
+
   test "update all with prefix" do
     query =
       from(m in Schema, update: [set: [x: 0]]) |> Map.put(:prefix, "prefix") |> plan(:update_all)
 
     assert update_all(query) ==
              ~s{UPDATE s0 SET s0.[x] = 0 FROM [prefix].[schema] AS s0}
+
+    query =
+      from(m in Schema, prefix: "first", update: [set: [x: 0]]) |> Map.put(:prefix, "prefix") |> plan(:update_all)
+
+    assert update_all(query) ==
+             ~s{UPDATE s0 SET s0.[x] = 0 FROM [first].[schema] AS s0}
   end
 
   test "delete all" do
@@ -727,6 +730,11 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] WHERE (s0.[x] = 123)}
   end
 
+  test "delete all with returning" do
+    query = Schema |> Queryable.to_query |> select([m], m) |> plan()
+    assert delete_all(query) == ~s{DELETE s0 OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] FROM [schema] AS s0}
+  end
+
   test "delete all with prefix" do
     query = Schema |> Queryable.to_query() |> Map.put(:prefix, "prefix") |> plan()
     assert delete_all(query) == ~s{DELETE s0 FROM [prefix].[schema] AS s0}
@@ -735,7 +743,7 @@ defmodule Ecto.Adapters.TdsTest do
     assert delete_all(query) == ~s{DELETE s0 FROM [first].[schema] AS s0}
   end
 
-  # ## Joins
+  ## Joins
 
   test "join" do
     query = Schema |> join(:inner, [p], q in Schema2, on: p.x == q.z) |> select([], true) |> plan()
@@ -753,6 +761,14 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) ==
              ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] } <>
                ~s{INNER JOIN [schema] AS s2 ON 1 = 1 }
+  end
+
+  test "join with hints" do
+    assert Schema
+           |> join(:inner, [p], q in Schema2, hints: ["USE INDEX FOO", "USE INDEX BAR"])
+           |> select([], true)
+           |> plan()
+           |> all() == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 WITH (USE INDEX FOO, USE INDEX BAR) ON 1 = 1 }
   end
 
   test "join with nothing bound" do

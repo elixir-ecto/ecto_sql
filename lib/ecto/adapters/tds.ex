@@ -93,6 +93,22 @@ defmodule Ecto.Adapters.Tds do
   Even though the adapter will convert `:map` fields into JSON back and forth,
   actual value is stored in NVarChar column.
 
+  ### Query hints and table hints
+
+  MSSQL supports both query hints and table hints: https://docs.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-query
+
+  For Ecto compatibility, the query hints must be given via the `lock` option, and they
+  will be translated to MSSQL's "OPTION". If you need to pass multiple options, you
+  can separate them by comma:
+
+      from query, lock: "HASH GROUP, FAST 10"
+
+  Table hints are specified as a list alongside a `from` or `join`:
+
+      from query, hints: ["INDEX (IX_Employee_ManagerID)"]
+
+  The `:migration_lock` will be treated as a table hint and defaults to "UPDLOCK".
+
   ### Multi Repo calls in transactions
 
   To avoid deadlocks in your app, we exposed `:isolation_level`  repo transaction option.
@@ -115,10 +131,10 @@ defmodule Ecto.Adapters.Tds do
   """
 
   use Ecto.Adapters.SQL,
-    driver: :tds,
-    migration_lock: "(UPDLOCK)"
+    driver: :tds
 
   require Logger
+  require Ecto.Query
 
   @behaviour Ecto.Adapter.Storage
 
@@ -213,11 +229,6 @@ defmodule Ecto.Adapters.Tds do
     end
   end
 
-  @impl true
-  def supports_ddl_transaction? do
-    true
-  end
-
   defp run_query(opts, sql_command) do
     {:ok, _} = Application.ensure_all_started(:ecto_sql)
     {:ok, _} = Application.ensure_all_started(:tds)
@@ -256,6 +267,32 @@ defmodule Ecto.Adapters.Tds do
 
       nil ->
         {:error, RuntimeError.exception("command timed out")}
+    end
+  end
+
+
+  @impl true
+  def supports_ddl_transaction? do
+    true
+  end
+
+  @doc false
+  def lock_for_migrations(meta, query, opts, fun) do
+    %{opts: adapter_opts} = meta
+
+    if lock = Keyword.get(adapter_opts, :migration_lock, "UPDLOCK") do
+      if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
+        Ecto.Adapters.SQL.raise_pool_size_error()
+      end
+
+      {:ok, result} =
+        transaction(meta, opts ++ [log: false, timeout: :infinity], fn ->
+          fun.(put_in(query.from.hints, [lock]))
+        end)
+
+      result
+    else
+      fun.(query)
     end
   end
 end
