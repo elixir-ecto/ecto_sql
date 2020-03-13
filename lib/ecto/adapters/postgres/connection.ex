@@ -570,6 +570,19 @@ if Code.ensure_loaded?(Postgrex) do
        interval(count, interval, sources, query) | ")::date"]
     end
 
+    defp expr({:json_extract_path, _, [expr, path]}, sources, query) do
+      path =
+        intersperse_map(path, ?,, fn
+          binary when is_binary(binary) ->
+            [?", escape_json_key(binary), ?"]
+
+          integer when is_integer(integer) ->
+            Integer.to_string(integer)
+        end)
+
+      [?(, expr(expr, sources, query), "#>'{", path, "}')"]
+    end
+
     defp expr({:filter, _, [agg, filter]}, sources, query) do
       aggregate = expr(agg, sources, query)
       [aggregate, " FILTER (WHERE ", expr(filter, sources, query), ?)]
@@ -1146,6 +1159,12 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp escape_string(value) when is_binary(value) do
       :binary.replace(value, "'", "''", [:global])
+    end
+
+    defp escape_json_key(value) when is_binary(value) do
+      value
+      |> escape_string()
+      |> :binary.replace("\"", "\\\"", [:global])
     end
 
     defp ecto_to_db({:array, t}),          do: [ecto_to_db(t), ?[, ?]]

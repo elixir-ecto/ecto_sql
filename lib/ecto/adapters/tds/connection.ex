@@ -213,7 +213,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp on_conflict({_, _, _}, _header) do
-      error!(nil, "MSSQL supports only on_conflict: :raise")
+      error!(nil, "Tds adapter supports only on_conflict: :raise")
     end
 
     defp insert_all(rows, counter) do
@@ -383,7 +383,7 @@ if Code.ensure_loaded?(Tds) do
     defp cte_header(%QueryExpr{}, query) do
       error!(
         query,
-        "Unfortunately Tds adapter does not support fragment in CTE"
+        "Tds adapter does not support fragment in CTE"
       )
     end
 
@@ -704,6 +704,14 @@ if Code.ensure_loaded?(Tds) do
 
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
 
+    defp expr({:json_extract_path, _, _}, _sources, query) do
+      error!(
+        query,
+        "Tds adapter does not support json_extract_path expression" <>
+          ", use fragment with JSON_VALUE/JSON_QUERY"
+      )
+    end
+
     defp expr({fun, _, args}, sources, query) when is_atom(fun) and is_list(args) do
       {modifier, args} =
         case args do
@@ -997,10 +1005,10 @@ if Code.ensure_loaded?(Tds) do
     end
 
     def execute_ddl({:create, %Constraint{check: check}}) when is_binary(check),
-      do: error!(nil, "MSSQL adapter does not support check constraints")
+      do: error!(nil, "Tds adapter does not support check constraints")
 
     def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
-      do: error!(nil, "MSSQL adapter does not support exclusion constraints")
+      do: error!(nil, "Tds adapter does not support exclusion constraints")
 
     def execute_ddl({command, %Index{} = index}) when command in [:drop, :drop_if_exists] do
       prefix = index.prefix
@@ -1023,7 +1031,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     def execute_ddl({:drop, %Constraint{}}),
-      do: error!(nil, "MSSQL adapter does not support constraints")
+      do: error!(nil, "Tds adapter does not support constraints")
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
       [
@@ -1052,7 +1060,7 @@ if Code.ensure_loaded?(Tds) do
     def execute_ddl(string) when is_binary(string), do: [string]
 
     def execute_ddl(keyword) when is_list(keyword),
-      do: error!(nil, "MSSQL adapter does not support keyword lists in execute")
+      do: error!(nil, "Tds adapter does not support keyword lists in execute")
 
     @impl true
     def ddl_logs(_), do: []
@@ -1244,7 +1252,7 @@ if Code.ensure_loaded?(Tds) do
     defp options_expr(nil), do: []
 
     defp options_expr(keyword) when is_list(keyword),
-      do: error!(nil, "MSSQL adapter does not support keyword lists in :options")
+      do: error!(nil, "Tds adapter does not support keyword lists in :options")
 
     defp options_expr(options), do: [" ", to_string(options)]
 
