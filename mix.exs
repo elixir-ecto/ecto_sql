@@ -101,7 +101,8 @@ defmodule EctoSQL.MixProject do
   end
 
   defp test_paths(adapter) when adapter in @adapters, do: ["integration_test/#{adapter}"]
-  defp test_paths(_), do: ["test"]
+  defp test_paths(nil), do: ["test"]
+  defp test_paths(other), do: raise "unknown adapter #{inspect(other)}"
 
   defp package do
     [
