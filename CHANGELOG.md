@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.4.0-dev
+
+### Enhancements
+
+  * Add built-in support to MSSQL via the TDS adapter
+  * Support Ecto's v3.4 `json_extract_path/2`
+
 ## v3.3.4 (2020-02-14)
 
 ### Enhancements
