@@ -440,10 +440,14 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "string escape" do
-    query = "schema" |> where(foo: "'\\  ") |> select([], true) |> plan()
+    query = "schema" |> where(foo: "\'--  ") |> select([], true) |> plan()
 
     assert all(query) ==
-             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = CONVERT(nvarchar(4), 0x27005c0020002000))}
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'''--  ')}
+
+    query = "schema" |> where(foo: "ok str '; select 1; --") |> select([], true) |> plan()
+    assert all(query) ==
+      ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'ok str ''; select 1; --')}
 
     query = "schema" |> where(foo: "'") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'''')}
@@ -470,14 +474,14 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "is_nil" do
-    query = Schema |> select([r], is_nil(r.x)) |> plan()
-    assert all(query) == ~s{SELECT s0.[x] IS NULL FROM [schema] AS s0}
+    query = Schema |> select([r], r.x) |> where([r], is_nil(r.x)) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 WHERE (s0.[x] IS NULL)}
 
-    query = Schema |> select([r], not is_nil(r.x)) |> plan()
-    assert all(query) == ~s{SELECT NOT (s0.[x] IS NULL) FROM [schema] AS s0}
+    query = Schema |> select([r], r.x) |> where([r], not is_nil(r.x)) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 WHERE (NOT (s0.[x] IS NULL))}
 
-    query = Schema |> select([r], r.x == is_nil(r.y)) |> plan()
-    assert all(query) == ~s{SELECT s0.[x] = (s0.[y] IS NULL) FROM [schema] AS s0}
+    query = Schema |> select([r], r.x) |> where([r], r.x == is_nil(r.y)) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 WHERE (s0.[x] = (s0.[y] IS NULL))}
   end
 
   test "fragments" do

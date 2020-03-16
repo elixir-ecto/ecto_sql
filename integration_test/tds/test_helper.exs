@@ -20,8 +20,6 @@ ExUnit.start(
     :uses_msec,
     # Unique index compares even NULL values for post_id, so below fails inserting permalinks without setting valid post_id
     :insert_cell_wise_defaults,
-    # SELECT NOT(t.bool_column) not supported
-    :select_not,
     # MSSQL does not support strings on text fields
     :text_type_as_string,
     # IDENTITY_INSERT ON/OFF  must be manually executed
@@ -140,6 +138,14 @@ defmodule Ecto.Integration.Case do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo, [isolation_level: level])
   end
 end
+
+# :dbg.start()
+# :dbg.tracer()
+# :dbg.p(:all,:c)
+# :dbg.tpl(Ecto.Adapters.Tds.Connection, :prepare_execute, :x)
+# :dbg.tpl(Ecto.Adapters.Tds.Connection, :all, :x)
+# :dbg.tpl(Tds.Parameter, :prepare_params, :x)
+# :dbg.tpl(Tds.Parameter, :prepared_params, :x)
 
 {:ok, _} = Ecto.Adapters.Tds.ensure_all_started(TestRepo.config(), :temporary)
 

@@ -7,7 +7,6 @@ if Code.ensure_loaded?(Tds) do
     require Ecto.Schema
 
     @behaviour Ecto.Adapters.SQL.Connection
-    @unsafe_query_strings ["'\\"]
 
     @impl true
     def child_spec(opts) do
@@ -356,12 +355,18 @@ if Code.ensure_loaded?(Tds) do
           end
 
         {key, value} ->
-          [expr(value, sources, query), " AS ", quote_name(key)]
+          [select_expr(value, sources, query), " AS ", quote_name(key)]
 
         value ->
-          expr(value, sources, query)
+          select_expr(value, sources, query)
       end)
     end
+
+    defp select_expr({:not, _, [expr]}, sources, query) do
+      [?~, ?(, select_expr(expr, sources, query), ?)]
+    end
+
+    defp select_expr(value, sources, query), do: expr(value, sources, query)
 
     defp from(%{from: %{source: source, hints: hints}} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
@@ -739,22 +744,31 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr(string, _sources, _query) when is_binary(string) do
-      if String.contains?(string, @unsafe_query_strings) do
-        len = String.length(string)
-
-        hex =
-          string
-          |> :unicode.characters_to_binary(:utf8, {:utf16, :little})
-          |> Base.encode16(case: :lower)
-
-        "CONVERT(nvarchar(#{len}), 0x#{hex})"
-      else
-        "N'#{escape_string(string)}'"
-      end
+      "N'#{escape_string(string)}'"
     end
 
-    defp expr(%Decimal{} = decimal, _sources, _query) do
-      Decimal.to_string(decimal, :normal)
+    defp expr(%Decimal{exp: exp} = decimal, _sources, _query) do
+      # this should help gaining precision for decimals values embeded in query
+      # but this is still not good enough, for instance:
+      #
+      # from(p in Post, select: type(2.0 + ^"2", p.cost())))
+      #
+      # Post.cost is :decimal, but we don't know precision and scale since
+      # such info is only available in migration files. So query compilation
+      # will yield
+      #
+      # SELECT CAST(CAST(2.0 as decimal(38, 1)) + @1 AS decimal)
+      # FROM [posts] AS p0
+      #
+      # as long as we have CAST(... as DECIMAL) without precision and scale
+      # value could be trucated
+      [
+        "CAST(",
+        Decimal.to_string(decimal, :normal),
+        " as decimal(38, #{abs(exp)})",
+        ?)
+      ]
+
     end
 
     defp expr(%Tagged{value: binary, type: :binary}, _sources, _query) when is_binary(binary) do
@@ -1384,8 +1398,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp escape_string(value) when is_binary(value) do
-      value
-      |> :binary.replace("'", "''", [:global])
+      value |> :binary.replace("'", "''", [:global])
     end
 
     defp ecto_to_db(type, size, precision, scale, query \\ nil)
