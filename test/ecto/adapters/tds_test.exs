@@ -527,7 +527,7 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "tagged type" do
     query =
-      Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Tds.Types.UUID)) |> plan()
+      Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Tds.Ecto.UUID)) |> plan()
 
     assert all(query) == ~s{SELECT CAST(@1 AS uniqueidentifier) FROM [schema] AS s0}
   end

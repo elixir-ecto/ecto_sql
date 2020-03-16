@@ -158,7 +158,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     def load(<<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> = string) do
-      raise ArgumentError, "trying to load string UUID as Tds.Types.UUID: #{inspect string}. " <>
+      raise ArgumentError, "trying to load string UUID as Tds.Ecto.UUID: #{inspect string}. " <>
                           "Maybe you wanted to declare :uuid as your database field?"
     end
 

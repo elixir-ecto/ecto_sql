@@ -779,7 +779,7 @@ if Code.ensure_loaded?(Tds) do
     defp expr(%Tagged{value: binary, type: :uuid}, _sources, _query) when is_binary(binary) do
       case binary do
         <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> ->
-          {:ok, value} = Tds.Types.UUID.dump(binary)
+          {:ok, value} = Tds.Ecto.UUID.dump(binary)
           value
 
         any ->

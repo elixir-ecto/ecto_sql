@@ -88,7 +88,7 @@ defmodule Ecto.Integration.TestRepo do
     otp_app: :ecto_sql,
     adapter: Ecto.Adapters.Tds
 
-  def uuid, do: Tds.Types.UUID
+  def uuid, do: Tds.Ecto.UUID
 
   def create_prefix(prefix) do
     """
