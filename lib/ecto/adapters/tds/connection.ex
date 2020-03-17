@@ -1152,6 +1152,25 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
+    defp column_change(
+      statement_prefix,
+      %{name: table_name, prefix: prefix} = table,
+      {:add_if_not_exists, column_name, type, opts}
+    ) do
+      [
+        [
+          if_column_not_exists(prefix, table_name, column_name),
+          statement_prefix,
+          "ADD ",
+          quote_name(column_name),
+          " ",
+          column_type(type, opts),
+          column_options(table, column_name, opts),
+          " END; "
+        ]
+      ]
+    end
+
     defp column_change(statement_prefix, table, {:modify, name, %Reference{} = ref, opts}) do
       fk_name = reference_name(ref, table, name)
 
@@ -1177,16 +1196,10 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_change(statement_prefix, table, {:modify, name, type, opts}) do
-      fk_name = constraint_name("DF", table, name)
+      df_name = constraint_name("DF", table, name)
 
       [
-        [
-          if_object_exists(
-            fk_name,
-            "D",
-            "#{statement_prefix}DROP CONSTRAINT #{fk_name}; "
-          )
-        ],
+        if_exists_drop_constraint(df_name, statement_prefix),
         [
           statement_prefix,
           "ALTER COLUMN ",
@@ -1202,6 +1215,20 @@ if Code.ensure_loaded?(Tds) do
 
     defp column_change(statement_prefix, _table, {:remove, name}) do
       [statement_prefix, "DROP COLUMN ", quote_name(name), "; "]
+    end
+
+    defp column_change(
+      statement_prefix,
+      %{name: table, prefix: prefix},
+      {:remove_if_exists, column_name, _}
+    ) do
+      [
+        [
+          if_column_exists(prefix, table, column_name),
+          statement_prefix, "DROP COLUMN ", quote_name(column_name),
+          " END; "
+        ]
+      ]
     end
 
     defp column_options(table, name, opts) do
@@ -1492,6 +1519,28 @@ if Code.ensure_loaded?(Tds) do
       ])
     end
 
+    defp if_column_exists(prefix, table, column_name) do
+      [
+        "IF EXISTS (SELECT 1 FROM [sys].[columns] ",
+        "WHERE [name] = N'#{column_name}'  AND ",
+        "[object_id] = OBJECT_ID(N'",
+        if_do(prefix != nil, ["#{prefix}", ?.]),
+        "#{table}",
+        "')) BEGIN "
+      ]
+    end
+
+    defp if_column_not_exists(prefix, table, column_name) do
+      [
+        "IF NOT EXISTS (SELECT 1 FROM [sys].[columns] ",
+        "WHERE [name] = N'#{column_name}' AND ",
+        "[object_id] = OBJECT_ID(N'",
+        if_do(prefix != nil, ["#{prefix}", ?.]),
+        "#{table}",
+        "')) BEGIN "
+      ]
+    end
+
     defp list_param_to_args(idx, length) do
       Enum.map_join(1..length, ",", &"@#{idx + &1}")
     end
@@ -1531,6 +1580,16 @@ if Code.ensure_loaded?(Tds) do
         "') IS NOT NULL) BEGIN ",
         statement,
         " END; "
+      ]
+    end
+
+    defp if_exists_drop_constraint(name, statement_prefix) do
+      [
+        if_object_exists(
+          name,
+          "D",
+          "#{statement_prefix}DROP CONSTRAINT #{name}; "
+        )
       ]
     end
   end
