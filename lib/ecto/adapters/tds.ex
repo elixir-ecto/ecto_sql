@@ -183,7 +183,7 @@ defmodule Ecto.Adapters.Tds do
       {:ok, _} ->
         :ok
 
-      {:error, %Tds.Error{mssql: %{number: 1801}}} ->
+      {:error, %{mssql: %{number: 1801}}} ->
         {:error, :already_up}
 
       {:error, error} ->
@@ -204,7 +204,7 @@ defmodule Ecto.Adapters.Tds do
       {:ok, _} ->
         :ok
 
-      {:error, %Tds.Error{mssql: %{number: 3701}}} ->
+      {:error, %{mssql: %{number: 3701}}} ->
         {:error, :already_down}
 
       {:error, error} ->
