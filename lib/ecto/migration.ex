@@ -1048,7 +1048,9 @@ defmodule Ecto.Migration do
   end
 
   @doc ~S"""
-  Defines a foreign key.
+  Defines a foreign key. If you are using a non-default key setup
+  (e.g. using `uuid` type keys) you must ensure you set the options to
+  match your target key.
 
   ## Examples
 
