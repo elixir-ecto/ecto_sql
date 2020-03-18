@@ -916,7 +916,8 @@ defmodule Ecto.Adapters.TdsTest do
 
   ## DDL
 
-  import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3]
+  import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3,
+                                constraint: 2, constraint: 3]
 
   test "executing a string during migration" do
     assert execute_ddl("example") == ["example"]
@@ -1103,6 +1104,36 @@ defmodule Ecto.Adapters.TdsTest do
                |> remove_newlines
                |> Kernel.<>(" ")
              ]
+  end
+
+  test "create check constraint" do
+    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0")}
+    assert execute_ddl(create) ==
+      [~s|ALTER TABLE [products] ADD CONSTRAINT [price_must_be_positive] CHECK (price > 0); |]
+
+    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0", prefix: "foo")}
+    assert execute_ddl(create) ==
+      [~s|ALTER TABLE [foo].[products] ADD CONSTRAINT [price_must_be_positive] CHECK (price > 0); |]
+  end
+
+  test "drop constraint" do
+    drop = {:drop, constraint(:products, "price_must_be_positive")}
+    assert execute_ddl(drop) ==
+      [~s|ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; |]
+
+    drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo")}
+    assert execute_ddl(drop) ==
+      [~s|ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; |]
+  end
+
+  test "drop_if_exists constraint" do
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive")}
+    assert execute_ddl(drop) ==
+      [~s|IF NOT EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] WHERE [CONSTRAINT_NAME] = N'price_must_be_positive') ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; |]
+
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo")}
+    assert execute_ddl(drop) ==
+      [~s|IF NOT EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] WHERE [CONSTRAINT_NAME] = N'price_must_be_positive' AND [CONSTRAINT_SCHEMA] = N'foo') ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; |]
   end
 
   test "rename table" do

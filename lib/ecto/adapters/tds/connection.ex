@@ -1082,15 +1082,22 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    def execute_ddl({:drop, %Constraint{} = constraint}) do
+    def execute_ddl({command, %Constraint{} = constraint})
+        when command in [:drop, :drop_if_exists] do
       table_name = quote_table(constraint.prefix, constraint.table)
 
       [
         [
+          if_check_constraint_exists(
+            command == :drop_if_exists,
+            constraint.name,
+            constraint.prefix
+          ),
           "ALTER TABLE ",
           table_name,
           " DROP CONSTRAINT ",
-          quote_name(constraint.name), "; "
+          quote_name(constraint.name),
+          "; "
         ]
       ]
     end
@@ -1615,6 +1622,18 @@ if Code.ensure_loaded?(Tds) do
         "' AND object_id = OBJECT_ID(N'",
         as_string(table_name),
         "')) "
+      ])
+    end
+
+    defp if_check_constraint_exists(condition, name, prefix) do
+      if_do(condition, [
+        "IF NOT EXISTS (SELECT * ",
+        "FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] ",
+        "WHERE [CONSTRAINT_NAME] = N'#{name}'",
+        if_do(prefix != nil, [
+          " AND [CONSTRAINT_SCHEMA] = N'#{prefix}'"
+        ]),
+        ") "
       ])
     end
 
