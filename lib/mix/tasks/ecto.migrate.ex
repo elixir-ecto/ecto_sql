@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
     * `--strict-version-order` - abort when applying a migration with old timestamp
     * `--no-compile` - does not compile applications before migrating
     * `--no-deps-check` - does not check depedendencies before migrating
-    * `--migrations-path` - the path to run the migrations from
+    * `--migrations-path` - the path to run the migrations from, defaults to `priv/repo/migrations`
 
   """
 
