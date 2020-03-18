@@ -23,7 +23,11 @@ defmodule EctoSQL.MixProject do
       ],
 
       # Custom testing
-      aliases: ["test.all": ["test", "test.adapters"], "test.adapters": &test_adapters/1],
+      aliases: [
+        "test.all": ["test", "test.adapters", "test.as_a_dep"],
+        "test.adapters": &test_adapters/1,
+        "test.as_a_dep": &test_as_a_dep/1
+      ],
       preferred_cli_env: ["test.all": :test, "test.adapters": :test],
 
       # Hex
@@ -96,13 +100,13 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("TDS_PATH") do
       {:tds, path: path}
     else
-      {:tds, "~> 2.0.4" , optional: true}
+      {:tds, "~> 2.0.4", optional: true}
     end
   end
 
   defp test_paths(adapter) when adapter in @adapters, do: ["integration_test/#{adapter}"]
   defp test_paths(nil), do: ["test"]
-  defp test_paths(other), do: raise "unknown adapter #{inspect(other)}"
+  defp test_paths(other), do: raise("unknown adapter #{inspect(other)}")
 
   defp package do
     [
@@ -115,20 +119,49 @@ defmodule EctoSQL.MixProject do
     ]
   end
 
+  defp test_as_a_dep(args) do
+    IO.puts("==> Compiling ecto_sql from a dependency")
+    File.rm_rf!("tmp/as_a_dep")
+    File.mkdir_p!("tmp/as_a_dep")
+
+    File.cd!("tmp/as_a_dep", fn ->
+      File.write!("mix.exs", """
+      defmodule DepsOnEctoSQL.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :deps_on_ecto_sql,
+            version: "0.0.1",
+            deps: [{:ecto_sql, path: "../.."}]
+          ]
+        end
+      end
+      """)
+
+      mix_cmd_with_status_check(["do", "deps.get,", "compile", "--force" | args])
+    end)
+  end
+
   defp test_adapters(args) do
     for adapter <- @adapters, do: env_run(adapter, args)
   end
 
   defp env_run(adapter, args) do
-    args = if IO.ANSI.enabled?(), do: ["--color" | args], else: ["--no-color" | args]
-
     IO.puts("==> Running tests for ECTO_ADAPTER=#{adapter} mix test")
 
-    {_, res} =
-      System.cmd("mix", ["test" | args],
-        into: IO.binstream(:stdio, :line),
-        env: [{"ECTO_ADAPTER", adapter}]
-      )
+    mix_cmd_with_status_check(
+      ["test", ansi_option() | args],
+      env: [{"ECTO_ADAPTER", adapter}]
+    )
+  end
+
+  defp ansi_option do
+    if IO.ANSI.enabled?(), do: "--color", else: "--no-color"
+  end
+
+  defp mix_cmd_with_status_check(args, opts \\ []) do
+    {_, res} = System.cmd("mix", args, [into: IO.binstream(:stdio, :line)] ++ opts)
 
     if res > 0 do
       System.at_exit(fn _ -> exit({:shutdown, 1}) end)

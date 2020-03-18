@@ -19,6 +19,7 @@ jobs:
           mix local.hex --force
           mix deps.get
       - run: mix test
+      - run: mix test.as_a_dep
 
   test-mysql:
     runs-on: ubuntu-18.04
