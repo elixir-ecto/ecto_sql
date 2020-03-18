@@ -105,7 +105,10 @@ if Code.ensure_loaded?(Tds) do
 
     defp prepare_param(%{__struct__: module} = _value) do
       # just in case dumpers/loaders are not defined for the this struct
-      error!(nil, "Tds is unable to convert struct `#{inspect(module)}` into supported MSSQL types")
+      error!(
+        nil,
+        "Tds adapter is unable to convert struct `#{inspect(module)}` into supported MSSQL types"
+      )
     end
 
     defp prepare_param(%{} = value), do: {json_library().encode!(value), :string}
@@ -167,7 +170,17 @@ if Code.ensure_loaded?(Tds) do
       where = where(query, sources)
       lock = lock(query, sources)
 
-      [cte, "UPDATE ", name, " SET ", fields, returning(query, 0, "INSERTED"), from, join, where | lock]
+      [
+        cte,
+        "UPDATE ",
+        name,
+        " SET ",
+        fields,
+        returning(query, 0, "INSERTED"),
+        from,
+        join,
+        where | lock
+      ]
     end
 
     @impl true
@@ -768,7 +781,6 @@ if Code.ensure_loaded?(Tds) do
         " as decimal(38, #{abs(exp)})",
         ?)
       ]
-
     end
 
     defp expr(%Tagged{value: binary, type: :binary}, _sources, _query) when is_binary(binary) do
@@ -1018,11 +1030,37 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    def execute_ddl({:create, %Constraint{check: check}}) when is_binary(check),
-      do: error!(nil, "Tds adapter does not support check constraints")
+    def execute_ddl({:create, %Constraint{exclude: exclude}}) when exclude != nil do
+      msg =
+        "`:exclude` is not supported Tds adapter check constraint parameter, instead " <>
+          "set `:check` attribute with negated expression."
 
-    def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
-      do: error!(nil, "Tds adapter does not support exclusion constraints")
+      error!(nil, msg)
+    end
+
+    def execute_ddl({:create, %Constraint{with: nocheck}})
+        when nocheck not in [nil, "NOCHECK"] do
+      error!(nil, ~s{Check constraint `:with` valid values are `nil` and "NOCHECK"})
+    end
+
+    def execute_ddl({:create, %Constraint{} = constraint}) do
+      with_nocheck = if_do(constraint.with != nil, [" WITH NOCHECK"])
+      table_name = quote_table(constraint.prefix, constraint.table)
+
+      [
+        [
+          "ALTER TABLE ",
+          table_name,
+          with_nocheck,
+          " ADD CONSTRAINT ",
+          quote_name(constraint.name),
+          " ",
+          "CHECK (",
+          constraint.check,
+          "); "
+        ]
+      ]
+    end
 
     def execute_ddl({command, %Index{} = index}) when command in [:drop, :drop_if_exists] do
       prefix = index.prefix
@@ -1044,8 +1082,18 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    def execute_ddl({:drop, %Constraint{}}),
-      do: error!(nil, "Tds adapter does not support constraints")
+    def execute_ddl({:drop, %Constraint{} = constraint}) do
+      table_name = quote_table(constraint.prefix, constraint.table)
+
+      [
+        [
+          "ALTER TABLE ",
+          table_name,
+          " DROP CONSTRAINT ",
+          quote_name(constraint.name), "; "
+        ]
+      ]
+    end
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
       [
@@ -1153,10 +1201,10 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_change(
-      statement_prefix,
-      %{name: table_name, prefix: prefix} = table,
-      {:add_if_not_exists, column_name, type, opts}
-    ) do
+           statement_prefix,
+           %{name: table_name, prefix: prefix} = table,
+           {:add_if_not_exists, column_name, type, opts}
+         ) do
       [
         [
           if_column_not_exists(prefix, table_name, column_name),
@@ -1218,14 +1266,16 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_change(
-      statement_prefix,
-      %{name: table, prefix: prefix},
-      {:remove_if_exists, column_name, _}
-    ) do
+           statement_prefix,
+           %{name: table, prefix: prefix},
+           {:remove_if_exists, column_name, _}
+         ) do
       [
         [
           if_column_exists(prefix, table, column_name),
-          statement_prefix, "DROP COLUMN ", quote_name(column_name),
+          statement_prefix,
+          "DROP COLUMN ",
+          quote_name(column_name),
           " END; "
         ]
       ]

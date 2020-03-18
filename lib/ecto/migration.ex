@@ -362,9 +362,10 @@ defmodule Ecto.Migration do
 
     To define a constraint in a migration, see `Ecto.Migration.constraint/3`.
     """
-    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil, comment: nil
+    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil, comment: nil, with: nil
     @type t :: %__MODULE__{name: atom, table: String.t, prefix: atom | nil,
-                           check: String.t | nil, exclude: String.t | nil, comment: String.t | nil}
+                           check: String.t | nil, exclude: String.t | nil, comment: String.t | nil,
+                           with: String.t | nil}
   end
 
   defmodule Command do
@@ -1108,6 +1109,9 @@ defmodule Ecto.Migration do
     * `:check` - A check constraint expression. Required when creating a check constraint.
     * `:exclude` - An exclusion constraint expression. Required when creating an exclusion constraint.
     * `:prefix` - The prefix for the table.
+    * `:with` - Optional parameter for Tds adapter for create constrint.
+                Valid value is `"NOCHECK"` and it will prevent constraint checking
+                existing rows in the table, and allow for constrint to be added.
 
   """
   def constraint(table, name, opts \\ [])
