@@ -83,7 +83,7 @@ defmodule Ecto.Integration.MigrationsTest do
   import Ecto.Query, only: [from: 2]
   import Ecto.Migrator, only: [up: 4, down: 4]
 
-  test "logs Postgres notice messages" do
+  test "logs MSSQL notice messages" do
     # comparing to other db engines, in MSSQL there is no option in CREATE statement
     # if_not_existis, instead we need to use if statement
     # due this limitation, nothing will be logged in console
