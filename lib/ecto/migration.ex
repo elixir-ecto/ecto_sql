@@ -1048,9 +1048,12 @@ defmodule Ecto.Migration do
   end
 
   @doc ~S"""
-  Defines a foreign key. If you are using a non-default key setup
-  (e.g. using `uuid` type keys) you must ensure you set the options to
-  match your target key.
+  Defines a foreign key.
+
+  By default it assumes you are linking to the referenced table
+  via its primary key with name `:id`. If you are using a non-default
+  key setup (e.g. using `uuid` type keys) you must ensure you set the
+  options, such as `:name` and `:type`, to match your target key.
 
   ## Examples
 
