@@ -966,6 +966,8 @@ defmodule Ecto.Migration do
   This command is not reversible unless the `:from` option is provided.
   If the `:from` value is a `%Reference{}`, the adapter will try to drop
   the corresponding foreign key constraints before modifying the type.
+  Note `:from` cannot be used to modify primary keys, as those are
+  generally trickier to make reversible.
 
   See `add/3` for more information on supported types.
 
