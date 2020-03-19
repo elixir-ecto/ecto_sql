@@ -475,6 +475,18 @@ defmodule Ecto.MigratorTest do
         assert run(TestRepo, Path.join(path, "foo"), :up, to: 15, log: false) == [13]
       end
     end
+
+    test "migrations from multiple paths are executed in order" do
+      in_tmp(fn path ->
+        File.mkdir_p!("a")
+        File.mkdir_p!("b")
+        create_migration "a/10_migration10.exs"
+        create_migration "a/12_migration12.exs"
+        create_migration "b/11_migration11.exs"
+        paths = [Path.join([path, "a"]), Path.join([path, "b"])]
+        assert run(TestRepo, paths, :up, to: 12, log: false) == [10, 11, 12]
+      end)
+    end
   end
 
   describe "migrations" do
@@ -528,6 +540,28 @@ defmodule Ecto.MigratorTest do
 
         assert migrations(TestRepo, path) == expected_result
       end
+    end
+
+    test "multiple paths" do
+      in_tmp(fn path ->
+        File.mkdir_p!("a")
+        File.mkdir_p!("b")
+        create_migration "a/1_up_migration_1.exs"
+        create_migration "b/2_up_migration_2.exs"
+        create_migration "a/3_up_migration_3.exs"
+
+        assert migrations(TestRepo, [Path.join([path, "a"]), Path.join([path, "b"])]) ==  [
+          {:up, 1, "up_migration_1"},
+          {:up, 2, "up_migration_2"},
+          {:up, 3, "up_migration_3"},
+        ]
+
+        assert migrations(TestRepo, [Path.join([path, "a"])]) ==  [
+          {:up, 1, "up_migration_1"},
+          {:up, 2, "** FILE NOT FOUND **"},
+          {:up, 3, "up_migration_3"},
+        ]
+      end)
     end
 
     test "run inside a transaction if the adapter supports ddl transactions" do
