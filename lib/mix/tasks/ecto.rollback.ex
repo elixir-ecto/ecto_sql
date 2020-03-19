@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     * `--no-deps-check` - does not check depedendencies before rolling back
 
-    * `--migrations-path` - the path to run the migrations from, defaults to
+    * `--migrations-path` - the path to load the migrations from, defaults to
       `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
       are loaded from all the given directories and sorted as if they were all in the same one.
 

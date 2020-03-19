@@ -43,9 +43,9 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
     * `--no-deps-check` - does not check depedendencies before running
 
-    * `--migrations-path` - the path to run the migrations from, defaults to
-    `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
-    are loaded from all the given directories and sorted as if they were in the same one.
+    * `--migrations-path` - the path to load the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
+      are loaded from all the given directories and sorted as if they were in the same one.
 
       Note, if you have previously run migrations from e.g. paths `a/` and `b/`, and now run `mix
       ecto.migrations --migrations-path a/` (omitting path `b/`), the migrations from the path
