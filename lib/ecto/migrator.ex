@@ -364,8 +364,8 @@ defmodule Ecto.Migrator do
   The second argument identifies where the migrations are sourced from.
   A list of binaries representing directories may be passed, in which case we will
   load all files following the "#{VERSION}_#{NAME}.exs" schema. The
-  `migration_source` may also be a list of a list of tuples that identify
-  the version number and migration modules to be run, for example:
+  `migration_source` may also be a list of tuples that identify the version
+  number and migration modules to be run, for example:
 
       Ecto.Migrator.run(Repo, [{0, MyApp.Migration1}, {1, MyApp.Migration2}, ...], :up, opts)
 
@@ -547,7 +547,8 @@ defmodule Ecto.Migrator do
   end
 
   defp migrations_for(migration_source) when is_list(migration_source) do
-    Enum.map(migration_source, fn
+    migration_source
+    |> Enum.flat_map(fn
       directory when is_binary(directory) ->
         Path.join([directory, "**", "*.exs"])
         |> Path.wildcard()
@@ -555,9 +556,8 @@ defmodule Ecto.Migrator do
         |> Enum.filter(& &1)
 
       {version, module} ->
-        {version, module, module}
+        [{version, module, module}]
     end)
-    |> List.flatten()
     |> Enum.sort()
   end
 

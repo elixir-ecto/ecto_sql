@@ -10,10 +10,8 @@ defmodule Mix.EctoSQL do
     paths = if paths == [], do: [Path.join(source_repo_priv(repo), "migrations")], else: paths
 
     if not Mix.Project.umbrella?() do
-      for path <- paths do
-        if not File.dir?(path) do
-          raise_missing_migrations(Path.relative_to_cwd(path), repo)
-        end
+      for path <- paths, not File.dir?(path) do
+        raise_missing_migrations(Path.relative_to_cwd(path), repo)
       end
     end
 
