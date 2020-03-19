@@ -2,17 +2,22 @@ defmodule Mix.EctoSQL do
   @moduledoc false
 
   @doc """
-  Ensures the given repository's migrations path exists on the file system.
+  Ensures the given repository's migrations paths exists on the file system.
   """
-  @spec ensure_migrations_path(Ecto.Repo.t, Keyword.t) :: String.t
-  def ensure_migrations_path(repo, opts) do
-    path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
+  @spec ensure_migrations_paths(Ecto.Repo.t, Keyword.t) :: String.t
+  def ensure_migrations_paths(repo, opts) do
+    paths = Keyword.get_values(opts, :migrations_path)
+    paths = if paths == [], do: [Path.join(source_repo_priv(repo), "migrations")], else: paths
 
-    if not Mix.Project.umbrella?() and not File.dir?(path) do
-      raise_missing_migrations(Path.relative_to_cwd(path), repo)
+    if not Mix.Project.umbrella?() do
+      for path <- paths do
+        if not File.dir?(path) do
+          raise_missing_migrations(Path.relative_to_cwd(path), repo)
+        end
+      end
     end
 
-    path
+    paths
   end
 
   defp raise_missing_migrations(path, repo) do

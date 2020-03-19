@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
     repo: [:keep, :string],
     no_compile: :boolean,
     no_deps_check: :boolean,
-    migrations_path: :string
+    migrations_path: :keep
   ]
 
   @moduledoc """
@@ -65,17 +65,32 @@ defmodule Mix.Tasks.Ecto.Rollback do
   ## Command line options
 
     * `-r`, `--repo` - the repo to rollback
-    * `--all` - revert all applied migrations
-    * `--step` / `-n` - revert n number of applied migrations
-    * `--to` - revert all migrations down to and including version
-    * `--quiet` - do not log migration commands
-    * `--prefix` - the prefix to run migrations on
-    * `--pool-size` - the pool size if the repository is started only for the task (defaults to 2)
-    * `--log-sql` - log the raw sql migrations are running
-    * `--no-compile` - does not compile applications before rolling back
-    * `--no-deps-check` - does not check depedendencies before rolling back
-    * `--migrations-path` - the path to run the migrations from
 
+    * `--all` - revert all applied migrations
+
+    * `--step` / `-n` - revert n number of applied migrations
+
+    * `--to` - revert all migrations down to and including version
+
+    * `--quiet` - do not log migration commands
+
+    * `--prefix` - the prefix to run migrations on
+
+    * `--pool-size` - the pool size if the repository is started only for the task (defaults to 2)
+
+    * `--log-sql` - log the raw sql migrations are running
+
+    * `--no-compile` - does not compile applications before rolling back
+
+    * `--no-deps-check` - does not check depedendencies before rolling back
+
+    * `--migrations-path` - the path to run the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
+      are loaded from all the given directories and sorted as if they were all in the same one.
+
+      Note, if you have migrations paths e.g. `a/` and `b/`, and run
+      `mix ecto.rollback --migrations-path a/`, only the latest migrations from `a/` will be
+      rolled back (even if `b/` contains the overall latest migrations.)
   """
 
   @impl true
@@ -99,14 +114,14 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     for repo <- repos do
       ensure_repo(repo, args)
-      path = ensure_migrations_path(repo, opts)
+      paths = ensure_migrations_paths(repo, opts)
       pool = repo.config[:pool]
 
       fun =
         if Code.ensure_loaded?(pool) and function_exported?(pool, :unboxed_run, 2) do
-          &pool.unboxed_run(&1, fn -> migrator.(&1, path, :down, opts) end)
+          &pool.unboxed_run(&1, fn -> migrator.(&1, paths, :down, opts) end)
         else
-          &migrator.(&1, path, :down, opts)
+          &migrator.(&1, paths, :down, opts)
         end
 
       case Ecto.Migrator.with_repo(repo, fun, [mode: :temporary] ++ opts) do

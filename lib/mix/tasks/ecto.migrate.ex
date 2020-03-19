@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
     repo: [:keep, :string],
     no_compile: :boolean,
     no_deps_check: :boolean,
-    migrations_path: :string
+    migrations_path: :keep
   ]
 
   @moduledoc """
@@ -69,18 +69,35 @@ defmodule Mix.Tasks.Ecto.Migrate do
   ## Command line options
 
     * `-r`, `--repo` - the repo to migrate
-    * `--all` - run all pending migrations
-    * `--step` / `-n` - run n number of pending migrations
-    * `--to` - run all migrations up to and including version
-    * `--quiet` - do not log migration commands
-    * `--prefix` - the prefix to run migrations on
-    * `--pool-size` - the pool size if the repository is started only for the task (defaults to 2)
-    * `--log-sql` - log the raw sql migrations are running
-    * `--strict-version-order` - abort when applying a migration with old timestamp
-    * `--no-compile` - does not compile applications before migrating
-    * `--no-deps-check` - does not check depedendencies before migrating
-    * `--migrations-path` - the path to run the migrations from, defaults to `priv/repo/migrations`
 
+    * `--all` - run all pending migrations
+
+    * `--step` / `-n` - run n number of pending migrations
+
+    * `--to` - run all migrations up to and including version
+
+    * `--quiet` - do not log migration commands
+
+    * `--prefix` - the prefix to run migrations on
+
+    * `--pool-size` - the pool size if the repository is started only for the task (defaults to 2)
+
+    * `--log-sql` - log the raw sql migrations are running
+
+    * `--strict-version-order` - abort when applying a migration with old timestamp
+
+    * `--no-compile` - does not compile applications before migrating
+
+    * `--no-deps-check` - does not check depedendencies before migrating
+
+    * `--migrations-path` - the path to run the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which case the
+      migrations are loaded from all the given directories in the order of their filenames
+      (ignoring the parent directory name.)
+
+      Note, if you have migrations paths e.g. `a/` and `b/`, and run
+      `mix ecto.migrate --migrations-path a/`, the latest migrations from `a/` will be run (even
+      if `b/` contains the overall latest migrations.)
   """
 
   @impl true
@@ -104,14 +121,14 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     for repo <- repos do
       ensure_repo(repo, args)
-      path = ensure_migrations_path(repo, opts)
+      paths = ensure_migrations_paths(repo, opts)
       pool = repo.config[:pool]
 
       fun =
         if Code.ensure_loaded?(pool) and function_exported?(pool, :unboxed_run, 2) do
-          &pool.unboxed_run(&1, fn -> migrator.(&1, path, :up, opts) end)
+          &pool.unboxed_run(&1, fn -> migrator.(&1, paths, :up, opts) end)
         else
-          &migrator.(&1, path, :up, opts)
+          &migrator.(&1, paths, :up, opts)
         end
 
       case Ecto.Migrator.with_repo(repo, fun, [mode: :temporary] ++ opts) do
