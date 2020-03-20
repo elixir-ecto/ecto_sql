@@ -1138,33 +1138,15 @@ defmodule Ecto.Adapters.TdsTest do
       ALTER TABLE [posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF__posts_title] DEFAULT (N'Untitled');
       ALTER TABLE [posts] ADD [author_id] BIGINT;
       ALTER TABLE [posts] ADD CONSTRAINT [posts_author_id_fkey] FOREIGN KEY ([author_id]) REFERENCES [author]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
-      IF (OBJECT_ID(N'[DF__posts_price]', 'D') IS NOT NULL)
-      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_price];
       ALTER TABLE [posts] ALTER COLUMN [price] numeric(8,2) NULL;
-      IF (OBJECT_ID(N'[DF__posts_cost]', 'D') IS NOT NULL)
-      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_cost];
-      ALTER TABLE [posts] ALTER COLUMN [cost] integer NULL;
-      ALTER TABLE [posts] ADD CONSTRAINT [DF__posts_cost] DEFAULT (NULL) FOR [cost];
-      IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL)
-      ALTER TABLE [posts] DROP CONSTRAINT [posts_permalink_id_fkey];
+      IF (OBJECT_ID(N'[DF__posts_cost]', 'D') IS NOT NULL) ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_cost]; ALTER TABLE [posts] ALTER COLUMN [cost] integer NULL;
       ALTER TABLE [posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL;
-      ALTER TABLE [posts] ADD CONSTRAINT [posts_permalink_id_fkey]
-      FOREIGN KEY ([permalink_id])
-      REFERENCES [permalinks]([id])
-      ON DELETE NO ACTION ON UPDATE NO ACTION;
-      IF (OBJECT_ID(N'[DF__posts_status]', 'D') IS NOT NULL)
-      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_status];
-      ALTER TABLE [posts] ALTER COLUMN [status] nvarchar(255);
-      IF (OBJECT_ID(N'[DF__posts_user_id]', 'D') IS NOT NULL)
-      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_user_id];
+      ALTER TABLE [posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+      ALTER TABLE [posts] ALTER COLUMN [status] nvarchar(255); ALTER TABLE [posts] DROP CONSTRAINT [posts_user_id_fkey];
       ALTER TABLE [posts] ALTER COLUMN [user_id] integer;
-      IF (OBJECT_ID(N'[posts_group_id_fkey]', 'F') IS NOT NULL)
       ALTER TABLE [posts] DROP CONSTRAINT [posts_group_id_fkey];
       ALTER TABLE [posts] ALTER COLUMN [group_id] BIGINT;
-      ALTER TABLE [posts] ADD CONSTRAINT [posts_group_id_fkey]
-      FOREIGN KEY ([group_id])
-      REFERENCES [groups]([gid])
-      ON DELETE NO ACTION ON UPDATE NO ACTION;
+      ALTER TABLE [posts] ADD CONSTRAINT [posts_group_id_fkey] FOREIGN KEY ([group_id]) REFERENCES [groups]([gid]) ON DELETE NO ACTION ON UPDATE NO ACTION;
       ALTER TABLE [posts] DROP COLUMN [summary];
       """
       |> remove_newlines
@@ -1187,18 +1169,10 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl(alter) ==
              [
                """
-               ALTER TABLE [foo].[posts]
-               ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF_foo_posts_title] DEFAULT (N'Untitled');
-               IF (OBJECT_ID(N'[DF_foo_posts_price]', 'D') IS NOT NULL)
-               ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_price];
+               ALTER TABLE [foo].[posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF_foo_posts_title] DEFAULT (N'Untitled');
                ALTER TABLE [foo].[posts] ALTER COLUMN [price] numeric(8,2);
-               IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL)
-               ALTER TABLE [foo].[posts] DROP CONSTRAINT [posts_permalink_id_fkey];
                ALTER TABLE [foo].[posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL;
-               ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey]
-               FOREIGN KEY ([permalink_id])
-               REFERENCES [foo].[permalinks]([id])
-               ON DELETE NO ACTION ON UPDATE NO ACTION;
+               ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [foo].[permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
                ALTER TABLE [foo].[posts] DROP COLUMN [summary];
                """
                |> remove_newlines
