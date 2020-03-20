@@ -222,18 +222,17 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan(:update_all)
 
     assert update_all(query) ==
-      ~s{WITH [target_rows] ([id]) AS } <>
-      ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id] OPTION (MERGE JOIN)) } <>
-      ~s{UPDATE s0 } <>
-      ~s{SET s0.[x] = 123 } <>
-      ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] } <>
-      ~s{FROM [schema] AS s0 } <>
-      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
+             ~s{WITH [target_rows] ([id]) AS } <>
+               ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id] OPTION (MERGE JOIN)) } <>
+               ~s{UPDATE s0 } <>
+               ~s{SET s0.[x] = 123 } <>
+               ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] } <>
+               ~s{FROM [schema] AS s0 } <>
+               ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
   end
 
   test "CTE delete_all" do
-    cte_query =
-      from(x in Schema, order_by: [asc: :id], limit: 10, select: %{id: x.id})
+    cte_query = from(x in Schema, order_by: [asc: :id], limit: 10, select: %{id: x.id})
 
     query =
       Schema
@@ -243,12 +242,12 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan(:delete_all)
 
     assert delete_all(query) ==
-      ~s{WITH [target_rows] ([id]) AS } <>
-      ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id]) } <>
-      ~s{DELETE s0 } <>
-      ~s{OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] } <>
-      ~s{FROM [schema] AS s0 } <>
-      ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
+             ~s{WITH [target_rows] ([id]) AS } <>
+               ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id]) } <>
+               ~s{DELETE s0 } <>
+               ~s{OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] } <>
+               ~s{FROM [schema] AS s0 } <>
+               ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
   end
 
   test "select" do
@@ -275,9 +274,12 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "aggregate filters" do
     query = Schema |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
-    assert_raise Ecto.QueryError, ~r/Tds adapter does not support aggregate filters in query/, fn ->
-      all(query)
-    end
+
+    assert_raise Ecto.QueryError,
+                 ~r/Tds adapter does not support aggregate filters in query/,
+                 fn ->
+                   all(query)
+                 end
   end
 
   test "distinct" do
@@ -296,7 +298,9 @@ defmodule Ecto.Adapters.TdsTest do
     assert_raise Ecto.QueryError,
                  ~r"DISTINCT with multiple columns is not supported by MsSQL",
                  fn ->
-                   query = Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
+                   query =
+                     Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
+
                    all(query)
                  end
   end
@@ -343,7 +347,9 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "union and union all" do
-    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+    base_query =
+      Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+
     union_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     union_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
@@ -365,7 +371,9 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "except and except all" do
-    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+    base_query =
+      Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+
     except_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     except_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
@@ -387,7 +395,9 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "intersect and intersect all" do
-    base_query = Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+    base_query =
+      Schema |> select([r], r.x) |> order_by(fragment("rand")) |> offset(10) |> limit(5)
+
     intersect_query1 = Schema |> select([r], r.y) |> order_by([r], r.y) |> offset(20) |> limit(40)
     intersect_query2 = Schema |> select([r], r.z) |> order_by([r], r.z) |> offset(30) |> limit(60)
 
@@ -399,7 +409,8 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{INTERSECT (SELECT s0.[z] FROM [schema] AS s0 ORDER BY s0.[z] OFFSET 30 ROW FETCH NEXT 60 ROWS ONLY) } <>
                ~s{ORDER BY rand OFFSET 10 ROW FETCH NEXT 5 ROWS ONLY}
 
-    query = base_query |> intersect_all(^intersect_query1) |> intersect_all(^intersect_query2) |> plan()
+    query =
+      base_query |> intersect_all(^intersect_query1) |> intersect_all(^intersect_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0.[x] FROM [schema] AS s0 } <>
@@ -419,7 +430,12 @@ defmodule Ecto.Adapters.TdsTest do
     end
 
     query =
-      Schema |> order_by([r], r.x) |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
+      Schema
+      |> order_by([r], r.x)
+      |> offset([r], 5)
+      |> limit([r], 3)
+      |> select([], true)
+      |> plan()
 
     assert all(query) ==
              ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 ORDER BY s0.[x] OFFSET 5 ROW FETCH NEXT 3 ROWS ONLY}
@@ -446,8 +462,9 @@ defmodule Ecto.Adapters.TdsTest do
              ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'''--  ')}
 
     query = "schema" |> where(foo: "ok str '; select 1; --") |> select([], true) |> plan()
+
     assert all(query) ==
-      ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'ok str ''; select 1; --')}
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'ok str ''; select 1; --')}
 
     query = "schema" |> where(foo: "'") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'''')}
@@ -515,8 +532,10 @@ defmodule Ecto.Adapters.TdsTest do
     query = "schema" |> where(foo: "abc") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = N'abc')}
 
-    query = "schema" |> where(foo: <<0,?a,?b,?c>>) |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 0x00616263)}
+    query = "schema" |> where(foo: <<0, ?a, ?b, ?c>>) |> select([], true) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 0x00616263)}
 
     query = "schema" |> where(foo: 123) |> select([], true) |> plan()
     assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 WHERE (s0.[foo] = 123)}
@@ -558,7 +577,9 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) == ~s{SELECT 1 = ANY(foo) FROM [schema] AS s0}
 
     query = Schema |> select([e], e.x == ^0 or e.x in ^[1, 2, 3] or e.x == ^4) |> plan()
-    assert all(query) == ~s{SELECT ((s0.[x] = @1) OR s0.[x] IN (@2,@3,@4)) OR (s0.[x] = @5) FROM [schema] AS s0}
+
+    assert all(query) ==
+             ~s{SELECT ((s0.[x] = @1) OR s0.[x] IN (@2,@3,@4)) OR (s0.[x] = @5) FROM [schema] AS s0}
   end
 
   test "having" do
@@ -613,7 +634,8 @@ defmodule Ecto.Adapters.TdsTest do
     union = "schema1" |> select([m], {m.id, ^true}) |> where([], fragment("?", ^5))
     union_all = "schema2" |> select([m], {m.id, ^false}) |> where([], fragment("?", ^6))
 
-    query = "schema"
+    query =
+      "schema"
       |> with_cte("cte1", as: ^cte1)
       |> select([m], {m.id, ^true})
       |> join(:inner, [], Schema2, on: fragment("?", ^true))
@@ -633,27 +655,30 @@ defmodule Ecto.Adapters.TdsTest do
 
     result =
       ~s{WITH [cte1] ([id], [smth]) AS } <>
-      ~s{(SELECT s0.[id] AS [id], @1 AS [smth] FROM [schema1] AS s0 WHERE (@2)) } <>
-      ~s{SELECT s0.[id], @3 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON @4 } <>
-      ~s{INNER JOIN [schema2] AS s2 ON @5 } <>
-      ~s{WHERE (@6) AND (@7) } <>
-      ~s{GROUP BY @8, @9 HAVING (@10) AND (@11) } <>
-      ~s{UNION (SELECT s0.[id], @12 FROM [schema1] AS s0 WHERE (@13)) } <>
-      ~s{UNION ALL (SELECT s0.[id], @14 FROM [schema2] AS s0 WHERE (@15)) } <>
-      ~s{ORDER BY @16 OFFSET @18 ROW FETCH NEXT @17 ROWS ONLY}
+        ~s{(SELECT s0.[id] AS [id], @1 AS [smth] FROM [schema1] AS s0 WHERE (@2)) } <>
+        ~s{SELECT s0.[id], @3 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON @4 } <>
+        ~s{INNER JOIN [schema2] AS s2 ON @5 } <>
+        ~s{WHERE (@6) AND (@7) } <>
+        ~s{GROUP BY @8, @9 HAVING (@10) AND (@11) } <>
+        ~s{UNION (SELECT s0.[id], @12 FROM [schema1] AS s0 WHERE (@13)) } <>
+        ~s{UNION ALL (SELECT s0.[id], @14 FROM [schema2] AS s0 WHERE (@15)) } <>
+        ~s{ORDER BY @16 OFFSET @18 ROW FETCH NEXT @17 ROWS ONLY}
 
     assert all(query) == String.trim_trailing(result)
   end
 
   test "fragments allow ? to be escaped with backslash" do
     query =
-      plan  from(e in "schema",
-        where: fragment("? = \"query\\?\"", e.start_time),
-        select: true)
+      plan(
+        from(e in "schema",
+          where: fragment("? = \"query\\?\"", e.start_time),
+          select: true
+        )
+      )
 
     result =
       "SELECT CAST(1 as bit) FROM [schema] AS s0 " <>
-      "WHERE (s0.[start_time] = \"query?\")"
+        "WHERE (s0.[start_time] = \"query?\")"
 
     assert all(query) == String.trim(result)
   end
@@ -697,8 +722,9 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "update all with returning" do
     query = from(m in Schema, update: [set: [x: 0]]) |> select([m], m) |> plan(:update_all)
+
     assert update_all(query) ==
-           ~s{UPDATE s0 SET s0.[x] = 0 OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] FROM [schema] AS s0}
+             ~s{UPDATE s0 SET s0.[x] = 0 OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] FROM [schema] AS s0}
   end
 
   test "update all with prefix" do
@@ -709,7 +735,9 @@ defmodule Ecto.Adapters.TdsTest do
              ~s{UPDATE s0 SET s0.[x] = 0 FROM [prefix].[schema] AS s0}
 
     query =
-      from(m in Schema, prefix: "first", update: [set: [x: 0]]) |> Map.put(:prefix, "prefix") |> plan(:update_all)
+      from(m in Schema, prefix: "first", update: [set: [x: 0]])
+      |> Map.put(:prefix, "prefix")
+      |> plan(:update_all)
 
     assert update_all(query) ==
              ~s{UPDATE s0 SET s0.[x] = 0 FROM [first].[schema] AS s0}
@@ -735,8 +763,10 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "delete all with returning" do
-    query = Schema |> Queryable.to_query |> select([m], m) |> plan()
-    assert delete_all(query) == ~s{DELETE s0 OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] FROM [schema] AS s0}
+    query = Schema |> Queryable.to_query() |> select([m], m) |> plan()
+
+    assert delete_all(query) ==
+             ~s{DELETE s0 OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] FROM [schema] AS s0}
   end
 
   test "delete all with prefix" do
@@ -750,7 +780,8 @@ defmodule Ecto.Adapters.TdsTest do
   ## Joins
 
   test "join" do
-    query = Schema |> join(:inner, [p], q in Schema2, on: p.x == q.z) |> select([], true) |> plan()
+    query =
+      Schema |> join(:inner, [p], q in Schema2, on: p.x == q.z) |> select([], true) |> plan()
 
     assert all(query) ==
              ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z]}
@@ -772,7 +803,8 @@ defmodule Ecto.Adapters.TdsTest do
            |> join(:inner, [p], q in Schema2, hints: ["USE INDEX FOO", "USE INDEX BAR"])
            |> select([], true)
            |> plan()
-           |> all() == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 WITH (USE INDEX FOO, USE INDEX BAR) ON 1 = 1}
+           |> all() ==
+             ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 INNER JOIN [schema2] AS s1 WITH (USE INDEX FOO, USE INDEX BAR) ON 1 = 1}
   end
 
   test "join with nothing bound" do
@@ -821,27 +853,31 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "join with fragment and on defined" do
-    query = Schema
-            |> join(:inner, [p], q in fragment("SELECT * FROM schema2"), on: q.id == p.id)
-            |> select([p], {p.id, ^0})
-            |> plan()
+    query =
+      Schema
+      |> join(:inner, [p], q in fragment("SELECT * FROM schema2"), on: q.id == p.id)
+      |> select([p], {p.id, ^0})
+      |> plan()
+
     assert all(query) ==
-           "SELECT s0.[id], @1 FROM [schema] AS s0 INNER JOIN (SELECT * FROM schema2) AS f1 ON f1.[id] = s0.[id]"
+             "SELECT s0.[id], @1 FROM [schema] AS s0 INNER JOIN (SELECT * FROM schema2) AS f1 ON f1.[id] = s0.[id]"
   end
 
   test "join with query interpolation" do
     inner = Ecto.Queryable.to_query(Schema2)
     query = from(p in Schema, left_join: c in ^inner, select: {p.id, c.id}) |> plan()
+
     assert all(query) ==
-           "SELECT s0.[id], s1.[id] FROM [schema] AS s0 LEFT OUTER JOIN [schema2] AS s1 ON 1 = 1"
+             "SELECT s0.[id], s1.[id] FROM [schema] AS s0 LEFT OUTER JOIN [schema2] AS s1 ON 1 = 1"
   end
 
   test "join produces correct bindings" do
     query = from(p in Schema, join: c in Schema2, on: true)
     query = from(p in query, join: c in Schema2, on: true, select: {p.id, c.id})
     query = plan(query)
+
     assert all(query) ==
-           "SELECT s0.[id], s2.[id] FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON 1 = 1 INNER JOIN [schema2] AS s2 ON 1 = 1"
+             "SELECT s0.[id], s2.[id] FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON 1 = 1 INNER JOIN [schema2] AS s2 ON 1 = 1"
   end
 
   ## Associations
@@ -888,8 +924,19 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "insert with query" do
     select_query = from("schema", select: [:id]) |> plan(:all)
-    query = insert(nil, "schema", [:x, :y, :z], [[:x, {select_query, 2}, :z], [nil, nil, {select_query, 1}]], {:raise, [], []}, [])
-    assert query == ~s{INSERT INTO [schema] ([x], [y], [z]) VALUES (@1, (SELECT s0.[id] FROM [schema] AS s0), @4),(DEFAULT, DEFAULT, (SELECT s0.[id] FROM [schema] AS s0))}
+
+    query =
+      insert(
+        nil,
+        "schema",
+        [:x, :y, :z],
+        [[:x, {select_query, 2}, :z], [nil, nil, {select_query, 1}]],
+        {:raise, [], []},
+        []
+      )
+
+    assert query ==
+             ~s{INSERT INTO [schema] ([x], [y], [z]) VALUES (@1, (SELECT s0.[id] FROM [schema] AS s0), @4),(DEFAULT, DEFAULT, (SELECT s0.[id] FROM [schema] AS s0))}
   end
 
   test "update" do
@@ -916,8 +963,8 @@ defmodule Ecto.Adapters.TdsTest do
 
   ## DDL
 
-  import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3,
-                                constraint: 2, constraint: 3]
+  import Ecto.Migration,
+    only: [table: 1, table: 2, index: 2, index: 3, constraint: 2, constraint: 3]
 
   test "executing a string during migration" do
     assert execute_ddl("example") == ["example"]
@@ -926,17 +973,20 @@ defmodule Ecto.Adapters.TdsTest do
   test "create empty table" do
     create = {:create, table(:posts), []}
 
-    assert execute_ddl(create) == ["CREATE TABLE [posts]"]
+    assert execute_ddl(create) == ["CREATE TABLE [posts]; "]
   end
 
   test "create table" do
-    create = {:create, table(:posts),
-               [{:add, :name, :string, [default: "Untitled", size: 20, null: false]},
-                {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
-                {:add, :on_hand, :integer, [default: 0, null: true]},
-                {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
-                {:add, :published_at, :"datetime(6)", [null: true]},
-                {:add, :is_active, :boolean, [default: true]}]}
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :name, :string, [default: "Untitled", size: 20, null: false]},
+         {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
+         {:add, :on_hand, :integer, [default: 0, null: true]},
+         {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
+         {:add, :published_at, :"datetime(6)", [null: true]},
+         {:add, :is_active, :boolean, [default: true]}
+       ]}
 
     assert execute_ddl(create) == [
              """
@@ -945,48 +995,63 @@ defmodule Ecto.Adapters.TdsTest do
              [on_hand] integer NULL CONSTRAINT [DF__posts_on_hand] DEFAULT (0),
              [likes] smallint unsigned NOT NULL CONSTRAINT [DF__posts_likes] DEFAULT (0),
              [published_at] datetime(6) NULL,
-             [is_active] bit CONSTRAINT [DF__posts_is_active] DEFAULT (1))
+             [is_active] bit CONSTRAINT [DF__posts_is_active] DEFAULT (1));
              """
              |> remove_newlines
+             |> Kernel.<>(" ")
            ]
   end
 
   test "create table with prefix" do
-    create = {:create, table(:posts, prefix: :foo),
-               [{:add, :category_0, %Reference{table: :categories}, []}]}
+    create =
+      {:create, table(:posts, prefix: :foo),
+       [{:add, :category_0, %Reference{table: :categories}, []}]}
 
-    assert execute_ddl(create) == ["""
-    CREATE TABLE [foo].[posts] ([category_0] BIGINT,
-    CONSTRAINT [posts_category_0_fkey] FOREIGN KEY ([category_0]) REFERENCES [foo].[categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION)
-    """ |> remove_newlines]
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE [foo].[posts] ([category_0] BIGINT,
+             CONSTRAINT [posts_category_0_fkey] FOREIGN KEY ([category_0]) REFERENCES [foo].[categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION);
+             """
+             |> remove_newlines
+             |> Kernel.<>(" ")
+           ]
   end
 
   test "create table with reference" do
-    create = {:create, table(:posts),
-               [{:add, :id, :serial, [primary_key: true]},
-                {:add, :category_0, %Reference{table: :categories}, []},
-                {:add, :category_1, %Reference{table: :categories, name: :foo_bar}, []},
-                {:add, :category_2, %Reference{table: :categories, on_delete: :nothing}, []},
-                {:add, :category_3, %Reference{table: :categories, on_delete: :delete_all}, [null: false]},
-                {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
-                {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all}, []}]}
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :id, :serial, [primary_key: true]},
+         {:add, :category_0, %Reference{table: :categories}, []},
+         {:add, :category_1, %Reference{table: :categories, name: :foo_bar}, []},
+         {:add, :category_2, %Reference{table: :categories, on_delete: :nothing}, []},
+         {:add, :category_3, %Reference{table: :categories, on_delete: :delete_all},
+          [null: false]},
+         {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
+         {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all},
+          []}
+       ]}
 
-    assert execute_ddl(create) == ["""
-    CREATE TABLE [posts] ([id] int IDENTITY(1,1),
-    [category_0] BIGINT,
-    CONSTRAINT [posts_category_0_fkey] FOREIGN KEY ([category_0]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    [category_1] BIGINT,
-    CONSTRAINT [foo_bar] FOREIGN KEY ([category_1]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    [category_2] BIGINT,
-    CONSTRAINT [posts_category_2_fkey] FOREIGN KEY ([category_2]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    [category_3] BIGINT NOT NULL,
-    CONSTRAINT [posts_category_3_fkey] FOREIGN KEY ([category_3]) REFERENCES [categories]([id]) ON DELETE CASCADE ON UPDATE NO ACTION,
-    [category_4] BIGINT,
-    CONSTRAINT [posts_category_4_fkey] FOREIGN KEY ([category_4]) REFERENCES [categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
-    [category_5] BIGINT,
-    CONSTRAINT [posts_category_5_fkey] FOREIGN KEY ([category_5]) REFERENCES [foo].[categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
-    CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]))
-    """ |> remove_newlines]
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE [posts] ([id] int IDENTITY(1,1),
+             [category_0] BIGINT,
+             CONSTRAINT [posts_category_0_fkey] FOREIGN KEY ([category_0]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+             [category_1] BIGINT,
+             CONSTRAINT [foo_bar] FOREIGN KEY ([category_1]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+             [category_2] BIGINT,
+             CONSTRAINT [posts_category_2_fkey] FOREIGN KEY ([category_2]) REFERENCES [categories]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+             [category_3] BIGINT NOT NULL,
+             CONSTRAINT [posts_category_3_fkey] FOREIGN KEY ([category_3]) REFERENCES [categories]([id]) ON DELETE CASCADE ON UPDATE NO ACTION,
+             [category_4] BIGINT,
+             CONSTRAINT [posts_category_4_fkey] FOREIGN KEY ([category_4]) REFERENCES [categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
+             [category_5] BIGINT,
+             CONSTRAINT [posts_category_5_fkey] FOREIGN KEY ([category_5]) REFERENCES [foo].[categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
+             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]));
+             """
+             |> remove_newlines
+             |> Kernel.<>(" ")
+           ]
   end
 
   test "create table with options" do
@@ -998,9 +1063,10 @@ defmodule Ecto.Adapters.TdsTest do
              [
                """
                CREATE TABLE [posts] ([id] int IDENTITY(1,1), [created_at] datetime,
-               CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id])) WITH FOO=BAR
+               CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id])) WITH FOO=BAR;
                """
                |> remove_newlines
+               |> Kernel.<>(" ")
              ]
   end
 
@@ -1016,36 +1082,39 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl(create) == [
              """
              CREATE TABLE [posts] ([a] integer, [b] integer, [name] nvarchar(255),
-             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([a], [b]))
+             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([a], [b]));
              """
              |> remove_newlines
+             |> Kernel.<>(" ")
            ]
   end
 
   test "create table with binary column and UTF-8 default" do
-    create = {:create, table(:blobs),
-              [{:add, :blob, :binary, [default: "foo"]}]}
+    create = {:create, table(:blobs), [{:add, :blob, :binary, [default: "foo"]}]}
 
     assert execute_ddl(create) ==
-             ["CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'foo'))"]
+             [
+               "CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'foo')); "
+             ]
   end
 
   test "create table with binary column and hex bytea literal default" do
-    create = {:create, table(:blobs),
-              [{:add, :blob, :binary, [default: "\\x666F6F"]}]}
+    create = {:create, table(:blobs), [{:add, :blob, :binary, [default: "\\x666F6F"]}]}
 
     assert execute_ddl(create) ==
-             ["CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'\\x666F6F'))"]
+             [
+               "CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'\\x666F6F')); "
+             ]
   end
 
   test "drop table" do
     drop = {:drop, table(:posts)}
-    assert execute_ddl(drop) == ["DROP TABLE [posts]"]
+    assert execute_ddl(drop) == ["DROP TABLE [posts]; "]
   end
 
   test "drop table with prefixes" do
     drop = {:drop, table(:posts, prefix: :foo)}
-    assert execute_ddl(drop) == ["DROP TABLE [foo].[posts]"]
+    assert execute_ddl(drop) == ["DROP TABLE [foo].[posts]; "]
   end
 
   test "alter table" do
@@ -1057,6 +1126,10 @@ defmodule Ecto.Adapters.TdsTest do
          {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
          {:modify, :cost, :integer, [null: true, default: nil]},
          {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
+         {:modify, :status, :string, from: :integer},
+         {:modify, :user_id, :integer, from: %Reference{table: :users}},
+         {:modify, :group_id, %Reference{table: :groups, column: :gid},
+          from: %Reference{table: :groups}},
          {:remove, :summary}
        ]}
 
@@ -1065,14 +1138,33 @@ defmodule Ecto.Adapters.TdsTest do
       ALTER TABLE [posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF__posts_title] DEFAULT (N'Untitled');
       ALTER TABLE [posts] ADD [author_id] BIGINT;
       ALTER TABLE [posts] ADD CONSTRAINT [posts_author_id_fkey] FOREIGN KEY ([author_id]) REFERENCES [author]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
-      IF (OBJECT_ID(N'[DF__posts_price]', 'D') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_price];  END;
+      IF (OBJECT_ID(N'[DF__posts_price]', 'D') IS NOT NULL)
+      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_price];
       ALTER TABLE [posts] ALTER COLUMN [price] numeric(8,2) NULL;
-      IF (OBJECT_ID(N'[DF__posts_cost]', 'D') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_cost];  END;
+      IF (OBJECT_ID(N'[DF__posts_cost]', 'D') IS NOT NULL)
+      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_cost];
       ALTER TABLE [posts] ALTER COLUMN [cost] integer NULL;
       ALTER TABLE [posts] ADD CONSTRAINT [DF__posts_cost] DEFAULT (NULL) FOR [cost];
-      IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [posts] DROP CONSTRAINT [posts_permalink_id_fkey];  END;
+      IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL)
+      ALTER TABLE [posts] DROP CONSTRAINT [posts_permalink_id_fkey];
       ALTER TABLE [posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL;
-      ALTER TABLE [posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+      ALTER TABLE [posts] ADD CONSTRAINT [posts_permalink_id_fkey]
+      FOREIGN KEY ([permalink_id])
+      REFERENCES [permalinks]([id])
+      ON DELETE NO ACTION ON UPDATE NO ACTION;
+      IF (OBJECT_ID(N'[DF__posts_status]', 'D') IS NOT NULL)
+      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_status];
+      ALTER TABLE [posts] ALTER COLUMN [status] nvarchar(255);
+      IF (OBJECT_ID(N'[DF__posts_user_id]', 'D') IS NOT NULL)
+      ALTER TABLE [posts] DROP CONSTRAINT [DF__posts_user_id];
+      ALTER TABLE [posts] ALTER COLUMN [user_id] integer;
+      IF (OBJECT_ID(N'[posts_group_id_fkey]', 'F') IS NOT NULL)
+      ALTER TABLE [posts] DROP CONSTRAINT [posts_group_id_fkey];
+      ALTER TABLE [posts] ALTER COLUMN [group_id] BIGINT;
+      ALTER TABLE [posts] ADD CONSTRAINT [posts_group_id_fkey]
+      FOREIGN KEY ([group_id])
+      REFERENCES [groups]([gid])
+      ON DELETE NO ACTION ON UPDATE NO ACTION;
       ALTER TABLE [posts] DROP COLUMN [summary];
       """
       |> remove_newlines
@@ -1095,10 +1187,18 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl(alter) ==
              [
                """
-               ALTER TABLE [foo].[posts] ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF_foo_posts_title] DEFAULT (N'Untitled');
-               IF (OBJECT_ID(N'[DF_foo_posts_price]', 'D') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_price];  END;
+               ALTER TABLE [foo].[posts]
+               ADD [title] nvarchar(100) NOT NULL CONSTRAINT [DF_foo_posts_title] DEFAULT (N'Untitled');
+               IF (OBJECT_ID(N'[DF_foo_posts_price]', 'D') IS NOT NULL)
+               ALTER TABLE [foo].[posts] DROP CONSTRAINT [DF_foo_posts_price];
                ALTER TABLE [foo].[posts] ALTER COLUMN [price] numeric(8,2);
-               IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL) BEGIN ALTER TABLE [foo].[posts] DROP CONSTRAINT [posts_permalink_id_fkey];  END; ALTER TABLE [foo].[posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL; ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [foo].[permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
+               IF (OBJECT_ID(N'[posts_permalink_id_fkey]', 'F') IS NOT NULL)
+               ALTER TABLE [foo].[posts] DROP CONSTRAINT [posts_permalink_id_fkey];
+               ALTER TABLE [foo].[posts] ALTER COLUMN [permalink_id] BIGINT NOT NULL;
+               ALTER TABLE [foo].[posts] ADD CONSTRAINT [posts_permalink_id_fkey]
+               FOREIGN KEY ([permalink_id])
+               REFERENCES [foo].[permalinks]([id])
+               ON DELETE NO ACTION ON UPDATE NO ACTION;
                ALTER TABLE [foo].[posts] DROP COLUMN [summary];
                """
                |> remove_newlines
@@ -1108,32 +1208,55 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "create check constraint" do
     create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0")}
-    assert execute_ddl(create) ==
-      [~s|ALTER TABLE [products] ADD CONSTRAINT [price_must_be_positive] CHECK (price > 0); |]
 
-    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0", prefix: "foo")}
     assert execute_ddl(create) ==
-      [~s|ALTER TABLE [foo].[products] ADD CONSTRAINT [price_must_be_positive] CHECK (price > 0); |]
+             [
+               ~s|ALTER TABLE [products] ADD CONSTRAINT [price_must_be_positive] CHECK (price > 0); |
+             ]
+
+    create =
+      {:create,
+       constraint(:products, "price_must_be_positive", check: "price > 0", prefix: "foo")}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|ALTER TABLE [foo].[products] ADD CONSTRAINT [price_must_be_positive] CHECK (price > 0); |
+             ]
   end
 
   test "drop constraint" do
     drop = {:drop, constraint(:products, "price_must_be_positive")}
+
     assert execute_ddl(drop) ==
-      [~s|ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; |]
+             [~s|ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; |]
 
     drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo")}
+
     assert execute_ddl(drop) ==
-      [~s|ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; |]
+             [~s|ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; |]
   end
 
   test "drop_if_exists constraint" do
     drop = {:drop_if_exists, constraint(:products, "price_must_be_positive")}
+
     assert execute_ddl(drop) ==
-      [~s|IF NOT EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] WHERE [CONSTRAINT_NAME] = N'price_must_be_positive') ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; |]
+             [
+               "IF NOT EXISTS (" <>
+                 "SELECT * FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] " <>
+                 "WHERE [CONSTRAINT_NAME] = N'price_must_be_positive') " <>
+                 "ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; "
+             ]
 
     drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo")}
+
     assert execute_ddl(drop) ==
-      [~s|IF NOT EXISTS (SELECT * FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] WHERE [CONSTRAINT_NAME] = N'price_must_be_positive' AND [CONSTRAINT_SCHEMA] = N'foo') ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; |]
+             [
+               "IF NOT EXISTS (" <>
+                 "SELECT * FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] " <>
+                 "WHERE [CONSTRAINT_NAME] = N'price_must_be_positive' " <>
+                 "AND [CONSTRAINT_SCHEMA] = N'foo') " <>
+                 "ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; "
+             ]
   end
 
   test "rename table" do
@@ -1231,14 +1354,14 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "drop index" do
     drop = {:drop, index(:posts, [:id], name: "posts$main")}
-    assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts];|]
+    assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts]; |]
   end
 
   test "drop index with prefix" do
     drop = {:drop, index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo)}
 
     assert execute_ddl(drop) ==
-             [~s|DROP INDEX [posts_category_id_permalink_index] ON [foo].[posts];|]
+             [~s|DROP INDEX [posts_category_id_permalink_index] ON [foo].[posts]; |]
   end
 
   test "drop index with prefix if exists" do
@@ -1255,15 +1378,16 @@ defmodule Ecto.Adapters.TdsTest do
                DROP INDEX [posts_category_id_permalink_index] ON [foo].[posts];
                """
                |> remove_newlines
+               |> Kernel.<>(" ")
              ]
   end
 
   test "drop index asserting concurrency" do
     drop = {:drop, index(:posts, [:id], name: "posts$main", concurrently: true)}
-    assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts] LOCK=NONE;|]
+    assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts] LOCK=NONE; |]
   end
 
-  defp remove_newlines(string) do
+  defp remove_newlines(string) when is_binary(string) do
     string |> String.trim() |> String.replace("\n", " ")
   end
 end

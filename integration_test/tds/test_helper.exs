@@ -36,8 +36,10 @@ ExUnit.start(
     :union_with_literals,
     # inline queries can't use order by
     :inline_order_by,
-    # running destruction of PK columns requires that constraint is dropped first
+    # running destruction of PK columns requires that PK constraint is dropped first
     :alter_primary_key,
+    # running destruction of PK columns requires that PK constraint is dropped first
+    # accessing column. This is same issue as :alter_primary_key
     :modify_column_with_from,
     # below 2 exclusions (in theory) requires filtered unique index on permalinks table post_id column e.g.
     #   CREATE UNIQUE NONCLUSTERED INDEX idx_tbl_TestUnique_ID
@@ -142,7 +144,8 @@ end
 # :dbg.start()
 # :dbg.tracer()
 # :dbg.p(:all,:c)
-# :dbg.tpl(Ecto.Adapters.Tds.Connection, :prepare_execute, :x)
+# :dbg.tpl(Ecto.Adapters.Tds.Connection, :column_change, :x)
+# :dbg.tpl(Ecto.Adapters.Tds.Connection, :execute_ddl, :x)
 # :dbg.tpl(Ecto.Adapters.Tds.Connection, :all, :x)
 # :dbg.tpl(Tds.Parameter, :prepare_params, :x)
 # :dbg.tpl(Tds.Parameter, :prepared_params, :x)

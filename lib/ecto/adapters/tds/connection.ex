@@ -922,24 +922,26 @@ if Code.ensure_loaded?(Tds) do
           else: table.name
 
       table_structure =
-        case column_definitions(table, columns) ++
-               pk_definitions(
-                 columns,
-                 ", CONSTRAINT [#{pk_name}_pkey] "
-               ) do
+        table
+        |> column_definitions(columns)
+        |> Kernel.++(pk_definitions(columns, ", CONSTRAINT [#{pk_name}_pkey] "))
+        |> case do
           [] -> []
           list -> [" (", list, ?)]
         end
 
+      create_if_not_exists =
+        if_table_not_exists(command == :create_if_not_exists, table.name, prefix)
+
       [
         [
-          if_table_not_exists(command == :create_if_not_exists, table.name, prefix),
+          create_if_not_exists,
           "CREATE TABLE ",
           quote_table(prefix, table.name),
           table_structure,
           engine_expr(table.engine),
           options_expr(table.options),
-          if_do(command == :create_if_not_exists, "END ")
+          "; "
         ]
       ]
     end
@@ -952,7 +954,7 @@ if Code.ensure_loaded?(Tds) do
           if_table_exists(command == :drop_if_exists, table.name, prefix),
           "DROP TABLE ",
           quote_table(prefix, table.name),
-          if_do(command == :drop_if_exists, "END ")
+          "; "
         ]
       ]
     end
@@ -1077,7 +1079,7 @@ if Code.ensure_loaded?(Tds) do
           " ON ",
           quote_table(prefix, index.table),
           if_do(index.concurrently, " LOCK=NONE"),
-          ";"
+          "; "
         ]
       ]
     end
@@ -1221,22 +1223,15 @@ if Code.ensure_loaded?(Tds) do
           " ",
           column_type(type, opts),
           column_options(table, column_name, opts),
-          " END; "
+          "; "
         ]
       ]
     end
 
     defp column_change(statement_prefix, table, {:modify, name, %Reference{} = ref, opts}) do
-      fk_name = reference_name(ref, table, name)
-
       [
-        [
-          if_object_exists(
-            fk_name,
-            "F",
-            "#{statement_prefix}DROP CONSTRAINT #{fk_name}; "
-          )
-        ],
+        drop_constraint_from_expr(opts[:from], table, name, statement_prefix),
+        maybe_drop_default_expr(statement_prefix, table, name, opts),
         [
           statement_prefix,
           "ALTER COLUMN ",
@@ -1246,15 +1241,15 @@ if Code.ensure_loaded?(Tds) do
           column_options(table, name, opts),
           "; "
         ],
-        [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "]
+        [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "],
+        [column_default_value(statement_prefix, table, name, opts)]
       ]
     end
 
     defp column_change(statement_prefix, table, {:modify, name, type, opts}) do
-      df_name = constraint_name("DF", table, name)
-
       [
-        if_exists_drop_constraint(df_name, statement_prefix),
+        drop_constraint_from_expr(opts[:from], table, name, statement_prefix),
+        maybe_drop_default_expr(statement_prefix, table, name, opts),
         [
           statement_prefix,
           "ALTER COLUMN ",
@@ -1283,7 +1278,7 @@ if Code.ensure_loaded?(Tds) do
           statement_prefix,
           "DROP COLUMN ",
           quote_name(column_name),
-          " END; "
+          "; "
         ]
       ]
     end
@@ -1307,8 +1302,8 @@ if Code.ensure_loaded?(Tds) do
     defp null_expr(true), do: [" NULL"]
     defp null_expr(_), do: []
 
-    defp default_expr(table, name, {:ok, nil}),
-      do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (NULL)"]
+    defp default_expr(_table, _name, {:ok, nil}),
+      do: []
 
     defp default_expr(table, name, {:ok, literal}) when is_binary(literal),
       do: [
@@ -1338,6 +1333,22 @@ if Code.ensure_loaded?(Tds) do
       do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (", expr, ")"]
 
     defp default_expr(_table, _name, :error), do: []
+
+    defp drop_constraint_from_expr(%Reference{} = ref, table, name, stm_prefix) do
+      [stm_prefix, "DROP CONSTRAINT ", reference_name(ref, table, name), "; "]
+    end
+
+    defp drop_constraint_from_expr(_, _, _, _),
+      do: []
+
+    defp maybe_drop_default_expr(statement_prefix, table, name, opts) do
+      if Keyword.has_key?(opts, :default) do
+        constraint_name = constraint_name("DF", table, name)
+        if_exists_drop_constraint(constraint_name, statement_prefix)
+      else
+        []
+      end
+    end
 
     defp constraint_name(type, table, name),
       do: quote_name("#{type}_#{table.prefix}_#{table.name}_#{name}")
@@ -1554,7 +1565,7 @@ if Code.ensure_loaded?(Tds) do
           "#{prefix}",
           ?'
         ]),
-        ") BEGIN "
+        ") "
       ])
     end
 
@@ -1572,7 +1583,7 @@ if Code.ensure_loaded?(Tds) do
           "#{prefix}",
           ?'
         ]),
-        ") BEGIN "
+        ") "
       ])
     end
 
@@ -1583,7 +1594,7 @@ if Code.ensure_loaded?(Tds) do
         "[object_id] = OBJECT_ID(N'",
         if_do(prefix != nil, ["#{prefix}", ?.]),
         "#{table}",
-        "')) BEGIN "
+        "')) "
       ]
     end
 
@@ -1594,7 +1605,7 @@ if Code.ensure_loaded?(Tds) do
         "[object_id] = OBJECT_ID(N'",
         if_do(prefix != nil, ["#{prefix}", ?.]),
         "#{table}",
-        "')) BEGIN "
+        "')) "
       ]
     end
 
@@ -1646,9 +1657,8 @@ if Code.ensure_loaded?(Tds) do
         name,
         "', '",
         type,
-        "') IS NOT NULL) BEGIN ",
-        statement,
-        " END; "
+        "') IS NOT NULL) ",
+        statement
       ]
     end
 
