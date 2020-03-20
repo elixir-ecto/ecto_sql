@@ -792,7 +792,8 @@ defmodule Ecto.Adapters.SQL do
       result: log_result(result),
       params: params,
       query: query_string,
-      source: source
+      source: source,
+      options: Keyword.get(opts, :telemetry_options, [])
     }
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
