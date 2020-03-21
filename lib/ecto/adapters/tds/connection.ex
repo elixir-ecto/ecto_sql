@@ -1040,20 +1040,13 @@ if Code.ensure_loaded?(Tds) do
       error!(nil, msg)
     end
 
-    def execute_ddl({:create, %Constraint{with: nocheck}})
-        when nocheck not in [nil, "NOCHECK"] do
-      error!(nil, ~s{Check constraint `:with` valid values are `nil` and "NOCHECK"})
-    end
-
     def execute_ddl({:create, %Constraint{} = constraint}) do
-      with_nocheck = if_do(constraint.with != nil, [" WITH NOCHECK"])
       table_name = quote_table(constraint.prefix, constraint.table)
 
       [
         [
           "ALTER TABLE ",
           table_name,
-          with_nocheck,
           " ADD CONSTRAINT ",
           quote_name(constraint.name),
           " ",
