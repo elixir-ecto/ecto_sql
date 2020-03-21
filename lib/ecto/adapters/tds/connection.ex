@@ -7,7 +7,6 @@ if Code.ensure_loaded?(Tds) do
     require Ecto.Schema
 
     @behaviour Ecto.Adapters.SQL.Connection
-    @unsafe_query_strings ["'\\"]
 
     @impl true
     def child_spec(opts) do
@@ -106,7 +105,10 @@ if Code.ensure_loaded?(Tds) do
 
     defp prepare_param(%{__struct__: module} = _value) do
       # just in case dumpers/loaders are not defined for the this struct
-      error!(nil, "Tds is unable to convert struct `#{inspect(module)}` into supported MSSQL types")
+      error!(
+        nil,
+        "Tds adapter is unable to convert struct `#{inspect(module)}` into supported MSSQL types"
+      )
     end
 
     defp prepare_param(%{} = value), do: {json_library().encode!(value), :string}
@@ -168,7 +170,17 @@ if Code.ensure_loaded?(Tds) do
       where = where(query, sources)
       lock = lock(query, sources)
 
-      [cte, "UPDATE ", name, " SET ", fields, returning(query, 0, "INSERTED"), from, join, where | lock]
+      [
+        cte,
+        "UPDATE ",
+        name,
+        " SET ",
+        fields,
+        returning(query, 0, "INSERTED"),
+        from,
+        join,
+        where | lock
+      ]
     end
 
     @impl true
@@ -356,12 +368,18 @@ if Code.ensure_loaded?(Tds) do
           end
 
         {key, value} ->
-          [expr(value, sources, query), " AS ", quote_name(key)]
+          [select_expr(value, sources, query), " AS ", quote_name(key)]
 
         value ->
-          expr(value, sources, query)
+          select_expr(value, sources, query)
       end)
     end
+
+    defp select_expr({:not, _, [expr]}, sources, query) do
+      [?~, ?(, select_expr(expr, sources, query), ?)]
+    end
+
+    defp select_expr(value, sources, query), do: expr(value, sources, query)
 
     defp from(%{from: %{source: source, hints: hints}} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
@@ -739,22 +757,30 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr(string, _sources, _query) when is_binary(string) do
-      if String.contains?(string, @unsafe_query_strings) do
-        len = String.length(string)
-
-        hex =
-          string
-          |> :unicode.characters_to_binary(:utf8, {:utf16, :little})
-          |> Base.encode16(case: :lower)
-
-        "CONVERT(nvarchar(#{len}), 0x#{hex})"
-      else
-        "N'#{escape_string(string)}'"
-      end
+      "N'#{escape_string(string)}'"
     end
 
-    defp expr(%Decimal{} = decimal, _sources, _query) do
-      Decimal.to_string(decimal, :normal)
+    defp expr(%Decimal{exp: exp} = decimal, _sources, _query) do
+      # this should help gaining precision for decimals values embeded in query
+      # but this is still not good enough, for instance:
+      #
+      # from(p in Post, select: type(2.0 + ^"2", p.cost())))
+      #
+      # Post.cost is :decimal, but we don't know precision and scale since
+      # such info is only available in migration files. So query compilation
+      # will yield
+      #
+      # SELECT CAST(CAST(2.0 as decimal(38, 1)) + @1 AS decimal)
+      # FROM [posts] AS p0
+      #
+      # as long as we have CAST(... as DECIMAL) without precision and scale
+      # value could be trucated
+      [
+        "CAST(",
+        Decimal.to_string(decimal, :normal),
+        " as decimal(38, #{abs(exp)})",
+        ?)
+      ]
     end
 
     defp expr(%Tagged{value: binary, type: :binary}, _sources, _query) when is_binary(binary) do
@@ -765,7 +791,7 @@ if Code.ensure_loaded?(Tds) do
     defp expr(%Tagged{value: binary, type: :uuid}, _sources, _query) when is_binary(binary) do
       case binary do
         <<_::64, ?-, _::32, ?-, _::32, ?-, _::32, ?-, _::96>> ->
-          {:ok, value} = Tds.Types.UUID.dump(binary)
+          {:ok, value} = Tds.Ecto.UUID.dump(binary)
           value
 
         any ->
@@ -896,24 +922,26 @@ if Code.ensure_loaded?(Tds) do
           else: table.name
 
       table_structure =
-        case column_definitions(table, columns) ++
-               pk_definitions(
-                 columns,
-                 ", CONSTRAINT [#{pk_name}_pkey] "
-               ) do
+        table
+        |> column_definitions(columns)
+        |> Kernel.++(pk_definitions(columns, ", CONSTRAINT [#{pk_name}_pkey] "))
+        |> case do
           [] -> []
           list -> [" (", list, ?)]
         end
 
+      create_if_not_exists =
+        if_table_not_exists(command == :create_if_not_exists, table.name, prefix)
+
       [
         [
-          if_table_not_exists(command == :create_if_not_exists, table.name, prefix),
+          create_if_not_exists,
           "CREATE TABLE ",
           quote_table(prefix, table.name),
           table_structure,
           engine_expr(table.engine),
           options_expr(table.options),
-          if_do(command == :create_if_not_exists, "END ")
+          "; "
         ]
       ]
     end
@@ -926,7 +954,7 @@ if Code.ensure_loaded?(Tds) do
           if_table_exists(command == :drop_if_exists, table.name, prefix),
           "DROP TABLE ",
           quote_table(prefix, table.name),
-          if_do(command == :drop_if_exists, "END ")
+          "; "
         ]
       ]
     end
@@ -1004,11 +1032,37 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    def execute_ddl({:create, %Constraint{check: check}}) when is_binary(check),
-      do: error!(nil, "Tds adapter does not support check constraints")
+    def execute_ddl({:create, %Constraint{exclude: exclude}}) when exclude != nil do
+      msg =
+        "`:exclude` is not supported Tds adapter check constraint parameter, instead " <>
+          "set `:check` attribute with negated expression."
 
-    def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
-      do: error!(nil, "Tds adapter does not support exclusion constraints")
+      error!(nil, msg)
+    end
+
+    def execute_ddl({:create, %Constraint{with: nocheck}})
+        when nocheck not in [nil, "NOCHECK"] do
+      error!(nil, ~s{Check constraint `:with` valid values are `nil` and "NOCHECK"})
+    end
+
+    def execute_ddl({:create, %Constraint{} = constraint}) do
+      with_nocheck = if_do(constraint.with != nil, [" WITH NOCHECK"])
+      table_name = quote_table(constraint.prefix, constraint.table)
+
+      [
+        [
+          "ALTER TABLE ",
+          table_name,
+          with_nocheck,
+          " ADD CONSTRAINT ",
+          quote_name(constraint.name),
+          " ",
+          "CHECK (",
+          constraint.check,
+          "); "
+        ]
+      ]
+    end
 
     def execute_ddl({command, %Index{} = index}) when command in [:drop, :drop_if_exists] do
       prefix = index.prefix
@@ -1025,13 +1079,30 @@ if Code.ensure_loaded?(Tds) do
           " ON ",
           quote_table(prefix, index.table),
           if_do(index.concurrently, " LOCK=NONE"),
-          ";"
+          "; "
         ]
       ]
     end
 
-    def execute_ddl({:drop, %Constraint{}}),
-      do: error!(nil, "Tds adapter does not support constraints")
+    def execute_ddl({command, %Constraint{} = constraint})
+        when command in [:drop, :drop_if_exists] do
+      table_name = quote_table(constraint.prefix, constraint.table)
+
+      [
+        [
+          if_check_constraint_exists(
+            command == :drop_if_exists,
+            constraint.name,
+            constraint.prefix
+          ),
+          "ALTER TABLE ",
+          table_name,
+          " DROP CONSTRAINT ",
+          quote_name(constraint.name),
+          "; "
+        ]
+      ]
+    end
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
       [
@@ -1138,17 +1209,29 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    defp column_change(statement_prefix, table, {:modify, name, %Reference{} = ref, opts}) do
-      fk_name = reference_name(ref, table, name)
-
+    defp column_change(
+           statement_prefix,
+           %{name: table_name, prefix: prefix} = table,
+           {:add_if_not_exists, column_name, type, opts}
+         ) do
       [
         [
-          if_object_exists(
-            fk_name,
-            "F",
-            "#{statement_prefix}DROP CONSTRAINT #{fk_name}; "
-          )
-        ],
+          if_column_not_exists(prefix, table_name, column_name),
+          statement_prefix,
+          "ADD ",
+          quote_name(column_name),
+          " ",
+          column_type(type, opts),
+          column_options(table, column_name, opts),
+          "; "
+        ]
+      ]
+    end
+
+    defp column_change(statement_prefix, table, {:modify, name, %Reference{} = ref, opts}) do
+      [
+        drop_constraint_from_expr(opts[:from], table, name, statement_prefix),
+        maybe_drop_default_expr(statement_prefix, table, name, opts),
         [
           statement_prefix,
           "ALTER COLUMN ",
@@ -1158,21 +1241,15 @@ if Code.ensure_loaded?(Tds) do
           column_options(table, name, opts),
           "; "
         ],
-        [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "]
+        [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "],
+        [column_default_value(statement_prefix, table, name, opts)]
       ]
     end
 
     defp column_change(statement_prefix, table, {:modify, name, type, opts}) do
-      fk_name = constraint_name("DF", table, name)
-
       [
-        [
-          if_object_exists(
-            fk_name,
-            "D",
-            "#{statement_prefix}DROP CONSTRAINT #{fk_name}; "
-          )
-        ],
+        drop_constraint_from_expr(opts[:from], table, name, statement_prefix),
+        maybe_drop_default_expr(statement_prefix, table, name, opts),
         [
           statement_prefix,
           "ALTER COLUMN ",
@@ -1188,6 +1265,22 @@ if Code.ensure_loaded?(Tds) do
 
     defp column_change(statement_prefix, _table, {:remove, name}) do
       [statement_prefix, "DROP COLUMN ", quote_name(name), "; "]
+    end
+
+    defp column_change(
+           statement_prefix,
+           %{name: table, prefix: prefix},
+           {:remove_if_exists, column_name, _}
+         ) do
+      [
+        [
+          if_column_exists(prefix, table, column_name),
+          statement_prefix,
+          "DROP COLUMN ",
+          quote_name(column_name),
+          "; "
+        ]
+      ]
     end
 
     defp column_options(table, name, opts) do
@@ -1209,8 +1302,8 @@ if Code.ensure_loaded?(Tds) do
     defp null_expr(true), do: [" NULL"]
     defp null_expr(_), do: []
 
-    defp default_expr(table, name, {:ok, nil}),
-      do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (NULL)"]
+    defp default_expr(_table, _name, {:ok, nil}),
+      do: []
 
     defp default_expr(table, name, {:ok, literal}) when is_binary(literal),
       do: [
@@ -1240,6 +1333,22 @@ if Code.ensure_loaded?(Tds) do
       do: [" CONSTRAINT ", constraint_name("DF", table, name), " DEFAULT (", expr, ")"]
 
     defp default_expr(_table, _name, :error), do: []
+
+    defp drop_constraint_from_expr(%Reference{} = ref, table, name, stm_prefix) do
+      [stm_prefix, "DROP CONSTRAINT ", reference_name(ref, table, name), "; "]
+    end
+
+    defp drop_constraint_from_expr(_, _, _, _),
+      do: []
+
+    defp maybe_drop_default_expr(statement_prefix, table, name, opts) do
+      if Keyword.has_key?(opts, :default) do
+        constraint_name = constraint_name("DF", table, name)
+        if_exists_drop_constraint(constraint_name, statement_prefix)
+      else
+        []
+      end
+    end
 
     defp constraint_name(type, table, name),
       do: quote_name("#{type}_#{table.prefix}_#{table.name}_#{name}")
@@ -1384,8 +1493,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp escape_string(value) when is_binary(value) do
-      value
-      |> :binary.replace("'", "''", [:global])
+      value |> :binary.replace("'", "''", [:global])
     end
 
     defp ecto_to_db(type, size, precision, scale, query \\ nil)
@@ -1457,7 +1565,7 @@ if Code.ensure_loaded?(Tds) do
           "#{prefix}",
           ?'
         ]),
-        ") BEGIN "
+        ") "
       ])
     end
 
@@ -1475,8 +1583,30 @@ if Code.ensure_loaded?(Tds) do
           "#{prefix}",
           ?'
         ]),
-        ") BEGIN "
+        ") "
       ])
+    end
+
+    defp if_column_exists(prefix, table, column_name) do
+      [
+        "IF EXISTS (SELECT 1 FROM [sys].[columns] ",
+        "WHERE [name] = N'#{column_name}'  AND ",
+        "[object_id] = OBJECT_ID(N'",
+        if_do(prefix != nil, ["#{prefix}", ?.]),
+        "#{table}",
+        "')) "
+      ]
+    end
+
+    defp if_column_not_exists(prefix, table, column_name) do
+      [
+        "IF NOT EXISTS (SELECT 1 FROM [sys].[columns] ",
+        "WHERE [name] = N'#{column_name}' AND ",
+        "[object_id] = OBJECT_ID(N'",
+        if_do(prefix != nil, ["#{prefix}", ?.]),
+        "#{table}",
+        "')) "
+      ]
     end
 
     defp list_param_to_args(idx, length) do
@@ -1506,6 +1636,18 @@ if Code.ensure_loaded?(Tds) do
       ])
     end
 
+    defp if_check_constraint_exists(condition, name, prefix) do
+      if_do(condition, [
+        "IF NOT EXISTS (SELECT * ",
+        "FROM [INFORMATION_SCHEMA].[CHECK_CONSTRAINTS] ",
+        "WHERE [CONSTRAINT_NAME] = N'#{name}'",
+        if_do(prefix != nil, [
+          " AND [CONSTRAINT_SCHEMA] = N'#{prefix}'"
+        ]),
+        ") "
+      ])
+    end
+
     # types
     # "U" - table,
     # "C", "PK", "UQ", "F ", "D " - constraints
@@ -1515,9 +1657,18 @@ if Code.ensure_loaded?(Tds) do
         name,
         "', '",
         type,
-        "') IS NOT NULL) BEGIN ",
-        statement,
-        " END; "
+        "') IS NOT NULL) ",
+        statement
+      ]
+    end
+
+    defp if_exists_drop_constraint(name, statement_prefix) do
+      [
+        if_object_exists(
+          name,
+          "D",
+          "#{statement_prefix}DROP CONSTRAINT #{name}; "
+        )
       ]
     end
   end

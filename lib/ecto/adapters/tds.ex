@@ -58,7 +58,7 @@ defmodule Ecto.Adapters.Tds do
   ### UUIDs
 
   MSSQL server has slighlty different binary storage format for UUIDs (`uniqueidenitifer`).
-  If you use `:binary_id`, the proper choice is made. Otherwise you must use the `Tds.Types.UUID`
+  If you use `:binary_id`, the proper choice is made. Otherwise you must use the `Tds.Ecto.UUID`
   type. Avoid using `Ecto.UUID` since it may cause unpredictable application behaviour.
 
   ### SQL `Char`, `VarChar` and `Text` types
@@ -78,14 +78,14 @@ defmodule Ecto.Adapters.Tds do
       due increased logical reads in database.
 
     - You can't store VarChar codepoints encoded in one collation/codepage to column that
-      is encoded in different collation/codepage. You will always get wrong result. This is 
+      is encoded in different collation/codepage. You will always get wrong result. This is
       not adapter or driver limitation but rather how string encoding works for single byte
       encoded strings in MSSQL server. Don't be confused if you are always seeing latin1 chars,
       they are simply in each codepoint table.
 
   In particular, if a field has the type `:text`, only raw binaries will be allowed.
   To avoid above limitations always use `:string` (NVarChar) type for text if possible.
-  If you really need to use VarChar's column type, you can use the `Tds.Types.VarChar`
+  If you really need to use VarChar's column type, you can use the `Tds.Ecto.VarChar`
   Ecto type.
 
   ### JSON support
@@ -139,8 +139,8 @@ defmodule Ecto.Adapters.Tds do
   @behaviour Ecto.Adapter.Storage
 
   @doc false
-  def autogenerate(:binary_id), do: Tds.Types.UUID.bingenerate()
-  def autogenerate(:embed_id), do: Tds.Types.UUID.generate()
+  def autogenerate(:binary_id), do: Tds.Ecto.UUID.bingenerate()
+  def autogenerate(:embed_id), do: Tds.Ecto.UUID.generate()
   def autogenerate(type), do: super(type)
 
   @doc false
@@ -149,13 +149,13 @@ defmodule Ecto.Adapters.Tds do
   def loaders({:map, _}, type), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
   def loaders(:map, type), do: [&json_decode/1, type]
   def loaders(:boolean, type), do: [&bool_decode/1, type]
-  def loaders(:binary_id, type), do: [Tds.Types.UUID, type]
+  def loaders(:binary_id, type), do: [Tds.Ecto.UUID, type]
   def loaders(_, type), do: [type]
 
   @impl true
   def dumpers({:embed, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
   def dumpers({:map, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-  def dumpers(:binary_id, type), do: [type, Tds.Types.UUID]
+  def dumpers(:binary_id, type), do: [type, Tds.Ecto.UUID]
   def dumpers(_, type), do: [type]
 
 

@@ -16,7 +16,7 @@ defmodule Ecto.TypeTest do
     assert adapter_dump(Postgres, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
            {:ok, %{"a" => @uuid_string}}
 
-    assert adapter_dump(Tds, {:map, Elixir.Tds.Types.UUID}, %{"a" => @uuid_string}) ==
+    assert adapter_dump(Tds, {:map, Elixir.Tds.Ecto.UUID}, %{"a" => @uuid_string}) ==
            {:ok, %{"a" => @uuid_string}}
   end
 
@@ -28,7 +28,7 @@ defmodule Ecto.TypeTest do
     assert adapter_load(Postgres, {:map, Ecto.UUID}, %{"a" => @uuid_binary}) ==
            {:ok, %{"a" => @uuid_string}}
 
-    assert adapter_load(Tds, {:map, Elixir.Tds.Types.UUID}, %{"a" => @mssql_uuid_binary}) ==
+    assert adapter_load(Tds, {:map, Elixir.Tds.Ecto.UUID}, %{"a" => @mssql_uuid_binary}) ==
            {:ok, %{"a" => @uuid_string}}
 
     assert adapter_load(MyXQL, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
@@ -37,7 +37,7 @@ defmodule Ecto.TypeTest do
     assert adapter_load(Postgres, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
            {:ok, %{"a" => @uuid_string}}
 
-    assert adapter_load(Tds, {:map, Elixir.Tds.Types.UUID}, %{"a" => @uuid_string}) ==
+    assert adapter_load(Tds, {:map, Elixir.Tds.Ecto.UUID}, %{"a" => @uuid_string}) ==
            {:ok, %{"a" => @uuid_string}}
   end
 end
