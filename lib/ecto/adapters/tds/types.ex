@@ -20,7 +20,6 @@ if Code.ensure_loaded?(Tds) do
     """
     @type raw :: <<_::128>>
 
-
     @doc false
     @impl true
     def type(), do: :uuid
@@ -47,7 +46,6 @@ if Code.ensure_loaded?(Tds) do
     end
 
     def cast(<<bin::binary-size(16)>>), do: encode(bin)
-
     def cast(_), do: :error
 
     @doc """
@@ -91,11 +89,11 @@ if Code.ensure_loaded?(Tds) do
     """
     @impl true
     @spec dump(t | any) :: {:ok, raw} | :error
-    def dump(<< a1, a2, a3, a4, a5, a6, a7, a8, ?-,
-                b1, b2, b3, b4, ?-,
-                c1, c2, c3, c4, ?-,
-                d1, d2, d3, d4, ?-,
-                e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12 >>) do
+    def dump(<<a1, a2, a3, a4, a5, a6, a7, a8, ?-,
+               b1, b2, b3, b4, ?-,
+               c1, c2, c3, c4, ?-,
+               d1, d2, d3, d4, ?-,
+               e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>) do
       try do
         << d(a7)::4, d(a8)::4, d(a5)::4, d(a6)::4,
           d(a3)::4, d(a4)::4, d(a1)::4, d(a2)::4,
@@ -178,29 +176,15 @@ if Code.ensure_loaded?(Tds) do
     """
     @spec bingenerate() :: raw
     def bingenerate do
-      << a1::4, a2::4, a3::4, a4::4,
-        a5::4, a6::4, a7::4, a8::4,
-        b1::4, b2::4, b3::4, b4::4,
-        _ ::4, c2::4, c3::4, c4::4,
-        d1::4, d2::4, d3::4, d4::4,
-        e1::4, e2::4, e3::4, e4::4,
-        _ ::4, e6::4, e7::4, e8::4,
-        e9::4, e10::4, e11::4, e12::4 >> = :crypto.strong_rand_bytes(16)
-      << a7::4, a8::4, a5::4, a6::4,
-        a3::4, a4::4, a1::4, a2::4,
-        b3::4, b4::4, b1::4, b2::4,
-        c3::4, c4::4, 4 ::4, c2::4,
-        d1::4, d2::4, d3::4, d4::4,
-        e1::4, e2::4, e3::4, e4::4,
-        2 ::4, e6::4, e7::4, e8::4,
-        e9::4, e10::4, e11::4, e12::4 >>
+      <<u0::56, u1::36, u2::28>> = :crypto.strong_rand_bytes(15)
+      <<u0::56, 4::4, u1::36, 2::4, u2::28>>
     end
 
     # Callback invoked by autogenerate fields.
     @doc false
     def autogenerate, do: generate()
 
-    defp encode(<< a1::4, a2::4, a3::4, a4::4,
+    defp encode(<<a1::4, a2::4, a3::4, a4::4,
                   a5::4, a6::4, a7::4, a8::4,
                   b1::4, b2::4, b3::4, b4::4,
                   c1::4, c2::4, c3::4, c4::4,
@@ -265,13 +249,12 @@ if Code.ensure_loaded?(Tds) do
     """
     @type varchar :: {String.t, :varchar}
 
-
     @doc false
     @impl true
     def type(), do: :varchar
 
     @doc """
-    Casts to string
+    Casts to string.
     """
     @spec cast(t | varchar | any) :: {:ok, t} | :error
     @impl true
@@ -297,19 +280,19 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
-
-    @doc false
+    @doc """
+    Loads the DB type as is.
+    """
     @impl true
     @spec load(t | any) :: {:ok, t} | :error
     def load(value) do
-      # what ever TDS returns just pass back to ecto. It is already a string
       {:ok, value}
     end
 
     @doc """
     Converts a string representing a VarChar into a tuple `{value, :varchar}`.
 
-    returns `:error` if value is not binary
+    Returns `:error` if value is not binary.
     """
     @impl true
     @spec dump(t | any) :: {:ok, varchar} | :error
