@@ -38,9 +38,6 @@ ExUnit.start(
     :inline_order_by,
     # running destruction of PK columns requires that PK constraint is dropped first
     :alter_primary_key,
-    # running destruction of PK columns requires that PK constraint is dropped first
-    # accessing column. This is same issue as :alter_primary_key
-    :modify_column_with_from,
     # below 2 exclusions (in theory) requires filtered unique index on permalinks table post_id column e.g.
     #   CREATE UNIQUE NONCLUSTERED INDEX idx_tbl_TestUnique_ID
     #   ON [permalinks] ([post_id])

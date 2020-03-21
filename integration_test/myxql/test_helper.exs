@@ -88,11 +88,14 @@ excludes = [
   # The next two features rely on RETURNING, which MySQL does not support
   :read_after_writes,
   :returning,
-  # More unsupported features
-  :create_index_if_not_exists,
+  # Unsupported query features
   :aggregate_filters,
   :transaction_isolation,
   :with_conflict_target,
+  # Unsupported migration features
+  :create_index_if_not_exists,
+  :add_column_if_not_exists,
+  :remove_column_if_exists,
   # MySQL doesn't have a boolean type, so this ends up returning 0/1
   :map_boolean_in_expression
 ]
