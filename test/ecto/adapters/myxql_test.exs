@@ -14,6 +14,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       field :x, :integer
       field :y, :integer
       field :z, :integer
+      field :meta, :map
 
       has_many :comments, Ecto.Adapters.MyXQLTest.Schema2,
         references: :x,
@@ -493,17 +494,17 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "json_extract_path" do
-    query = Schema |> select([r], json_extract_path(r, [0, 1])) |> plan()
-    assert all(query) == ~s{SELECT json_extract(s0, '$[0][1]') FROM `schema` AS s0}
+    query = Schema |> select([s], json_extract_path(s.meta, [0, 1])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$[0][1]') FROM `schema` AS s0}
 
-    query = Schema |> select([r], json_extract_path(r, ["a", "b"])) |> plan()
-    assert all(query) == ~s{SELECT json_extract(s0, '$."a"."b"') FROM `schema` AS s0}
+    query = Schema |> select([s], json_extract_path(s.meta, ["a", "b"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$."a"."b"') FROM `schema` AS s0}
 
-    query = Schema |> select([r], json_extract_path(r, ["'a"])) |> plan()
-    assert all(query) == ~s{SELECT json_extract(s0, '$."''a"') FROM `schema` AS s0}
+    query = Schema |> select([s], json_extract_path(s.meta, ["'a"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$."''a"') FROM `schema` AS s0}
 
-    query = Schema |> select([r], json_extract_path(r, ["\"a"])) |> plan()
-    assert all(query) == ~s{SELECT json_extract(s0, '$."\\\\"a"') FROM `schema` AS s0}
+    query = Schema |> select([s], json_extract_path(s.meta, ["\"a"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$."\\\\"a"') FROM `schema` AS s0}
   end
 
   test "nested expressions" do

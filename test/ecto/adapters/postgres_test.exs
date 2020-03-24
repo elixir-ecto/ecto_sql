@@ -14,6 +14,7 @@ defmodule Ecto.Adapters.PostgresTest do
       field :y, :integer
       field :z, :integer
       field :w, {:array, :integer}
+      field :meta, :map
 
       has_many :comments, Ecto.Adapters.PostgresTest.Schema2,
         references: :x,
@@ -211,7 +212,7 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{SET "x" = 123 } <>
       ~s{FROM "target_rows" AS t1 } <>
       ~s{WHERE (t1."id" = s0."id") } <>
-      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
   end
 
   test "CTE delete_all" do
@@ -231,7 +232,7 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{DELETE FROM "schema" AS s0 } <>
       ~s{USING "target_rows" AS t1 } <>
       ~s{WHERE (t1."id" = s0."id") } <>
-      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
   end
 
   test "select" do
@@ -533,17 +534,17 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "json_extract_path" do
-    query = Schema |> select([r], json_extract_path(r, [0, 1])) |> plan()
-    assert all(query) == ~s|SELECT (s0#>'{0,1}') FROM "schema" AS s0|
+    query = Schema |> select([s], json_extract_path(s.meta, [0, 1])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{0,1}') FROM "schema" AS s0|
 
-    query = Schema |> select([r], json_extract_path(r, ["a", "b"])) |> plan()
-    assert all(query) == ~s|SELECT (s0#>'{"a","b"}') FROM "schema" AS s0|
+    query = Schema |> select([s], json_extract_path(s.meta, ["a", "b"])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"a","b"}') FROM "schema" AS s0|
 
-    query = Schema |> select([r], json_extract_path(r, ["'a"])) |> plan()
-    assert all(query) == ~s|SELECT (s0#>'{"''a"}') FROM "schema" AS s0|
+    query = Schema |> select([s], json_extract_path(s.meta, ["'a"])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"''a"}') FROM "schema" AS s0|
 
-    query = Schema |> select([r], json_extract_path(r, ["\"a"])) |> plan()
-    assert all(query) == ~s|SELECT (s0#>'{"\\"a"}') FROM "schema" AS s0|
+    query = Schema |> select([s], json_extract_path(s.meta, ["\"a"])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"\\"a"}') FROM "schema" AS s0|
   end
 
   test "nested expressions" do
@@ -726,7 +727,7 @@ defmodule Ecto.Adapters.PostgresTest do
   test "update all with returning" do
     query = from(m in Schema, update: [set: [x: 0]]) |> select([m], m) |> plan(:update_all)
     assert update_all(query) ==
-           ~s{UPDATE "schema" AS s0 SET "x" = 0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+           ~s{UPDATE "schema" AS s0 SET "x" = 0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
 
     query = from(m in Schema, update: [set: [x: ^1]]) |> where([m], m.x == ^2) |> select([m], m.x == ^3) |> plan(:update_all)
     assert update_all(query) ==
@@ -776,7 +777,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "delete all with returning" do
     query = Schema |> Queryable.to_query |> select([m], m) |> plan()
-    assert delete_all(query) == ~s{DELETE FROM "schema" AS s0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+    assert delete_all(query) == ~s{DELETE FROM "schema" AS s0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
   end
 
   test "delete all with prefix" do

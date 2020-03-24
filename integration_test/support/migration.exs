@@ -86,6 +86,8 @@ defmodule Ecto.Integration.Migration do
 
     create table(:orders) do
       add :item, :map
+      add :items, :map
+      add :meta, :map
       add :permalink_id, references(:permalinks)
     end
 
