@@ -18,6 +18,7 @@ defmodule EctoSQL.MixProject do
           Postgrex,
           Ecto.Adapters.Postgres.Connection,
           Tds,
+          Tds.Ecto.UUID,
           Ecto.Adapters.Tds.Connection
         ]
       ],
@@ -75,8 +76,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      # {:ecto, "~> 3.4"}
-      {:ecto, git: "https://github.com/elixir-ecto/ecto.git"}
+      {:ecto, "~> 3.4", git: "https://github.com/elixir-ecto/ecto.git"}
     end
   end
 
