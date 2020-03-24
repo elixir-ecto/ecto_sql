@@ -1,11 +1,13 @@
 # Changelog for v3.x
 
-## v3.4.0-dev
+## v3.4.0 (2020-03-24)
 
 ### Enhancements
 
-  * Add built-in support to MSSQL via the TDS adapter
-  * Support Ecto's v3.4 `json_extract_path/2`
+  * [adapters] Support Ecto's v3.4 `json_extract_path/2`
+  * [migrations] Support multiple migration paths to be given with `--migration-path`
+  * [mssql] Add built-in support to MSSQL via the TDS adapter
+  * [repo] Support custom options on telemetry
 
 ## v3.3.4 (2020-02-14)
 
