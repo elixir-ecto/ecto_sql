@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.4.1 (2020-03-25)
+
+### Bug fixes
+
+  * [myxql] Assume the reference does not change in MyXQL and prepare for v0.4.0
+
 ## v3.4.0 (2020-03-24)
 
 ### Enhancements
