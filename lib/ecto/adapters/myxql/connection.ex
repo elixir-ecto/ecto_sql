@@ -24,16 +24,10 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     @impl true
-    def execute(conn, %{ref: ref} = query, params, opts) do
+    def execute(conn, query, params, opts) do
       case MyXQL.execute(conn, query, params, opts) do
-        {:ok, %{ref: ^ref}, result} ->
-          {:ok, result}
-
-        {:ok, _, _} = ok ->
-          ok
-
-        {:error, _} = error ->
-          error
+        {:ok, _, result} -> {:ok, result}
+        {:error, _} = error -> error
       end
     end
 
