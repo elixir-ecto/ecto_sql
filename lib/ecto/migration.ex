@@ -69,7 +69,7 @@ defmodule Ecto.Migration do
 
       $ mix ecto.migrate
 
-  You can also it rollback by calling
+  You can also roll it back by calling:
 
       $ mix ecto.rollback --step 1
 
