@@ -585,6 +585,16 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT ((s0."x" = $1) OR s0."x" = ANY($2)) OR (s0."x" = $3) FROM "schema" AS s0}
   end
 
+  test "where in subquery (TODO?)" do
+    q = from(s in Schema, where: s.x in ^[2], select: s.z)
+    s = from(s in Schema, where: s.y > ^1, where: s.z in subquery(q), select: count())
+
+    {q, params} = Ecto.Adapter.Queryable.plan_query(:all, Ecto.Adapters.Postgres, s)
+
+    assert ~s{SELECT count(*) FROM "schema" AS s0 WHERE (s0."y" > $1) AND (s0."z" IN (SELECT s0."z" AS "z" FROM "schema" AS s0 WHERE (s0."x" = ANY($2))))} = all(q)
+    assert params == [1, [2]]
+  end
+
   test "having" do
     query = Schema |> having([p], p.x == p.x) |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 HAVING (s0."x" = s0."x")}
