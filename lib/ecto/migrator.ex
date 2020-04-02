@@ -362,10 +362,11 @@ defmodule Ecto.Migrator do
   Apply migrations to a repository with a given strategy.
 
   The second argument identifies where the migrations are sourced from.
-  A list of binaries representing directories may be passed, in which case we will
-  load all files following the "#{VERSION}_#{NAME}.exs" schema. The
-  `migration_source` may also be a list of tuples that identify the version
-  number and migration modules to be run, for example:
+  A binary representing directory (or a list of binaries representing
+  directories) may be passed, in which case we will load all files
+  following the "#{VERSION}_#{NAME}.exs" schema. The `migration_source`
+  may also be a list of tuples that identify the version number and
+  migration modules to be run, for example:
 
       Ecto.Migrator.run(Repo, [{0, MyApp.Migration1}, {1, MyApp.Migration2}, ...], :up, opts)
 
@@ -397,7 +398,7 @@ defmodule Ecto.Migrator do
       See `c:Ecto.Repo.put_dynamic_repo/1`.
 
   """
-  @spec run(Ecto.Repo.t, [String.t] | [{integer, module}], atom, Keyword.t) :: [integer]
+  @spec run(Ecto.Repo.t, String.t | [String.t] | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
     migration_source = List.wrap(migration_source)
 
