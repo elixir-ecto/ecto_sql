@@ -134,13 +134,24 @@ defmodule Ecto.Migration do
   ## Field Types
 
   The Ecto primitive types are mapped to the appropriate database
-  type by the various database adapters. For example, `:string` is converted to
-  `:varchar`, `:binary` to `:bits` or `:blob`, and so on.
+  type by the various database adapters. For example, `:string` is
+  converted to `:varchar`, `:binary` to `:bytea` or `:blob`, and so on.
 
   Similarly, you can pass any field type supported by your database
-  as long as it maps to an Ecto type. For instance, you can use `:text`,
-  `:varchar`, or `:char` in your migrations as `add :field_name, :text`.
-  In your Ecto schema, they will all map to the same `:string` type.
+  as long as it maps to an Ecto type. For instance, for an Ecto schema
+  with the field `:string`, the database migration type can be any of
+  `:text`, `:char` or `:varchar` (the default).
+
+  In particular, note that:
+
+    * the `:string` type in migrations by default has a limit of 255 characters.
+      If you need more or less characters, pass the `:size` option, such
+      as `add :field, :string, size: 10`. If you don't want to impose a limit,
+      most databases support a `:text` type or similar
+
+    * the `:binary` type in migrations by default has no size limit. If you want
+      to impose a limit, pass the `:size` option accordingly. In MySQL, passing
+      the size option changes the underlying field from "blob" to "varbinary"
 
   Remember, atoms can contain arbitrary characters by enclosing in
   double quotes the characters following the colon. So, if you want to use a

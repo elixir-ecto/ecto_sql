@@ -874,13 +874,12 @@ if Code.ensure_loaded?(MyXQL) do
       size      = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)
       scale     = Keyword.get(opts, :scale)
-      type_name = ecto_to_db(type)
 
       cond do
-        size            -> [type_name, ?(, to_string(size), ?)]
-        precision       -> [type_name, ?(, to_string(precision), ?,, to_string(scale || 0), ?)]
-        type == :string -> [type_name, "(255)"]
-        true            -> type_name
+        size -> [ecto_size_to_db(type), ?(, to_string(size), ?)]
+        precision -> [ecto_to_db(type), ?(, to_string(precision), ?,, to_string(scale || 0), ?)]
+        type == :string -> ["varchar(255)"]
+        true -> ecto_to_db(type)
       end
     end
 
@@ -994,6 +993,9 @@ if Code.ensure_loaded?(MyXQL) do
     defp ecto_cast_to_db(:utc_datetime_usec, _query), do: "datetime(6)"
     defp ecto_cast_to_db(:naive_datetime_usec, _query), do: "datetime(6)"
     defp ecto_cast_to_db(type, query), do: ecto_to_db(type, query)
+
+    defp ecto_size_to_db(:binary), do: "varbinary"
+    defp ecto_size_to_db(type), do: ecto_to_db(type)
 
     defp ecto_to_db(type, query \\ nil)
     defp ecto_to_db({:array, _}, query),           do: error!(query, "Array type is not supported by MySQL")

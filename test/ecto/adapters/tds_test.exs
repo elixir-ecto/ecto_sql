@@ -1094,16 +1094,16 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert execute_ddl(create) ==
              [
-               "CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'foo')); "
+               "CREATE TABLE [blobs] ([blob] varbinary(max) CONSTRAINT [DF__blobs_blob] DEFAULT (N'foo')); "
              ]
   end
 
   test "create table with binary column and hex bytea literal default" do
-    create = {:create, table(:blobs), [{:add, :blob, :binary, [default: "\\x666F6F"]}]}
+    create = {:create, table(:blobs), [{:add, :blob, :binary, [default: "\\x666F6F", size: 16]}]}
 
     assert execute_ddl(create) ==
              [
-               "CREATE TABLE [blobs] ([blob] varbinary(2000) CONSTRAINT [DF__blobs_blob] DEFAULT (N'\\x666F6F')); "
+               "CREATE TABLE [blobs] ([blob] varbinary(16) CONSTRAINT [DF__blobs_blob] DEFAULT (N'\\x666F6F')); "
              ]
   end
 

@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.4.2 (2020-04-02)
+
+### Bug fixes
+
+  * [myxql] A binary with size should be a varbinary
+  * [mssql] A binary without size should be a varbinary(max)
+
 ## v3.4.1 (2020-03-25)
 
 ### Bug fixes

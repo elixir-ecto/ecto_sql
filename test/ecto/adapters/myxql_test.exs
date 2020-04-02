@@ -981,6 +981,7 @@ defmodule Ecto.Adapters.MyXQLTest do
   test "create table" do
     create = {:create, table(:posts),
                [{:add, :name, :string, [default: "Untitled", size: 20, null: false]},
+                {:add, :token, :binary, [size: 20, null: false]},
                 {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                 {:add, :on_hand, :integer, [default: 0, null: true]},
                 {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
@@ -989,6 +990,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert execute_ddl(create) == ["""
     CREATE TABLE `posts` (`name` varchar(20) DEFAULT 'Untitled' NOT NULL,
+    `token` varbinary(20) NOT NULL,
     `price` numeric(8,2) DEFAULT expr,
     `on_hand` integer DEFAULT 0 NULL,
     `likes` smallint unsigned DEFAULT 0 NOT NULL,
