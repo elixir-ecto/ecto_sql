@@ -870,6 +870,16 @@ if Code.ensure_loaded?(MyXQL) do
       [type_name, ?(, to_string(precision), ?)]
     end
 
+    defp column_type(:binary, opts) do
+      size = Keyword.get(opts, :size)
+
+      if size do
+        ["varbinary", ?(, to_string(size), ?)]
+      else
+        ecto_to_db(:binary)
+      end
+    end
+
     defp column_type(type, opts) do
       size      = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)

@@ -1077,6 +1077,15 @@ defmodule Ecto.Adapters.MyXQLTest do
     """ |> remove_newlines]
   end
 
+  test "create table with binary and size" do
+    create = {:create, table(:blobs),
+              [{:add, :blob, :binary, size: 3}]}
+
+    assert execute_ddl(create) == ["""
+    CREATE TABLE `blobs` (`blob` varbinary(3)) ENGINE = INNODB
+    """ |> remove_newlines]
+  end
+
   test "create table with a map column, and a map default with values" do
     create = {:create, table(:posts),
               [
