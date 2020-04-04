@@ -39,7 +39,7 @@ defmodule Ecto.Adapters.Tds do
 
   After connectiong to MSSQL server, TDS will check if there are any flags set in
   connection options that should affect connection session behaviour. All flags are
-  MSSQL standard *SET* options. The folowing flags are currently supported:
+  MSSQL standard *SET* options. The following flags are currently supported:
 
     * `:set_language` - sets session language (consult stored procedure output
        `exec sp_helplanguage` for valid values)
