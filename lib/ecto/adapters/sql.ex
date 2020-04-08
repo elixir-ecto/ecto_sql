@@ -102,14 +102,14 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @impl true
-      def loaders({:embed, _}, type), do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
-      def loaders({:map, _}, type),   do: [&Ecto.Adapters.SQL.load_embed(type, &1)]
+      def loaders({:embed, _}, type), do: [&Ecto.Type.embedded_load(type, &1, :json)]
+      def loaders({:map, _}, type),   do: [&Ecto.Type.embedded_load(type, &1, :json)]
       def loaders(:binary_id, type),  do: [Ecto.UUID, type]
       def loaders(_, type),           do: [type]
 
       @impl true
-      def dumpers({:embed, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-      def dumpers({:map, _}, type),   do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+      def dumpers({:embed, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+      def dumpers({:map, _}, type),   do: [&Ecto.Type.embedded_dump(type, &1, :json)]
       def dumpers(:binary_id, type),  do: [type, Ecto.UUID]
       def dumpers(_, type),           do: [type]
 
@@ -485,24 +485,6 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def checkout(adapter_meta, opts, callback) do
     checkout_or_transaction(:run, adapter_meta, opts, callback)
-  end
-
-  ## Types
-
-  @doc false
-  def load_embed(type, value) do
-    Ecto.Type.load(type, value, fn
-      {:embed, _} = type, value -> load_embed(type, value)
-      type, value -> Ecto.Type.embedded_load(type, value, :json)
-    end)
-  end
-
-  @doc false
-  def dump_embed(type, value) do
-    Ecto.Type.dump(type, value, fn
-      {:embed, _} = type, value -> dump_embed(type, value)
-      type, value -> Ecto.Type.embedded_dump(type, value, :json)
-    end)
   end
 
   ## Query

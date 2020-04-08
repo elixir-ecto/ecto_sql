@@ -116,8 +116,8 @@ defmodule Ecto.Adapters.Postgres do
 
   # Support arrays in place of IN
   @impl true
-  def dumpers({:embed, _}, type),      do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-  def dumpers({:map, _}, type),        do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+  def dumpers({:embed, _}, type),      do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+  def dumpers({:map, _}, type),        do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers({:in, sub}, {:in, sub}), do: [{:array, sub}]
   def dumpers(:binary_id, type),       do: [type, Ecto.UUID]
   def dumpers(_, type),                do: [type]

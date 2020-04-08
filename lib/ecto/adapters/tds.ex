@@ -145,19 +145,18 @@ defmodule Ecto.Adapters.Tds do
 
   @doc false
   @impl true
-  def loaders({:embed, _}, type), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
-  def loaders({:map, _}, type), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
+  def loaders({:embed, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
+  def loaders({:map, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
   def loaders(:map, type), do: [&json_decode/1, type]
   def loaders(:boolean, type), do: [&bool_decode/1, type]
   def loaders(:binary_id, type), do: [Tds.Ecto.UUID, type]
   def loaders(_, type), do: [type]
 
   @impl true
-  def dumpers({:embed, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-  def dumpers({:map, _}, type), do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+  def dumpers({:embed, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+  def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers(:binary_id, type), do: [type, Tds.Ecto.UUID]
   def dumpers(_, type), do: [type]
-
 
   defp bool_decode(<<0>>), do: {:ok, false}
   defp bool_decode(<<1>>), do: {:ok, true}
