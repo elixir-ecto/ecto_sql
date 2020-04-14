@@ -100,11 +100,12 @@ if Code.ensure_loaded?(Postgrex) do
       Postgrex.stream(conn, sql, params, opts)
     end
 
+    @parent_as 0
     alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
 
     @impl true
-    def all(query) do
-      sources = create_names(query)
+    def all(query, prefix \\ []) do
+      sources = create_names(query, prefix)
       {select_distinct, order_by_distinct} = distinct(query.distinct, sources, query)
 
       cte = cte(query, sources)
@@ -126,7 +127,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def update_all(%{from: %{source: source}} = query, prefix \\ nil) do
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, source)
 
@@ -140,7 +141,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def delete_all(%{from: from} = query) do
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, from)
 
@@ -164,7 +165,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp insert_as({%{sources: sources}, _, _}) do
-      {_expr, name, _schema} = create_name(sources, 0)
+      {_expr, name, _schema} = create_name(sources, 0, [])
       [" AS " | name]
     end
     defp insert_as({_, _, _}) do
@@ -510,6 +511,11 @@ if Code.ensure_loaded?(Postgrex) do
       [?$ | Integer.to_string(ix + 1)]
     end
 
+    defp expr({{:., _, [{:parent_as, _, [{:&, _, [idx]}]}, field]}, _, []}, _sources, query)
+         when is_atom(field) do
+      quote_qualified_name(field, query.aliases[@parent_as], idx)
+    end
+
     defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query) when is_atom(field) do
       quote_qualified_name(field, sources, idx)
     end
@@ -544,8 +550,9 @@ if Code.ensure_loaded?(Postgrex) do
       ["NOT (", expr(expr, sources, query), ?)]
     end
 
-    defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
-      [?(, all(query), ?)]
+    defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
+      query = put_in(query.aliases[@parent_as], sources)
+      [?(, all(query, [?s]), ?)]
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
@@ -695,29 +702,29 @@ if Code.ensure_loaded?(Postgrex) do
     defp returning(returning),
       do: [" RETURNING " | intersperse_map(returning, ", ", &quote_name/1)]
 
-    defp create_names(%{sources: sources}) do
-      create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
+    defp create_names(%{sources: sources}, prefix) do
+      create_names(sources, 0, tuple_size(sources), prefix) |> List.to_tuple()
     end
 
-    defp create_names(sources, pos, limit) when pos < limit do
-      [create_name(sources, pos) | create_names(sources, pos + 1, limit)]
+    defp create_names(sources, pos, limit, prefix) when pos < limit do
+      [create_name(sources, pos, prefix) | create_names(sources, pos + 1, limit, prefix)]
     end
 
-    defp create_names(_sources, pos, pos) do
+    defp create_names(_sources, pos, pos, _prefix) do
       []
     end
 
-    defp create_name(sources, pos) do
+    defp create_name(sources, pos, alias_prefix) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
-          {nil, [?f | Integer.to_string(pos)], nil}
+          {nil, alias_prefix ++ [?f | Integer.to_string(pos)], nil}
 
         {table, schema, prefix} ->
-          name = [create_alias(table) | Integer.to_string(pos)]
+          name = alias_prefix ++ [create_alias(table) | Integer.to_string(pos)]
           {quote_table(prefix, table), name, schema}
 
         %Ecto.SubQuery{} ->
-          {nil, [?s | Integer.to_string(pos)], nil}
+          {nil, alias_prefix ++ [?s | Integer.to_string(pos)], nil}
       end
     end
 
