@@ -73,9 +73,11 @@ if Code.ensure_loaded?(MyXQL) do
 
     alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
 
+    @parent_as 0
+
     @impl true
-    def all(query) do
-      sources = create_names(query)
+    def all(query, as_prefix \\ []) do
+      sources = create_names(query, as_prefix)
 
       cte = cte(query, sources)
       from = from(query, sources)
@@ -102,7 +104,7 @@ if Code.ensure_loaded?(MyXQL) do
         error!(nil, ":select is not supported in update_all by MySQL")
       end
 
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, source)
 
@@ -125,7 +127,7 @@ if Code.ensure_loaded?(MyXQL) do
         error!(nil, ":select is not supported in delete_all by MySQL")
       end
 
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {_, name, _} = elem(sources, 0)
 
@@ -450,6 +452,12 @@ if Code.ensure_loaded?(MyXQL) do
       '?'
     end
 
+    defp expr({{:., _, [{:parent_as, _, [{:&, _, [idx]}]}, field]}, _, []}, _sources, query)
+         when is_atom(field) do
+      {_, name, _} = elem(query.aliases[@parent_as], idx)
+      [name, ?. | quote_name(field)]
+    end
+
     defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query)
         when is_atom(field) do
       {_, name, _} = elem(sources, idx)
@@ -495,8 +503,9 @@ if Code.ensure_loaded?(MyXQL) do
       error!(query, "MySQL adapter does not support aggregate filters")
     end
 
-    defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
-      [?(, all(query), ?)]
+    defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
+      query = put_in(query.aliases[@parent_as], sources)
+      [?(, all(query, [?s]), ?)]
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
@@ -627,37 +636,37 @@ if Code.ensure_loaded?(MyXQL) do
     defp op_to_binary(expr, sources, query),
       do: expr(expr, sources, query)
 
-    defp create_names(%{sources: sources}) do
-      create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
+    defp create_names(%{sources: sources}, as_prefix) do
+      create_names(sources, 0, tuple_size(sources), as_prefix) |> List.to_tuple()
     end
 
-    defp create_names(sources, pos, limit) when pos < limit do
-      [create_name(sources, pos) | create_names(sources, pos + 1, limit)]
+    defp create_names(sources, pos, limit, as_prefix) when pos < limit do
+      [create_name(sources, pos, as_prefix) | create_names(sources, pos + 1, limit, as_prefix)]
     end
 
-    defp create_names(_sources, pos, pos) do
+    defp create_names(_sources, pos, pos, _as_prefix) do
       []
     end
 
-    defp create_name(sources, pos) do
+    defp create_name(sources, pos, as_prefix) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
-          {nil, [?f | Integer.to_string(pos)], nil}
+          {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
         {table, schema, prefix} ->
-          name = [create_alias(table) | Integer.to_string(pos)]
+          name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
           {quote_table(prefix, table), name, schema}
 
         %Ecto.SubQuery{} ->
-          {nil, [?s | Integer.to_string(pos)], nil}
+          {nil, as_prefix ++ [?s | Integer.to_string(pos)], nil}
       end
     end
 
     defp create_alias(<<first, _rest::binary>>) when first in ?a..?z when first in ?A..?Z do
-      <<first>>
+      first
     end
     defp create_alias(_) do
-      "t"
+      ?t
     end
 
     ## DDL

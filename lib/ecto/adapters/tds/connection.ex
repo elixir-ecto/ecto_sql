@@ -129,10 +129,7 @@ if Code.ensure_loaded?(Tds) do
     ## Query
 
     alias Ecto.Query
-    alias Ecto.Query.QueryExpr
-    alias Ecto.Query.JoinExpr
-    alias Ecto.Query.BooleanExpr
-    alias Ecto.Query.WithExpr
+    alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
 
     @parent_as 0
 
@@ -620,13 +617,13 @@ if Code.ensure_loaded?(Tds) do
     defp expr({{:., _, [{:parent_as, _, [{:&, _, [idx]}]}, field]}, _, []}, _sources, query)
          when is_atom(field) do
       {_, name, _} = elem(query.aliases[@parent_as], idx)
-      [name, ?., quote_name(field)]
+      [name, ?. | quote_name(field)]
     end
 
     defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query)
          when is_atom(field) or is_binary(field) do
       {_, name, _} = elem(sources, idx)
-      [name, ?., quote_name(field)]
+      [name, ?. | quote_name(field)]
     end
 
     defp expr({:&, _, [idx]}, sources, _query) do
