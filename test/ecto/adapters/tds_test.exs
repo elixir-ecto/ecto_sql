@@ -114,12 +114,32 @@ defmodule Ecto.Adapters.TdsTest do
     query = subquery("posts" |> select([r], %{x: r.x, y: r.y})) |> select([r], r.x) |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.[x] FROM (SELECT p0.[x] AS [x], p0.[y] AS [y] FROM [posts] AS p0) AS s0}
+             ~s{SELECT s0.[x] FROM (SELECT sp0.[x] AS [x], sp0.[y] AS [y] FROM [posts] AS sp0) AS s0}
 
     query = subquery("posts" |> select([r], %{x: r.x, z: r.y})) |> select([r], r) |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.[x], s0.[z] FROM (SELECT p0.[x] AS [x], p0.[y] AS [z] FROM [posts] AS p0) AS s0}
+             ~s{SELECT s0.[x], s0.[z] FROM (SELECT sp0.[x] AS [x], sp0.[y] AS [z] FROM [posts] AS sp0) AS s0}
+  end
+
+  test "join with subquery" do
+    posts = subquery("posts" |> where(title: ^"hello") |> select([r], %{x: r.x, y: r.y}))
+    query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p.x) |> plan()
+    assert all(query) ==
+            "SELECT s1.[x] FROM [comments] AS c0 " <>
+            "INNER JOIN (SELECT sp0.[x] AS [x], sp0.[y] AS [y] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)) AS s1 ON 1 = 1"
+
+    posts = subquery("posts" |> where(title: ^"hello") |> select([r], %{x: r.x, z: r.y}))
+    query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p) |> plan()
+    assert all(query) ==
+           "SELECT s1.[x], s1.[z] FROM [comments] AS c0 " <>
+           "INNER JOIN (SELECT sp0.[x] AS [x], sp0.[y] AS [z] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)) AS s1 ON 1 = 1"
+
+    posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([r], r.title))
+    query = "comments" |> from(as: :comment) |> join(:inner, [c], p in subquery(posts)) |> select([_, p], p) |> plan()
+    assert all(query) ==
+           "SELECT s1.[title] FROM [comments] AS c0 " <>
+           "INNER JOIN (SELECT sp0.[title] AS [title] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])) AS s1 ON 1 = 1"
   end
 
   test "CTE" do

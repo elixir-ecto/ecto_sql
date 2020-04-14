@@ -134,9 +134,11 @@ if Code.ensure_loaded?(Tds) do
     alias Ecto.Query.BooleanExpr
     alias Ecto.Query.WithExpr
 
+    @parent_as 0
+
     @impl true
-    def all(query) do
-      sources = create_names(query)
+    def all(query, as_prefix \\ []) do
+      sources = create_names(query, as_prefix)
 
       cte = cte(query, sources)
       from = from(query, sources)
@@ -160,7 +162,7 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def update_all(query) do
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {table, name, _model} = elem(sources, 0)
 
@@ -185,7 +187,7 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def delete_all(query) do
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {table, name, _model} = elem(sources, 0)
 
@@ -437,15 +439,14 @@ if Code.ensure_loaded?(Tds) do
 
     defp update_op(:set, key, value, sources, query) do
       {_table, name, _model} = elem(sources, 0)
-      name <> "." <> quote_name(key) <> " = " <> expr(value, sources, query)
+      [name, ?., quote_name(key), " = " | expr(value, sources, query)]
     end
 
     defp update_op(:inc, key, value, sources, query) do
       {_table, name, _model} = elem(sources, 0)
       quoted = quote_name(key)
 
-      name <>
-        "." <> quoted <> " = " <> name <> "." <> quoted <> " + " <> expr(value, sources, query)
+      [name, ?., quoted, " = ", name, ?., quoted, " + " | expr(value, sources, query)]
     end
 
     defp update_op(command, _key, _value, _sources, query) do
@@ -461,7 +462,7 @@ if Code.ensure_loaded?(Tds) do
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
             {join, name} = get_source(query, sources, ix, source)
             qual_text = join_qual(qual)
-            join = join || "(" <> expr(source, sources, query) <> ")"
+            join = join || ["(", expr(source, sources, query) | ")"]
             [qual_text, join, " AS ", name, hints(hints) | join_on(qual, expr, sources, query)]
         end)
       ]
@@ -616,11 +617,16 @@ if Code.ensure_loaded?(Tds) do
       "@#{idx + 1}"
     end
 
-    # :. - attribure, table alias name can be get from sources by passing index
+    defp expr({{:., _, [{:parent_as, _, [{:&, _, [idx]}]}, field]}, _, []}, _sources, query)
+         when is_atom(field) do
+      {_, name, _} = elem(query.aliases[@parent_as], idx)
+      [name, ?., quote_name(field)]
+    end
+
     defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query)
          when is_atom(field) or is_binary(field) do
       {_, name, _} = elem(sources, idx)
-      "#{name}.#{quote_name(field)}"
+      [name, ?., quote_name(field)]
     end
 
     defp expr({:&, _, [idx]}, sources, _query) do
@@ -651,7 +657,7 @@ if Code.ensure_loaded?(Tds) do
     # example from(p in Post, where: p.id in [1,2, ^some_id])
     defp expr({:in, _, [left, right]}, sources, query) when is_list(right) do
       args = Enum.map_join(right, ",", &expr(&1, sources, query))
-      expr(left, sources, query) <> " IN (" <> args <> ")"
+      [expr(left, sources, query), " IN (", args | ")"]
     end
 
     # example from(p in Post, where: p.id in [])
@@ -661,11 +667,11 @@ if Code.ensure_loaded?(Tds) do
     # or from(p in Post, where: p.id in ^[])
     defp expr({:in, _, [left, {:^, _, [idx, length]}]}, sources, query) do
       args = list_param_to_args(idx, length)
-      expr(left, sources, query) <> " IN (" <> args <> ")"
+      [expr(left, sources, query), " IN (", args | ")"]
     end
 
     defp expr({:in, _, [left, right]}, sources, query) do
-      expr(left, sources, query) <> " = ANY(" <> expr(right, sources, query) <> ")"
+      [expr(left, sources, query), " = ANY(", expr(right, sources, query) | ")"]
     end
 
     defp expr({:is_nil, _, [arg]}, sources, query) do
@@ -673,15 +679,16 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:not, _, [expr]}, sources, query) do
-      "NOT (" <> expr(expr, sources, query) <> ")"
+      ["NOT (", expr(expr, sources, query) | ")"]
     end
 
     defp expr({:filter, _, _}, _sources, query) do
       error!(query, "Tds adapter does not support aggregate filters")
     end
 
-    defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
-      all(query)
+    defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
+      query = put_in(query.aliases[@parent_as], sources)
+      all(query, [?s])
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
@@ -708,16 +715,15 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:date_add, _, [date, count, interval]}, sources, query) do
-      "CAST(DATEADD(" <>
-        interval <>
-        ", " <>
-        interval_count(count, sources, query) <>
-        ", CAST(" <>
-        expr(
-          date,
-          sources,
-          query
-        ) <> " AS datetime2(6))" <> ") AS date)"
+      [
+        "CAST(DATEADD(",
+        interval,
+        ", ",
+        interval_count(count, sources, query),
+        ", CAST(",
+        expr(date, sources, query),
+        " AS datetime2(6))" | ") AS date)"
+      ]
     end
 
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
@@ -874,38 +880,38 @@ if Code.ensure_loaded?(Tds) do
           end)
       ]
 
-    defp create_names(%{sources: sources}) do
-      create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
+    defp create_names(%{sources: sources}, as_prefix) do
+      create_names(sources, 0, tuple_size(sources), as_prefix) |> List.to_tuple()
     end
 
-    defp create_names(sources, pos, limit) when pos < limit do
-      [create_name(sources, pos) | create_names(sources, pos + 1, limit)]
+    defp create_names(sources, pos, limit, as_prefix) when pos < limit do
+      [create_name(sources, pos, as_prefix) | create_names(sources, pos + 1, limit, as_prefix)]
     end
 
-    defp create_names(_sources, pos, pos) do
+    defp create_names(_sources, pos, pos, _as_prefix) do
       []
     end
 
-    defp create_name(sources, pos) do
+    defp create_name(sources, pos, as_prefix) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
-          {nil, "f" <> Integer.to_string(pos), nil}
+          {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
         {table, model, prefix} ->
-          name = create_alias(table) <> Integer.to_string(pos)
+          name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
           {quote_table(prefix, table), name, model}
 
         %Ecto.SubQuery{} ->
-          {nil, "s" <> Integer.to_string(pos), nil}
+          {nil, as_prefix ++ [?s | Integer.to_string(pos)], nil}
       end
     end
 
     defp create_alias(<<first, _rest::binary>>) when first in ?a..?z when first in ?A..?Z do
-      <<first>>
+      first
     end
 
     defp create_alias(_) do
-      "t"
+      ?t
     end
 
     # DDL
