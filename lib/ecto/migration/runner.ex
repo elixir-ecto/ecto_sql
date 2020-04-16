@@ -319,7 +319,7 @@ defmodule Ecto.Migration.Runner do
         Please set:
 
             use Ecto.Migration
-            @disable_migration_lock true
+            @disable_migration_lock false
 
         """, []
       end
