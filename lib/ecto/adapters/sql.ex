@@ -453,9 +453,10 @@ defmodule Ecto.Adapters.SQL do
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
 
+    cache_statement = Keyword.get(config, :cache_statement, :per_schema)
     config = adapter_config(config)
     opts = Keyword.take(config, @pool_opts)
-    meta = %{telemetry: telemetry, sql: connection, opts: opts}
+    meta = %{telemetry: telemetry, sql: connection, opts: opts, cache_statement: cache_statement}
     {:ok, connection.child_spec(config), meta}
   end
 
@@ -489,6 +490,12 @@ defmodule Ecto.Adapters.SQL do
 
   ## Query
 
+  defp cache_statement(%{cache_statement: :per_schema}, operation, source),
+    do: "ecto_#{operation}_#{source}"
+
+  defp cache_statement(%{cache_statement: :per_operation}, operation, _source),
+    do: "ecto_#{operation}"
+
   @doc false
   def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, opts) do
     %{source: source, prefix: prefix} = schema_meta
@@ -496,8 +503,7 @@ defmodule Ecto.Adapters.SQL do
     {rows, params} = unzip_inserts(header, rows)
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning)
 
-    cache_statement = "ecto_insert_all_#{source}"
-    opts = [{:cache_statement, cache_statement} | opts]
+    opts = [{:cache_statement, cache_statement(adapter_meta, "insert_all", source)} | opts]
 
     %{num_rows: num, rows: rows} =
       query!(adapter_meta, sql, Enum.reverse(params) ++ conflict_params, opts)
@@ -626,7 +632,7 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def struct(adapter_meta, conn, sql, operation, source, params, values, on_conflict, returning, opts) do
-    cache_statement = "ecto_#{operation}_#{source}"
+    cache_statement = cache_statement(adapter_meta, operation, source)
 
     case query(adapter_meta, sql, values, [cache_statement: cache_statement] ++ opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->
