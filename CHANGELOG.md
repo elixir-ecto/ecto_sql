@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.4.3-dev
+
+### Bug fixes
+
+  * [ecto] Support `as` and `parent_as` from Ecto vv3.4.3+
+  * [repo] Support `cache_write_statements: :per_schema | :per_operation` at the Repo configuration to control how write queries are cached
+
 ## v3.4.2 (2020-04-02)
 
 ### Bug fixes
