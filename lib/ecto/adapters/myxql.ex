@@ -28,11 +28,6 @@ defmodule Ecto.Adapters.MyXQL do
       This option is only used for `mix ecto.load` and `mix ecto.dump`,
       via the `mysql` command. For more information, please check
       [MySQL docs](https://dev.mysql.com/doc/en/connecting.html)
-    * `:cache_write_statements` - how Ecto should cache INSERT/UPDATE/DELETE statements.
-      It defaults to `:per_schema` (one cache key is used for each schema) and
-      can be set to `:per_operation` (one cache key is use for each operation).
-      Note SELECTs use a more complete cache mechanism that considers the query
-      itself.
     * `:socket_options` - Specifies socket configuration
     * `:show_sensitive_data_on_connection_error` - show connection data and
       configuration whenever there is an error attempting to connect to the
@@ -231,9 +226,7 @@ defmodule Ecto.Adapters.MyXQL do
     key = primary_key!(schema_meta, returning)
     {fields, values} = :lists.unzip(params)
     sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [])
-
-    cache_statement = Ecto.Adapters.SQL.cache_write_statements(adapter_meta, "insert", source)
-    opts = [{:cache_statement, cache_statement} | opts]
+    opts = [{:cache_statement, "ecto_insert_#{source}"} | opts]
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 1, last_insert_id: last_insert_id}} ->

@@ -40,11 +40,6 @@ defmodule Ecto.Adapters.Postgres do
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
     * `:parameters` - Keyword list of connection parameters
-    * `:cache_write_statements` - how Ecto should cache INSERT/UPDATE/DELETE statements.
-      It defaults to `:per_schema` (one cache key is used for each schema) and
-      can be set to `:per_operation` (one cache key is use for each operation).
-      Note SELECTs use a more complete cache mechanism that considers the query
-      itself.
     * `:connect_timeout` - The timeout for establishing new connections (default: 5000)
     * `:prepare` - How to prepare queries, either `:named` to use named queries
       or `:unnamed` to force unnamed queries (default: `:named`)

@@ -18,8 +18,7 @@ alias Ecto.Integration.TestRepo
 Application.put_env(:ecto_sql, TestRepo,
   url: Application.get_env(:ecto_sql, :mysql_test_url) <> "/ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
-  show_sensitive_data_on_connection_error: true,
-  cache_write_statements: :per_schema
+  show_sensitive_data_on_connection_error: true
 )
 
 defmodule Ecto.Integration.TestRepo do

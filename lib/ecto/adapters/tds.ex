@@ -18,11 +18,6 @@ defmodule Ecto.Adapters.Tds do
     * `:pool` - The connection pool module, defaults to `DBConnection.ConnectionPool`
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
-    * `:cache_write_statements` - how Ecto should cache INSERT/UPDATE/DELETE statements.
-      It defaults to `:per_schema` (one cache key is used for each schema) and
-      can be set to `:per_operation` (one cache key is use for each operation).
-      Note SELECTs use a more complete cache mechanism that considers the query
-      itself.
     * `:show_sensitive_data_on_connection_error` - show connection data and
       configuration whenever there is an error attempting to connect to the
       database
