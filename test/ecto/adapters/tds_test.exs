@@ -602,6 +602,20 @@ defmodule Ecto.Adapters.TdsTest do
              ~s{SELECT ((s0.[x] = @1) OR s0.[x] IN (@2,@3,@4)) OR (s0.[x] = @5) FROM [schema] AS s0}
   end
 
+  test "in subquery" do
+    posts = subquery("posts" |> where(title: ^"hello") |> select([p], p.id))
+    query = "comments" |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+    assert all(query) ==
+           ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
+           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] AS [id] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)))}
+
+    posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([p], p.id))
+    query = "comments" |> from(as: :comment) |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+    assert all(query) ==
+           ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
+           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] AS [id] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])))}
+  end
+
   test "having" do
     query = Schema |> having([p], p.x == p.x) |> select([p], p.x) |> plan()
     assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 HAVING (s0.[x] = s0.[x])}

@@ -538,6 +538,10 @@ if Code.ensure_loaded?(Postgrex) do
       [expr(left, sources, query), " = ANY($", Integer.to_string(ix + 1), ?)]
     end
 
+    defp expr({:in, _, [left, %Ecto.SubQuery{} = subquery]}, sources, query) do
+      [expr(left, sources, query), " IN ", expr(subquery, sources, query)]
+    end
+
     defp expr({:in, _, [left, right]}, sources, query) do
       [expr(left, sources, query), " = ANY(", expr(right, sources, query), ?)]
     end

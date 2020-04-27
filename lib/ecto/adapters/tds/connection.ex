@@ -597,6 +597,14 @@ if Code.ensure_loaded?(Tds) do
     defp operator_to_boolean(:and), do: " AND "
     defp operator_to_boolean(:or), do: " OR "
 
+    defp parens_for_select([first_expr | _] = expr) do
+      if is_binary(first_expr) and String.starts_with?(first_expr, ["SELECT", "select"]) do
+        [?(, expr, ?)]
+      else
+        expr
+      end
+    end
+
     defp paren_expr(true, _sources, _query) do
       ["(1 = 1)"]
     end
@@ -667,6 +675,10 @@ if Code.ensure_loaded?(Tds) do
       [expr(left, sources, query), " IN (", args | ")"]
     end
 
+    defp expr({:in, _, [left, %Ecto.SubQuery{} = subquery]}, sources, query) do
+      [expr(left, sources, query), " IN ", expr(subquery, sources, query)]
+    end
+
     defp expr({:in, _, [left, right]}, sources, query) do
       [expr(left, sources, query), " = ANY(", expr(right, sources, query) | ")"]
     end
@@ -685,7 +697,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
       query = put_in(query.aliases[@parent_as], sources)
-      all(query, [?s])
+      [?(, all(query, [?s]), ?)]
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
@@ -693,10 +705,11 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:fragment, _, parts}, sources, query) do
-      Enum.map_join(parts, "", fn
+      Enum.map(parts, fn
         {:raw, part} -> part
         {:expr, expr} -> expr(expr, sources, query)
       end)
+      |> parens_for_select
     end
 
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
@@ -1410,7 +1423,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp get_source(query, sources, ix, source) do
       {expr, name, _schema} = elem(sources, ix)
-      {expr || paren_expr(source, sources, query), name}
+      {expr || expr(source, sources, query), name}
     end
 
     defp quote_name(name) when is_atom(name) do

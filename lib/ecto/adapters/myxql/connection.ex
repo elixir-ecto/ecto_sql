@@ -487,6 +487,10 @@ if Code.ensure_loaded?(MyXQL) do
       [expr(left, sources, query), " IN (", args, ?)]
     end
 
+    defp expr({:in, _, [left, %Ecto.SubQuery{} = subquery]}, sources, query) do
+      [expr(left, sources, query), " IN ", expr(subquery, sources, query)]
+    end
+
     defp expr({:in, _, [left, right]}, sources, query) do
       [expr(left, sources, query), " = ANY(", expr(right, sources, query), ?)]
     end
