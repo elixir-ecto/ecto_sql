@@ -1,10 +1,11 @@
 # Changelog for v3.x
 
-## v3.4.3-dev
+## v3.4.3 (2020-04-27)
 
 ### Bug fixes
 
   * [ecto] Support `as` and `parent_as` from Ecto v3.4.3+
+  * [ecto] Support `x in subquery(query)` from Ecto v3.4.3+
 
 ## v3.4.2 (2020-04-02)
 
