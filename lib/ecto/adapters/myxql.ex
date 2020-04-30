@@ -290,9 +290,7 @@ defmodule Ecto.Adapters.MyXQL do
   defp append_versions(table, versions, contents) do
     {:ok,
       contents <>
-      ~s[INSERT INTO `#{table}` (version) VALUES ] <>
-      Enum.map_join(versions, ", ", &"(#{&1})") <>
-      ~s[;\n\n]}
+      Enum.map_join(versions, &~s[INSERT INTO `#{table}` (version) VALUES (#{&1});\n])}
   end
 
   @impl true

@@ -222,9 +222,7 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp append_versions(table, versions, path) do
-    sql =
-      ~s[INSERT INTO public."#{table}" (version) VALUES ] <>
-        Enum.map_join(versions, ", ", &"(#{&1})") <> ~s[;\n\n]
+    sql = Enum.map_join(versions, &~s[INSERT INTO public."#{table}" (version) VALUES (#{&1});\n])
 
     File.open!(path, [:append], fn file ->
       IO.write(file, sql)
