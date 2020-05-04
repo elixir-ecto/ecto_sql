@@ -122,7 +122,7 @@ defmodule Ecto.Adapters.Tds do
 
       Ecto.Adapter.SQL.query("SET TRANSACTION ISOLATION LEVEL XYZ")
 
-  will fail once explicit transaction is started using `Ecto.Repo.transaction/2`
+  will fail once explicit transaction is started using `c:Ecto.Repo.transaction/2`
   and reset back to :read_commited.
 
   There is `Ecto.Query.lock/3` function can help by setting it to `WITH(NOLOCK)`.
