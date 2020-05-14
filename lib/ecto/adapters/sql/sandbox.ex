@@ -381,7 +381,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
       setup tags do
         pid = Ecto.Adapters.SQL.Sandbox.start_owner!(MyApp.Repo, shared: not tags[:async])
-        on_exit(fn -> GenServer.stop(pid) end)
+        on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
         :ok
       end
 
@@ -401,9 +401,9 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         :ok = checkout(repo, opts)
 
         if shared do
-          :ok = Ecto.Adapters.SQL.Sandbox.mode(repo, {:shared, self()})
+          :ok = mode(repo, {:shared, self()})
         else
-          :ok = Ecto.Adapters.SQL.Sandbox.allow(repo, self(), parent)
+          :ok = allow(repo, self(), parent)
         end
       end)
 
