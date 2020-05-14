@@ -64,7 +64,8 @@ defmodule Ecto.Integration.SandboxTest do
 
     test "uses the repository when shared from another process" do
       Sandbox.checkout(TestRepo)
-      Sandbox.mode(TestRepo, {:shared, self()})
+      # TODO: when below is commented out, this test should fail!
+      # Sandbox.mode(TestRepo, {:shared, self()})
       assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
     after
       Sandbox.mode(TestRepo, :manual)
@@ -187,6 +188,37 @@ defmodule Ecto.Integration.SandboxTest do
         end)
         assert TestRepo.in_transaction?()
       end)
+    end
+  end
+
+  describe "start_owner!/2" do
+    test "checks out the connection" do
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        TestRepo.all(Post)
+      end
+
+      pid = Sandbox.start_owner!(TestRepo)
+      assert TestRepo.all(Post) == []
+
+      # TODO: this should fail! we should needed explicit allowance or shared mode.
+      assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
+
+      :ok = Sandbox.stop_owner(pid)
+      message = "owner #{inspect(pid)} exited"
+
+      try do
+        TestRepo.all(Post) == []
+      catch
+        :exit, {{:shutdown, ^message}, _} ->
+          :ok
+      end
+    end
+
+    test "can set shared mode" do
+      pid = Sandbox.start_owner!(TestRepo)
+      assert TestRepo.all(Post) == []
+      assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
+      :ok = Sandbox.stop_owner(pid)
     end
   end
 end

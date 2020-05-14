@@ -440,7 +440,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   Checks a connection out for the given `repo`.
 
   The process calling `checkout/2` will own the connection
-  until it calls `checkin/2` or until it crashes when then
+  until it calls `checkin/2` or until it crashes in which case
   the connection will be automatically reclaimed by the pool.
 
   ## Options
