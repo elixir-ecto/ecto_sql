@@ -374,7 +374,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   end
 
   @doc """
-  Starts a process that owns the connection and returns it's pid.
+  Starts a process that owns the connection and returns its pid.
   
   The process is linked to the caller.
 
