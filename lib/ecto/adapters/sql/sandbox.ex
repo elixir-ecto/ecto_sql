@@ -378,8 +378,8 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   
   The process is not linked to the caller.
 
-  In tests, this is useful to ensure the pool is terminated according to the
-  order of other possible `on_exit` callbacks.
+  It is your responsibility to ensure the owner process is stopped.
+  In tests, this is done by terminating the pool in `on_exit` callbacks:
 
       setup tags do
         pid = Ecto.Adapters.SQL.Sandbox.start_owner!(MyApp.Repo, shared: not tags[:async])
