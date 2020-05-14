@@ -51,10 +51,11 @@ defmodule Ecto.Integration.SandboxTest do
       end
 
       parent = self()
+
       Task.start_link fn ->
         Sandbox.checkout(TestRepo)
         Sandbox.allow(TestRepo, self(), parent)
-        send parent, :allowed
+        send(parent, :allowed)
         Process.sleep(:infinity)
       end
 
@@ -63,9 +64,20 @@ defmodule Ecto.Integration.SandboxTest do
     end
 
     test "uses the repository when shared from another process" do
-      Sandbox.checkout(TestRepo)
-      # TODO: when below is commented out, this test should fail!
-      # Sandbox.mode(TestRepo, {:shared, self()})
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        TestRepo.all(Post)
+      end
+
+      parent = self()
+
+      Task.start_link(fn ->
+        Sandbox.checkout(TestRepo)
+        Sandbox.mode(TestRepo, {:shared, self()})
+        send(parent, :shared)
+        Process.sleep(:infinity)
+      end)
+
+      assert_receive :shared
       assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
     after
       Sandbox.mode(TestRepo, :manual)
@@ -197,14 +209,11 @@ defmodule Ecto.Integration.SandboxTest do
         TestRepo.all(Post)
       end
 
-      pid = Sandbox.start_owner!(TestRepo)
+      owner = Sandbox.start_owner!(TestRepo)
       assert TestRepo.all(Post) == []
 
-      # TODO: this should fail! we should needed explicit allowance or shared mode.
-      assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
-
-      :ok = Sandbox.stop_owner(pid)
-      message = "owner #{inspect(pid)} exited"
+      :ok = Sandbox.stop_owner(owner)
+      message = "owner #{inspect(owner)} exited"
 
       try do
         TestRepo.all(Post) == []
@@ -215,10 +224,23 @@ defmodule Ecto.Integration.SandboxTest do
     end
 
     test "can set shared mode" do
-      pid = Sandbox.start_owner!(TestRepo)
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        TestRepo.all(Post)
+      end
+
+      parent = self()
+
+      Task.start_link(fn ->
+        owner = Sandbox.start_owner!(TestRepo, shared: true)
+        send(parent, {:owner, owner})
+        Process.sleep(:infinity)
+      end)
+
+      assert_receive {:owner, owner}
       assert TestRepo.all(Post) == []
-      assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
-      :ok = Sandbox.stop_owner(pid)
+      :ok = Sandbox.stop_owner(owner)
+    after
+      Sandbox.mode(TestRepo, :manual)
     end
   end
 end
