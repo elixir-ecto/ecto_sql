@@ -375,6 +375,8 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   @doc """
   Starts a process that owns the connection and returns it's pid.
+  
+  The process is linked to the caller.
 
   In tests, this is useful to ensure the pool is terminated according to the
   order of other possible `on_exit` callbacks.
@@ -410,6 +412,14 @@ defmodule Ecto.Adapters.SQL.Sandbox do
     pid
   end
 
+  @doc """
+  Stops an owner process started by `start_owner!/2`.
+  """
+  @doc since: "3.4.4"
+  @spec stop_owner(pid()) :: :ok
+  def stop_owner(pid) do
+    GenServer.stop(pid)
+  end
   @doc """
   Sets the mode for the `repo` pool.
 
