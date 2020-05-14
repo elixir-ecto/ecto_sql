@@ -376,7 +376,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   @doc """
   Starts a process that owns the connection and returns its pid.
   
-  The process is linked to the caller.
+  The process is not linked to the caller.
 
   In tests, this is useful to ensure the pool is terminated according to the
   order of other possible `on_exit` callbacks.
