@@ -141,7 +141,9 @@ defmodule Ecto.Adapters.MyXQL do
   def loaders(_, type),           do: [type]
 
   defp bool_decode(<<0>>), do: {:ok, false}
+  defp bool_decode(<<0::size(1)>>), do: {:ok, false}
   defp bool_decode(<<1>>), do: {:ok, true}
+  defp bool_decode(<<1::size(1)>>), do: {:ok, true}
   defp bool_decode(0), do: {:ok, false}
   defp bool_decode(1), do: {:ok, true}
   defp bool_decode(x), do: {:ok, x}
