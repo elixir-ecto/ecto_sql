@@ -214,13 +214,7 @@ defmodule Ecto.Integration.SandboxTest do
 
       :ok = Sandbox.stop_owner(owner)
       message = "owner #{inspect(owner)} exited"
-
-      try do
-        TestRepo.all(Post) == []
-      catch
-        :exit, {{:shutdown, ^message}, _} ->
-          :ok
-      end
+      assert {{:shutdown, ^message}, _} = catch_exit(TestRepo.all(Post))
     end
 
     test "can set shared mode" do
