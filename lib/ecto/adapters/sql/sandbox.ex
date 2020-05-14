@@ -374,6 +374,43 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   end
 
   @doc """
+  Starts a process that owns the connection and returns it's pid.
+
+  In tests, this is useful to ensure the pool is terminated according to the
+  order of other possible `on_exit` callbacks.
+
+      setup tags do
+        pid = Ecto.Adapters.SQL.Sandbox.start_owner!(MyApp.Repo, shared: not tags[:async])
+        on_exit(fn -> GenServer.stop(pid) end)
+        :ok
+      end
+
+  ## Options
+
+    * `:shared` - if `true`, the pool runs in the shared mode. Defaults to `false`
+
+  The remaining options are passed to `checkout/2`.
+  """
+  @doc since: "3.4.4"
+  def start_owner!(repo, opts \\ []) do
+    parent = self()
+
+    {:ok, pid} =
+      Agent.start(fn ->
+        {shared, opts} = Keyword.pop(opts, :shared, false)
+        :ok = checkout(repo, opts)
+
+        if shared do
+          :ok = Ecto.Adapters.SQL.Sandbox.mode(repo, {:shared, self()})
+        else
+          :ok = Ecto.Adapters.SQL.Sandbox.allow(repo, self(), parent)
+        end
+      end)
+
+    pid
+  end
+
+  @doc """
   Sets the mode for the `repo` pool.
 
   The mode can be `:auto`, `:manual` or `{:shared, <pid>}`.
