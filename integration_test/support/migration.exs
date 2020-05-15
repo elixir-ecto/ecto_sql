@@ -121,5 +121,9 @@ defmodule Ecto.Integration.Migration do
       add :naive_datetime_usec, :naive_datetime_usec
       add :utc_datetime_usec, :utc_datetime_usec
     end
+
+    create table(:bits) do
+      add :bit, :bit
+    end
   end
 end
