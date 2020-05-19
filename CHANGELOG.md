@@ -1,5 +1,13 @@
 # Changelog for v3.x
 
+## v3.4.4 (2020-05-19)
+
+### Enhancements
+
+  * [sandbox] Add `Ecto.Adapters.SQL.start_owner!/2` and `Ecto.Adapters.SQL.stop_owner/1`
+  * [myxql] decode BIT columns when using MyXQL and `:boolean` type
+  * [migrations] Use one line per migration in the schema dump
+
 ## v3.4.3 (2020-04-27)
 
 ### Bug fixes
