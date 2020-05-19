@@ -375,7 +375,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   @doc """
   Starts a process that owns the connection and returns its pid.
-  
+
   The owner process is not linked to the caller, it is your responsibility to
   ensure it will be stopped. In tests, this is done by terminating the pool
   in `on_exit` callbacks:
