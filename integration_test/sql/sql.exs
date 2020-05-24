@@ -127,4 +127,16 @@ defmodule Ecto.Integration.SQLTest do
   test "returns false table doesn't exists" do
     refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
   end
+
+  test "explain/2" do
+    sql = TestRepo.explain(Barebone)
+    assert sql =~ "barebones"
+    assert sql =~ "cost="
+    assert sql =~ "rows="
+
+    sql = TestRepo.explain(from p in "posts", select: type(fragment("visits"), :integer))
+    assert sql =~ "posts"
+    assert sql =~ "cost="
+    assert sql =~ "rows="
+  end
 end

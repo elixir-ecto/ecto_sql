@@ -120,6 +120,10 @@ defmodule Ecto.Adapters.SQL do
         {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.all(query))}}
       end
 
+      def prepare(:explain, query) do
+        {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.explain(query))}}
+      end
+
       def prepare(:update_all, query) do
         {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.update_all(query))}}
       end
