@@ -126,11 +126,6 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def explain(query) do
-      [["EXPLAIN "] | all(query)]
-    end
-
-    @impl true
     def update_all(%{from: %{source: source}} = query, prefix \\ nil) do
       sources = create_names(query, [])
       cte = cte(query, sources)
@@ -253,6 +248,27 @@ if Code.ensure_loaded?(Postgrex) do
       end)
 
       ["DELETE FROM ", quote_table(prefix, table), " WHERE ", filters | returning(returning)]
+    end
+
+    @impl true
+    def explain_query(query, opts \\ []) do
+      verbose = Keyword.get(opts, :verbose, false) |> expr(nil, nil)
+      costs   = Keyword.get(opts, :costs,   true)  |> expr(nil, nil)
+      buffers = Keyword.get(opts, :buffers, false) |> expr(nil, nil)
+
+      analyze =
+        case buffers do
+          "TRUE" -> "TRUE"
+          "FALSE" -> Keyword.get(opts, :analyze, false) |> expr(nil, nil)
+        end
+
+      # TODO: support options by version
+      "EXPLAIN ( " <>
+      "ANALYZE #{analyze}, " <>
+      "VERBOSE #{verbose}, " <>
+      "COSTS #{costs}, " <>
+      "BUFFERS #{buffers} ) " <>
+      query
     end
 
     ## Query generation

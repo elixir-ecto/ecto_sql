@@ -98,6 +98,11 @@ defmodule Ecto.Adapters.SQL.Connection do
   @callback delete(prefix :: String.t, table :: String.t,
                    filters :: [atom], returning :: [atom]) :: iodata
 
+  @doc """
+  Receives a query and must return a EXPLAIN query.
+  """
+  @callback explain_query(query :: String.t, opts :: Keyword.t) :: iodata
+
   ## DDL
 
   @doc """
@@ -114,6 +119,4 @@ defmodule Ecto.Adapters.SQL.Connection do
   Returns a queryable to check if the given `table` exists.
   """
   @callback table_exists_query(table :: String.t) :: {iodata, [term]}
-
-  @callback explain(query :: Ecto.Query.t) :: iodata
 end

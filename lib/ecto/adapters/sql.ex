@@ -120,10 +120,6 @@ defmodule Ecto.Adapters.SQL do
         {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.all(query))}}
       end
 
-      def prepare(:explain, query) do
-        {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.explain(query))}}
-      end
-
       def prepare(:update_all, query) do
         {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.update_all(query))}}
       end
@@ -247,6 +243,31 @@ defmodule Ecto.Adapters.SQL do
       {{:nocache, {_id, prepared}}, params} ->
         {prepared, params}
     end
+  end
+
+  @doc """
+  TODO: adapter's specific details should be documented here?
+
+  ## Examples
+
+      iex> Ecto.Adapters.SQL.explain(:all, repo, Post)
+      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
+
+  """
+  @spec explain(Ecto.Repo.t, :all | :update_all | :delete_all, Ecto.Queryable.t, Keyword.t) :: String.t
+  def explain(repo, operation, queryable, opts \\ []) do
+    {prepared, params} = to_sql(operation, repo, queryable)
+    %{sql: sql} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
+
+    {:ok, explain} =
+      transaction(adapter_meta, [], fn ->
+        query = sql.explain_query(prepared, opts)
+        {:ok, %{rows: rows}} = sql_call(adapter_meta, :query, [query], params, [])
+        rows
+      end)
+
+    # TODO: support more formats
+    Enum.map_join(explain, "\n", & &1)
   end
 
   @doc """
@@ -425,6 +446,15 @@ defmodule Ecto.Adapters.SQL do
       """
       def to_sql(operation, queryable) do
         Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
+      end
+
+      @doc """
+      A convenience function for SQL-based repositories that executes the EXPLAIN for the given query.
+
+      See `Ecto.Adapters.SQL.explain/3` for more information.
+      """
+      def explain(operation, queryable, opts \\ []) do
+        Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
       end
     end
   end

@@ -207,6 +207,12 @@ if Code.ensure_loaded?(MyXQL) do
       ["DELETE FROM ", quote_table(prefix, table), " WHERE " | filters]
     end
 
+    # TODO: implement EXPLAIN for mysql
+    @impl true
+    def explain_query(query, opts \\ []) do
+      query
+    end
+
     ## Query generation
 
     binary_ops =

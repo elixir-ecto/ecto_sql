@@ -128,15 +128,21 @@ defmodule Ecto.Integration.SQLTest do
     refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
   end
 
-  test "explain/2" do
-    sql = TestRepo.explain(Barebone)
-    assert sql =~ "barebones"
-    assert sql =~ "cost="
-    assert sql =~ "rows="
+  test "explain a query" do
+    explain = TestRepo.explain(:all, from(p in Post, where: p.title == "title"))
+    assert explain =~ "posts"
+    assert explain =~ "cost="
+    assert explain =~ "Filter"
+  end
 
-    sql = TestRepo.explain(from p in "posts", select: type(fragment("visits"), :integer))
-    assert sql =~ "posts"
-    assert sql =~ "cost="
-    assert sql =~ "rows="
+  test "explain has no side effects" do
+    TestRepo.insert!(%Post{title: "hello"})
+    assert length(TestRepo.all(Post)) == 1
+
+    explain = TestRepo.explain(:delete_all, Post)
+    assert explain =~ "Delete"
+    assert explain =~ "cost="
+
+    assert length(TestRepo.all(Post)) == 1
   end
 end

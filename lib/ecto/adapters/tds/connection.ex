@@ -299,6 +299,12 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
+    # TODO: implement EXPLAIN for tds
+    @impl true
+    def explain_query(query, opts \\ []) do
+      query
+    end
+
     ## Query generation
 
     binary_ops = [
