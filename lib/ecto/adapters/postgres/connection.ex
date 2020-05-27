@@ -251,24 +251,55 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def explain_query(query, opts \\ []) do
-      verbose = Keyword.get(opts, :verbose, false) |> expr(nil, nil)
-      costs   = Keyword.get(opts, :costs,   true)  |> expr(nil, nil)
-      buffers = Keyword.get(opts, :buffers, false) |> expr(nil, nil)
+    def explain_query(query, server_version, opts \\ []) do
+      server_version = normalize_version(server_version)
 
-      analyze =
-        case buffers do
-          "TRUE" -> "TRUE"
-          "FALSE" -> Keyword.get(opts, :analyze, false) |> expr(nil, nil)
+      if Version.compare(server_version, "9.0.0") == :lt do
+        raise RuntimeError, "version not supported"
+      end
+
+      opts =
+        [
+          analyze: "FALSE",
+          verbose: "FALSE",
+          costs: "TRUE",
+          settings: "FALSE",
+          buffers: "FALSE",
+          timing: "TRUE",
+          summary: "FALSE"
+        ]
+        |> Keyword.merge(Enum.map(opts, fn {opt, bool} -> {opt, quote_boolean(bool)} end))
+        |> Map.new()
+
+      opts =
+        case opts.analyze do
+          "TRUE" -> Map.put(opts, :summary, "TRUE")
+          "FALSE" -> Map.merge(opts, %{buffers: "FALSE", timing: "FALSE"})
         end
 
-      # TODO: support options by version
-      "EXPLAIN ( " <>
-      "ANALYZE #{analyze}, " <>
-      "VERBOSE #{verbose}, " <>
-      "COSTS #{costs}, " <>
-      "BUFFERS #{buffers} ) " <>
-      query
+      common_opts =
+        "ANALYZE #{opts.analyze}, " <>
+        "VERBOSE #{opts.verbose}, " <>
+        "COSTS #{opts.costs}, " <>
+        "BUFFERS #{opts.buffers}"
+
+      opts =
+        cond do
+          Version.match?(server_version, ">= 9.0.0 and < 9.2.0")   -> common_opts
+          Version.match?(server_version, ">= 9.2.0 and < 10.0.0")  -> common_opts <> ", TIMING #{opts.timing}"
+          Version.match?(server_version, ">= 10.0.0 and < 12.0.0") -> common_opts <> ", TIMING #{opts.timing}, SUMMARY #{opts.summary}"
+          Version.match?(server_version, ">= 12.0.0")              -> common_opts <> ", TIMING #{opts.timing}, SUMMARY #{opts.summary}, SETTINGS #{opts.settings}"
+        end
+
+      "EXPLAIN ( " <> opts <> " ) " <> query
+    end
+
+    # https://www.postgresql.org/support/versioning/
+    def server_version(conn) do
+      case query(conn, "SHOW server_version", [], []) do
+        {:ok, %{rows: [[version]]}} -> String.split(version) |> hd()
+        _ -> raise "unable to obtain server version"
+      end
     end
 
     ## Query generation
@@ -1136,6 +1167,17 @@ if Code.ensure_loaded?(Postgrex) do
       {expr || expr(source, sources, query), name}
     end
 
+    # Add patch if missing to conform with Elixir.Version
+    defp normalize_version(version) when is_binary(version) do
+      case String.split(version, ".") do
+        [_major | []] -> version <> ".0.0"
+        [_major, _minor | []] -> version <> ".0"
+        _ -> version
+      end
+    end
+
+    defp normalize_version(_version), do: raise RuntimeError, "version not supported"
+
     defp quote_qualified_name(name, sources, ix) do
       {_, source, _} = elem(sources, ix)
       [source, ?. | quote_name(name)]
@@ -1162,6 +1204,11 @@ if Code.ensure_loaded?(Postgrex) do
       end
       [?", name, ?"]
     end
+
+    # TRUE, ON, or 1 to enable the option, and FALSE, OFF, or 0 to disable it
+    defp quote_boolean(value) when value in [true, "TRUE", "ON", 1], do: "TRUE"
+    defp quote_boolean(value) when value in [false, "FALSE", "OFF", 0], do: "FALSE"
+    defp quote_boolean(value), do: error!(nil, "bad boolean value #{value}")
 
     defp single_quote(value), do: [?', escape_string(value), ?']
 

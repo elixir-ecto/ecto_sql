@@ -246,28 +246,63 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc """
-  TODO: adapter's specific details should be documented here?
+  Executes an EXPLAIN statement for the given query according to its kind and the
+  adapter in the given repository.
 
   ## Examples
 
       iex> Ecto.Adapters.SQL.explain(:all, repo, Post)
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
 
+  It's safe to execute it for updates and deletes, no data change will be commited:
+
+      iex> Ecto.Adapters.SQL.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+      "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
+
+  Valid `opts` will be mapped directly to the EXPLAIN statement's options for the adapter in use,
+  so please note each adapter may have specific options:
+
+      iex> Ecto.Adapters.SQL.explain(:all, repo, Post, analyze: true)
+      "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\nPlanning Time: 0.031 ms\nExecution Time: 0.021 ms"
+
+  Note that only the TEXT format is supported at this moment:
+
+      iex> IO.puts(Ecto.Adapters.SQL.explain(:all, repo, Post, analyze: true, verbose: true))
+      Seq Scan on public.posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)
+        Output: id, counter, title, blob, public, cost, visits, wrapped_visits, intensity, bid, uuid, meta, links, intensities, posted, author_id, inserted_at, updated_at
+      Planning Time: 0.024 ms
+      Execution Time: 0.020 ms
+
+  And this function is also available under the repository with name `explain`:
+
+      iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
+      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\n  Filter: ((title)::text = 'title'::text)"
+
   """
   @spec explain(Ecto.Repo.t, :all | :update_all | :delete_all, Ecto.Queryable.t, Keyword.t) :: String.t
   def explain(repo, operation, queryable, opts \\ []) do
     {prepared, params} = to_sql(operation, repo, queryable)
-    %{sql: sql} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
+    %{pid: pool, sql: adapter} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
+    conn = get_conn_or_pool(pool)
 
-    {:ok, explain} =
-      transaction(adapter_meta, [], fn ->
-        query = sql.explain_query(prepared, opts)
-        {:ok, %{rows: rows}} = sql_call(adapter_meta, :query, [query], params, [])
-        rows
-      end)
+    server_version =
+      case adapter do
+        Ecto.Adapters.Postgres.Connection -> adapter.server_version(conn)
+        _ -> nil
+      end
 
-    # TODO: support more formats
-    Enum.map_join(explain, "\n", & &1)
+    transaction(adapter_meta, [], fn ->
+      explain_query = adapter.explain_query(prepared, server_version, opts)
+
+      case query(repo, explain_query, params) do
+        {:ok, %{rows: rows}} -> Enum.map_join(rows, "\n", & &1)
+        _ -> nil
+      end
+    end)
+    |> case do
+      {:ok, explain} -> explain
+      _ -> nil
+    end
   end
 
   @doc """

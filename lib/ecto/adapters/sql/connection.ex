@@ -99,9 +99,10 @@ defmodule Ecto.Adapters.SQL.Connection do
                    filters :: [atom], returning :: [atom]) :: iodata
 
   @doc """
-  Receives a query and must return a EXPLAIN query.
+  Receives a query, the database server version, options for the EXPLAIN statement,
+  and must return a EXPLAIN query statement.
   """
-  @callback explain_query(query :: String.t, opts :: Keyword.t) :: iodata
+  @callback explain_query(query :: String.t, server_version :: String.t, opts :: Keyword.t) :: iodata
 
   ## DDL
 

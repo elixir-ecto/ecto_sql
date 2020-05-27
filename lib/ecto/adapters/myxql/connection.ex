@@ -209,7 +209,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     # TODO: implement EXPLAIN for mysql
     @impl true
-    def explain_query(query, opts \\ []) do
+    def explain_query(query, server_version, opts \\ []) do
       query
     end
 
