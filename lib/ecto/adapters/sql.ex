@@ -262,7 +262,7 @@ defmodule Ecto.Adapters.SQL do
   Valid `opts` will be mapped directly to the EXPLAIN statement's options for the adapter in use,
   so please note each adapter may have specific options:
 
-      iex> Ecto.Adapters.SQL.explain(:all, repo, Post, analyze: true)
+      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true)
       "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\nPlanning Time: 0.031 ms\nExecution Time: 0.021 ms"
 
   Note that only the TEXT format is supported at this moment:
