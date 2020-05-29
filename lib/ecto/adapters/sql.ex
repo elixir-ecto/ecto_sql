@@ -251,7 +251,7 @@ defmodule Ecto.Adapters.SQL do
 
   ## Examples
 
-      iex> Ecto.Adapters.SQL.explain(:all, repo, Post)
+      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post)
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
 
   It's safe to execute it for updates and deletes, no data change will be commited:
