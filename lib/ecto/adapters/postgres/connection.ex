@@ -1195,8 +1195,8 @@ if Code.ensure_loaded?(Postgrex) do
 
     # TRUE, ON, or 1 to enable the option, and FALSE, OFF, or 0 to disable it
     defp quote_boolean(nil), do: nil
-    defp quote_boolean(value) when value in [true, "TRUE", "ON", 1], do: "TRUE"
-    defp quote_boolean(value) when value in [false, "FALSE", "OFF", 0], do: "FALSE"
+    defp quote_boolean(true), do: "TRUE"
+    defp quote_boolean(false), do: "FALSE"
     defp quote_boolean(value), do: error!(nil, "bad boolean value #{value}")
 
     defp single_quote(value), do: [?', escape_string(value), ?']

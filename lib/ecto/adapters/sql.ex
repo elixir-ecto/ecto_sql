@@ -217,10 +217,10 @@ defmodule Ecto.Adapters.SQL do
   The examples below are meant for reference. Each adapter will
   return a different result:
 
-      iex> Ecto.Adapters.SQL.to_sql(:all, repo, Post)
+      iex> Ecto.Adapters.SQL.to_sql(:all, Repo, Post)
       {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
 
-      iex> Ecto.Adapters.SQL.to_sql(:update_all, repo,
+      iex> Ecto.Adapters.SQL.to_sql(:update_all, Repo,
                                     from(p in Post, update: [set: [title: ^"hello"]]))
       {"UPDATE posts AS p SET title = $1", ["hello"]}
 
@@ -256,7 +256,7 @@ defmodule Ecto.Adapters.SQL do
 
   It's safe to execute it for updates and deletes, no data change will be commited:
 
-      iex> Ecto.Adapters.SQL.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+      iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
       "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
   Valid `opts` will be mapped directly to the EXPLAIN statement's options for the adapter in use,
@@ -287,10 +287,10 @@ defmodule Ecto.Adapters.SQL do
       %{sql: adapter} = Ecto.Adapter.lookup_meta(repo)
       {explain_query, output_callback} = adapter.explain_query(prepared, opts)
 
-      case query(repo, IO.iodata_to_binary(explain_query), params) do
-        {:ok, result} -> {:ok, output_callback.(result)}
-        {:error, error} -> {:error, error}
-      end
+      {:ok,
+        repo
+        |> query!(IO.iodata_to_binary(explain_query), params)
+        |> output_callback.()}
     end)
      |> Ecto.Multi.run(:rollback, fn _, _ ->
        {:error, :forced_rollback}
