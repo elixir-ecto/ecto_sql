@@ -279,23 +279,27 @@ defmodule Ecto.Adapters.SQL do
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\n  Filter: ((title)::text = 'title'::text)"
 
   """
-  @spec explain(Ecto.Repo.t, :all | :update_all | :delete_all, Ecto.Queryable.t, Keyword.t) :: String.t
+  @spec explain(Ecto.Repo.t, :all | :update_all | :delete_all, Ecto.Queryable.t, Keyword.t) :: String.t | nil
   def explain(repo, operation, queryable, opts \\ []) do
-    {prepared, params} = to_sql(operation, repo, queryable)
-    %{sql: adapter} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
-
-    transaction(adapter_meta, [], fn ->
+    Ecto.Multi.new()
+    |> Ecto.Multi.run(:explain, fn _, _ ->
+      {prepared, params} = to_sql(operation, repo, queryable)
+      %{sql: adapter} = Ecto.Adapter.lookup_meta(repo)
       explain_query = adapter.explain_query(prepared, opts)
 
       case query(repo, explain_query, params) do
-        {:ok, %{rows: rows}} -> Enum.map_join(rows, "\n", & &1)
-        _ -> nil
+        {:ok, %{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
+        {:error, error} -> {:error, error}
       end
     end)
-    |> case do
-      {:ok, explain} -> explain
-      _ -> nil
-    end
+     |> Ecto.Multi.run(:rollback, fn _, _ ->
+       {:error, :forced_rollback}
+     end)
+     |> repo.transaction()
+     |> case do
+       {:error, :rollback, :forced_rollback, %{explain: explain}} -> explain
+       _ -> nil
+     end
   end
 
   @doc """

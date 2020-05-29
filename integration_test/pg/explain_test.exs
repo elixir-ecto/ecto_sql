@@ -5,7 +5,7 @@ defmodule Ecto.Integration.ExplainTest do
   alias Ecto.Integration.Post
 
   test "explain options" do
-    explain = TestRepo.explain(:all, Post, analyze: true, verbose: true, costs: true, settings: true, buffers: true, timing: true, summary: true)
+    explain = TestRepo.explain(:all, Post, analyze: true, verbose: true)
     assert explain =~ "cost="
     assert explain =~ "actual time="
     assert explain =~ "loops="

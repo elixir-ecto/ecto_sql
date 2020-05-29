@@ -128,42 +128,14 @@ defmodule Ecto.Integration.SQLTest do
     refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
   end
 
-  describe "explain" do
-    test "explain a query" do
-      explain = TestRepo.explain(:all, from(p in Post, where: p.title == "title"))
-      assert explain =~ "posts"
-      assert explain =~ "cost="
-      assert explain =~ "Filter"
+  test "explain" do
+    explain = TestRepo.explain(:all, from(p in Post, where: p.title == "title"))
+    assert explain =~ "posts"
 
-      explain = TestRepo.explain(:all, Post, analyze: true)
-      assert explain =~ "posts"
-      assert explain =~ "Planning"
-    end
+    explain = TestRepo.explain(:delete_all, Post)
+    assert explain =~ "posts"
 
-    test "explain doesn't cause side effects on delete" do
-      TestRepo.insert!(%Post{title: "hello"})
-      assert length(TestRepo.all(Post)) == 1
-
-      explain = TestRepo.explain(:delete_all, Post)
-      assert explain =~ "Delete on posts"
-      assert explain =~ "cost="
-
-      assert length(TestRepo.all(Post)) == 1
-    end
-
-    test "explain doesn't cause side effects on update" do
-      TestRepo.insert!(%Post{title: "hello"})
-      assert [%{title: "hello"}] = TestRepo.all(Post)
-
-      explain = TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
-      assert explain =~ "Update on posts"
-      assert explain =~ "cost="
-
-      assert [%{title: "hello"}] = TestRepo.all(Post)
-    end
-
-    test "explain can handle invalid requests" do
-      refute TestRepo.explain(:update_all, from(p in "NOT_A_TABLE", update: [set: [id: 1]]))
-    end
+    explain = TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+    assert explain =~ "posts"
   end
 end
