@@ -283,7 +283,7 @@ if Code.ensure_loaded?(Postgrex) do
 
         opts ->
           opts =
-            [analyze: analyze, verbose: verbose] ++ opts
+            ([analyze: analyze, verbose: verbose] ++ opts)
             |> Enum.reduce([], fn
               {_, nil}, acc ->
                 acc
