@@ -282,17 +282,10 @@ defmodule Ecto.Adapters.SQL do
   @spec explain(Ecto.Repo.t, :all | :update_all | :delete_all, Ecto.Queryable.t, Keyword.t) :: String.t
   def explain(repo, operation, queryable, opts \\ []) do
     {prepared, params} = to_sql(operation, repo, queryable)
-    %{pid: pool, sql: adapter} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
-    conn = get_conn_or_pool(pool)
-
-    server_version =
-      case adapter do
-        Ecto.Adapters.Postgres.Connection -> adapter.server_version(conn)
-        _ -> nil
-      end
+    %{sql: adapter} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
 
     transaction(adapter_meta, [], fn ->
-      explain_query = adapter.explain_query(prepared, server_version, opts)
+      explain_query = adapter.explain_query(prepared, opts)
 
       case query(repo, explain_query, params) do
         {:ok, %{rows: rows}} -> Enum.map_join(rows, "\n", & &1)

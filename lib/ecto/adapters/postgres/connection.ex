@@ -251,54 +251,42 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def explain_query(query, server_version, opts \\ []) do
-      server_version = normalize_version(server_version)
+    def explain_query(query, opts \\ [])
 
-      if Version.compare(server_version, "9.0.0") == :lt do
-        raise RuntimeError, "version not supported"
-      end
+    def explain_query(query, []), do: "EXPLAIN #{query}"
 
-      opts =
-        [
-          analyze: "FALSE",
-          verbose: "FALSE",
-          costs: "TRUE",
-          settings: "FALSE",
-          buffers: "FALSE",
-          timing: "TRUE",
-          summary: "FALSE"
-        ]
-        |> Keyword.merge(Enum.map(opts, fn {opt, bool} -> {opt, quote_boolean(bool)} end))
-        |> Map.new()
+    def explain_query(query, opts) do
+      {analyze, opts} = Keyword.pop(opts, :analyze)
+      {verbose, opts} = Keyword.pop(opts, :verbose)
 
-      opts =
-        case opts.analyze do
-          "TRUE" -> Map.put(opts, :summary, "TRUE")
-          "FALSE" -> Map.merge(opts, %{buffers: "FALSE", timing: "FALSE"})
-        end
+      # Given only ANALYZE or VERBOSE opts we assume the legacy format
+      # to support all Postgres versions, otherwise assume the new
+      # syntax supported since v9.0
+      case opts do
+        [] ->
+          opts =
+            [
+              if_do(quote_boolean(analyze) == "TRUE", "ANALYZE"),
+              if_do(quote_boolean(verbose) == "TRUE", "VERBOSE")
+            ]
+            |> List.flatten()
 
-      common_opts =
-        "ANALYZE #{opts.analyze}, " <>
-        "VERBOSE #{opts.verbose}, " <>
-        "COSTS #{opts.costs}, " <>
-        "BUFFERS #{opts.buffers}"
+          "EXPLAIN " <> Enum.join(opts ++ [query], " ")
 
-      opts =
-        cond do
-          Version.match?(server_version, ">= 9.0.0 and < 9.2.0")   -> common_opts
-          Version.match?(server_version, ">= 9.2.0 and < 10.0.0")  -> common_opts <> ", TIMING #{opts.timing}"
-          Version.match?(server_version, ">= 10.0.0 and < 12.0.0") -> common_opts <> ", TIMING #{opts.timing}, SUMMARY #{opts.summary}"
-          Version.match?(server_version, ">= 12.0.0")              -> common_opts <> ", TIMING #{opts.timing}, SUMMARY #{opts.summary}, SETTINGS #{opts.settings}"
-        end
+        opts ->
+          opts =
+            [analyze: analyze, verbose: verbose] ++ opts
+            |> Enum.reduce([], fn
+              {_, nil}, acc ->
+                acc
 
-      "EXPLAIN ( " <> opts <> " ) " <> query
-    end
+              {opt, value}, acc ->
+                [String.upcase("#{opt} #{quote_boolean(value)}") | acc]
+            end)
+            |> Enum.reverse()
+            |> Enum.join(", ")
 
-    # https://www.postgresql.org/support/versioning/
-    def server_version(conn) do
-      case query(conn, "SHOW server_version", [], []) do
-        {:ok, %{rows: [[version]]}} -> String.split(version) |> hd()
-        _ -> raise "unable to obtain server version"
+          "EXPLAIN ( #{opts} ) #{query}"
       end
     end
 
@@ -1167,17 +1155,6 @@ if Code.ensure_loaded?(Postgrex) do
       {expr || expr(source, sources, query), name}
     end
 
-    # Add patch if missing to conform with Elixir.Version
-    defp normalize_version(version) when is_binary(version) do
-      case String.split(version, ".") do
-        [_major | []] -> version <> ".0.0"
-        [_major, _minor | []] -> version <> ".0"
-        _ -> version
-      end
-    end
-
-    defp normalize_version(_version), do: raise RuntimeError, "version not supported"
-
     defp quote_qualified_name(name, sources, ix) do
       {_, source, _} = elem(sources, ix)
       [source, ?. | quote_name(name)]
@@ -1206,6 +1183,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     # TRUE, ON, or 1 to enable the option, and FALSE, OFF, or 0 to disable it
+    defp quote_boolean(nil), do: nil
     defp quote_boolean(value) when value in [true, "TRUE", "ON", 1], do: "TRUE"
     defp quote_boolean(value) when value in [false, "FALSE", "OFF", 0], do: "FALSE"
     defp quote_boolean(value), do: error!(nil, "bad boolean value #{value}")

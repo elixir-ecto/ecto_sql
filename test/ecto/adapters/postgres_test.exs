@@ -708,32 +708,21 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "explain_query" do
-    assert_raise(RuntimeError, "version not supported", fn ->
-      SQL.explain_query("SELECT 1", "9.4")
-    end)
+     assert_raise(ArgumentError, "bad boolean value T", fn ->
+       SQL.explain_query("SELECT 1", analyze: "T")
+     end)
 
-    assert_raise(RuntimeError, "version not supported", fn ->
-      SQL.explain_query("SELECT 1", 0)
-    end)
+    assert SQL.explain_query("SELECT 1") == "EXPLAIN SELECT 1"
+    assert SQL.explain_query("SELECT 1", analyze: nil, verbose: nil) == "EXPLAIN SELECT 1"
+    assert SQL.explain_query("SELECT 1", analyze: true) == "EXPLAIN ANALYZE SELECT 1"
+    assert SQL.explain_query("SELECT 1", analyze: 0, verbose: "ON") == "EXPLAIN VERBOSE SELECT 1"
+    assert SQL.explain_query("SELECT 1", analyze: "TRUE", verbose: 1) == "EXPLAIN ANALYZE VERBOSE SELECT 1"
 
-    assert_raise(ArgumentError, "bad boolean value T", fn ->
-      SQL.explain_query("SELECT 1", "12.0", explain: "T")
-    end)
+    assert SQL.explain_query("SELECT 1", analyze: true, costs: true) ==
+           "EXPLAIN ( ANALYZE TRUE, COSTS TRUE ) SELECT 1"
 
-    assert SQL.explain_query("SELECT 1", "9.5") ==
-           "EXPLAIN ( ANALYZE FALSE, VERBOSE FALSE, COSTS TRUE, BUFFERS FALSE, TIMING FALSE ) SELECT 1"
-
-    assert SQL.explain_query("SELECT 1", "10") ==
-           "EXPLAIN ( ANALYZE FALSE, VERBOSE FALSE, COSTS TRUE, BUFFERS FALSE, TIMING FALSE, SUMMARY FALSE ) SELECT 1"
-
-    assert SQL.explain_query("SELECT 1", "11.8") ==
-           "EXPLAIN ( ANALYZE FALSE, VERBOSE FALSE, COSTS TRUE, BUFFERS FALSE, TIMING FALSE, SUMMARY FALSE ) SELECT 1"
-
-    assert SQL.explain_query("SELECT 1", "12") ==
-           "EXPLAIN ( ANALYZE FALSE, VERBOSE FALSE, COSTS TRUE, BUFFERS FALSE, TIMING FALSE, SUMMARY FALSE, SETTINGS FALSE ) SELECT 1"
-
-    assert SQL.explain_query("SELECT 1", "12", analyze: true, verbose: "ON", costs: "OFF", buffers: 1, timing: 0, settings: "TRUE") ==
-           "EXPLAIN ( ANALYZE TRUE, VERBOSE TRUE, COSTS FALSE, BUFFERS TRUE, TIMING FALSE, SUMMARY TRUE, SETTINGS TRUE ) SELECT 1"
+    assert SQL.explain_query("SELECT 1", analyze: "ON", timing: 1, summary: "FALSE", settings: nil) ==
+           "EXPLAIN ( ANALYZE TRUE, TIMING TRUE, SUMMARY FALSE ) SELECT 1"
   end
 
   ## *_all
