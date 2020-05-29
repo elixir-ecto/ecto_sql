@@ -101,7 +101,7 @@ defmodule Ecto.Adapters.SQL.Connection do
   @doc """
   Receives a query, options for the EXPLAIN statement, and must return a EXPLAIN query statement.
   """
-  @callback explain_query(query :: String.t, opts :: Keyword.t) :: iodata
+  @callback explain_query(query :: String.t, opts :: Keyword.t) :: {iodata, (any -> String.t)}
 
   ## DDL
 

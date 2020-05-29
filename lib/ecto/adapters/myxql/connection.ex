@@ -207,10 +207,10 @@ if Code.ensure_loaded?(MyXQL) do
       ["DELETE FROM ", quote_table(prefix, table), " WHERE " | filters]
     end
 
-    # TODO: implement EXPLAIN for mysql
+    # TODO: implement EXPLAIN for myxql
     @impl true
     def explain_query(query, opts \\ []) do
-      query
+      {["EXPLAIN ", query], fn _ -> "TODO" end}
     end
 
     ## Query generation

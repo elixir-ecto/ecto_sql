@@ -285,10 +285,10 @@ defmodule Ecto.Adapters.SQL do
     |> Ecto.Multi.run(:explain, fn _, _ ->
       {prepared, params} = to_sql(operation, repo, queryable)
       %{sql: adapter} = Ecto.Adapter.lookup_meta(repo)
-      explain_query = adapter.explain_query(prepared, opts)
+      {explain_query, output_callback} = adapter.explain_query(prepared, opts)
 
-      case query(repo, explain_query, params) do
-        {:ok, %{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
+      case query(repo, IO.iodata_to_binary(explain_query), params) do
+        {:ok, result} -> {:ok, output_callback.(result)}
         {:error, error} -> {:error, error}
       end
     end)

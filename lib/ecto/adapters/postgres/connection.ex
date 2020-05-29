@@ -253,7 +253,12 @@ if Code.ensure_loaded?(Postgrex) do
     @impl true
     def explain_query(query, opts \\ [])
 
-    def explain_query(query, []), do: "EXPLAIN #{query}"
+    def explain_query(query, []) do
+      {
+        ["EXPLAIN ", query],
+        fn %{rows: rows} -> Enum.map_join(rows, "\n", & &1) end
+      }
+    end
 
     def explain_query(query, opts) do
       {analyze, opts} = Keyword.pop(opts, :analyze)
@@ -264,14 +269,17 @@ if Code.ensure_loaded?(Postgrex) do
       # syntax supported since v9.0
       case opts do
         [] ->
-          opts =
+          {
             [
+              "EXPLAIN ",
               if_do(quote_boolean(analyze) == "TRUE", "ANALYZE"),
-              if_do(quote_boolean(verbose) == "TRUE", "VERBOSE")
-            ]
-            |> List.flatten()
-
-          "EXPLAIN " <> Enum.join(opts ++ [query], " ")
+              " ",
+              if_do(quote_boolean(verbose) == "TRUE", "VERBOSE"),
+              " ",
+              query
+            ],
+            fn %{rows: rows} -> Enum.map_join(rows, "\n", & &1) end
+          }
 
         opts ->
           opts =
@@ -286,7 +294,10 @@ if Code.ensure_loaded?(Postgrex) do
             |> Enum.reverse()
             |> Enum.join(", ")
 
-          "EXPLAIN ( #{opts} ) #{query}"
+          {
+            ["EXPLAIN ", opts, " ", query],
+            fn %{rows: rows} -> Enum.map_join(rows, "\n", & &1) end
+          }
       end
     end
 

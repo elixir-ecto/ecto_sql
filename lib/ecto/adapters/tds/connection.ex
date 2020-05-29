@@ -302,7 +302,7 @@ if Code.ensure_loaded?(Tds) do
     # TODO: implement EXPLAIN for tds
     @impl true
     def explain_query(query, opts \\ []) do
-      query
+      {["EXPLAIN ", query], fn _ -> "TODO" end}
     end
 
     ## Query generation
