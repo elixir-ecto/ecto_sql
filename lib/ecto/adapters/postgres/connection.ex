@@ -295,7 +295,7 @@ if Code.ensure_loaded?(Postgrex) do
             |> Enum.join(", ")
 
           {
-            ["EXPLAIN ", opts, " ", query],
+            ["EXPLAIN ( ", opts, " ) ", query],
             fn %{rows: rows} -> Enum.map_join(rows, "\n", & &1) end
           }
       end
