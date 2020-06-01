@@ -14,5 +14,13 @@ defmodule Ecto.Integration.ExplainTest do
     assert explain =~ "p0"
     assert explain =~ "SIMPLE"
     assert explain =~ "Using where"
+
+    explain = TestRepo.explain(:delete_all, Post)
+    assert explain =~ "DELETE"
+    assert explain =~ "p0"
+
+    explain = TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+    assert explain =~ "UPDATE"
+    assert explain =~ "p0"
   end
 end

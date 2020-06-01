@@ -127,15 +127,4 @@ defmodule Ecto.Integration.SQLTest do
   test "returns false table doesn't exists" do
     refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
   end
-
-  test "explain" do
-    explain = TestRepo.explain(:all, from(p in Post, where: p.title == "title"))
-    assert explain =~ ~r/[posts p0|p0]/
-
-    explain = TestRepo.explain(:delete_all, Post)
-    assert explain =~ ~r/[posts p0|p0]/
-
-    explain = TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
-    assert explain =~ ~r/[posts p0|p0]/
-  end
 end

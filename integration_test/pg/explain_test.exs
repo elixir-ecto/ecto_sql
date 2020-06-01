@@ -3,6 +3,7 @@ defmodule Ecto.Integration.ExplainTest do
 
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Post
+  import Ecto.Query, only: [from: 2]
 
   test "explain" do
     assert_raise(ArgumentError, "bad boolean value 1", fn ->
@@ -16,5 +17,13 @@ defmodule Ecto.Integration.ExplainTest do
     assert explain =~ "Output:"
     assert explain =~ ~r/Planning [T|t]ime:/
     assert explain =~ ~r/Execution [T|t]ime:/
+
+    explain = TestRepo.explain(:delete_all, Post)
+    assert explain =~ "Delete on posts p0"
+    assert explain =~ "cost="
+
+    explain = TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+    assert explain =~ "Update on posts p0"
+    assert explain =~ "cost="
   end
 end

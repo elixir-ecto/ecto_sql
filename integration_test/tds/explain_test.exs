@@ -5,7 +5,8 @@ defmodule Ecto.Integration.ExplainTest do
   alias Ecto.Integration.Post
 
   test "explain options" do
-    explain = TestRepo.explain(:all, Post)
-    assert explain =~ "TODO"
+    assert_raise(Tds.Error, "not supported yet", fn ->
+      TestRepo.explain(:all, Post)
+    end)
   end
 end

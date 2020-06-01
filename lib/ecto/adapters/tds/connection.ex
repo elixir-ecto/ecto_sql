@@ -299,10 +299,10 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    # TODO: implement EXPLAIN for tds
     @impl true
-    def explain_query(query, opts \\ []) do
-      {["EXPLAIN ", query], fn _ -> "TODO" end}
+    # TODO: implement it after https://github.com/livehelpnow/tds/issues/108 is solved
+    def explain_query(_query, _opts \\ []) do
+      raise Tds.Error, "not supported yet"
     end
 
     ## Query generation
