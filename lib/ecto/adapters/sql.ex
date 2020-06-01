@@ -289,7 +289,7 @@ defmodule Ecto.Adapters.SQL do
 
       {:ok,
         repo
-        |> query!(IO.iodata_to_binary(explain_query), params)
+        |> query!(explain_query, params)
         |> output_callback.()}
     end)
      |> Ecto.Multi.run(:rollback, fn _, _ ->

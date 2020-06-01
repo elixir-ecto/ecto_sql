@@ -129,17 +129,13 @@ defmodule Ecto.Integration.SQLTest do
   end
 
   test "explain" do
-    assert_raise(ArgumentError, "bad boolean value 1", fn ->
-      TestRepo.explain(:all, Post, whatever: "1")
-    end)
-
     explain = TestRepo.explain(:all, from(p in Post, where: p.title == "title"))
-    assert explain =~ "posts"
+    assert explain =~ ~r/[posts p0|p0]/
 
     explain = TestRepo.explain(:delete_all, Post)
-    assert explain =~ "posts"
+    assert explain =~ ~r/[posts p0|p0]/
 
     explain = TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
-    assert explain =~ "posts"
+    assert explain =~ ~r/[posts p0|p0]/
   end
 end

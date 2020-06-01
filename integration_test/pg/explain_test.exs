@@ -4,7 +4,11 @@ defmodule Ecto.Integration.ExplainTest do
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Post
 
-  test "explain options" do
+  test "explain" do
+    assert_raise(ArgumentError, "bad boolean value 1", fn ->
+      TestRepo.explain(:all, Post, whatever: "1")
+    end)
+
     explain = TestRepo.explain(:all, Post, analyze: true, verbose: true)
     assert explain =~ "cost="
     assert explain =~ "actual time="
