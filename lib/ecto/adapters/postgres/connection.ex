@@ -251,16 +251,19 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def explain_query(query, opts \\ [])
-
-    def explain_query(query, []) do
-      {
-        ["EXPLAIN ", query],
-        fn %{rows: rows} -> Enum.map_join(rows, "\n", & &1) end
-      }
+    def explain_query(conn, query, explain_opts \\ [], params \\ [], opts \\ []) do
+      case query(conn, build_explain_query(query, explain_opts), params, opts) do
+        {:ok, %Postgrex.Result{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
+        error -> error
+      end
     end
 
-    def explain_query(query, opts) do
+    def build_explain_query(query) do
+      ["EXPLAIN ", query]
+      |> IO.iodata_to_binary()
+    end
+
+    def build_explain_query(query, opts) do
       {analyze, opts} = Keyword.pop(opts, :analyze)
       {verbose, opts} = Keyword.pop(opts, :verbose)
 
@@ -269,17 +272,12 @@ if Code.ensure_loaded?(Postgrex) do
       # syntax supported since v9.0
       case opts do
         [] ->
-          {
-            [
-              "EXPLAIN ",
-              if_do(quote_boolean(analyze) == "TRUE", "ANALYZE"),
-              " ",
-              if_do(quote_boolean(verbose) == "TRUE", "VERBOSE"),
-              " ",
-              query
-            ],
-            fn %{rows: rows} -> Enum.map_join(rows, "\n", & &1) end
-          }
+          [
+            "EXPLAIN ",
+            if_do(quote_boolean(analyze) == "TRUE", "ANALYZE "),
+            if_do(quote_boolean(verbose) == "TRUE", "VERBOSE "),
+            query
+          ]
 
         opts ->
           opts =
@@ -294,11 +292,9 @@ if Code.ensure_loaded?(Postgrex) do
             |> Enum.reverse()
             |> Enum.join(", ")
 
-          {
-            ["EXPLAIN ( ", opts, " ) ", query],
-            fn %{rows: rows} -> Enum.map_join(rows, "\n", & &1) end
-          }
+          ["EXPLAIN ( ", opts, " ) ", query]
       end
+      |> IO.iodata_to_binary()
     end
 
     ## Query generation

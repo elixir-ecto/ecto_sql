@@ -209,13 +209,19 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     # Opts are deprecated, see Notes at https://dev.mysql.com/doc/refman/5.7/en/explain.html
-    def explain_query(query, _opts \\ []) do
-      {
-        ["EXPLAIN ", query],
-        fn result ->
-          format_result_as_table(result.columns, result.rows) |> IO.iodata_to_binary()
-        end
-      }
+    def explain_query(conn, query, _explain_opts, params \\ [], opts \\ []) do
+      case query(conn, build_explain_query(query), params, opts) do
+        {:ok, %MyXQL.Result{columns: columns, rows: rows}} ->
+          {:ok, format_result_as_table(columns, rows)}
+
+        error ->
+          error
+      end
+    end
+
+    def build_explain_query(query) do
+      ["EXPLAIN ", query]
+      |> IO.iodata_to_binary()
     end
 
     defp format_result_as_table(columns, rows) do
@@ -237,6 +243,7 @@ if Code.ensure_loaded?(MyXQL) do
         Enum.map(rows, &cells(&1, column_widths) ++ ["\n"]),
         separator(column_widths)
       ]
+      |> IO.iodata_to_binary()
     end
 
     defp binary_length(nil), do: 4 # NULL

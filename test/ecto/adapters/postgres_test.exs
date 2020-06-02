@@ -707,19 +707,16 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == String.trim(result)
   end
 
-  test "explain_query" do
+  test "build_explain_query" do
      assert_raise(ArgumentError, "bad boolean value T", fn ->
-       SQL.explain_query("SELECT 1", analyze: "T")
+       SQL.build_explain_query("SELECT 1", analyze: "T")
      end)
 
-    assert {["EXPLAIN ", "SELECT 1"], callback} = SQL.explain_query("SELECT 1")
-    assert is_function(callback, 1)
-    assert callback.(%Postgrex.Result{rows: [["STATEMENT"]]}) == "STATEMENT"
-
-    assert {["EXPLAIN ", [], " ", [], " ", "SELECT 1"], _} = SQL.explain_query("SELECT 1", analyze: nil, verbose: nil)
-    assert {["EXPLAIN ", "ANALYZE", " ", [], " ", "SELECT 1"], _} = SQL.explain_query("SELECT 1", analyze: true)
-    assert {["EXPLAIN ", "ANALYZE", " ", "VERBOSE", " ", "SELECT 1"], _} = SQL.explain_query("SELECT 1", analyze: true, verbose: true)
-    assert {["EXPLAIN ( ", "ANALYZE TRUE, COSTS TRUE", " ) ", "SELECT 1"], _} = SQL.explain_query("SELECT 1", analyze: true, costs: true)
+    assert SQL.build_explain_query("SELECT 1") == "EXPLAIN SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: nil, verbose: nil) == "EXPLAIN SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true) == "EXPLAIN ANALYZE SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true, verbose: true) == "EXPLAIN ANALYZE VERBOSE SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true, costs: true) == "EXPLAIN ( ANALYZE TRUE, COSTS TRUE ) SELECT 1"
   end
 
   ## *_all

@@ -99,10 +99,15 @@ defmodule Ecto.Adapters.SQL.Connection do
                    filters :: [atom], returning :: [atom]) :: iodata
 
   @doc """
-  Receives a query, options for the EXPLAIN statement,
-  and must return a EXPLAIN query statement, and a function to format the statement's result.
+  Executes an EXPLAIN query or similar depending on the adapter to obtains statistics of the given query.
+
+  Receives the `connection` and its `opts`, along with the `query` and its `query_params`,
+  and `explain_opts` to build the EXPLAIN statement.
+
+  Must execute the explain query and return the result.
   """
-  @callback explain_query(query :: String.t, opts :: Keyword.t) :: {iodata, output_callback :: (any -> String.t)}
+  @callback explain_query(connection, query :: String.t, explain_opts :: Keyword.t, query_params :: Keyword.t, opts :: Keyword.t) ::
+              {:ok, term} | {:error, Exception.t}
 
   ## DDL
 
