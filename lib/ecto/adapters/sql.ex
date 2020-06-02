@@ -251,8 +251,17 @@ defmodule Ecto.Adapters.SQL do
 
   ## Examples
 
+      # Postgres
       iex> Ecto.Adapters.SQL.explain(:all, Repo, Post)
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
+
+      # MySQL
+      iex> Ecto.Adapters.SQL.explain(:all, from(p in Post, where: p.title == "title")) |> IO.puts()
+      +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+      | id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
+      +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+      |  1 | SIMPLE      | p0    | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    1 |    100.0 | Using where |
+      +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
 
   It's safe to execute it for updates and deletes, no data change will be commited:
 
@@ -265,18 +274,12 @@ defmodule Ecto.Adapters.SQL do
       iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true)
       "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\nPlanning Time: 0.031 ms\nExecution Time: 0.021 ms"
 
-  Note that only the TEXT format is supported at this moment:
-
-      iex> IO.puts(Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true, verbose: true))
-      Seq Scan on public.posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)
-        Output: id, counter, title, blob, public, cost, visits, wrapped_visits, intensity, bid, uuid, meta, links, intensities, posted, author_id, inserted_at, updated_at
-      Planning Time: 0.024 ms
-      Execution Time: 0.020 ms
-
-  And this function is also available under the repository with name `explain`:
+  This function is also available under the repository with name `explain`:
 
       iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\n  Filter: ((title)::text = 'title'::text)"
+
+  And note that only a textual format is supported at this moment, and you may want to call `IO.puts/1` to properly format the output.
 
   """
   @spec explain(Ecto.Repo.t, :all | :update_all | :delete_all, Ecto.Queryable.t, Keyword.t) :: String.t | nil
