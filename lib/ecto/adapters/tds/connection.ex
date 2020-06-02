@@ -302,7 +302,7 @@ if Code.ensure_loaded?(Tds) do
     @impl true
     # TODO: implement it after https://github.com/livehelpnow/tds/issues/108 is solved
     def explain_query(_query, _opts \\ []) do
-      raise Tds.Error, "not supported yet"
+      raise Tds.Error, "EXPLAIN is not supported by Ecto.Adapters.TDS at the moment"
     end
 
     ## Query generation
