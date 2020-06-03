@@ -209,7 +209,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     # Opts are deprecated, see Notes at https://dev.mysql.com/doc/refman/5.7/en/explain.html
-    def explain_query(conn, query, _explain_opts, params \\ [], opts \\ []) do
+    def explain_query(conn, query, _explain_opts, params, opts) do
       case query(conn, build_explain_query(query), params, opts) do
         {:ok, %MyXQL.Result{columns: columns, rows: rows}} ->
           {:ok, format_result_as_table(columns, rows)}

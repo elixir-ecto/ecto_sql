@@ -284,7 +284,7 @@ defmodule Ecto.Adapters.SQL do
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
                 :all | :update_all | :delete_all,
-                Ecto.Queryable.t, Keyword.t) :: {:ok, String.t} | {:error, term}
+                Ecto.Queryable.t, Keyword.t) :: String.t | Exception.t
   def explain(repo, operation, queryable, opts \\ [])
 
   def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
@@ -302,23 +302,10 @@ defmodule Ecto.Adapters.SQL do
      end)
      |> repo.transaction()
      |> case do
-       {:error, :rollback, :forced_rollback, %{explain: result}} -> {:ok, result}
-       {:error, :explain, error, _} -> {:error, error}
+       {:error, :rollback, :forced_rollback, %{explain: result}} -> result
+       {:error, :explain, error, _} -> raise error
        _ -> raise "unable to execute explain"
      end
-  end
-
-  @doc """
-  Same as `explain/4` but raises on invalid queries.
-  """
-  @spec explain!(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
-                 :all | :update_all | :delete_all,
-                 Ecto.Queryable.t, Keyword.t) :: String.t
-  def explain!(repo, operation, queryable, opts \\ []) do
-    case explain(repo, operation, queryable, opts) do
-      {:ok, result} -> result
-      {:error, err} -> raise_sql_call_error err
-    end
   end
 
   @doc """
@@ -507,16 +494,6 @@ defmodule Ecto.Adapters.SQL do
       """
       def explain(operation, queryable, opts \\ []) do
         Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
-      end
-
-      @doc """
-      A convenience function for SQL-based repositories that executes an EXPLAIN statement or similar
-      depending on the adapter to obtain statistics for the given query.
-
-      See `Ecto.Adapters.SQL.explain!/4` for more information.
-      """
-      def explain!(operation, queryable, opts \\ []) do
-        Ecto.Adapters.SQL.explain!(get_dynamic_repo(), operation, queryable, opts)
       end
     end
   end
