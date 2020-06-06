@@ -272,7 +272,7 @@ defmodule Ecto.Adapters.SQL do
   so please note each adapter may have specific params:
 
       iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true)
-      "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\nPlanning Time: 0.031 ms\nExecution Time: 0.021 ms"
+      "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
 
   Shared options can be passed together on the last argument:
 
