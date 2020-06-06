@@ -301,7 +301,7 @@ if Code.ensure_loaded?(Tds) do
 
     # TODO: see https://github.com/elixir-ecto/ecto_sql/pull/231#discussion_r433858288
     @impl true
-    def explain_query(_conn, _query, _explain_opts, _query_params, _opts) do
+    def explain_query(_conn, _query, _params, _opts) do
       raise Tds.Error, "EXPLAIN is not supported by Ecto.Adapters.TDS at the moment"
     end
 

@@ -712,7 +712,7 @@ defmodule Ecto.Adapters.PostgresTest do
        SQL.build_explain_query("SELECT 1", analyze: "T")
      end)
 
-    assert SQL.build_explain_query("SELECT 1") == "EXPLAIN SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", []) == "EXPLAIN SELECT 1"
     assert SQL.build_explain_query("SELECT 1", analyze: nil, verbose: nil) == "EXPLAIN SELECT 1"
     assert SQL.build_explain_query("SELECT 1", analyze: true) == "EXPLAIN ANALYZE SELECT 1"
     assert SQL.build_explain_query("SELECT 1", analyze: true, verbose: true) == "EXPLAIN ANALYZE VERBOSE SELECT 1"

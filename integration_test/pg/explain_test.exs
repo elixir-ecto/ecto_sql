@@ -6,7 +6,7 @@ defmodule Ecto.Integration.ExplainTest do
   import Ecto.Query, only: [from: 2]
 
   test "explain" do
-    explain = TestRepo.explain(:all, Post, [analyze: true, verbose: true], [timeout: 20000])
+    explain = TestRepo.explain(:all, Post, analyze: true, verbose: true, timeout: 20000)
     assert explain =~ "cost="
     assert explain =~ "actual time="
     assert explain =~ "loops="
@@ -23,11 +23,7 @@ defmodule Ecto.Integration.ExplainTest do
     assert explain =~ "cost="
 
     assert_raise(ArgumentError, "bad boolean value 1", fn ->
-      TestRepo.explain(:all, Post, whatever: "1")
-    end)
-
-    assert_raise(Postgrex.Error, fn ->
-      TestRepo.explain(:all, Post, invalid: true)
+      TestRepo.explain(:all, Post, analyze: "1")
     end)
   end
 end

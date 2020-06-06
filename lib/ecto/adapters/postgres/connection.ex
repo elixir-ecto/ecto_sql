@@ -251,14 +251,17 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def explain_query(conn, query, explain_opts, query_params, opts) do
-      case query(conn, build_explain_query(query, explain_opts), query_params, opts) do
+    def explain_query(conn, query, params, opts) do
+      explain_opts =
+        Keyword.take(opts, ~w[analyze verbose costs settings buffers timing summary]a)
+
+      case query(conn, build_explain_query(query, explain_opts), params, opts) do
         {:ok, %Postgrex.Result{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
         error -> error
       end
     end
 
-    def build_explain_query(query) do
+    def build_explain_query(query, []) do
       ["EXPLAIN ", query]
       |> IO.iodata_to_binary()
     end
