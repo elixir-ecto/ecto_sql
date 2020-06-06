@@ -263,27 +263,34 @@ defmodule Ecto.Adapters.SQL do
       |  1 | SIMPLE      | p0    | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    1 |    100.0 | Using where |
       +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
 
+      # Shared opts
+      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true, timeout: 20_000)
+      "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
+
   It's safe to execute it for updates and deletes, no data change will be commited:
 
       iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
       "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
-  Valid `params` will be mapped directly to the EXPLAIN statement's params for the adapter in use,
-  so please note each adapter may have specific params:
+  ### Opts
 
-      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true)
-      "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
+  Built-in adapters support passing `opts` to the EXPLAIN statement according to the following:
 
-  Shared options can be passed together on the last argument:
+  Adapter          | Supported opts                                                               | Notes
+  ---------------- | --------------                                                               | -----
+  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`    | Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html) for version compatibility
+  MyXQL            | None                                                                         | `EXTENDED` and `PARTITIONS` opts were deprecated and are enabled by default
 
-      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true, timeout: 20000)
+  Note that:
+
+    * `FORMAT` isn't supported at the moment and the only possible output is a textual format, so you may want to call `IO.puts/1` to properly format it.
+    * Any other value passed to `opts` will be forwarded to the underlying adapter query function, including Repo shared options.
+    * Non built-in adapters may have specific behavior and you should consult their own documentation.s
 
   This function is also available under the repository with name `explain`:
 
       iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\\n  Filter: ((title)::text = 'title'::text)"
-
-  And note that only a textual format is supported at this moment, and you may want to call `IO.puts/1` to properly format the output.
 
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
