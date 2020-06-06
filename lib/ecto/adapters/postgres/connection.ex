@@ -252,8 +252,8 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def explain_query(conn, query, params, opts) do
-      explain_opts =
-        Keyword.take(opts, ~w[analyze verbose costs settings buffers timing summary]a)
+      {explain_opts, opts} =
+        Keyword.split(opts, ~w[analyze verbose costs settings buffers timing summary]a)
 
       case query(conn, build_explain_query(query, explain_opts), params, opts) do
         {:ok, %Postgrex.Result{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
