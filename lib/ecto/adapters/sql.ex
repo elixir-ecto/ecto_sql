@@ -268,11 +268,15 @@ defmodule Ecto.Adapters.SQL do
       iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
       "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
-  Valid `opts` will be mapped directly to the EXPLAIN statement's options for the adapter in use,
-  so please note each adapter may have specific options:
+  Valid `params` will be mapped directly to the EXPLAIN statement's params for the adapter in use,
+  so please note each adapter may have specific params:
 
       iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true)
       "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\nPlanning Time: 0.031 ms\nExecution Time: 0.021 ms"
+
+  Shared options can be passed on the last argument:
+
+      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, [analyze: true], [timeout: 20000])
 
   This function is also available under the repository with name `explain`:
 
@@ -284,18 +288,19 @@ defmodule Ecto.Adapters.SQL do
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
                 :all | :update_all | :delete_all,
-                Ecto.Queryable.t, Keyword.t) :: String.t | Exception.t
-  def explain(repo, operation, queryable, opts \\ [])
+                Ecto.Queryable.t,
+                params :: Keyword.t, opts :: Keyword.t) :: String.t | Exception.t
+  def explain(repo, operation, queryable, params \\ [], opts \\ [])
 
-  def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
-    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, opts)
+  def explain(repo, operation, queryable, params, opts) when is_atom(repo) or is_pid(repo) do
+    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, params, opts)
   end
 
-  def explain(%{repo: repo} = adapter_meta, operation, queryable, opts) do
+  def explain(%{repo: repo} = adapter_meta, operation, queryable, params, opts) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:explain, fn _, _ ->
-      {prepared, params} = to_sql(operation, repo, queryable)
-      sql_call(adapter_meta, :explain_query, [prepared, opts], params, [])
+      {prepared, prepared_params} = to_sql(operation, repo, queryable)
+      sql_call(adapter_meta, :explain_query, [prepared, params], prepared_params, opts)
     end)
      |> Ecto.Multi.run(:rollback, fn _, _ ->
        {:error, :forced_rollback}
@@ -490,10 +495,10 @@ defmodule Ecto.Adapters.SQL do
       A convenience function for SQL-based repositories that executes an EXPLAIN statement or similar
       depending on the adapter to obtain statistics for the given query.
 
-      See `Ecto.Adapters.SQL.explain/4` for more information.
+      See `Ecto.Adapters.SQL.explain/5` for more information.
       """
-      def explain(operation, queryable, opts \\ []) do
-        Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
+      def explain(operation, queryable, params \\ [], opts \\ []) do
+        Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, params, opts)
       end
     end
   end

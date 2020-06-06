@@ -251,8 +251,8 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def explain_query(conn, query, explain_opts, params, opts) do
-      case query(conn, build_explain_query(query, explain_opts), params, opts) do
+    def explain_query(conn, query, explain_opts, query_params, opts) do
+      case query(conn, build_explain_query(query, explain_opts), query_params, opts) do
         {:ok, %Postgrex.Result{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
         error -> error
       end

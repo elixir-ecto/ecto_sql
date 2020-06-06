@@ -6,7 +6,7 @@ defmodule Ecto.Integration.ExplainTest do
   import Ecto.Query, only: [from: 2]
 
   test "explain" do
-    explain = TestRepo.explain(:all, from(p in Post, where: p.title == "title"))
+    explain = TestRepo.explain(:all, from(p in Post, where: p.title == "title"), [], [timeout: 20000])
 
     assert explain =~
       "| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |"

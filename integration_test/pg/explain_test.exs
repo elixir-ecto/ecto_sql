@@ -6,7 +6,7 @@ defmodule Ecto.Integration.ExplainTest do
   import Ecto.Query, only: [from: 2]
 
   test "explain" do
-    explain = TestRepo.explain(:all, Post, analyze: true, verbose: true)
+    explain = TestRepo.explain(:all, Post, [analyze: true, verbose: true], [timeout: 20000])
     assert explain =~ "cost="
     assert explain =~ "actual time="
     assert explain =~ "loops="
