@@ -281,7 +281,7 @@ defmodule Ecto.Adapters.SQL do
   This function is also available under the repository with name `explain`:
 
       iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
-      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\n  Filter: ((title)::text = 'title'::text)"
+      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\\n  Filter: ((title)::text = 'title'::text)"
 
   And note that only a textual format is supported at this moment, and you may want to call `IO.puts/1` to properly format the output.
 
