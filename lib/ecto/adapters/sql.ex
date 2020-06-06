@@ -266,7 +266,7 @@ defmodule Ecto.Adapters.SQL do
   It's safe to execute it for updates and deletes, no data change will be commited:
 
       iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
-      "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
+      "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
   Valid `params` will be mapped directly to the EXPLAIN statement's params for the adapter in use,
   so please note each adapter may have specific params:
