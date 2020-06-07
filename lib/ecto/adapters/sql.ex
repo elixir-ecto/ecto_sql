@@ -272,16 +272,25 @@ defmodule Ecto.Adapters.SQL do
       iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
       "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
+  This function is also available under the repository with name `explain`:
+
+      iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
+      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\\n  Filter: ((title)::text = 'title'::text)"
+
   ### Options
 
   Built-in adapters support passing `opts` to the EXPLAIN statement according to the following:
 
-  Adapter          | Supported opts                                                               | Notes
-  ---------------- | --------------                                                               | -----
-  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`    | Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html) for version compatibility
-  MyXQL            | None                                                                         | `EXTENDED` and `PARTITIONS` opts were deprecated and are enabled by default
+  Adapter          | Supported opts
+  ---------------- | --------------
+  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`
+  MyXQL            | None
 
-  Note that:
+  _Postgrex_: Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html) for version compatibility.
+
+  _MyXQL_: `EXTENDED` and `PARTITIONS` opts were [deprecated](https://dev.mysql.com/doc/refman/5.7/en/explain.html) and are enabled by default.
+
+  Also note that:
 
     * `FORMAT` isn't supported at the moment and the only possible output
       is a textual format, so you may want to call `IO.puts/1` to display it;
@@ -289,11 +298,6 @@ defmodule Ecto.Adapters.SQL do
       adapter query function, including Repo shared options such as `:timeout`;
     * Non built-in adapters may have specific behavior and you should consult
       their own documentation.
-
-  This function is also available under the repository with name `explain`:
-
-      iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
-      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\\n  Filter: ((title)::text = 'title'::text)"
 
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
