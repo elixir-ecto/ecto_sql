@@ -217,10 +217,10 @@ defmodule Ecto.Adapters.SQL do
   The examples below are meant for reference. Each adapter will
   return a different result:
 
-      iex> Ecto.Adapters.SQL.to_sql(:all, repo, Post)
+      iex> Ecto.Adapters.SQL.to_sql(:all, Repo, Post)
       {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
 
-      iex> Ecto.Adapters.SQL.to_sql(:update_all, repo,
+      iex> Ecto.Adapters.SQL.to_sql(:update_all, Repo,
                                     from(p in Post, update: [set: [title: ^"hello"]]))
       {"UPDATE posts AS p SET title = $1", ["hello"]}
 
@@ -243,6 +243,87 @@ defmodule Ecto.Adapters.SQL do
       {{:nocache, {_id, prepared}}, params} ->
         {prepared, params}
     end
+  end
+
+  @doc """
+  Executes an EXPLAIN statement or similar for the given query according to its kind and the
+  adapter in the given repository.
+
+  ## Examples
+
+      # Postgres
+      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post)
+      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
+
+      # MySQL
+      iex> Ecto.Adapters.SQL.explain(:all, from(p in Post, where: p.title == "title")) |> IO.puts()
+      +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+      | id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
+      +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+      |  1 | SIMPLE      | p0    | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    1 |    100.0 | Using where |
+      +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+
+      # Shared opts
+      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true, timeout: 20_000)
+      "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
+
+  It's safe to execute it for updates and deletes, no data change will be commited:
+
+      iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
+      "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
+
+  This function is also available under the repository with name `explain`:
+
+      iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
+      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\\n  Filter: ((title)::text = 'title'::text)"
+
+  ### Options
+
+  Built-in adapters support passing `opts` to the EXPLAIN statement according to the following:
+
+  Adapter          | Supported opts
+  ---------------- | --------------
+  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`
+  MyXQL            | None
+
+  _Postgrex_: Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html) for version compatibility.
+
+  _MyXQL_: `EXTENDED` and `PARTITIONS` opts were [deprecated](https://dev.mysql.com/doc/refman/5.7/en/explain.html) and are enabled by default.
+
+  Also note that:
+
+    * `FORMAT` isn't supported at the moment and the only possible output
+      is a textual format, so you may want to call `IO.puts/1` to display it;
+    * Any other value passed to `opts` will be forwarded to the underlying
+      adapter query function, including Repo shared options such as `:timeout`;
+    * Non built-in adapters may have specific behavior and you should consult
+      their own documentation.
+
+  """
+  @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
+                :all | :update_all | :delete_all,
+                Ecto.Queryable.t, opts :: Keyword.t) :: String.t | Exception.t
+  def explain(repo, operation, queryable, opts \\ [])
+
+  def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
+    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, opts)
+  end
+
+  def explain(%{repo: repo} = adapter_meta, operation, queryable, opts) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.run(:explain, fn _, _ ->
+      {prepared, prepared_params} = to_sql(operation, repo, queryable)
+      sql_call(adapter_meta, :explain_query, [prepared], prepared_params, opts)
+    end)
+     |> Ecto.Multi.run(:rollback, fn _, _ ->
+       {:error, :forced_rollback}
+     end)
+     |> repo.transaction()
+     |> case do
+       {:error, :rollback, :forced_rollback, %{explain: result}} -> result
+       {:error, :explain, error, _} -> raise error
+       _ -> raise "unable to execute explain"
+     end
   end
 
   @doc """
@@ -421,6 +502,16 @@ defmodule Ecto.Adapters.SQL do
       """
       def to_sql(operation, queryable) do
         Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
+      end
+
+      @doc """
+      A convenience function for SQL-based repositories that executes an EXPLAIN statement or similar
+      depending on the adapter to obtain statistics for the given query.
+
+      See `Ecto.Adapters.SQL.explain/4` for more information.
+      """
+      def explain(operation, queryable, opts \\ []) do
+        Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
       end
     end
   end

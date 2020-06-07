@@ -630,6 +630,10 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == String.trim(result)
   end
 
+  test "build_explain_query" do
+    assert SQL.build_explain_query("SELECT 1") == "EXPLAIN SELECT 1"
+  end
+
   ## *_all
 
   test "update all" do

@@ -707,6 +707,18 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == String.trim(result)
   end
 
+  test "build_explain_query" do
+     assert_raise(ArgumentError, "bad boolean value T", fn ->
+       SQL.build_explain_query("SELECT 1", analyze: "T")
+     end)
+
+    assert SQL.build_explain_query("SELECT 1", []) == "EXPLAIN SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: nil, verbose: nil) == "EXPLAIN SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true) == "EXPLAIN ANALYZE SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true, verbose: true) == "EXPLAIN ANALYZE VERBOSE SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true, costs: true) == "EXPLAIN ( ANALYZE TRUE, COSTS TRUE ) SELECT 1"
+  end
+
   ## *_all
 
   test "update all" do

@@ -250,6 +250,56 @@ if Code.ensure_loaded?(Postgrex) do
       ["DELETE FROM ", quote_table(prefix, table), " WHERE ", filters | returning(returning)]
     end
 
+    @impl true
+    def explain_query(conn, query, params, opts) do
+      {explain_opts, opts} =
+        Keyword.split(opts, ~w[analyze verbose costs settings buffers timing summary]a)
+
+      case query(conn, build_explain_query(query, explain_opts), params, opts) do
+        {:ok, %Postgrex.Result{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
+        error -> error
+      end
+    end
+
+    def build_explain_query(query, []) do
+      ["EXPLAIN ", query]
+      |> IO.iodata_to_binary()
+    end
+
+    def build_explain_query(query, opts) do
+      {analyze, opts} = Keyword.pop(opts, :analyze)
+      {verbose, opts} = Keyword.pop(opts, :verbose)
+
+      # Given only ANALYZE or VERBOSE opts we assume the legacy format
+      # to support all Postgres versions, otherwise assume the new
+      # syntax supported since v9.0
+      case opts do
+        [] ->
+          [
+            "EXPLAIN ",
+            if_do(quote_boolean(analyze) == "TRUE", "ANALYZE "),
+            if_do(quote_boolean(verbose) == "TRUE", "VERBOSE "),
+            query
+          ]
+
+        opts ->
+          opts =
+            ([analyze: analyze, verbose: verbose] ++ opts)
+            |> Enum.reduce([], fn
+              {_, nil}, acc ->
+                acc
+
+              {opt, value}, acc ->
+                [String.upcase("#{opt} #{quote_boolean(value)}") | acc]
+            end)
+            |> Enum.reverse()
+            |> Enum.join(", ")
+
+          ["EXPLAIN ( ", opts, " ) ", query]
+      end
+      |> IO.iodata_to_binary()
+    end
+
     ## Query generation
 
     binary_ops =
@@ -1141,6 +1191,12 @@ if Code.ensure_loaded?(Postgrex) do
       end
       [?", name, ?"]
     end
+
+    # TRUE, ON, or 1 to enable the option, and FALSE, OFF, or 0 to disable it
+    defp quote_boolean(nil), do: nil
+    defp quote_boolean(true), do: "TRUE"
+    defp quote_boolean(false), do: "FALSE"
+    defp quote_boolean(value), do: error!(nil, "bad boolean value #{value}")
 
     defp single_quote(value), do: [?', escape_string(value), ?']
 
