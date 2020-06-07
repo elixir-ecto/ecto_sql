@@ -272,7 +272,7 @@ defmodule Ecto.Adapters.SQL do
       iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
       "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
-  ### Opts
+  ### Options
 
   Built-in adapters support passing `opts` to the EXPLAIN statement according to the following:
 
