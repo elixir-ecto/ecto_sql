@@ -283,9 +283,12 @@ defmodule Ecto.Adapters.SQL do
 
   Note that:
 
-    * `FORMAT` isn't supported at the moment and the only possible output is a textual format, so you may want to call `IO.puts/1` to properly format it.
-    * Any other value passed to `opts` will be forwarded to the underlying adapter query function, including Repo shared options.
-    * Non built-in adapters may have specific behavior and you should consult their own documentation.
+    * `FORMAT` isn't supported at the moment and the only possible output
+      is a textual format, so you may want to call `IO.puts/1` to display it;
+    * Any other value passed to `opts` will be forwarded to the underlying
+      adapter query function, including Repo shared options such as `:timeout`;
+    * Non built-in adapters may have specific behavior and you should consult
+      their own documentation.
 
   This function is also available under the repository with name `explain`:
 
