@@ -701,7 +701,7 @@ defmodule Ecto.Migration do
       create index("products", [:category_id, :sku], unique: true)
 
       # The name can also be set explicitly
-      drop index("products", [:category_id, :sku], name: :my_special_name)
+      create index("products", [:category_id, :sku], name: :my_special_name)
 
       # Indexes can be added concurrently
       create index("products", [:category_id, :sku], concurrently: true)
