@@ -209,6 +209,13 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_primary_key: [name: :uuid, type: :binary_id]
 
+          config :app, App.Repo, migration_primary_key: false
+
+    * `:migration_foreign_key` - By default, Ecto uses the migration_primary_key type
+      for foreign keys when references/2 is used, but you can configure it via:
+
+          config :app, App.Repo, migration_foreign_key: [column: :uuid, type: :binary_id]
+
     * `:migration_timestamps` - By default, Ecto uses the `:naive_datetime` type, but
       you can configure it via:
 
@@ -450,8 +457,8 @@ defmodule Ecto.Migration do
       table = %Table{} = unquote(object)
       Runner.start_command({unquote(command), Ecto.Migration.__prefix__(table)})
 
-      if table.primary_key do
-        {name, type, opts} = Ecto.Migration.__primary_key__()
+      if primary_key = table.primary_key && Ecto.Migration.__primary_key__() do
+        {name, type, opts} = primary_key
         add(name, type, opts)
       end
 
@@ -535,8 +542,8 @@ defmodule Ecto.Migration do
 
   defp do_create(table, command) do
     columns =
-      if table.primary_key do
-        {name, type, opts} = Ecto.Migration.__primary_key__()
+      if primary_key = table.primary_key && Ecto.Migration.__primary_key__() do
+        {name, type, opts} = primary_key
         [{:add, name, type, opts}]
       else
         []
@@ -1096,8 +1103,7 @@ defmodule Ecto.Migration do
   end
 
   def references(table, opts) when is_binary(table) and is_list(opts) do
-    repo_opts = Keyword.take(Runner.repo_config(:migration_primary_key, []), [:type])
-    opts = Keyword.merge(repo_opts, opts)
+    opts = Keyword.merge(foreign_key_repo_opts(), opts)
     reference = struct(%Reference{table: table}, opts)
 
     unless reference.on_delete in [:nothing, :delete_all, :nilify_all, :restrict] do
@@ -1109,6 +1115,15 @@ defmodule Ecto.Migration do
     end
 
     reference
+  end
+
+  defp foreign_key_repo_opts() do
+    case Runner.repo_config(:migration_primary_key, []) do
+      false -> []
+      opts -> opts
+    end
+    |> Keyword.take([:type])
+    |> Keyword.merge(Runner.repo_config(:migration_foreign_key, []))
   end
 
   @doc ~S"""
@@ -1216,10 +1231,15 @@ defmodule Ecto.Migration do
 
   @doc false
   def __primary_key__() do
-    opts = Runner.repo_config(:migration_primary_key, [])
-    opts = Keyword.put(opts, :primary_key, true)
-    {name, opts} = Keyword.pop(opts, :name, :id)
-    {type, opts} = Keyword.pop(opts, :type, :bigserial)
-    {name, type, opts}
+    case Runner.repo_config(:migration_primary_key, []) do
+      false ->
+        false
+
+      opts when is_list(opts) ->
+        opts = Keyword.put(opts, :primary_key, true)
+        {name, opts} = Keyword.pop(opts, :name, :id)
+        {type, opts} = Keyword.pop(opts, :type, :bigserial)
+        {name, type, opts}
+    end
   end
 end
