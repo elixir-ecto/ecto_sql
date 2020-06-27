@@ -610,7 +610,7 @@ defmodule Ecto.Migrator do
 
   defp migrate([], direction, _repo, opts) do
     level = Keyword.get(opts, :log, :info)
-    log(level, "Already #{direction}")
+    log(level, "Migrations already #{direction}")
     []
   end
 
