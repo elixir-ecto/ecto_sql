@@ -10,7 +10,7 @@ jobs:
         elixir_version: [1.7, 1.9]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2.3.1
       - name: Install Dependencies
         run: |
           apt-get update
@@ -47,7 +47,7 @@ jobs:
           apt-get update
           apt-get install --allow-unauthenticated -y mysql-client
           mysql --version
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2.3.1
       - name: Install Dependencies
         run: |
           apt-get install -y git
@@ -84,9 +84,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y mssql-tools unixodbc-dev
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.1
       - name: Setup elixir
-        uses: actions/setup-elixir@v1
+        uses: actions/setup-elixir@v1.3.0
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
@@ -124,7 +124,7 @@ jobs:
           apt-get update
           apt-get install -y postgresql-${{ matrix.pg_version }} postgresql-contrib-${{ matrix.pg_version }}
           psql --version
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2.3.1
       - name: Install Dependencies
         run: |
           apt-get install -y git
