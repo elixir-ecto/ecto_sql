@@ -3,11 +3,21 @@ on: [push, pull_request]
 jobs:
   test-elixir:
     runs-on: ubuntu-18.04
-    container: elixir:${{ matrix.elixir_version }}-slim
+    container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-20200403
 
     strategy:
       matrix:
-        elixir_version: [1.7, 1.9]
+        include:
+          - elixir: 1.7.4
+            otp: 19.3.6.13
+          - elixir: 1.8.2
+            otp: 20.3.8.26
+          - elixir: 1.9.4
+            otp: 20.3.8.26
+          - elixir: 1.10.3
+            otp: 21.3.8.16
+          - elixir: 1.10.3
+            otp: 23.0.2
 
     steps:
       - uses: actions/checkout@v2.3.1
@@ -31,7 +41,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    container: elixir:1.9-slim
+    container: hexpm/elixir:1.10.3-erlang-23.0.2-ubuntu-bionic-20200403
 
     strategy:
       matrix:
@@ -71,8 +81,8 @@ jobs:
     strategy:
       matrix:
         mssql_version: ["2017-latest", "2019-latest"]
-        otp: [22.1.7]
-        elixir: [1.9.4]
+        otp: [23.0.2]
+        elixir: [1.10.3]
         
     env:
       ACCEPT_EULA: Y
