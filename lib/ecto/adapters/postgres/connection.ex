@@ -789,6 +789,10 @@ if Code.ensure_loaded?(Postgrex) do
       ?t
     end
 
+    defp table_type_expr(nil), do: "TABLE "
+    defp table_type_expr(type) when is_binary(type), do: type <> " "
+    defp table_type_expr(type), do: raise ArgumentError, message: "Table type must be a String, got " <> inspect(type)
+
     # DDL
 
     alias Ecto.Migration.{Table, Index, Reference, Constraint}
@@ -799,7 +803,8 @@ if Code.ensure_loaded?(Postgrex) do
     @impl true
     def execute_ddl({command, %Table{} = table, columns}) when command in @creates do
       table_name = quote_table(table.prefix, table.name)
-      query = ["CREATE TABLE ",
+      query = ["CREATE ",
+               table_type_expr(table.type),
                if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
                table_name, ?\s, ?(,
                column_definitions(table, columns), pk_definition(columns, ", "), ?),
