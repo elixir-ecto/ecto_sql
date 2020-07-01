@@ -6,6 +6,7 @@ jobs:
     container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-20200403
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - elixir: 1.7.4
@@ -44,6 +45,7 @@ jobs:
     container: hexpm/elixir:1.10.3-erlang-23.0.2-ubuntu-bionic-20200403
 
     strategy:
+      fail-fast: false
       matrix:
         mysql_version: ["5.7", "8.0"]
 
