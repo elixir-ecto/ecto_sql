@@ -33,17 +33,17 @@ defmodule EctoSQL.TestAdapter do
   # Migration emulation
 
   def execute(_, _, {:nocache, {:all, %{from: %{source: {"schema_migrations", _}}}}}, _, _) do
-    {length(migrated_versions()), Enum.map(migrated_versions(), &List.wrap/1)}
+    {length(migrated_versions()), Enum.map(migrated_versions(), &[elem(&1, 0)])}
   end
 
-  def execute(_, _meta, {:nocache, {:delete_all, %{from: %{source: {"schema_migrations", _}}}}}, [version], _) do
-    Process.put(:migrated_versions, List.delete(migrated_versions(), version))
+  def execute(_, _meta, {:nocache, {:delete_all, %{from: %{source: {"schema_migrations", _}}}}}, [version], opts) do
+    Process.put(:migrated_versions, List.delete(migrated_versions(), {version, opts[:prefix]}))
     {1, nil}
   end
 
-  def insert(_, %{source: "schema_migrations"}, val, _, _, _) do
+  def insert(_, %{source: "schema_migrations"}, val, _, _, opts) do
     version = Keyword.fetch!(val, :version)
-    Process.put(:migrated_versions, [version | migrated_versions()])
+    Process.put(:migrated_versions, [{version, opts[:prefix]} | migrated_versions()])
     {:ok, []}
   end
 
@@ -90,6 +90,10 @@ end
 
 defmodule EctoSQL.TestRepo do
   use Ecto.Repo, otp_app: :ecto_sql, adapter: EctoSQL.TestAdapter
+
+  def default_options(_operation) do
+    Process.get(:repo_default_options, [])
+  end
 end
 
 EctoSQL.TestRepo.start_link()
