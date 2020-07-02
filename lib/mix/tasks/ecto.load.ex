@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Ecto.Load do
       ensure_repo(repo, args)
 
       ensure_implements(
-        repo.__adapter__,
+        repo.__adapter__(),
         Ecto.Adapter.Structure,
         "load structure for #{inspect(repo)}"
       )
@@ -106,9 +106,9 @@ defmodule Mix.Tasks.Ecto.Load do
   end
 
   defp load_structure(repo, opts) do
-    config = Keyword.merge(repo.config, opts)
+    config = Keyword.merge(repo.config(), opts)
 
-    case repo.__adapter__.structure_load(source_repo_priv(repo), config) do
+    case repo.__adapter__().structure_load(source_repo_priv(repo), config) do
       {:ok, location} ->
         unless opts[:quiet] do
           Mix.shell().info "The structure for #{inspect repo} has been loaded from #{location}"

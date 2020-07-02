@@ -132,7 +132,7 @@ defmodule Ecto.Migrator do
         started
       end)
 
-    {:ok, repo_started} = repo.__adapter__.ensure_all_started(config, mode)
+    {:ok, repo_started} = repo.__adapter__().ensure_all_started(config, mode)
     started = extra_started ++ repo_started
     pool_size = Keyword.get(opts, :pool_size, 2)
 
@@ -316,7 +316,7 @@ defmodule Ecto.Migrator do
     repo.put_dynamic_repo(dynamic_repo)
 
     if module.__migration__[:disable_ddl_transaction] ||
-         not repo.__adapter__.supports_ddl_transaction? do
+         not repo.__adapter__().supports_ddl_transaction? do
       send_and_receive(parent, ref, fun.())
     else
       {:ok, result} =
@@ -490,7 +490,7 @@ defmodule Ecto.Migrator do
       callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
 
       if should_lock? do
-        case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
+        case repo.__adapter__().lock_for_migrations(meta, query, opts, callback) do
           {kind, reason, stacktrace} ->
             :erlang.raise(kind, reason, stacktrace)
 

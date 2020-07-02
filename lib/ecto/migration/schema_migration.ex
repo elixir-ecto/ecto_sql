@@ -25,7 +25,7 @@ defmodule Ecto.Migration.SchemaMigration do
     ]
 
     # DDL queries do not log, so we do not need to pass log: false here.
-    repo.__adapter__.execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
+    repo.__adapter__().execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
   end
 
   def versions(repo, prefix) do
