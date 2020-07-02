@@ -35,14 +35,13 @@ defmodule Ecto.Migration.SchemaMigration do
 
   def up(repo, version, prefix) do
     %__MODULE__{version: version}
-    |> Ecto.put_meta(prefix: prefix, source: get_source(repo))
-    |> repo.insert(@opts)
+    |> Ecto.put_meta(source: get_source(repo))
+    |> repo.insert([prefix: prefix] ++ @opts)
   end
 
   def down(repo, version, prefix) do
     from(p in get_source(repo), where: p.version == type(^version, :integer))
-    |> Map.put(:prefix, prefix)
-    |> repo.delete_all(@opts)
+    |> repo.delete_all([prefix: prefix] ++ @opts)
   end
 
   def get_source(repo) do

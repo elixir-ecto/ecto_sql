@@ -171,7 +171,7 @@ defmodule Ecto.MigratorTest do
   Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
 
   setup do
-    Process.put(:migrated_versions, [1, 2, 3])
+    Process.put(:migrated_versions, [{1, nil}, {2, nil}, {3, nil}])
     :ok
   end
 
@@ -241,6 +241,22 @@ defmodule Ecto.MigratorTest do
   test "custom schema migrations table is right" do
     assert SchemaMigration.get_source(TestRepo) == "schema_migrations"
     assert SchemaMigration.get_source(MigrationSourceRepo) == "my_schema_migrations"
+  end
+
+  test "migrator prefix" do
+    capture_log(fn ->
+      :ok = up(TestRepo, 10, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{10, :custom} | _] = Process.get(:migrated_versions)
+
+    Process.put(:repo_default_options, [prefix: nil])
+
+    capture_log(fn ->
+      :ok = up(TestRepo, 11, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{11, :custom} | _] = Process.get(:migrated_versions)
   end
 
   test "logs migrations" do
