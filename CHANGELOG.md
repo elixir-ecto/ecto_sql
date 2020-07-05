@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.4.5 (2020-07-05)
+
+### Bug fixes
+
+  * [ecto] Fix warnings on Elixir v1.11
+  * [migrations] Migration prefix should have higher preference than `default_options`
+
 ## v3.4.4 (2020-05-19)
 
 ### Enhancements
