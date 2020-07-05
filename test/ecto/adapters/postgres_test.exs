@@ -1435,6 +1435,7 @@ defmodule Ecto.Adapters.PostgresTest do
     alter = {:alter, table(:posts),
              [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
              {:add, :author_id, %Reference{table: :author}, []},
+             {:add, :category_id, %Reference{table: :categories, validate: false}, []},
              {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
              {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
              {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
@@ -1453,6 +1454,7 @@ defmodule Ecto.Adapters.PostgresTest do
     ALTER TABLE "posts"
     ADD COLUMN "title" varchar(100) DEFAULT 'Untitled' NOT NULL,
     ADD COLUMN "author_id" bigint CONSTRAINT "posts_author_id_fkey" REFERENCES "author"("id"),
+    ADD COLUMN "category_id" bigint CONSTRAINT "posts_category_id_fkey" REFERENCES "categories"("id") NOT VALID,
     ADD COLUMN IF NOT EXISTS "subtitle" varchar(100) NOT NULL,
     ADD COLUMN IF NOT EXISTS "editor_id" bigint CONSTRAINT "posts_editor_id_fkey" REFERENCES "editor"("id"),
     ALTER COLUMN "price" TYPE numeric(8,2),

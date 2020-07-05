@@ -1121,13 +1121,13 @@ if Code.ensure_loaded?(Postgrex) do
     defp reference_expr(%Reference{} = ref, table, name),
       do: [" CONSTRAINT ", reference_name(ref, table, name), " REFERENCES ",
            quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update), validate(ref.validate)]
 
     defp constraint_expr(%Reference{} = ref, table, name),
       do: [", ADD CONSTRAINT ", reference_name(ref, table, name), ?\s,
            "FOREIGN KEY (", quote_name(name), ") REFERENCES ",
            quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update), validate(ref.validate)]
 
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP CONSTRAINT ", reference_name(ref, table, name), ", "]
@@ -1157,6 +1157,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp reference_on_update(:update_all), do: " ON UPDATE CASCADE"
     defp reference_on_update(:restrict), do: " ON UPDATE RESTRICT"
     defp reference_on_update(_), do: []
+
+    defp validate(false), do: " NOT VALID"
+    defp validate(_), do: []
 
     ## Helpers
 
