@@ -1095,7 +1095,7 @@ defmodule Ecto.Migration do
     * `:on_update` - What to do if the referenced entry is updated. May be
       `:nothing` (default), `:update_all`, `:nilify_all`, or `:restrict`.
     * `:validate` - Whether or not to validate the foreign key constraint on
-       creation or not. Only available in postgres, and should be followed by
+       creation or not. Only available in PostgreSQL, and should be followed by
        a command to validate the foreign key in a following migration if false.
 
   """
