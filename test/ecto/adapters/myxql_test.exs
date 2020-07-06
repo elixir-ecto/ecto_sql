@@ -1283,6 +1283,14 @@ defmodule Ecto.Adapters.MyXQLTest do
     """ |> remove_newlines]
   end
 
+  test "alter table with invalid reference opts" do
+    alter = {:alter, table(:posts), [{:add, :author_id, %Reference{table: :author, validate: false}, []}]}
+
+    assert_raise ArgumentError, "validate: false on references is not supported in MyXQL", fn ->
+      execute_ddl(alter)
+    end
+  end
+
   test "create index" do
     create = {:create, index(:posts, [:category_id, :permalink])}
     assert execute_ddl(create) ==

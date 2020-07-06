@@ -100,6 +100,11 @@ defmodule Ecto.MigrationTest do
            %Reference{table: "posts", column: :id, type: :binary_id}
   end
 
+  test "creates a reference without validating" do
+    assert references(:posts, validate: false) ==
+      %Reference{table: "posts", column: :id, type: :bigserial, validate: false}
+  end
+
   test "creates a constraint" do
     assert constraint(:posts, :price_is_positive, check: "price > 0") ==
            %Constraint{table: "posts", name: :price_is_positive, check: "price > 0"}

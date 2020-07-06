@@ -854,6 +854,10 @@ if Code.ensure_loaded?(MyXQL) do
       intersperse_map(columns, ", ", &column_change(table, &1))
     end
 
+    defp column_change(_table, {_command, _name, %Reference{validate: false}, _opts}) do
+      error!(nil, "validate: false on references is not supported in MyXQL")
+    end
+
     defp column_change(table, {:add, name, %Reference{} = ref, opts}) do
       ["ADD ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
        column_options(opts), constraint_expr(ref, table, name)]
