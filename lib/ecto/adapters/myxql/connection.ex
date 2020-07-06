@@ -855,7 +855,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp column_change(_table, {_command, _name, %Reference{validate: false}, _opts}) do
-      raise ArgumentError, "validate: false not supported in MyXQL"
+      error!(nil, "validate: false on references is not supported in MyXQL")
     end
 
     defp column_change(table, {:add, name, %Reference{} = ref, opts}) do

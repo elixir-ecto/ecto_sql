@@ -1196,7 +1196,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_change(_statement_prefix, _table, {_command, _name, %Reference{validate: false}, _opts}) do
-      raise ArgumentError, "validate: false not supported in TDS"
+      error!(nil, "validate: false on references is not supported in Tds")
     end
 
     defp column_change(statement_prefix, table, {:add, name, %Reference{} = ref, opts}) do

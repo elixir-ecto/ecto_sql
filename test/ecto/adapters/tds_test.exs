@@ -1217,7 +1217,7 @@ defmodule Ecto.Adapters.TdsTest do
   test "alter table with invalid reference opts" do
     alter = {:alter, table(:posts), [{:add, :author_id, %Reference{table: :author, validate: false}, []}]}
 
-    assert_raise ArgumentError, "validate: false not supported in TDS", fn ->
+    assert_raise ArgumentError, "validate: false on references is not supported in Tds", fn ->
       execute_ddl(alter)
     end
   end
