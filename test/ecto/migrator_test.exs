@@ -698,6 +698,20 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  describe "migrations_path" do
+    test "is inferred from the repository name" do
+      path = migrations_path(TestRepo)
+      expected = "priv/test_repo/migrations"
+      assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
+    end
+
+    test "uses custom directory when provided" do
+      path = migrations_path(TestRepo, "custom")
+      expected = "priv/test_repo/custom"
+      assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
+    end
+  end
+
   describe "with_repo" do
     defmodule Repo do
       def start_link(opts) do

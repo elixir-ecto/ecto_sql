@@ -161,13 +161,17 @@ defmodule Ecto.Migrator do
 
   @doc """
   Gets the migrations path from a repository.
+  
+  This function accepts an optional second parameter to customize the
+  migrations directory. This can be used to specify a custom migrations
+  path.
   """
-  @spec migrations_path(Ecto.Repo.t) :: String.t
-  def migrations_path(repo) do
+  @spec migrations_path(Ecto.Repo.t, String.t) :: String.t
+  def migrations_path(repo, directory \\ "migrations") do
     config = repo.config()
     priv = config[:priv] || "priv/#{repo |> Module.split |> List.last |> Macro.underscore}"
     app = Keyword.fetch!(config, :otp_app)
-    Application.app_dir(app, Path.join(priv, "migrations"))
+    Application.app_dir(app, Path.join(priv, directory))
   end
 
   @doc """
