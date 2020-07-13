@@ -69,10 +69,12 @@ defmodule Mix.Tasks.Ecto.Load do
         "load structure for #{inspect(repo)}"
       )
 
+      {_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
+
       {:ok, loaded?, _} =
         Ecto.Migrator.with_repo(
           repo,
-          &table_exists?.(&1, Ecto.Migration.SchemaMigration.get_source(&1))
+          &table_exists?.(&1, source)
         )
 
       cond do

@@ -239,8 +239,8 @@ defmodule Ecto.MigratorTest do
   end
 
   test "custom schema migrations table is right" do
-    assert SchemaMigration.get_source(TestRepo) == "schema_migrations"
-    assert SchemaMigration.get_source(MigrationSourceRepo) == "my_schema_migrations"
+    assert {_repo, "schema_migrations"} = SchemaMigration.get_repo_and_source(TestRepo)
+    assert {_repo, "my_schema_migrations"} = SchemaMigration.get_repo_and_source(MigrationSourceRepo)
   end
 
   test "migrator prefix" do
