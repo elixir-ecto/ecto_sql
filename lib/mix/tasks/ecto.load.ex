@@ -69,23 +69,20 @@ defmodule Mix.Tasks.Ecto.Load do
         "load structure for #{inspect(repo)}"
       )
 
-      {repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
+      {migration_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
+      {:ok, loaded?, _} = Ecto.Migrator.with_repo(migration_repo, &table_exists?.(&1, source))
 
-      {:ok, loaded?, _} =
-        Ecto.Migrator.with_repo(
-          repo,
-          &table_exists?.(&1, source)
-        )
+      for repo <- Enum.uniq([repo, migration_repo]) do
+        cond do
+          loaded? and opts[:skip_if_loaded] ->
+            :ok
 
-      cond do
-        loaded? and opts[:skip_if_loaded] ->
-          :ok
+          (skip_safety_warnings?() and not loaded?) or opts[:force] or confirm_load(repo, loaded?) ->
+            load_structure(repo, opts)
 
-        (skip_safety_warnings?() and not loaded?) or opts[:force] or confirm_load(repo, loaded?) ->
-          load_structure(repo, opts)
-
-        true ->
-          :ok
+          true ->
+            :ok
+        end
       end
     end)
   end
