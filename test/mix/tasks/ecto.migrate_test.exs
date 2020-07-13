@@ -95,7 +95,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
   end
 
   test "runs the migrator yielding the repository and migrations path" do
-    run ["-r", to_string(Repo), "--quiet", "--prefix", "foo"], fn repo, path, direction, opts ->
+    run ["-r", to_string(Repo), "--quiet", "--prefix", "foo"], fn repo, [path], direction, opts ->
       assert repo == Repo
       refute path =~ ~r/_build/
       assert direction == :up
@@ -108,7 +108,7 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
   end
 
   test "runs the migrator with --step" do
-    run ["-r", to_string(Repo), "-n", "1"], fn repo, path, direction, opts ->
+    run ["-r", to_string(Repo), "-n", "1"], fn repo, [path], direction, opts ->
       assert repo == Repo
       refute path =~ ~r/_build/
       assert direction == :up
@@ -127,7 +127,12 @@ defmodule Mix.Tasks.Ecto.MigrateTest do
   end
 
   test "uses custom paths" do
-    run ["-r", to_string(Repo), "--migrations-path", "test/mix"],
-        fn Repo, "test/mix", _, _ -> [] end
+    path1 = Path.join([unquote(tmp_path()), inspect(Ecto.Migrate), "migrations_1"])
+    path2 = Path.join([unquote(tmp_path()), inspect(Ecto.Migrate), "migrations_2"])
+    File.mkdir_p!(path1)
+    File.mkdir_p!(path2)
+
+    run ["-r", to_string(Repo), "--migrations-path", path1, "--migrations-path", path2],
+        fn Repo, [^path1, ^path2], _, _ -> [] end
   end
 end

@@ -132,8 +132,8 @@ defmodule Ecto.Adapters.MyXQL do
   ## Custom MySQL types
 
   @impl true
-  def loaders({:embed, _}, type), do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
-  def loaders({:map, _}, type),   do: [&json_decode/1, &Ecto.Adapters.SQL.load_embed(type, &1)]
+  def loaders({:embed, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
+  def loaders({:map, _}, type),   do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
   def loaders(:map, type),        do: [&json_decode/1, type]
   def loaders(:float, type),      do: [&float_decode/1, type]
   def loaders(:boolean, type),    do: [&bool_decode/1, type]
@@ -142,6 +142,8 @@ defmodule Ecto.Adapters.MyXQL do
 
   defp bool_decode(<<0>>), do: {:ok, false}
   defp bool_decode(<<1>>), do: {:ok, true}
+  defp bool_decode(<<0::size(1)>>), do: {:ok, false}
+  defp bool_decode(<<1::size(1)>>), do: {:ok, true}
   defp bool_decode(0), do: {:ok, false}
   defp bool_decode(1), do: {:ok, true}
   defp bool_decode(x), do: {:ok, x}
@@ -198,7 +200,7 @@ defmodule Ecto.Adapters.MyXQL do
         {:error, exit_to_exception(exit)}
     end
   end
-  
+
   @impl Ecto.Adapter.Storage
   def storage_status(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
@@ -226,9 +228,7 @@ defmodule Ecto.Adapters.MyXQL do
     key = primary_key!(schema_meta, returning)
     {fields, values} = :lists.unzip(params)
     sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [])
-
-    cache_statement = "ecto_insert_#{source}"
-    opts = [{:cache_statement, cache_statement} | opts]
+    opts = [{:cache_statement, "ecto_insert_#{source}"} | opts]
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 1, last_insert_id: last_insert_id}} ->
@@ -238,7 +238,7 @@ defmodule Ecto.Adapters.MyXQL do
         {:ok, last_insert_id(key, last_insert_id)}
 
       {:error, err} ->
-        case @conn.to_constraints(err, [source: source]) do
+        case @conn.to_constraints(err, source: source) do
           []          -> raise err
           constraints -> {:invalid, constraints}
         end
@@ -292,9 +292,7 @@ defmodule Ecto.Adapters.MyXQL do
   defp append_versions(table, versions, contents) do
     {:ok,
       contents <>
-      ~s[INSERT INTO `#{table}` (version) VALUES ] <>
-      Enum.map_join(versions, ", ", &"(#{&1})") <>
-      ~s[;\n\n]}
+      Enum.map_join(versions, &~s[INSERT INTO `#{table}` (version) VALUES (#{&1});\n])}
   end
 
   @impl true

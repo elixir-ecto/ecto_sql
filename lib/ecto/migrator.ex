@@ -132,7 +132,7 @@ defmodule Ecto.Migrator do
         started
       end)
 
-    {:ok, repo_started} = repo.__adapter__.ensure_all_started(config, mode)
+    {:ok, repo_started} = repo.__adapter__().ensure_all_started(config, mode)
     started = extra_started ++ repo_started
     pool_size = Keyword.get(opts, :pool_size, 2)
     migration_repo = repo.config[:migration_repo] || repo
@@ -157,13 +157,17 @@ defmodule Ecto.Migrator do
 
   @doc """
   Gets the migrations path from a repository.
+  
+  This function accepts an optional second parameter to customize the
+  migrations directory. This can be used to specify a custom migrations
+  path.
   """
-  @spec migrations_path(Ecto.Repo.t) :: String.t
-  def migrations_path(repo) do
+  @spec migrations_path(Ecto.Repo.t, String.t) :: String.t
+  def migrations_path(repo, directory \\ "migrations") do
     config = repo.config()
     priv = config[:priv] || "priv/#{repo |> Module.split |> List.last |> Macro.underscore}"
     app = Keyword.fetch!(config, :otp_app)
-    Application.app_dir(app, Path.join(priv, "migrations"))
+    Application.app_dir(app, Path.join(priv, directory))
   end
 
   @doc """
@@ -292,7 +296,7 @@ defmodule Ecto.Migrator do
       catch
         kind, error ->
           Task.shutdown(task, :brutal_kill)
-          :erlang.raise(kind, error, System.stacktrace())
+          :erlang.raise(kind, error, __STACKTRACE__)
       end
     end
 
@@ -312,7 +316,7 @@ defmodule Ecto.Migrator do
     repo.put_dynamic_repo(dynamic_repo)
 
     if module.__migration__[:disable_ddl_transaction] ||
-         not repo.__adapter__.supports_ddl_transaction? do
+         not repo.__adapter__().supports_ddl_transaction? do
       send_and_receive(parent, ref, fun.())
     else
       {:ok, result} =
@@ -324,7 +328,7 @@ defmodule Ecto.Migrator do
       result
     end
   catch kind, reason ->
-    send_and_receive(parent, ref, {kind, reason, System.stacktrace()})
+    send_and_receive(parent, ref, {kind, reason, __STACKTRACE__})
   end
 
   defp send_and_receive(parent, ref, value) do
@@ -345,23 +349,24 @@ defmodule Ecto.Migrator do
 
   Equivalent to:
 
-      Ecto.Migrator.run(repo, Ecto.Migrator.migrations_path(repo), direction, opts)
+      Ecto.Migrator.run(repo, [Ecto.Migrator.migrations_path(repo)], direction, opts)
 
   See `run/4` for more information.
   """
   @spec run(Ecto.Repo.t, atom, Keyword.t) :: [integer]
   def run(repo, direction, opts) do
-    run(repo, migrations_path(repo), direction, opts)
+    run(repo, [migrations_path(repo)], direction, opts)
   end
 
   @doc ~S"""
   Apply migrations to a repository with a given strategy.
 
   The second argument identifies where the migrations are sourced from.
-  A binary representing a directory may be passed, in which case we will
-  load all files following the "#{VERSION}_#{NAME}.exs" schema. The
-  `migration_source` may also be a list of a list of tuples that identify
-  the version number and migration modules to be run, for example:
+  A binary representing directory (or a list of binaries representing
+  directories) may be passed, in which case we will load all files
+  following the "#{VERSION}_#{NAME}.exs" schema. The `migration_source`
+  may also be a list of tuples that identify the version number and
+  migration modules to be run, for example:
 
       Ecto.Migrator.run(Repo, [{0, MyApp.Migration1}, {1, MyApp.Migration2}, ...], :up, opts)
 
@@ -393,8 +398,10 @@ defmodule Ecto.Migrator do
       See `c:Ecto.Repo.put_dynamic_repo/1`.
 
   """
-  @spec run(Ecto.Repo.t, binary | [{integer, module}], atom, Keyword.t) :: [integer]
+  @spec run(Ecto.Repo.t, String.t | [String.t] | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
+    migration_source = List.wrap(migration_source)
+
     pending =
       lock_for_migrations true, repo, opts, fn versions ->
         cond do
@@ -419,23 +426,25 @@ defmodule Ecto.Migrator do
 
   Equivalent to:
 
-      Ecto.Migrator.migrations(repo, Ecto.Migrator.migrations_path(repo))
+      Ecto.Migrator.migrations(repo, [Ecto.Migrator.migrations_path(repo)])
 
   """
   @spec migrations(Ecto.Repo.t) :: [{:up | :down, id :: integer(), name :: String.t}]
   def migrations(repo) do
-    migrations(repo, migrations_path(repo))
+    migrations(repo, [migrations_path(repo)])
   end
 
   @doc """
   Returns an array of tuples as the migration status of the given repo,
   without actually running any migrations.
   """
-  @spec migrations(Ecto.Repo.t, String.t) :: [{:up | :down, id :: integer(), name :: String.t}]
-  def migrations(repo, directory) do
+  @spec migrations(Ecto.Repo.t, [String.t]) :: [{:up | :down, id :: integer(), name :: String.t}]
+  def migrations(repo, directories) do
+    directories = List.wrap(directories)
+
     repo
     |> migrated_versions
-    |> collect_migrations(directory)
+    |> collect_migrations(directories)
     |> Enum.sort_by(fn {_, version, _} -> version end)
   end
 
@@ -488,7 +497,7 @@ defmodule Ecto.Migrator do
       callback = &fun.(migration_repo.all(&1, timeout: :infinity, log: false))
 
       if should_lock? do
-        case migration_repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
+        case migration_repo.__adapter__().lock_for_migrations(meta, query, opts, callback) do
           {kind, reason, stacktrace} ->
             :erlang.raise(kind, reason, stacktrace)
 
@@ -545,18 +554,19 @@ defmodule Ecto.Migrator do
     |> Enum.reverse
   end
 
-  # This function will match directories passed into `Migrator.run`.
-  defp migrations_for(migration_source) when is_binary(migration_source) do
-    Path.join([migration_source, "**", "*.exs"])
-    |> Path.wildcard()
-    |> Enum.map(&extract_migration_info/1)
-    |> Enum.filter(& &1)
-    |> Enum.sort()
-  end
-
-  # This function will match specific version/modules passed into `Migrator.run`.
   defp migrations_for(migration_source) when is_list(migration_source) do
-    Enum.map migration_source, fn {version, module} -> {version, module, module} end
+    migration_source
+    |> Enum.flat_map(fn
+      directory when is_binary(directory) ->
+        Path.join([directory, "**", "*.exs"])
+        |> Path.wildcard()
+        |> Enum.map(&extract_migration_info/1)
+        |> Enum.filter(& &1)
+
+      {version, module} ->
+        [{version, module, module}]
+    end)
+    |> Enum.sort()
   end
 
   defp extract_migration_info(file) do
@@ -592,7 +602,7 @@ defmodule Ecto.Migrator do
   end
 
   defp load_migration!({version, _, file}) when is_binary(file) do
-    loaded_modules = file |> Code.load_file() |> Enum.map(&elem(&1, 0))
+    loaded_modules = file |> Code.compile_file() |> Enum.map(&elem(&1, 0))
 
     if mod = Enum.find(loaded_modules, &migration?/1) do
       {version, mod}
@@ -607,7 +617,7 @@ defmodule Ecto.Migrator do
 
   defp migrate([], direction, _repo, opts) do
     level = Keyword.get(opts, :log, :info)
-    log(level, "Already #{direction}")
+    log(level, "Migrations already #{direction}")
     []
   end
 
@@ -659,7 +669,7 @@ defmodule Ecto.Migrator do
 
         The full error report is shown below.
         """
-        reraise error, System.stacktrace()
+        reraise error, __STACKTRACE__
     end
   end
 

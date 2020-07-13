@@ -14,6 +14,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       field :x, :integer
       field :y, :integer
       field :z, :integer
+      field :meta, :map
 
       has_many :comments, Ecto.Adapters.MyXQLTest.Schema2,
         references: :x,
@@ -94,10 +95,10 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "from with subquery" do
     query = subquery("posts" |> select([r], %{x: r.x, y: r.y})) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT s0.`x` FROM (SELECT p0.`x` AS `x`, p0.`y` AS `y` FROM `posts` AS p0) AS s0}
+    assert all(query) == ~s{SELECT s0.`x` FROM (SELECT sp0.`x` AS `x`, sp0.`y` AS `y` FROM `posts` AS sp0) AS s0}
 
     query = subquery("posts" |> select([r], %{x: r.x, z: r.y})) |> select([r], r) |> plan()
-    assert all(query) == ~s{SELECT s0.`x`, s0.`z` FROM (SELECT p0.`x` AS `x`, p0.`y` AS `z` FROM `posts` AS p0) AS s0}
+    assert all(query) == ~s{SELECT s0.`x`, s0.`z` FROM (SELECT sp0.`x` AS `x`, sp0.`y` AS `z` FROM `posts` AS sp0) AS s0}
   end
 
   test "CTE" do
@@ -237,6 +238,18 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT s0.`x`, s0.`y` FROM `schema` AS s0}
   end
 
+  test "aggregates" do
+    query = Schema |> select(count()) |> plan()
+    assert all(query) == ~s{SELECT count(*) FROM `schema` AS s0}
+  end
+
+  test "aggregate filters" do
+    query = Schema |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
+    assert_raise Ecto.QueryError, ~r/MySQL adapter does not support aggregate filters in query/, fn ->
+      all(query)
+    end
+  end
+
   test "distinct" do
     query = Schema |> distinct([r], true) |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT DISTINCT s0.`x`, s0.`y` FROM `schema` AS s0}
@@ -254,6 +267,11 @@ defmodule Ecto.Adapters.MyXQLTest do
       query = Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
       all(query)
     end
+  end
+
+  test "coalesce" do
+    query = Schema |> select([s], coalesce(s.x, 5)) |> plan()
+    assert all(query) == ~s{SELECT coalesce(s0.`x`, 5) FROM `schema` AS s0}
   end
 
   test "where" do
@@ -370,26 +388,12 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 LIMIT 3 OFFSET 5}
   end
 
-  test "aggregates" do
-    query = Schema |> select(count()) |> plan()
-    assert all(query) == ~s{SELECT count(*) FROM `schema` AS s0}
-  end
-
-  test "aggregate filters" do
-    query = Schema |> select([r], count(r.x) |> filter(r.x > 10)) |> plan()
-    assert_raise Ecto.QueryError, ~r/MySQL adapter does not support aggregate filters in query/, fn ->
-      all(query)
-    end
-  end
-
   test "lock" do
     query = Schema |> lock("LOCK IN SHARE MODE") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 LOCK IN SHARE MODE}
-  end
 
-  test "coalesce" do
-    query = Schema |> select([s], coalesce(s.x, 5)) |> plan()
-    assert all(query) == ~s{SELECT coalesce(s0.`x`, 5) FROM `schema` AS s0}
+    query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 UPDATE on s0}
   end
 
   test "string escape" do
@@ -429,6 +433,9 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = Schema |> select([r], not is_nil(r.x)) |> plan()
     assert all(query) == ~s{SELECT NOT (s0.`x` IS NULL) FROM `schema` AS s0}
+
+    query = "schema" |> select([r], r.x == is_nil(r.y)) |> plan()
+    assert all(query) == ~s{SELECT s0.`x` = (s0.`y` IS NULL) FROM `schema` AS s0}
   end
 
   test "order_by and types" do
@@ -486,6 +493,20 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT CAST(? AS char) FROM `schema` AS s0}
   end
 
+  test "json_extract_path" do
+    query = Schema |> select([s], json_extract_path(s.meta, [0, 1])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$[0][1]') FROM `schema` AS s0}
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["a", "b"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$."a"."b"') FROM `schema` AS s0}
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["'a"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$."''a"') FROM `schema` AS s0}
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["\"a"])) |> plan()
+    assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$."\\\\"a"') FROM `schema` AS s0}
+  end
+
   test "nested expressions" do
     z = 123
     query = from(r in Schema, []) |> select([r], r.x > 0 and (r.y > ^(-z)) or true) |> plan()
@@ -513,6 +534,20 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = Schema |> select([e], e.x == ^0 or e.x in ^[1, 2, 3] or e.x == ^4) |> plan()
     assert all(query) == ~s{SELECT ((s0.`x` = ?) OR s0.`x` IN (?,?,?)) OR (s0.`x` = ?) FROM `schema` AS s0}
+  end
+
+  test "in subquery" do
+    posts = subquery("posts" |> where(title: ^"hello") |> select([p], p.id))
+    query = "comments" |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+    assert all(query) ==
+           ~s{SELECT c0.`x` FROM `comments` AS c0 } <>
+           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` AS `id` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)))}
+
+    posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([p], p.id))
+    query = "comments" |> from(as: :comment) |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+    assert all(query) ==
+           ~s{SELECT c0.`x` FROM `comments` AS c0 } <>
+           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` AS `id` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)))}
   end
 
   test "having" do
@@ -580,6 +615,23 @@ defmodule Ecto.Adapters.MyXQLTest do
       "ORDER BY ? LIMIT ? OFFSET ?"
 
     assert all(query) == String.trim(result)
+  end
+
+  test "fragments allow ? to be escaped with backslash" do
+    query =
+      plan  from(e in "schema",
+        where: fragment("? = \"query\\?\"", e.start_time),
+        select: true)
+
+    result =
+      "SELECT TRUE FROM `schema` AS s0 " <>
+      "WHERE (s0.`start_time` = \"query?\")"
+
+    assert all(query) == String.trim(result)
+  end
+
+  test "build_explain_query" do
+    assert SQL.build_explain_query("SELECT 1") == "EXPLAIN SELECT 1"
   end
 
   ## *_all
@@ -784,13 +836,19 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p.x) |> plan()
     assert all(query) ==
            ~s{SELECT s1.`x` FROM `comments` AS c0 } <>
-           ~s{INNER JOIN (SELECT p0.`x` AS `x`, p0.`y` AS `y` FROM `posts` AS p0 WHERE (p0.`title` = ?)) AS s1 ON TRUE}
+           ~s{INNER JOIN (SELECT sp0.`x` AS `x`, sp0.`y` AS `y` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)) AS s1 ON TRUE}
 
     posts = subquery("posts" |> where(title: ^"hello") |> select([r], %{x: r.x, z: r.y}))
     query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p) |> plan()
     assert all(query) ==
            ~s{SELECT s1.`x`, s1.`z` FROM `comments` AS c0 } <>
-           ~s{INNER JOIN (SELECT p0.`x` AS `x`, p0.`y` AS `z` FROM `posts` AS p0 WHERE (p0.`title` = ?)) AS s1 ON TRUE}
+           ~s{INNER JOIN (SELECT sp0.`x` AS `x`, sp0.`y` AS `z` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)) AS s1 ON TRUE}
+
+    posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([r], r.title))
+    query = "comments" |> from(as: :comment) |> join(:inner, [c], p in subquery(posts)) |> select([_, p], p) |> plan()
+    assert all(query) ==
+           "SELECT s1.`title` FROM `comments` AS c0 " <>
+           "INNER JOIN (SELECT sp0.`title` AS `title` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)) AS s1 ON TRUE"
   end
 
   test "join with prefix" do
@@ -947,6 +1005,7 @@ defmodule Ecto.Adapters.MyXQLTest do
   test "create table" do
     create = {:create, table(:posts),
                [{:add, :name, :string, [default: "Untitled", size: 20, null: false]},
+                {:add, :token, :binary, [size: 20, null: false]},
                 {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                 {:add, :on_hand, :integer, [default: 0, null: true]},
                 {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
@@ -955,6 +1014,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert execute_ddl(create) == ["""
     CREATE TABLE `posts` (`name` varchar(20) DEFAULT 'Untitled' NOT NULL,
+    `token` varbinary(20) NOT NULL,
     `price` numeric(8,2) DEFAULT expr,
     `on_hand` integer DEFAULT 0 NULL,
     `likes` smallint unsigned DEFAULT 0 NOT NULL,
@@ -1158,9 +1218,9 @@ defmodule Ecto.Adapters.MyXQLTest do
   test "alter table" do
     alter = {:alter, table(:posts),
                [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
-                {:add, :author_id, %Reference{table: :author}, []},
+                {:add, :author_id, %Reference{table: :author}, [after: :title]},
                 {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
-                {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
+                {:add_if_not_exists, :editor_id, %Reference{table: :editor}, [after: :subtitle]},
                 {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
                 {:modify, :cost, :integer, [null: false, default: nil]},
                 {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
@@ -1175,10 +1235,10 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE `posts` ADD `title` varchar(100) DEFAULT 'Untitled' NOT NULL,
-    ADD `author_id` BIGINT UNSIGNED,
+    ADD `author_id` BIGINT UNSIGNED AFTER `title`,
     ADD CONSTRAINT `posts_author_id_fkey` FOREIGN KEY (`author_id`) REFERENCES `author`(`id`),
     ADD IF NOT EXISTS `subtitle` varchar(100) NOT NULL,
-    ADD IF NOT EXISTS `editor_id` BIGINT UNSIGNED,
+    ADD IF NOT EXISTS `editor_id` BIGINT UNSIGNED AFTER `subtitle`,
     ADD CONSTRAINT `posts_editor_id_fkey` FOREIGN KEY IF NOT EXISTS (`editor_id`) REFERENCES `editor`(`id`),
     MODIFY `price` numeric(8,2) NULL, MODIFY `cost` integer DEFAULT NULL NOT NULL,
     MODIFY `permalink_id` BIGINT UNSIGNED NOT NULL,
@@ -1221,6 +1281,14 @@ defmodule Ecto.Adapters.MyXQLTest do
     ADD `my_pk` bigint unsigned not null auto_increment,
     ADD PRIMARY KEY (`my_pk`)
     """ |> remove_newlines]
+  end
+
+  test "alter table with invalid reference opts" do
+    alter = {:alter, table(:posts), [{:add, :author_id, %Reference{table: :author, validate: false}, []}]}
+
+    assert_raise ArgumentError, "validate: false on references is not supported in MyXQL", fn ->
+      execute_ddl(alter)
+    end
   end
 
   test "create index" do

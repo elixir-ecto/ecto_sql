@@ -51,10 +51,11 @@ defmodule Ecto.Integration.SandboxTest do
       end
 
       parent = self()
+
       Task.start_link fn ->
         Sandbox.checkout(TestRepo)
         Sandbox.allow(TestRepo, self(), parent)
-        send parent, :allowed
+        send(parent, :allowed)
         Process.sleep(:infinity)
       end
 
@@ -63,8 +64,20 @@ defmodule Ecto.Integration.SandboxTest do
     end
 
     test "uses the repository when shared from another process" do
-      Sandbox.checkout(TestRepo)
-      Sandbox.mode(TestRepo, {:shared, self()})
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        TestRepo.all(Post)
+      end
+
+      parent = self()
+
+      Task.start_link(fn ->
+        Sandbox.checkout(TestRepo)
+        Sandbox.mode(TestRepo, {:shared, self()})
+        send(parent, :shared)
+        Process.sleep(:infinity)
+      end)
+
+      assert_receive :shared
       assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
     after
       Sandbox.mode(TestRepo, :manual)
@@ -169,11 +182,11 @@ defmodule Ecto.Integration.SandboxTest do
       Sandbox.checkout(TestRepo)
 
       TestRepo.checkout(fn ->
-        refute TestRepo.in_transaction?
+        refute TestRepo.in_transaction?()
         TestRepo.transaction(fn ->
-          assert TestRepo.in_transaction?
+          assert TestRepo.in_transaction?()
         end)
-        refute TestRepo.in_transaction?
+        refute TestRepo.in_transaction?()
       end)
     end
 
@@ -181,12 +194,46 @@ defmodule Ecto.Integration.SandboxTest do
       Sandbox.checkout(TestRepo)
 
       TestRepo.transaction(fn ->
-        assert TestRepo.in_transaction?
+        assert TestRepo.in_transaction?()
         TestRepo.checkout(fn ->
-          assert TestRepo.in_transaction?
+          assert TestRepo.in_transaction?()
         end)
-        assert TestRepo.in_transaction?
+        assert TestRepo.in_transaction?()
       end)
+    end
+  end
+
+  describe "start_owner!/2" do
+    test "checks out the connection" do
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        TestRepo.all(Post)
+      end
+
+      owner = Sandbox.start_owner!(TestRepo)
+      assert TestRepo.all(Post) == []
+
+      :ok = Sandbox.stop_owner(owner)
+      refute Process.alive?(owner)
+    end
+
+    test "can set shared mode" do
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        TestRepo.all(Post)
+      end
+
+      parent = self()
+
+      Task.start_link(fn ->
+        owner = Sandbox.start_owner!(TestRepo, shared: true)
+        send(parent, {:owner, owner})
+        Process.sleep(:infinity)
+      end)
+
+      assert_receive {:owner, owner}
+      assert TestRepo.all(Post) == []
+      :ok = Sandbox.stop_owner(owner)
+    after
+      Sandbox.mode(TestRepo, :manual)
     end
   end
 end

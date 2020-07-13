@@ -58,7 +58,7 @@ defmodule Ecto.Adapters.SQL.Connection do
   Must return an empty list if the error does not come
   from any constraint.
   """
-  @callback to_constraints(exception :: Exception.t) :: Keyword.t
+  @callback to_constraints(exception :: Exception.t, options :: Keyword.t) :: Keyword.t
 
   ## Queries
 
@@ -97,6 +97,17 @@ defmodule Ecto.Adapters.SQL.Connection do
   """
   @callback delete(prefix :: String.t, table :: String.t,
                    filters :: [atom], returning :: [atom]) :: iodata
+
+  @doc """
+  Executes an EXPLAIN query or similar depending on the adapter to obtains statistics of the given query.
+
+  Receives the `connection`, `query`, `params` for the query,
+  and all `opts` including those related to the EXPLAIN statement and shared opts.
+
+  Must execute the explain query and return the result.
+  """
+  @callback explain_query(connection, query :: String.t, params :: Keyword.t, opts :: Keyword.t) ::
+              {:ok, term} | {:error, Exception.t}
 
   ## DDL
 

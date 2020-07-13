@@ -88,6 +88,23 @@ defmodule Ecto.MigrationTest do
            %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
   end
 
+  @tag repo_config: [migration_foreign_key: [type: :uuid, column: :other, prefix: :blog]]
+  test "create a reference with using the foreign key repo config" do
+    assert references(:posts) ==
+           %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
+  end
+
+  @tag repo_config: [migration_primary_key: [type: :binary_id]]
+  test "creates a reference with a foreign key type default to the primary key type" do
+    assert references(:posts) ==
+           %Reference{table: "posts", column: :id, type: :binary_id}
+  end
+
+  test "creates a reference without validating" do
+    assert references(:posts, validate: false) ==
+      %Reference{table: "posts", column: :id, type: :bigserial, validate: false}
+  end
+
   test "creates a constraint" do
     assert constraint(:posts, :price_is_positive, check: "price > 0") ==
            %Constraint{table: "posts", name: :price_is_positive, check: "price > 0"}
@@ -192,6 +209,23 @@ defmodule Ecto.MigrationTest do
 
     assert last_command() ==
            {:create, table, [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
+  end
+
+  @tag repo_config: [migration_primary_key: false]
+  test "forward: create a table without a primary key by default via repo config" do
+    create(table = table(:posts))
+    flush()
+
+    assert last_command() == {:create, table, []}
+  end
+
+  @tag repo_config: [migration_primary_key: false]
+  test "forward: create a table block without a primary key by default via repo config" do
+    create(table = table(:posts)) do
+    end
+    flush()
+
+    assert last_command() == {:create, table, []}
   end
 
   @tag repo_config: [migration_timestamps: [type: :utc_datetime, null: true]]
@@ -746,17 +780,6 @@ defmodule Ecto.MigrationTest do
     execute "SELECT 1", "SELECT 2"
     flush()
     assert "SELECT 2" = last_command()
-  end
-
-  test "references foreign keys types must be the same as primary defaults" do
-    %{runner: runner} = Process.get(:ecto_migration)
-    Agent.update(runner, fn state ->
-      config = Keyword.put(state.config, :migration_primary_key, [type: :binary_id])
-      Map.put(state, :config, config)
-    end)
-
-    assert references(:posts) ==
-           %Reference{table: "posts", column: :id, type: :binary_id}
   end
 
   defp last_command(), do: Process.get(:last_command)

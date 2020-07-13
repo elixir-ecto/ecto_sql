@@ -171,7 +171,7 @@ defmodule Ecto.MigratorTest do
   Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
 
   setup do
-    Process.put(:migrated_versions, [1, 2, 3])
+    Process.put(:migrated_versions, [{1, nil}, {2, nil}, {3, nil}])
     :ok
   end
 
@@ -241,6 +241,22 @@ defmodule Ecto.MigratorTest do
   test "custom schema migrations table is right" do
     assert SchemaMigration.get_source(TestRepo) == "schema_migrations"
     assert SchemaMigration.get_source(MigrationSourceRepo) == "my_schema_migrations"
+  end
+
+  test "migrator prefix" do
+    capture_log(fn ->
+      :ok = up(TestRepo, 10, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{10, :custom} | _] = Process.get(:migrated_versions)
+
+    Process.put(:repo_default_options, [prefix: nil])
+
+    capture_log(fn ->
+      :ok = up(TestRepo, 11, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{11, :custom} | _] = Process.get(:migrated_versions)
   end
 
   test "logs migrations" do
@@ -475,6 +491,18 @@ defmodule Ecto.MigratorTest do
         assert run(TestRepo, Path.join(path, "foo"), :up, to: 15, log: false) == [13]
       end
     end
+
+    test "migrations from multiple paths are executed in order" do
+      in_tmp(fn path ->
+        File.mkdir_p!("a")
+        File.mkdir_p!("b")
+        create_migration "a/10_migration10.exs"
+        create_migration "a/12_migration12.exs"
+        create_migration "b/11_migration11.exs"
+        paths = [Path.join([path, "a"]), Path.join([path, "b"])]
+        assert run(TestRepo, paths, :up, to: 12, log: false) == [10, 11, 12]
+      end)
+    end
   end
 
   describe "migrations" do
@@ -528,6 +556,28 @@ defmodule Ecto.MigratorTest do
 
         assert migrations(TestRepo, path) == expected_result
       end
+    end
+
+    test "multiple paths" do
+      in_tmp(fn path ->
+        File.mkdir_p!("a")
+        File.mkdir_p!("b")
+        create_migration "a/1_up_migration_1.exs"
+        create_migration "b/2_up_migration_2.exs"
+        create_migration "a/3_up_migration_3.exs"
+
+        assert migrations(TestRepo, [Path.join([path, "a"]), Path.join([path, "b"])]) ==  [
+          {:up, 1, "up_migration_1"},
+          {:up, 2, "up_migration_2"},
+          {:up, 3, "up_migration_3"},
+        ]
+
+        assert migrations(TestRepo, [Path.join([path, "a"])]) ==  [
+          {:up, 1, "up_migration_1"},
+          {:up, 2, "** FILE NOT FOUND **"},
+          {:up, 3, "up_migration_3"},
+        ]
+      end)
     end
 
     test "run inside a transaction if the adapter supports ddl transactions" do
@@ -645,6 +695,20 @@ defmodule Ecto.MigratorTest do
 
       refute log =~ "after_begin"
       refute log =~ "before_commit"
+    end
+  end
+
+  describe "migrations_path" do
+    test "is inferred from the repository name" do
+      path = migrations_path(TestRepo)
+      expected = "priv/test_repo/migrations"
+      assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
+    end
+
+    test "uses custom directory when provided" do
+      path = migrations_path(TestRepo, "custom")
+      expected = "priv/test_repo/custom"
+      assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
     end
   end
 

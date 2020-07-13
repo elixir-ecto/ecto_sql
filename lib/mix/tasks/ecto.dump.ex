@@ -55,11 +55,11 @@ defmodule Mix.Tasks.Ecto.Dump do
 
     Enum.each parse_repo(args), fn repo ->
       ensure_repo(repo, args)
-      ensure_implements(repo.__adapter__, Ecto.Adapter.Structure,
-                                          "dump structure for #{inspect repo}")
-      config = Keyword.merge(repo.config, opts)
+      ensure_implements(repo.__adapter__(), Ecto.Adapter.Structure,
+                                            "dump structure for #{inspect repo}")
+      config = Keyword.merge(repo.config(), opts)
 
-      case repo.__adapter__.structure_dump(source_repo_priv(repo), config) do
+      case repo.__adapter__().structure_dump(source_repo_priv(repo), config) do
         {:ok, location} ->
           unless opts[:quiet] do
             Mix.shell().info "The structure for #{inspect repo} has been dumped to #{location}"

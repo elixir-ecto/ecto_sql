@@ -41,7 +41,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     :ok
   end
 
-  test "creating, using, and dropping an exclusion constraint" do
+  test "exclusion constraint" do
     changeset = Ecto.Changeset.change(%Constraint{}, from: 0, to: 10)
     {:ok, _} = PoolRepo.insert(changeset)
 
@@ -75,7 +75,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     assert changeset.data.__meta__.state == :built
   end
 
-  test "creating, using, and dropping a check constraint" do
+  test "check constraint" do
     # When the changeset doesn't expect the db error
     changeset = Ecto.Changeset.change(%Constraint{}, price: -10)
     exception =

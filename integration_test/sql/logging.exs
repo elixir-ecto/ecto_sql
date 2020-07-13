@@ -19,6 +19,18 @@ defmodule Ecto.Integration.LoggingTest do
     assert_received :logged
   end
 
+  test "log entry is sent to telemetry with custom options" do
+    log = fn event_name, _measurements, metadata ->
+      assert Enum.at(event_name, -1) == :query
+      assert metadata.options == [:custom_metadata]
+      send(self(), :logged)
+    end
+
+    Process.put(:telemetry, log)
+    _ = PoolRepo.all(Post, telemetry_options: [:custom_metadata])
+    assert_received :logged
+  end
+
   test "log entry sent under another event name" do
     log = fn [:custom], measurements, metadata ->
       assert %{result: {:ok, _res}} = metadata

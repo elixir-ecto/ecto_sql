@@ -1,5 +1,67 @@
 # Changelog for v3.x
 
+## v3.4.5 (2020-07-05)
+
+### Bug fixes
+
+  * [ecto] Fix warnings on Elixir v1.11
+  * [migrations] Migration prefix should have higher preference than `default_options`
+
+## v3.4.4 (2020-05-19)
+
+### Enhancements
+
+  * [sandbox] Add `Ecto.Adapters.SQL.start_owner!/2` and `Ecto.Adapters.SQL.stop_owner/1`
+  * [myxql] decode BIT columns when using MyXQL and `:boolean` type
+  * [migrations] Use one line per migration in the schema dump
+
+## v3.4.3 (2020-04-27)
+
+### Bug fixes
+
+  * [ecto] Support `as` and `parent_as` from Ecto v3.4.3+
+  * [ecto] Support `x in subquery(query)` from Ecto v3.4.3+
+
+## v3.4.2 (2020-04-02)
+
+### Bug fixes
+
+  * [myxql] A binary with size should be a varbinary
+  * [mssql] A binary without size should be a varbinary(max)
+
+## v3.4.1 (2020-03-25)
+
+### Bug fixes
+
+  * [myxql] Assume the reference does not change in MyXQL and prepare for v0.4.0
+
+## v3.4.0 (2020-03-24)
+
+### Enhancements
+
+  * [adapters] Support Ecto's v3.4 `json_extract_path/2`
+  * [migrations] Support multiple migration paths to be given with `--migration-path`
+  * [mssql] Add built-in support to MSSQL via the TDS adapter
+  * [repo] Support custom options on telemetry
+
+## v3.3.4 (2020-02-14)
+
+### Enhancements
+
+  * [adapters] Support fragments in locks
+  * [migration] Add `:include` option to support covering indexes
+
+## v3.3.3 (2020-01-28)
+
+### Enhancements
+
+  * [myxql] Allow not setting the encoding when creating a database
+
+### Bug fixes
+
+  * [myxql] Removing prefixed table name from constraints on latest MySQL versions
+  * [sql] Fix precedence of `is_nil` when inside a comparison operator
+
 ## v3.3.2 (2019-12-15)
 
 ### Bug fixes

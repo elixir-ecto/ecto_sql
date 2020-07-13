@@ -116,8 +116,8 @@ defmodule Ecto.Adapters.Postgres do
 
   # Support arrays in place of IN
   @impl true
-  def dumpers({:embed, _}, type),      do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
-  def dumpers({:map, _}, type),        do: [&Ecto.Adapters.SQL.dump_embed(type, &1)]
+  def dumpers({:embed, _}, type),      do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+  def dumpers({:map, _}, type),        do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers({:in, sub}, {:in, sub}), do: [{:array, sub}]
   def dumpers(:binary_id, type),       do: [type, Ecto.UUID]
   def dumpers(_, type),                do: [type]
@@ -222,9 +222,7 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp append_versions(table, versions, path) do
-    sql =
-      ~s[INSERT INTO public."#{table}" (version) VALUES ] <>
-        Enum.map_join(versions, ", ", &"(#{&1})") <> ~s[;\n\n]
+    sql = Enum.map_join(versions, &~s[INSERT INTO public."#{table}" (version) VALUES (#{&1});\n])
 
     File.open!(path, [:append], fn file ->
       IO.write(file, sql)

@@ -6,15 +6,14 @@ defmodule Mix.Tasks.Ecto.Migrations do
   @shortdoc "Displays the repository migration status"
 
   @aliases [
-    r: :repo,
-    n: :step
+    r: :repo
   ]
 
   @switches [
     repo: [:keep, :string],
     no_compile: :boolean,
     no_deps_check: :boolean,
-    migrations_path: :string
+    migrations_path: :keep
   ]
 
   @moduledoc """
@@ -39,10 +38,18 @@ defmodule Mix.Tasks.Ecto.Migrations do
   ## Command line options
 
     * `-r`, `--repo` - the repo to obtain the status for
-    * `--no-compile` - does not compile applications before running
-    * `--no-deps-check` - does not check depedendencies before running
-    * `--migrations-path` - the path to run the migrations from
 
+    * `--no-compile` - does not compile applications before running
+
+    * `--no-deps-check` - does not check depedendencies before running
+
+    * `--migrations-path` - the path to load the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
+      are loaded from all the given directories and sorted as if they were in the same one.
+
+      Note, if you have previously run migrations from e.g. paths `a/` and `b/`, and now run `mix
+      ecto.migrations --migrations-path a/` (omitting path `b/`), the migrations from the path
+      `b/` will be shown in the output as `** FILE NOT FOUND **`.
   """
 
   @impl true
@@ -52,9 +59,9 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
     for repo <- repos do
       ensure_repo(repo, args)
-      path = ensure_migrations_path(repo, opts)
+      paths = ensure_migrations_paths(repo, opts)
 
-      case Ecto.Migrator.with_repo(repo, &migrations.(&1, path), [mode: :temporary]) do
+      case Ecto.Migrator.with_repo(repo, &migrations.(&1, paths), [mode: :temporary]) do
         {:ok, repo_status, _} ->
           puts.(
             """

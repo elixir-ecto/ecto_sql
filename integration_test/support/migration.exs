@@ -11,7 +11,7 @@ defmodule Ecto.Integration.Migration do
     create table(:posts) do
       add :title, :string, size: 100
       add :counter, :integer
-      add :text, :binary
+      add :blob, :binary
       add :bid, :binary_id
       add :uuid, :uuid
       add :meta, :map
@@ -45,6 +45,7 @@ defmodule Ecto.Integration.Migration do
 
     create table(:permalinks) do
       add :uniform_resource_locator, :string
+      add :title, :string
       add :post_id, references(:posts)
       add :user_id, references(:users)
     end
@@ -84,8 +85,9 @@ defmodule Ecto.Integration.Migration do
     end
 
     create table(:orders) do
-      add :instructions, :text
       add :item, :map
+      add :items, :map
+      add :meta, :map
       add :permalink_id, references(:permalinks)
     end
 
@@ -118,6 +120,10 @@ defmodule Ecto.Integration.Migration do
     create table(:usecs) do
       add :naive_datetime_usec, :naive_datetime_usec
       add :utc_datetime_usec, :utc_datetime_usec
+    end
+
+    create table(:bits) do
+      add :bit, :bit
     end
   end
 end

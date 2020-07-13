@@ -15,24 +15,24 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, constraint: constraint}}, _opts),
       do: [unique: constraint]
-    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, constraint: constraint}}, _opts),
       do: [foreign_key: constraint]
-    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, constraint: constraint}}, _opts),
       do: [exclusion: constraint]
-    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, constraint: constraint}}),
+    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, constraint: constraint}}, _opts),
       do: [check: constraint]
 
     # Postgres 9.2 and earlier does not provide the constraint field
     @impl true
-    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :unique_violation, message: message}}, _opts) do
       case :binary.split(message, " unique constraint ") do
         [_, quoted] -> [unique: strip_quotes(quoted)]
         _ -> []
       end
     end
-    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :foreign_key_violation, message: message}}, _opts) do
       case :binary.split(message, " foreign key constraint ") do
         [_, quoted] ->
           [quoted | _] = :binary.split(quoted, " on table ")
@@ -41,20 +41,20 @@ if Code.ensure_loaded?(Postgrex) do
           []
       end
     end
-    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :exclusion_violation, message: message}}, _opts) do
       case :binary.split(message, " exclusion constraint ") do
         [_, quoted] -> [exclusion: strip_quotes(quoted)]
         _ -> []
       end
     end
-    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, message: message}}) do
+    def to_constraints(%Postgrex.Error{postgres: %{code: :check_violation, message: message}}, _opts) do
       case :binary.split(message, " check constraint ") do
         [_, quoted] -> [check: strip_quotes(quoted)]
         _ -> []
       end
     end
 
-    def to_constraints(_),
+    def to_constraints(_, _opts),
       do: []
 
     defp strip_quotes(quoted) do
@@ -100,11 +100,12 @@ if Code.ensure_loaded?(Postgrex) do
       Postgrex.stream(conn, sql, params, opts)
     end
 
+    @parent_as 0
     alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
 
     @impl true
-    def all(query) do
-      sources = create_names(query)
+    def all(query, as_prefix \\ []) do
+      sources = create_names(query, as_prefix)
       {select_distinct, order_by_distinct} = distinct(query.distinct, sources, query)
 
       cte = cte(query, sources)
@@ -119,14 +120,14 @@ if Code.ensure_loaded?(Postgrex) do
       order_by = order_by(query, order_by_distinct, sources)
       limit = limit(query, sources)
       offset = offset(query, sources)
-      lock = lock(query.lock)
+      lock = lock(query, sources)
 
       [cte, select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
     end
 
     @impl true
     def update_all(%{from: %{source: source}} = query, prefix \\ nil) do
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, source)
 
@@ -140,7 +141,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def delete_all(%{from: from} = query) do
-      sources = create_names(query)
+      sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, from)
 
@@ -164,7 +165,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp insert_as({%{sources: sources}, _, _}) do
-      {_expr, name, _schema} = create_name(sources, 0)
+      {_expr, name, _schema} = create_name(sources, 0, [])
       [" AS " | name]
     end
     defp insert_as({_, _, _}) do
@@ -247,6 +248,56 @@ if Code.ensure_loaded?(Postgrex) do
       end)
 
       ["DELETE FROM ", quote_table(prefix, table), " WHERE ", filters | returning(returning)]
+    end
+
+    @impl true
+    def explain_query(conn, query, params, opts) do
+      {explain_opts, opts} =
+        Keyword.split(opts, ~w[analyze verbose costs settings buffers timing summary]a)
+
+      case query(conn, build_explain_query(query, explain_opts), params, opts) do
+        {:ok, %Postgrex.Result{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
+        error -> error
+      end
+    end
+
+    def build_explain_query(query, []) do
+      ["EXPLAIN ", query]
+      |> IO.iodata_to_binary()
+    end
+
+    def build_explain_query(query, opts) do
+      {analyze, opts} = Keyword.pop(opts, :analyze)
+      {verbose, opts} = Keyword.pop(opts, :verbose)
+
+      # Given only ANALYZE or VERBOSE opts we assume the legacy format
+      # to support all Postgres versions, otherwise assume the new
+      # syntax supported since v9.0
+      case opts do
+        [] ->
+          [
+            "EXPLAIN ",
+            if_do(quote_boolean(analyze) == "TRUE", "ANALYZE "),
+            if_do(quote_boolean(verbose) == "TRUE", "VERBOSE "),
+            query
+          ]
+
+        opts ->
+          opts =
+            ([analyze: analyze, verbose: verbose] ++ opts)
+            |> Enum.reduce([], fn
+              {_, nil}, acc ->
+                acc
+
+              {opt, value}, acc ->
+                [String.upcase("#{opt} #{quote_boolean(value)}") | acc]
+            end)
+            |> Enum.reverse()
+            |> Enum.join(", ")
+
+          ["EXPLAIN ( ", opts, " ) ", query]
+      end
+      |> IO.iodata_to_binary()
     end
 
     ## Query generation
@@ -476,8 +527,9 @@ if Code.ensure_loaded?(Postgrex) do
       end)
     end
 
-    defp lock(nil), do: []
-    defp lock(lock_clause), do: [?\s | lock_clause]
+    defp lock(%{lock: nil}, _sources), do: []
+    defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | binary]
+    defp lock(%{lock: expr} = query, sources), do: [?\s | expr(expr, sources, query)]
 
     defp boolean(_name, [], _sources, _query), do: []
     defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do
@@ -509,6 +561,11 @@ if Code.ensure_loaded?(Postgrex) do
       [?$ | Integer.to_string(ix + 1)]
     end
 
+    defp expr({{:., _, [{:parent_as, _, [{:&, _, [idx]}]}, field]}, _, []}, _sources, query)
+         when is_atom(field) do
+      quote_qualified_name(field, query.aliases[@parent_as], idx)
+    end
+
     defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query) when is_atom(field) do
       quote_qualified_name(field, sources, idx)
     end
@@ -531,6 +588,10 @@ if Code.ensure_loaded?(Postgrex) do
       [expr(left, sources, query), " = ANY($", Integer.to_string(ix + 1), ?)]
     end
 
+    defp expr({:in, _, [left, %Ecto.SubQuery{} = subquery]}, sources, query) do
+      [expr(left, sources, query), " IN ", expr(subquery, sources, query)]
+    end
+
     defp expr({:in, _, [left, right]}, sources, query) do
       [expr(left, sources, query), " = ANY(", expr(right, sources, query), ?)]
     end
@@ -543,8 +604,9 @@ if Code.ensure_loaded?(Postgrex) do
       ["NOT (", expr(expr, sources, query), ?)]
     end
 
-    defp expr(%Ecto.SubQuery{query: query}, _sources, _query) do
-      [?(, all(query), ?)]
+    defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
+      query = put_in(query.aliases[@parent_as], sources)
+      [?(, all(query, [?s]), ?)]
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
@@ -567,6 +629,19 @@ if Code.ensure_loaded?(Postgrex) do
     defp expr({:date_add, _, [date, count, interval]}, sources, query) do
       [?(, expr(date, sources, query), type_unless_typed(date, "date"), " + ",
        interval(count, interval, sources, query) | ")::date"]
+    end
+
+    defp expr({:json_extract_path, _, [expr, path]}, sources, query) do
+      path =
+        intersperse_map(path, ?,, fn
+          binary when is_binary(binary) ->
+            [?", escape_json_key(binary), ?"]
+
+          integer when is_integer(integer) ->
+            Integer.to_string(integer)
+        end)
+
+      [?(, expr(expr, sources, query), "#>'{", path, "}')"]
     end
 
     defp expr({:filter, _, [agg, filter]}, sources, query) do
@@ -662,13 +737,14 @@ if Code.ensure_loaded?(Postgrex) do
        interval(1, interval, sources, query), ?)]
     end
 
-    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
-      paren_expr(expr, sources, query)
-    end
+    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
+      do: paren_expr(expr, sources, query)
 
-    defp op_to_binary(expr, sources, query) do
-      expr(expr, sources, query)
-    end
+    defp op_to_binary({:is_nil, _, [_]} = expr, sources, query),
+      do: paren_expr(expr, sources, query)
+
+    defp op_to_binary(expr, sources, query),
+      do: expr(expr, sources, query)
 
     defp returning(%{select: nil}, _sources),
       do: []
@@ -680,37 +756,37 @@ if Code.ensure_loaded?(Postgrex) do
     defp returning(returning),
       do: [" RETURNING " | intersperse_map(returning, ", ", &quote_name/1)]
 
-    defp create_names(%{sources: sources}) do
-      create_names(sources, 0, tuple_size(sources)) |> List.to_tuple()
+    defp create_names(%{sources: sources}, as_prefix) do
+      create_names(sources, 0, tuple_size(sources), as_prefix) |> List.to_tuple()
     end
 
-    defp create_names(sources, pos, limit) when pos < limit do
-      [create_name(sources, pos) | create_names(sources, pos + 1, limit)]
+    defp create_names(sources, pos, limit, as_prefix) when pos < limit do
+      [create_name(sources, pos, as_prefix) | create_names(sources, pos + 1, limit, as_prefix)]
     end
 
-    defp create_names(_sources, pos, pos) do
+    defp create_names(_sources, pos, pos, _as_prefix) do
       []
     end
 
-    defp create_name(sources, pos) do
+    defp create_name(sources, pos, as_prefix) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
-          {nil, [?f | Integer.to_string(pos)], nil}
+          {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
         {table, schema, prefix} ->
-          name = [create_alias(table) | Integer.to_string(pos)]
+          name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
           {quote_table(prefix, table), name, schema}
 
         %Ecto.SubQuery{} ->
-          {nil, [?s | Integer.to_string(pos)], nil}
+          {nil, as_prefix ++ [?s | Integer.to_string(pos)], nil}
       end
     end
 
     defp create_alias(<<first, _rest::binary>>) when first in ?a..?z when first in ?A..?Z do
-      <<first>>
+      first
     end
     defp create_alias(_) do
-      "t"
+      ?t
     end
 
     # DDL
@@ -751,6 +827,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     def execute_ddl({:create, %Index{} = index}) do
       fields = intersperse_map(index.columns, ", ", &index_expr/1)
+      include_fields = intersperse_map(index.include, ", ", &index_expr/1)
 
       queries = [["CREATE ",
                   if_do(index.unique, "UNIQUE "),
@@ -761,6 +838,7 @@ if Code.ensure_loaded?(Postgrex) do
                   quote_table(index.prefix, index.table),
                   if_do(index.using, [" USING " , to_string(index.using)]),
                   ?\s, ?(, fields, ?),
+                  if_do(include_fields != [], [" INCLUDE ", ?(, include_fields, ?)]),
                   if_do(index.where, [" WHERE ", to_string(index.where)])]]
 
       queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)
@@ -952,6 +1030,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_options(type, opts) do
       default = Keyword.fetch(opts, :default)
       null    = Keyword.get(opts, :null)
+
       [default_expr(default, type), null_expr(null)]
     end
 
@@ -1042,13 +1121,13 @@ if Code.ensure_loaded?(Postgrex) do
     defp reference_expr(%Reference{} = ref, table, name),
       do: [" CONSTRAINT ", reference_name(ref, table, name), " REFERENCES ",
            quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update), validate(ref.validate)]
 
     defp constraint_expr(%Reference{} = ref, table, name),
       do: [", ADD CONSTRAINT ", reference_name(ref, table, name), ?\s,
            "FOREIGN KEY (", quote_name(name), ") REFERENCES ",
            quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update), validate(ref.validate)]
 
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP CONSTRAINT ", reference_name(ref, table, name), ", "]
@@ -1078,6 +1157,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp reference_on_update(:update_all), do: " ON UPDATE CASCADE"
     defp reference_on_update(:restrict), do: " ON UPDATE RESTRICT"
     defp reference_on_update(_), do: []
+
+    defp validate(false), do: " NOT VALID"
+    defp validate(_), do: []
 
     ## Helpers
 
@@ -1113,6 +1195,12 @@ if Code.ensure_loaded?(Postgrex) do
       [?", name, ?"]
     end
 
+    # TRUE, ON, or 1 to enable the option, and FALSE, OFF, or 0 to disable it
+    defp quote_boolean(nil), do: nil
+    defp quote_boolean(true), do: "TRUE"
+    defp quote_boolean(false), do: "FALSE"
+    defp quote_boolean(value), do: error!(nil, "bad boolean value #{value}")
+
     defp single_quote(value), do: [?', escape_string(value), ?']
 
     defp intersperse_map(list, separator, mapper, acc \\ [])
@@ -1141,6 +1229,12 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp escape_string(value) when is_binary(value) do
       :binary.replace(value, "'", "''", [:global])
+    end
+
+    defp escape_json_key(value) when is_binary(value) do
+      value
+      |> escape_string()
+      |> :binary.replace("\"", "\\\"", [:global])
     end
 
     defp ecto_to_db({:array, t}),          do: [ecto_to_db(t), ?[, ?]]

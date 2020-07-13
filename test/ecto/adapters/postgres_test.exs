@@ -14,6 +14,7 @@ defmodule Ecto.Adapters.PostgresTest do
       field :y, :integer
       field :z, :integer
       field :w, {:array, :integer}
+      field :meta, :map
 
       has_many :comments, Ecto.Adapters.PostgresTest.Schema2,
         references: :x,
@@ -97,10 +98,10 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "from with subquery" do
     query = subquery("posts" |> select([r], %{x: r.x, y: r.y})) |> select([r], r.x) |> plan()
-    assert all(query) == ~s{SELECT s0."x" FROM (SELECT p0."x" AS "x", p0."y" AS "y" FROM "posts" AS p0) AS s0}
+    assert all(query) == ~s{SELECT s0."x" FROM (SELECT sp0."x" AS "x", sp0."y" AS "y" FROM "posts" AS sp0) AS s0}
 
     query = subquery("posts" |> select([r], %{x: r.x, z: r.y})) |> select([r], r) |> plan()
-    assert all(query) == ~s{SELECT s0."x", s0."z" FROM (SELECT p0."x" AS "x", p0."y" AS "z" FROM "posts" AS p0) AS s0}
+    assert all(query) == ~s{SELECT s0."x", s0."z" FROM (SELECT sp0."x" AS "x", sp0."y" AS "z" FROM "posts" AS sp0) AS s0}
   end
 
   test "CTE" do
@@ -211,7 +212,7 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{SET "x" = 123 } <>
       ~s{FROM "target_rows" AS t1 } <>
       ~s{WHERE (t1."id" = s0."id") } <>
-      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
   end
 
   test "CTE delete_all" do
@@ -231,7 +232,7 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{DELETE FROM "schema" AS s0 } <>
       ~s{USING "target_rows" AS t1 } <>
       ~s{WHERE (t1."id" = s0."id") } <>
-      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+      ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
   end
 
   test "select" do
@@ -429,6 +430,9 @@ defmodule Ecto.Adapters.PostgresTest do
   test "lock" do
     query = Schema |> lock("FOR SHARE NOWAIT") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 FOR SHARE NOWAIT}
+
+    query = Schema |> lock([p], fragment("UPDATE on ?", p)) |> select([], true) |> plan()
+    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 UPDATE on s0}
   end
 
   test "string escape" do
@@ -468,6 +472,9 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = Schema |> select([r], not is_nil(r.x)) |> plan()
     assert all(query) == ~s{SELECT NOT (s0."x" IS NULL) FROM "schema" AS s0}
+
+    query = "schema" |> select([r], r.x == is_nil(r.y)) |> plan()
+    assert all(query) == ~s{SELECT s0."x" = (s0."y" IS NULL) FROM "schema" AS s0}
   end
 
   test "fragments" do
@@ -526,6 +533,20 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT $1::uuid[] FROM "schema" AS s0}
   end
 
+  test "json_extract_path" do
+    query = Schema |> select([s], json_extract_path(s.meta, [0, 1])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{0,1}') FROM "schema" AS s0|
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["a", "b"])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"a","b"}') FROM "schema" AS s0|
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["'a"])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"''a"}') FROM "schema" AS s0|
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["\"a"])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"\\"a"}') FROM "schema" AS s0|
+  end
+
   test "nested expressions" do
     z = 123
     query = from(r in Schema, []) |> select([r], r.x > 0 and (r.y > ^(-z)) or true) |> plan()
@@ -562,6 +583,20 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = Schema |> select([e], e.x == ^0 or e.x in ^[1, 2, 3] or e.x == ^4) |> plan()
     assert all(query) == ~s{SELECT ((s0."x" = $1) OR s0."x" = ANY($2)) OR (s0."x" = $3) FROM "schema" AS s0}
+  end
+
+  test "in subquery" do
+    posts = subquery("posts" |> where(title: ^"hello") |> select([p], p.id))
+    query = "comments" |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+    assert all(query) ==
+           ~s{SELECT c0."x" FROM "comments" AS c0 } <>
+           ~s{WHERE (c0."post_id" IN (SELECT sp0."id" AS "id" FROM "posts" AS sp0 WHERE (sp0."title" = $1)))}
+
+    posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([p], p.id))
+    query = "comments" |> from(as: :comment) |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+    assert all(query) ==
+           ~s{SELECT c0."x" FROM "comments" AS c0 } <>
+           ~s{WHERE (c0."post_id" IN (SELECT sp0."id" AS "id" FROM "posts" AS sp0 WHERE (sp0."title" = c0."subtitle")))}
   end
 
   test "having" do
@@ -672,6 +707,18 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == String.trim(result)
   end
 
+  test "build_explain_query" do
+     assert_raise(ArgumentError, "bad boolean value T", fn ->
+       SQL.build_explain_query("SELECT 1", analyze: "T")
+     end)
+
+    assert SQL.build_explain_query("SELECT 1", []) == "EXPLAIN SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: nil, verbose: nil) == "EXPLAIN SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true) == "EXPLAIN ANALYZE SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true, verbose: true) == "EXPLAIN ANALYZE VERBOSE SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", analyze: true, costs: true) == "EXPLAIN ( ANALYZE TRUE, COSTS TRUE ) SELECT 1"
+  end
+
   ## *_all
 
   test "update all" do
@@ -706,7 +753,7 @@ defmodule Ecto.Adapters.PostgresTest do
   test "update all with returning" do
     query = from(m in Schema, update: [set: [x: 0]]) |> select([m], m) |> plan(:update_all)
     assert update_all(query) ==
-           ~s{UPDATE "schema" AS s0 SET "x" = 0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+           ~s{UPDATE "schema" AS s0 SET "x" = 0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
 
     query = from(m in Schema, update: [set: [x: ^1]]) |> where([m], m.x == ^2) |> select([m], m.x == ^3) |> plan(:update_all)
     assert update_all(query) ==
@@ -756,7 +803,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "delete all with returning" do
     query = Schema |> Queryable.to_query |> select([m], m) |> plan()
-    assert delete_all(query) == ~s{DELETE FROM "schema" AS s0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w"}
+    assert delete_all(query) == ~s{DELETE FROM "schema" AS s0 RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
   end
 
   test "delete all with prefix" do
@@ -896,13 +943,19 @@ defmodule Ecto.Adapters.PostgresTest do
     query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p.x) |> plan()
     assert all(query) ==
            ~s{SELECT s1."x" FROM "comments" AS c0 } <>
-           ~s{INNER JOIN (SELECT p0."x" AS "x", p0."y" AS "y" FROM "posts" AS p0 WHERE (p0."title" = $1)) AS s1 ON TRUE}
+           ~s{INNER JOIN (SELECT sp0."x" AS "x", sp0."y" AS "y" FROM "posts" AS sp0 WHERE (sp0."title" = $1)) AS s1 ON TRUE}
 
     posts = subquery("posts" |> where(title: ^"hello") |> select([r], %{x: r.x, z: r.y}))
     query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p) |> plan()
     assert all(query) ==
            ~s{SELECT s1."x", s1."z" FROM "comments" AS c0 } <>
-           ~s{INNER JOIN (SELECT p0."x" AS "x", p0."y" AS "z" FROM "posts" AS p0 WHERE (p0."title" = $1)) AS s1 ON TRUE}
+           ~s{INNER JOIN (SELECT sp0."x" AS "x", sp0."y" AS "z" FROM "posts" AS sp0 WHERE (sp0."title" = $1)) AS s1 ON TRUE}
+
+    posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([r], r.title))
+    query = "comments" |> from(as: :comment) |> join(:inner, [c], p in subquery(posts)) |> select([_, p], p) |> plan()
+    assert all(query) ==
+           ~s{SELECT s1."title" FROM "comments" AS c0 } <>
+           ~s{INNER JOIN (SELECT sp0."title" AS "title" FROM "posts" AS sp0 WHERE (sp0."title" = c0."subtitle")) AS s1 ON TRUE}
   end
 
   test "join with prefix" do
@@ -982,7 +1035,7 @@ defmodule Ecto.Adapters.PostgresTest do
       query = subquery |> join(:inner, [c], p in subquery(subquery), on: true) |> plan()
       assert all(query) ==
              ~s{SELECT s0."x", s0."y" FROM "schema" AS s0 INNER JOIN } <>
-             ~s{(SELECT s0."x" AS "x", s0."y" AS "y" FROM "schema" AS s0) } <>
+             ~s{(SELECT ss0."x" AS "x", ss0."y" AS "y" FROM "schema" AS ss0) } <>
              ~s{AS s1 ON TRUE}
     end
 
@@ -991,7 +1044,7 @@ defmodule Ecto.Adapters.PostgresTest do
       query = subquery |> join(:inner, [c], p in subquery(subquery), on: true) |> plan()
       assert all(query) ==
              ~s{SELECT downcase($1) FROM "schema" AS s0 INNER JOIN } <>
-             ~s{(SELECT downcase($2) AS "string" FROM "schema" AS s0) } <>
+             ~s{(SELECT downcase($2) AS "string" FROM "schema" AS ss0) } <>
              ~s{AS s1 ON TRUE}
     end
 
@@ -1005,7 +1058,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
       assert all(query) ==
              ~s{SELECT $1 FROM "schema" AS s0 INNER JOIN } <>
-             ~s{(SELECT $2 AS "x", $3 AS "w" FROM "schema" AS s0) AS s1 ON TRUE } <>
+             ~s{(SELECT $2 AS "x", $3 AS "w" FROM "schema" AS ss0) AS s1 ON TRUE } <>
              ~s{WHERE (s0."x" = $4)}
     end
   end
@@ -1382,24 +1435,26 @@ defmodule Ecto.Adapters.PostgresTest do
     alter = {:alter, table(:posts),
              [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
              {:add, :author_id, %Reference{table: :author}, []},
+             {:add, :category_id, %Reference{table: :categories, validate: false}, []},
              {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
              {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
-              {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
-              {:modify, :cost, :integer, [null: false, default: nil]},
-              {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
-              {:modify, :status, :string, from: :integer},
-              {:modify, :user_id, :integer, from: %Reference{table: :users}},
-              {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
-              {:remove, :summary},
-              {:remove, :body, :text, []},
-              {:remove, :space_id, %Reference{table: :author}, []},
-              {:remove_if_exists, :body, :text},
-              {:remove_if_exists, :space_id, %Reference{table: :author}}]}
+             {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
+             {:modify, :cost, :integer, [null: false, default: nil]},
+             {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
+             {:modify, :status, :string, from: :integer},
+             {:modify, :user_id, :integer, from: %Reference{table: :users}},
+             {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
+             {:remove, :summary},
+             {:remove, :body, :text, []},
+             {:remove, :space_id, %Reference{table: :author}, []},
+             {:remove_if_exists, :body, :text},
+             {:remove_if_exists, :space_id, %Reference{table: :author}}]}
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE "posts"
     ADD COLUMN "title" varchar(100) DEFAULT 'Untitled' NOT NULL,
     ADD COLUMN "author_id" bigint CONSTRAINT "posts_author_id_fkey" REFERENCES "author"("id"),
+    ADD COLUMN "category_id" bigint CONSTRAINT "posts_category_id_fkey" REFERENCES "categories"("id") NOT VALID,
     ADD COLUMN IF NOT EXISTS "subtitle" varchar(100) NOT NULL,
     ADD COLUMN IF NOT EXISTS "editor_id" bigint CONSTRAINT "posts_editor_id_fkey" REFERENCES "editor"("id"),
     ALTER COLUMN "price" TYPE numeric(8,2),
@@ -1527,6 +1582,16 @@ defmodule Ecto.Adapters.PostgresTest do
     create = {:create, index(:posts, [:permalink], unique: true, where: :public)}
     assert execute_ddl(create) ==
       [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") WHERE public|]
+  end
+
+  test "create index with include fields" do
+    create = {:create, index(:posts, [:permalink], unique: true, include: [:public])}
+    assert execute_ddl(create) ==
+      [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") INCLUDE ("public")|]
+
+    create = {:create, index(:posts, [:permalink], unique: true, include: [:public], where: "public IS TRUE")}
+    assert execute_ddl(create) ==
+      [~s|CREATE UNIQUE INDEX "posts_permalink_index" ON "posts" ("permalink") INCLUDE ("public") WHERE public IS TRUE|]
   end
 
   test "create index concurrently" do

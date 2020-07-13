@@ -52,6 +52,12 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
     assert name =~ ~r/^\d{14}_my_migration\.exs$/
   end
 
+  test "custom migrations_path" do
+    dir = Path.join([unquote(tmp_path), "custom_migrations"])
+    [path] = run ["-r", to_string(Repo), "--migrations-path", dir, "custom_path"]
+    assert Path.dirname(path) == dir
+  end
+
   test "raises when existing migration exists" do
     run ["-r", to_string(Repo), "my_migration"]
     assert_raise Mix.Error, ~r"migration can't be created", fn ->

@@ -89,7 +89,7 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
   test "does not run from _build" do
     Application.put_env(:ecto_sql, :ecto_repos, [Repo])
 
-    migrations = fn repo, path ->
+    migrations = fn repo, [path] ->
       assert repo == Repo
       refute path =~ ~r/_build/
       []
@@ -98,9 +98,14 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
     run [], migrations, fn _ -> :ok end
   end
 
-  test "uses custom path" do
-    run ["-r", to_string(Repo), "--migrations-path", "test/ecto"],
-        fn Repo, "test/ecto" -> [] end,
+  test "uses custom paths" do
+    path1 = Path.join([unquote(tmp_path()), inspect(Ecto.Migrate), "migrations_1"])
+    path2 = Path.join([unquote(tmp_path()), inspect(Ecto.Migrate), "migrations_2"])
+    File.mkdir_p!(path1)
+    File.mkdir_p!(path2)
+
+    run ["-r", to_string(Repo), "--migrations-path", path1, "--migrations-path", path2],
+        fn Repo, [^path1, ^path2] -> [] end,
         fn _ -> :ok end
   end
 end

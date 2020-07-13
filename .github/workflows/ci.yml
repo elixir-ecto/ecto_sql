@@ -7,7 +7,7 @@ jobs:
 
     strategy:
       matrix:
-        elixir_version: [1.6, 1.9]
+        elixir_version: [1.7, 1.9]
 
     steps:
       - uses: actions/checkout@v1
@@ -19,6 +19,7 @@ jobs:
           mix local.hex --force
           mix deps.get
       - run: mix test
+      - run: mix test.as_a_dep
 
   test-mysql:
     runs-on: ubuntu-18.04
@@ -54,20 +55,64 @@ jobs:
           mix local.hex --force
           mix deps.get
       - run: MYSQL_URL=root:root@mysql ECTO_ADAPTER=myxql mix test
+  
+  test-mssql:
+    runs-on: ubuntu-latest
 
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:${{ matrix.mssql_version }}
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: some!Password
+        ports:
+          - 1433:1433
+
+    strategy:
+      matrix:
+        mssql_version: ["2017-latest", "2019-latest"]
+        otp: [22.1.7]
+        elixir: [1.9.4]
+        
+    env:
+      ACCEPT_EULA: Y
+      MIX_ENV: test
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Install MsSql Client Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mssql-tools unixodbc-dev
+      - uses: actions/checkout@v2
+      - name: Setup elixir
+        uses: actions/setup-elixir@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - name: Install Dependencies
+        run: mix deps.get
+      - run: |
+          export PATH="/opt/mssql-tools/bin:$PATH"
+          ECTO_ADAPTER=tds mix test
+          
   test-pg:
     runs-on: ubuntu-18.04
 
     services:
       pg:
         image: postgres:${{ matrix.pg_version }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     container: elixir:1.9-slim
 
     strategy:
       matrix:
-        pg_version: ["9.4", "9.6", "11"]
+        pg_version: ["9.5", "9.6", "11"]
 
     steps:
       - name: Install PG Client

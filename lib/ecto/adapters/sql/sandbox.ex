@@ -374,6 +374,53 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   end
 
   @doc """
+  Starts a process that owns the connection and returns its pid.
+
+  The owner process is not linked to the caller, it is your responsibility to
+  ensure it will be stopped. In tests, this is done by terminating the pool
+  in `on_exit` callbacks:
+
+      setup tags do
+        pid = Ecto.Adapters.SQL.Sandbox.start_owner!(MyApp.Repo, shared: not tags[:async])
+        on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+        :ok
+      end
+
+  ## Options
+
+    * `:shared` - if `true`, the pool runs in the shared mode. Defaults to `false`
+
+  The remaining options are passed to `checkout/2`.
+  """
+  @doc since: "3.4.4"
+  def start_owner!(repo, opts \\ []) do
+    parent = self()
+
+    {:ok, pid} =
+      Agent.start(fn ->
+        {shared, opts} = Keyword.pop(opts, :shared, false)
+        :ok = checkout(repo, opts)
+
+        if shared do
+          :ok = mode(repo, {:shared, self()})
+        else
+          :ok = allow(repo, self(), parent)
+        end
+      end)
+
+    pid
+  end
+
+  @doc """
+  Stops an owner process started by `start_owner!/2`.
+  """
+  @doc since: "3.4.4"
+  @spec stop_owner(pid()) :: :ok
+  def stop_owner(pid) do
+    GenServer.stop(pid)
+  end
+
+  @doc """
   Sets the mode for the `repo` pool.
 
   The mode can be `:auto`, `:manual` or `{:shared, <pid>}`.
@@ -393,7 +440,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   Checks a connection out for the given `repo`.
 
   The process calling `checkout/2` will own the connection
-  until it calls `checkin/2` or until it crashes when then
+  until it calls `checkin/2` or until it crashes in which case
   the connection will be automatically reclaimed by the pool.
 
   ## Options
@@ -424,7 +471,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         pool_opts
       end
 
-    pool_opts_overrides = Keyword.take(opts, [:ownership_timeout])
+    pool_opts_overrides = Keyword.take(opts, [:ownership_timeout, :isolation_level])
     pool_opts = Keyword.merge(pool_opts, pool_opts_overrides)
 
     case DBConnection.Ownership.ownership_checkout(pool, pool_opts) do

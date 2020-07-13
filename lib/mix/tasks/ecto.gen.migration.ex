@@ -16,7 +16,8 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
     change: :string,
     repo: [:string, :keep],
     no_compile: :boolean,
-    no_deps_check: :boolean
+    no_deps_check: :boolean,
+    migrations_path: :string
   ]
 
   @moduledoc """
@@ -46,6 +47,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
     * `-r`, `--repo` - the repo to generate migration for
     * `--no-compile` - does not compile applications before running
     * `--no-deps-check` - does not check depedendencies before running
+    * `--migrations-path` - the path to run the migrations from, defaults to `priv/repo/migrations`
 
   ## Configuration
 
@@ -66,7 +68,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
         {opts, [name]} ->
           ensure_repo(repo, args)
-          path = Path.join(source_repo_priv(repo), "migrations")
+          path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
           base_name = "#{underscore(name)}.exs"
           file = Path.join(path, "#{timestamp()}_#{base_name}")
           unless File.dir?(path), do: create_directory path

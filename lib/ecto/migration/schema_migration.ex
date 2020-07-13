@@ -26,7 +26,7 @@ defmodule Ecto.Migration.SchemaMigration do
     ]
 
     # DDL queries do not log, so we do not need to pass log: false here.
-    migration_repo.__adapter__.execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
+    migration_repo.__adapter__().execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
   end
 
   def versions(repo, prefix) do
@@ -36,14 +36,13 @@ defmodule Ecto.Migration.SchemaMigration do
 
   def up(repo, version, prefix) do
     %__MODULE__{version: version}
-    |> Ecto.put_meta(prefix: prefix, source: get_source(repo))
-    |> get_migration_repo(repo).insert(@opts)
+    |> Ecto.put_meta(source: get_source(repo))
+    |> get_migration_repo(repo).insert([prefix: prefix] ++ @opts)
   end
 
   def down(repo, version, prefix) do
     from(p in get_source(repo), where: p.version == type(^version, :integer))
-    |> Map.put(:prefix, prefix)
-    |> get_migration_repo(repo).delete_all(@opts)
+    |> get_migration_repo(repo).delete_all([prefix: prefix] ++ @opts)
   end
 
   def get_source(repo) do
