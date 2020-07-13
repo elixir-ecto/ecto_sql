@@ -39,7 +39,7 @@ defmodule Ecto.MigratorRepoTest do
   Application.put_env(:ecto_sql, MainRepo, [migration_repo: MigrationRepo])
 
   setup do
-    Process.put(:migrated_versions, [1, 2, 3])
+    Process.put(:migrated_versions, [{1, nil}, {2, nil}, {3, nil}])
     :ok
   end
 
