@@ -689,7 +689,7 @@ defmodule Ecto.Migrator do
         {:ok, :stop}
 
       {:error, {:already_started, _pid}} ->
-        {:ok, nil}
+        {:ok, :noop}
 
       {:error, _} = error ->
         error
