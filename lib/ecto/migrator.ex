@@ -680,7 +680,7 @@ defmodule Ecto.Migrator do
   end
 
   defp ensure_migration_repo_started(repo, repo) do
-    {:ok, nil}
+    {:ok, :noop}
   end
 
   defp ensure_migration_repo_started(migration_repo, _repo) do
@@ -707,7 +707,7 @@ defmodule Ecto.Migrator do
     repo.stop()
   end
 
-  defp after_action(_repo, nil) do
-    nil
+  defp after_action(_repo, :noop) do
+    :noop
   end
 end
