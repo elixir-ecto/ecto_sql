@@ -51,7 +51,7 @@ defmodule Ecto.Migration.SchemaMigration do
     |> repo.delete_all([prefix: prefix] ++ @opts)
   end
 
-  defp get_repo_and_source(repo) do
+  def get_repo_and_source(repo) do
     config = repo.config()
 
     {Keyword.get(config, :migration_repo, repo),
