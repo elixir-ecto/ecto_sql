@@ -126,7 +126,7 @@ jobs:
 
     strategy:
       matrix:
-        pg_version: ["9.4", "9.6", "11"]
+        pg_version: ["9.5", "9.6", "11"]
 
     steps:
       - name: Install PG Client
