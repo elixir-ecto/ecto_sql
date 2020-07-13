@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Ecto.Load do
         "load structure for #{inspect(repo)}"
       )
 
-      {_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
+      {repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
 
       {:ok, loaded?, _} =
         Ecto.Migrator.with_repo(
