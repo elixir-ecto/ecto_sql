@@ -15,6 +15,10 @@ defmodule Ecto.Migration do
   that have already been executed. You can configure the name of
   this table with the `:migration_source` configuration option.
 
+  You can configure a different database for the table that
+  manages your migrations by setting the `:migration_repo`
+  configuration option to a different repository.
+
   Ecto also locks the `schema_migrations` table when running
   migrations, guaranteeing two different servers cannot run the same
   migration at the same time.
@@ -231,6 +235,12 @@ defmodule Ecto.Migration do
       migrations, but you can configure it via:
 
           config :app, App.Repo, migration_default_prefix: "my_prefix"
+
+    * `:migration_repo` - Ecto defaults to the repository that is being configured. The
+      migration repository is where the table managing the migrations will be stored
+      (`migration_source` defines the table name). You can configure the repository via:
+
+          config :app, App.Repo, migration_repo: App.MigrationRepo
 
     * `:priv` - the priv directory for the repo with the location of important assets,
       such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to

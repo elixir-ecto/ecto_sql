@@ -57,17 +57,22 @@ defmodule Mix.Tasks.Ecto.Dump do
       ensure_repo(repo, args)
       ensure_implements(repo.__adapter__(), Ecto.Adapter.Structure,
                                             "dump structure for #{inspect repo}")
-      config = Keyword.merge(repo.config(), opts)
 
-      case repo.__adapter__().structure_dump(source_repo_priv(repo), config) do
-        {:ok, location} ->
-          unless opts[:quiet] do
-            Mix.shell().info "The structure for #{inspect repo} has been dumped to #{location}"
-          end
-        {:error, term} when is_binary(term) ->
-          Mix.raise "The structure for #{inspect repo} couldn't be dumped: #{term}"
-        {:error, term} ->
-          Mix.raise "The structure for #{inspect repo} couldn't be dumped: #{inspect term}"
+      {migration_repo, _source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
+
+      for repo <- Enum.uniq([repo, migration_repo]) do
+        config = Keyword.merge(repo.config(), opts)
+
+        case repo.__adapter__().structure_dump(source_repo_priv(repo), config) do
+          {:ok, location} ->
+            unless opts[:quiet] do
+              Mix.shell().info "The structure for #{inspect repo} has been dumped to #{location}"
+            end
+          {:error, term} when is_binary(term) ->
+            Mix.raise "The structure for #{inspect repo} couldn't be dumped: #{term}"
+          {:error, term} ->
+            Mix.raise "The structure for #{inspect repo} couldn't be dumped: #{inspect term}"
+        end
       end
     end
   end

@@ -15,7 +15,8 @@ defmodule Ecto.Migration.SchemaMigration do
   @opts [timeout: :infinity, log: false]
 
   def ensure_schema_migrations_table!(repo, opts) do
-    table_name = repo |> get_source |> String.to_atom()
+    {repo, source} = get_repo_and_source(repo)
+    table_name = String.to_atom(source)
     table = %Ecto.Migration.Table{name: table_name, prefix: opts[:prefix]}
     meta = Ecto.Adapter.lookup_meta(repo.get_dynamic_repo())
 
@@ -29,22 +30,31 @@ defmodule Ecto.Migration.SchemaMigration do
   end
 
   def versions(repo, prefix) do
-    from(p in get_source(repo), select: type(p.version, :integer))
+    {_repo, source} = get_repo_and_source(repo)
+
+    from(m in source, select: type(m.version, :integer))
     |> Map.put(:prefix, prefix)
   end
 
   def up(repo, version, prefix) do
+    {repo, source} = get_repo_and_source(repo)
+
     %__MODULE__{version: version}
-    |> Ecto.put_meta(source: get_source(repo))
+    |> Ecto.put_meta(source: source)
     |> repo.insert([prefix: prefix] ++ @opts)
   end
 
   def down(repo, version, prefix) do
-    from(p in get_source(repo), where: p.version == type(^version, :integer))
+    {repo, source} = get_repo_and_source(repo)
+
+    from(m in source, where: m.version == type(^version, :integer))
     |> repo.delete_all([prefix: prefix] ++ @opts)
   end
 
-  def get_source(repo) do
-    Keyword.get(repo.config, :migration_source, "schema_migrations")
+  def get_repo_and_source(repo) do
+    config = repo.config()
+
+    {Keyword.get(config, :migration_repo, repo),
+     Keyword.get(config, :migration_source, "schema_migrations")}
   end
 end
