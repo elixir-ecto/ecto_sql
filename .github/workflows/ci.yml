@@ -47,7 +47,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    container: hexpm/elixir:1.10.4-erlang-23.0.3-ubuntu-bionic-20200630
+    container: elixir:1.9-slim
 
     strategy:
       fail-fast: false
