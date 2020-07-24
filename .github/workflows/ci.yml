@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   test-elixir:
     runs-on: ubuntu-18.04
-    container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-20200403
+    container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-${{ matrix.bionic_version }}
 
     strategy:
       fail-fast: false
@@ -11,14 +11,19 @@ jobs:
         include:
           - elixir: 1.7.4
             otp: 19.3.6.13
+            bionic_version: 20200403
           - elixir: 1.8.2
             otp: 20.3.8.26
+            bionic_version: 20200403
           - elixir: 1.9.4
             otp: 20.3.8.26
+            bionic_version: 20200403
           - elixir: 1.10.4
-            otp: 21.3.8.16
+            otp: 21.3.8.17
+            bionic_version: 20200630
           - elixir: 1.10.4
-            otp: 23.0.2
+            otp: 23.0.3
+            bionic_version: 20200630
 
     steps:
       - uses: actions/checkout@v2.3.1
@@ -42,7 +47,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    container: hexpm/elixir:1.10.4-erlang-23.0.2-ubuntu-bionic-20200403
+    container: hexpm/elixir:1.10.4-erlang-23.0.3-ubuntu-bionic-20200630
 
     strategy:
       fail-fast: false
@@ -57,7 +62,7 @@ jobs:
           mkdir ~/.gnupg
           echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
           apt-key adv --recv-keys --keyserver keys.gnupg.net 8C718D3B5072E1F5
-          echo "deb http://repo.mysql.com/apt/debian/ stretch mysql-${{ matrix.mysql_version }}" >> /etc/apt/sources.list.d/mysql.list
+          echo "deb http://repo.mysql.com/apt/debian/ stretch mysql-${3 matrix.mysql_version }}" >> /etc/apt/sources.list.d/mysql.list
           apt-get update
           apt-get install --allow-unauthenticated -y mysql-client
           mysql --version
@@ -85,7 +90,7 @@ jobs:
     strategy:
       matrix:
         mssql_version: ["2017-latest", "2019-latest"]
-        otp: [23.0.2]
+        otp: [23.0.3]
         elixir: [1.10.4]
         
     env:
