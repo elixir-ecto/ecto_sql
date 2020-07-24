@@ -1179,7 +1179,7 @@ defmodule Ecto.Adapters.PostgresTest do
               [{:add, :name, :string, [default: "Untitled", size: 20, null: false]},
                {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                {:add, :on_hand, :integer, [default: 0, null: true]},
-               {:add, :published_at, :"time without time zone", [null: true]},
+               {:add, :published_at, "time without time zone", [null: true]},
                {:add, :is_active, :boolean, [default: true]},
                {:add, :tags, {:array, :string}, [default: []]},
                {:add, :languages, {:array, :string}, [default: ["pt", "es"]]},
@@ -1419,6 +1419,19 @@ defmodule Ecto.Adapters.PostgresTest do
                {:add, :submitted_at, :naive_datetime_usec, []}]}
 
     assert execute_ddl(create) == [~s|CREATE TABLE "posts" ("published_at" timestamp(3), "submitted_at" timestamp)|]
+  end
+
+  test "create table with an unsupported type" do
+    create = {:create, table(:posts),
+              [
+                {:add, :a, {:a, :b, :c}, [default: %{}]}
+              ]
+            }
+    assert_raise ArgumentError,
+                 "unsupported type `{:a, :b, :c}`. " <>
+                 "The type can either be an atom, a string or a tuple of the form " <>
+                 "`{:map, t}` or `{:array, t}` where `t` itself follows the same conditions.",
+                 fn -> execute_ddl(create) end
   end
 
   test "drop table" do

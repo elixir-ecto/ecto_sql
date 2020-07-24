@@ -1251,7 +1251,13 @@ if Code.ensure_loaded?(Postgrex) do
     defp ecto_to_db(:utc_datetime_usec),   do: "timestamp"
     defp ecto_to_db(:naive_datetime),      do: "timestamp"
     defp ecto_to_db(:naive_datetime_usec), do: "timestamp"
-    defp ecto_to_db(other),                do: Atom.to_string(other)
+    defp ecto_to_db(atom) when is_atom(atom),  do: Atom.to_string(atom)
+    defp ecto_to_db(str)  when is_binary(str), do: str
+    defp ecto_to_db(type) do
+      raise ArgumentError,
+            "unsupported type `#{inspect(type)}`. The type can either be an atom, a string " <>
+              "or a tuple of the form `{:map, t}` or `{:array, t}` where `t` itself follows the same conditions."
+    end
 
     defp error!(nil, message) do
       raise ArgumentError, message

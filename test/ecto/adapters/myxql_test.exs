@@ -1008,8 +1008,8 @@ defmodule Ecto.Adapters.MyXQLTest do
                 {:add, :token, :binary, [size: 20, null: false]},
                 {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                 {:add, :on_hand, :integer, [default: 0, null: true]},
-                {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
-                {:add, :published_at, :"datetime(6)", [null: true]},
+                {:add, :likes, "smallint unsigned", [default: 0, null: false]},
+                {:add, :published_at, "datetime(6)", [null: true]},
                 {:add, :is_active, :boolean, [default: true]}]}
 
     assert execute_ddl(create) == ["""
@@ -1191,6 +1191,19 @@ defmodule Ecto.Adapters.MyXQLTest do
     `submitted_at` datetime(6))
     ENGINE = INNODB
     """ |> remove_newlines]
+  end
+
+  test "create table with an unsupported type" do
+    create = {:create, table(:posts),
+              [
+                {:add, :a, {:a, :b, :c}, [default: %{}]}
+              ]
+            }
+    assert_raise ArgumentError,
+                 "unsupported type `{:a, :b, :c}`. " <>
+                 "The type can either be an atom, a string or a tuple of the form " <>
+                 "`{:map, t}` where `t` itself follows the same conditions.",
+                 fn -> execute_ddl(create) end
   end
 
   test "drop table" do
