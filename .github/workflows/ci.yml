@@ -47,8 +47,6 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    container: hexpm/elixir:1.10.4-erlang-23.0.3-ubuntu-bionic-20200630
-
     strategy:
       fail-fast: false
       matrix:
@@ -66,6 +64,11 @@ jobs:
           mysql --version
           mysql -e "SET GLOBAL net_write_timeout=30; SET GLOBAL max_allowed_packet=1024*1024*1024;"
       - uses: actions/checkout@v2.3.1
+      - name: Setup elixir
+        uses: actions/setup-elixir@v1.3.0
+        with:
+          otp-version: 23.0.3
+          elixir-version: 1.10.4
       - name: Install Dependencies
         run: |
           apt-get install -y git
