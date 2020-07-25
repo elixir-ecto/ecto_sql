@@ -132,28 +132,24 @@ defmodule Ecto.Migrator do
         started
       end)
 
-    {:ok, repo_started} = repo.__adapter__.ensure_all_started(config, mode)
+    {:ok, repo_started} = repo.__adapter__().ensure_all_started(config, mode)
     started = extra_started ++ repo_started
     pool_size = Keyword.get(opts, :pool_size, 2)
-
-    case repo.start_link(pool_size: pool_size) do
-      {:ok, _} ->
-        try do
-          {:ok, fun.(repo), started}
-        after
-          repo.stop()
+    migration_repo = repo.config[:migration_repo] || repo
+    case ensure_repo_started(repo, pool_size) do
+      {:ok, repo_after} ->
+        case ensure_migration_repo_started(migration_repo, repo) do
+          {:ok, migration_repo_after} ->
+            try do
+              {:ok, fun.(repo), started}
+            after
+              after_action(repo, repo_after)
+              after_action(migration_repo, migration_repo_after)
+            end
+          {:error, _} = error ->
+            after_action(repo, repo_after)
+            error
         end
-
-      {:error, {:already_started, _pid}} ->
-        try do
-          {:ok, fun.(repo), started}
-        after
-          if Process.whereis(repo) do
-            %{pid: pid} = Ecto.Adapter.lookup_meta(repo)
-            Supervisor.restart_child(repo, pid)
-          end
-        end
-
       {:error, _} = error ->
         error
     end
@@ -161,13 +157,17 @@ defmodule Ecto.Migrator do
 
   @doc """
   Gets the migrations path from a repository.
+  
+  This function accepts an optional second parameter to customize the
+  migrations directory. This can be used to specify a custom migrations
+  path.
   """
-  @spec migrations_path(Ecto.Repo.t) :: String.t
-  def migrations_path(repo) do
+  @spec migrations_path(Ecto.Repo.t, String.t) :: String.t
+  def migrations_path(repo, directory \\ "migrations") do
     config = repo.config()
     priv = config[:priv] || "priv/#{repo |> Module.split |> List.last |> Macro.underscore}"
     app = Keyword.fetch!(config, :otp_app)
-    Application.app_dir(app, Path.join(priv, "migrations"))
+    Application.app_dir(app, Path.join(priv, directory))
   end
 
   @doc """
@@ -316,7 +316,7 @@ defmodule Ecto.Migrator do
     repo.put_dynamic_repo(dynamic_repo)
 
     if module.__migration__[:disable_ddl_transaction] ||
-         not repo.__adapter__.supports_ddl_transaction? do
+         not repo.__adapter__().supports_ddl_transaction? do
       send_and_receive(parent, ref, fun.())
     else
       {:ok, result} =
@@ -480,17 +480,24 @@ defmodule Ecto.Migrator do
     dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
+    {lookup_meta_repo, migration_repo} =
+      if migration_repo = repo.config[:migration_repo] do
+        {migration_repo, migration_repo}
+      else
+        {dynamic_repo, repo}
+      end
+
     try do
       verbose_schema_migration repo, "create schema migrations table", fn ->
         SchemaMigration.ensure_schema_migrations_table!(repo, opts)
       end
 
-      meta = Ecto.Adapter.lookup_meta(dynamic_repo)
+      meta = Ecto.Adapter.lookup_meta(lookup_meta_repo)
       query = SchemaMigration.versions(repo, opts[:prefix])
-      callback = &fun.(repo.all(&1, timeout: :infinity, log: false))
+      callback = &fun.(migration_repo.all(&1, timeout: :infinity, log: false))
 
       if should_lock? do
-        case repo.__adapter__.lock_for_migrations(meta, query, opts, callback) do
+        case migration_repo.__adapter__().lock_for_migrations(meta, query, opts, callback) do
           {kind, reason, stacktrace} ->
             :erlang.raise(kind, reason, stacktrace)
 
@@ -654,10 +661,11 @@ defmodule Ecto.Migrator do
 
         To address the second, you can run "mix ecto.drop" followed by
         "mix ecto.create". Alternatively you may configure Ecto to use
-        another table for managing migrations:
+        another table and/or repository for managing migrations:
 
             config #{inspect repo.config[:otp_app]}, #{inspect repo},
-              migration_source: "some_other_table_for_schema_migrations"
+              migration_source: "some_other_table_for_schema_migrations",
+              migration_repo: AnotherRepoForSchemaMigrations
 
         The full error report is shown below.
         """
@@ -667,4 +675,49 @@ defmodule Ecto.Migrator do
 
   defp log(false, _msg), do: :ok
   defp log(level, msg),  do: Logger.log(level, msg)
+
+  defp ensure_repo_started(repo, pool_size) do
+    case repo.start_link(pool_size: pool_size) do
+      {:ok, _} ->
+        {:ok, :stop}
+
+      {:error, {:already_started, _pid}} ->
+        {:ok, :restart}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp ensure_migration_repo_started(repo, repo) do
+    {:ok, :noop}
+  end
+
+  defp ensure_migration_repo_started(migration_repo, _repo) do
+    case migration_repo.start_link() do
+      {:ok, _} ->
+        {:ok, :stop}
+
+      {:error, {:already_started, _pid}} ->
+        {:ok, :noop}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp after_action(repo, :restart) do
+    if Process.whereis(repo) do
+      %{pid: pid} = Ecto.Adapter.lookup_meta(repo)
+      Supervisor.restart_child(repo, pid)
+    end
+  end
+
+  defp after_action(repo, :stop) do
+    repo.stop()
+  end
+
+  defp after_action(_repo, :noop) do
+    :noop
+  end
 end

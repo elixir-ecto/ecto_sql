@@ -40,6 +40,10 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
     use Ecto.Repo, otp_app: :ecto_sql, adapter: Adapter
   end
 
+  defmodule MigrationRepo do
+    use Ecto.Repo, otp_app: :ecto_sql, adapter: Adapter
+  end
+
   defmodule NoStructureRepo do
     use Ecto.Repo, otp_app: :ecto_sql, adapter: NoStructureAdapter
   end
@@ -55,6 +59,19 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
     Process.put(:structure_dump, {:ok, "foo"})
     Dump.run ["-r", to_string(Repo)]
     assert_received {:mix_shell, :info, ["The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been dumped to foo"]}
+  end
+
+  test "runs the adapter structure_dump for migration_repo" do
+    Application.put_env(:ecto_sql, Repo, [migration_repo: MigrationRepo])
+
+    Process.put(:structure_dump, {:ok, "foo"})
+    Dump.run ["-r", to_string(Repo)]
+
+    repo_msg = "The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been dumped to foo"
+    assert_received {:mix_shell, :info, [^repo_msg]}
+
+    migration_repo_msg = "The structure for Mix.Tasks.Ecto.DumpLoadTest.MigrationRepo has been dumped to foo"
+    assert_received {:mix_shell, :info, [^migration_repo_msg]}
   end
 
   test "runs the adapter structure_dump with --quiet" do
@@ -86,6 +103,21 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
 
     msg = "The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"
     assert_received {:mix_shell, :info, [^msg]}
+  end
+
+  test "runs the adapter structure_load for migration_repo" do
+    Application.put_env(:ecto_sql, Repo, [migration_repo: MigrationRepo])
+
+    table_exists? = fn _, _ -> false end
+
+    Process.put(:structure_load, {:ok, "foo"})
+    Load.run ["-r", to_string(Repo)], table_exists?
+
+    repo_msg = "The structure for Mix.Tasks.Ecto.DumpLoadTest.Repo has been loaded from foo"
+    assert_received {:mix_shell, :info, [^repo_msg]}
+
+    migration_repo_msg = "The structure for Mix.Tasks.Ecto.DumpLoadTest.MigrationRepo has been loaded from foo"
+    assert_received {:mix_shell, :info, [^migration_repo_msg]}
   end
 
   test "runs the adapter structure_load with --quiet" do

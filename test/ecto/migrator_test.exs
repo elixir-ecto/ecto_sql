@@ -171,7 +171,7 @@ defmodule Ecto.MigratorTest do
   Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
 
   setup do
-    Process.put(:migrated_versions, [1, 2, 3])
+    Process.put(:migrated_versions, [{1, nil}, {2, nil}, {3, nil}])
     :ok
   end
 
@@ -239,8 +239,24 @@ defmodule Ecto.MigratorTest do
   end
 
   test "custom schema migrations table is right" do
-    assert SchemaMigration.get_source(TestRepo) == "schema_migrations"
-    assert SchemaMigration.get_source(MigrationSourceRepo) == "my_schema_migrations"
+    assert {_repo, "schema_migrations"} = SchemaMigration.get_repo_and_source(TestRepo)
+    assert {_repo, "my_schema_migrations"} = SchemaMigration.get_repo_and_source(MigrationSourceRepo)
+  end
+
+  test "migrator prefix" do
+    capture_log(fn ->
+      :ok = up(TestRepo, 10, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{10, :custom} | _] = Process.get(:migrated_versions)
+
+    Process.put(:repo_default_options, [prefix: nil])
+
+    capture_log(fn ->
+      :ok = up(TestRepo, 11, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{11, :custom} | _] = Process.get(:migrated_versions)
   end
 
   test "logs migrations" do
@@ -337,18 +353,18 @@ defmodule Ecto.MigratorTest do
 
     test "on up" do
       assert up(TestRepo, 9, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _}
+      assert_receive {:lock_for_migrations, _, _}
 
       assert up(TestRepo, 10, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _}
+      refute_received {:lock_for_migrations, _, _}
     end
 
     test "on down" do
       assert down(TestRepo, 1, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _}
+      assert_receive {:lock_for_migrations, _, _}
 
       assert down(TestRepo, 2, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _}
+      refute_received {:lock_for_migrations, _, _}
     end
 
     test "on run" do
@@ -356,14 +372,14 @@ defmodule Ecto.MigratorTest do
         create_migration "13_sample.exs"
         assert run(TestRepo, path, :up, all: true, log: false) == [13]
         # One lock for fetching versions, another for running
-        assert_receive {:lock_for_migrations, _}
-        assert_receive {:lock_for_migrations, _}
+        assert_receive {:lock_for_migrations, _, _}
+        assert_receive {:lock_for_migrations, _, _}
 
         create_migration "14_sample.exs", [:disable_migration_lock]
         assert run(TestRepo, path, :up, all: true, log: false) == [14]
         # One lock for fetching versions, another from running
-        assert_receive {:lock_for_migrations, _}
-        refute_received {:lock_for_migrations, _}
+        assert_receive {:lock_for_migrations, _, _}
+        refute_received {:lock_for_migrations, _, _}
       end
     end
   end
@@ -568,7 +584,7 @@ defmodule Ecto.MigratorTest do
       capture_log fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
         up(TestRepo, 0, ChangeMigration)
-        assert_receive {:transaction, _}
+        assert_receive {:transaction, _, _}
       end
     end
 
@@ -679,6 +695,20 @@ defmodule Ecto.MigratorTest do
 
       refute log =~ "after_begin"
       refute log =~ "before_commit"
+    end
+  end
+
+  describe "migrations_path" do
+    test "is inferred from the repository name" do
+      path = migrations_path(TestRepo)
+      expected = "priv/test_repo/migrations"
+      assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
+    end
+
+    test "uses custom directory when provided" do
+      path = migrations_path(TestRepo, "custom")
+      expected = "priv/test_repo/custom"
+      assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
     end
   end
 

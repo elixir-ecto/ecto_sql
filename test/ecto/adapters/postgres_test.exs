@@ -1179,7 +1179,7 @@ defmodule Ecto.Adapters.PostgresTest do
               [{:add, :name, :string, [default: "Untitled", size: 20, null: false]},
                {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                {:add, :on_hand, :integer, [default: 0, null: true]},
-               {:add, :published_at, :"time without time zone", [null: true]},
+               {:add, :published_at, "time without time zone", [null: true]},
                {:add, :is_active, :boolean, [default: true]},
                {:add, :tags, {:array, :string}, [default: []]},
                {:add, :languages, {:array, :string}, [default: ["pt", "es"]]},
@@ -1421,6 +1421,19 @@ defmodule Ecto.Adapters.PostgresTest do
     assert execute_ddl(create) == [~s|CREATE TABLE "posts" ("published_at" timestamp(3), "submitted_at" timestamp)|]
   end
 
+  test "create table with an unsupported type" do
+    create = {:create, table(:posts),
+              [
+                {:add, :a, {:a, :b, :c}, [default: %{}]}
+              ]
+            }
+    assert_raise ArgumentError,
+                 "unsupported type `{:a, :b, :c}`. " <>
+                 "The type can either be an atom, a string or a tuple of the form " <>
+                 "`{:map, t}` or `{:array, t}` where `t` itself follows the same conditions.",
+                 fn -> execute_ddl(create) end
+  end
+
   test "drop table" do
     drop = {:drop, table(:posts)}
     assert execute_ddl(drop) == [~s|DROP TABLE "posts"|]
@@ -1435,6 +1448,7 @@ defmodule Ecto.Adapters.PostgresTest do
     alter = {:alter, table(:posts),
              [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
              {:add, :author_id, %Reference{table: :author}, []},
+             {:add, :category_id, %Reference{table: :categories, validate: false}, []},
              {:add_if_not_exists, :subtitle, :string, [size: 100, null: false]},
              {:add_if_not_exists, :editor_id, %Reference{table: :editor}, []},
              {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
@@ -1453,6 +1467,7 @@ defmodule Ecto.Adapters.PostgresTest do
     ALTER TABLE "posts"
     ADD COLUMN "title" varchar(100) DEFAULT 'Untitled' NOT NULL,
     ADD COLUMN "author_id" bigint CONSTRAINT "posts_author_id_fkey" REFERENCES "author"("id"),
+    ADD COLUMN "category_id" bigint CONSTRAINT "posts_category_id_fkey" REFERENCES "categories"("id") NOT VALID,
     ADD COLUMN IF NOT EXISTS "subtitle" varchar(100) NOT NULL,
     ADD COLUMN IF NOT EXISTS "editor_id" bigint CONSTRAINT "posts_editor_id_fkey" REFERENCES "editor"("id"),
     ALTER COLUMN "price" TYPE numeric(8,2),
