@@ -47,12 +47,15 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    container: elixir:1.9-slim
+    container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-${{ matrix.bionic_version }}
 
     strategy:
       fail-fast: false
       matrix:
         mysql_version: ["5.7", "8.0"]
+        elixir: [1.10.4]
+        otp: [23.0.3]
+        bionic_version: [20200630]
 
     steps:
       - name: Install MySQL Client
@@ -75,6 +78,7 @@ jobs:
   
   test-mssql:
     runs-on: ubuntu-latest
+    container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-${{ matrix.bionic_version }}
 
     services:
       mssql:
@@ -89,8 +93,9 @@ jobs:
       fail-fast: false
       matrix:
         mssql_version: ["2017-latest", "2019-latest"]
-        otp: [23.0.3]
         elixir: [1.10.4]
+        otp: [23.0.3]
+        bionic_version: [20200630]
         
     env:
       ACCEPT_EULA: Y
@@ -103,11 +108,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mssql-tools unixodbc-dev
       - uses: actions/checkout@v2.3.1
-      - name: Setup elixir
-        uses: actions/setup-elixir@v1.3.0
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
       - name: Install Dependencies
         run: mix deps.get
       - run: |
@@ -126,12 +126,15 @@ jobs:
           POSTGRES_DB: postgres
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
-    container: elixir:1.9-slim
+    container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-${{ matrix.bionic_version }}
 
     strategy:
       fail-fast: false
       matrix:
         pg_version: ["9.5", "9.6", "11"]
+        elixir: [1.10.4]
+        otp: [23.0.3]
+        bionic_version: [20200630]
 
     steps:
       - name: Install PG Client
