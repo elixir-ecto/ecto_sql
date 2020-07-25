@@ -1017,8 +1017,8 @@ defmodule Ecto.Adapters.TdsTest do
          {:add, :name, :string, [default: "Untitled", size: 20, null: false]},
          {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
          {:add, :on_hand, :integer, [default: 0, null: true]},
-         {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
-         {:add, :published_at, :"datetime(6)", [null: true]},
+         {:add, :likes, "smallint unsigned", [default: 0, null: false]},
+         {:add, :published_at, "datetime(6)", [null: true]},
          {:add, :is_active, :boolean, [default: true]}
        ]}
 
@@ -1139,6 +1139,19 @@ defmodule Ecto.Adapters.TdsTest do
              [
                "CREATE TABLE [blobs] ([blob] varbinary(16) CONSTRAINT [DF__blobs_blob] DEFAULT (N'\\x666F6F')); "
              ]
+  end
+
+  test "create table with an unsupported type" do
+    create = {:create, table(:posts),
+              [
+                {:add, :a, {:a, :b, :c}, [default: %{}]}
+              ]
+            }
+    assert_raise ArgumentError,
+                 "unsupported type `{:a, :b, :c}`. " <>
+                 "The type can either be an atom, a string or a tuple of the form " <>
+                 "`{:map, t}` where `t` itself follows the same conditions.",
+                 fn -> execute_ddl(create) end
   end
 
   test "drop table" do
