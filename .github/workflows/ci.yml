@@ -144,9 +144,9 @@ jobs:
       - name: Install PG Client
         run: |
           apt-get update
-          apt-get install -y wget ca-certificates gnupg
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-          echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main ${{ matrix.pg_version }}" >> /etc/apt/sources.list.d/pgdg.list
+          apt-get install -y curl gnupg
+          curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+          echo "deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main ${{ matrix.pg_version }}" >> /etc/apt/sources.list.d/pgdg.list
           apt-get update
           apt-get install -y postgresql-${{ matrix.pg_version }} postgresql-contrib-${{ matrix.pg_version }}
           psql --version
