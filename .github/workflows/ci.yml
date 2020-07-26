@@ -144,6 +144,9 @@ jobs:
         otp: [23.0.3]
         bionic_version: [20200630]
 
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
     steps:
       - name: Install PG Client
         run: |
