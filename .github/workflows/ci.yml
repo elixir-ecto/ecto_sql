@@ -134,7 +134,10 @@ jobs:
           POSTGRES_DB: postgres
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
-    container: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-${{ matrix.bionic_version }}
+    container:
+      image: hexpm/elixir:${{ matrix.elixir }}-erlang-${{ matrix.otp }}-ubuntu-bionic-${{ matrix.bionic_version }}
+      env:
+        DEBIAN_FRONTEND: noninteractive
 
     strategy:
       fail-fast: false
@@ -143,9 +146,6 @@ jobs:
         elixir: [1.10.4]
         otp: [23.0.3]
         bionic_version: [20200630]
-
-    env:
-      DEBIAN_FRONTEND: noninteractive
 
     steps:
       - name: Install PG Client
