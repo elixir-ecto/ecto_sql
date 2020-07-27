@@ -825,7 +825,7 @@ if Code.ensure_loaded?(Postgrex) do
         comments_for_columns(table_name, changes)
     end
 
-    def execute_ddl({:create, %Index{} = index}) do
+    def execute_ddl({command, %Index{} = index}) when command in @creates do
       fields = intersperse_map(index.columns, ", ", &index_expr/1)
       include_fields = intersperse_map(index.include, ", ", &index_expr/1)
 
@@ -833,6 +833,7 @@ if Code.ensure_loaded?(Postgrex) do
                   if_do(index.unique, "UNIQUE "),
                   "INDEX ",
                   if_do(index.concurrently, "CONCURRENTLY "),
+                  if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
                   quote_name(index.name),
                   " ON ",
                   quote_table(index.prefix, index.table),
@@ -842,17 +843,6 @@ if Code.ensure_loaded?(Postgrex) do
                   if_do(index.where, [" WHERE ", to_string(index.where)])]]
 
       queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)
-    end
-
-    def execute_ddl({:create_if_not_exists, %Index{} = index}) do
-      if index.concurrently do
-        raise ArgumentError,
-              "concurrent index and create_if_not_exists is not supported by the Postgres adapter"
-      end
-
-      [["DO $$ BEGIN ",
-        execute_ddl({:create, index}), ";",
-        "EXCEPTION WHEN duplicate_table THEN END; $$;"]]
     end
 
     def execute_ddl({command, %Index{} = index}) when command in @drops do
