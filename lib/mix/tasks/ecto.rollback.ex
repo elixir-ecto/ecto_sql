@@ -68,7 +68,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     * `--all` - revert all applied migrations
 
-    * `--step` / `-n` - revert n number of applied migrations
+    * `--step`, `-n` - revert n number of applied migrations
 
     * `--to` - revert all migrations down to and including version
 
