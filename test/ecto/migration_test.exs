@@ -80,6 +80,8 @@ defmodule Ecto.MigrationTest do
   test "creates a reference" do
     assert references(:posts) ==
            %Reference{table: "posts", column: :id, type: :bigserial}
+    assert references(:posts, type: :identity) ==
+           %Reference{table: "posts", column: :id, type: :identity}
     assert references("posts") ==
            %Reference{table: "posts", column: :id, type: :bigserial}
     assert references(:posts, type: :uuid, column: :other) ==
@@ -98,6 +100,12 @@ defmodule Ecto.MigrationTest do
   test "creates a reference with a foreign key type default to the primary key type" do
     assert references(:posts) ==
            %Reference{table: "posts", column: :id, type: :binary_id}
+  end
+
+  @tag repo_config: [migration_primary_key: [type: :identity]]
+  test "creates a reference with a foreign key type of identity" do
+    assert references(:posts) ==
+           %Reference{table: "posts", column: :id, type: :identity}
   end
 
   test "creates a reference without validating" do
