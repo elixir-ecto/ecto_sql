@@ -493,8 +493,8 @@ defmodule Ecto.Migrator do
       end
 
       meta = Ecto.Adapter.lookup_meta(lookup_meta_repo)
-      query = SchemaMigration.versions(repo, opts[:prefix])
-      callback = &fun.(migration_repo.all(&1, timeout: :infinity, log: false))
+      query = SchemaMigration.versions(repo)
+      callback = &fun.(migration_repo.all(&1, prefix: opts[:prefix], timeout: :infinity, log: false))
 
       if should_lock? do
         case migration_repo.__adapter__().lock_for_migrations(meta, query, opts, callback) do

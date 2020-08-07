@@ -31,9 +31,7 @@ defmodule Ecto.Migration.SchemaMigration do
 
   def versions(repo, prefix) do
     {_repo, source} = get_repo_and_source(repo)
-
     from(m in source, select: type(m.version, :integer))
-    |> Map.put(:prefix, prefix)
   end
 
   def up(repo, version, prefix) do

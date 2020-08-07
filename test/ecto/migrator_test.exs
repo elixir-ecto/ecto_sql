@@ -257,6 +257,12 @@ defmodule Ecto.MigratorTest do
     end)
 
     assert [{11, :custom} | _] = Process.get(:migrated_versions)
+
+    capture_log(fn ->
+      :already_up = up(TestRepo, 11, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{11, :custom} | _] = Process.get(:migrated_versions)
   end
 
   test "logs migrations" do
