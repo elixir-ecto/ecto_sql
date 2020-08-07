@@ -132,7 +132,6 @@ defmodule Ecto.Adapters.MyXQL do
   ## Custom MySQL types
 
   @impl true
-  def loaders({:embed, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
   def loaders({:map, _}, type),   do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
   def loaders(:map, type),        do: [&json_decode/1, type]
   def loaders(:float, type),      do: [&float_decode/1, type]

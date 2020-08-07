@@ -541,13 +541,13 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = "comments" |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
     assert all(query) ==
            ~s{SELECT c0.`x` FROM `comments` AS c0 } <>
-           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` AS `id` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)))}
+           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)))}
 
     posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([p], p.id))
     query = "comments" |> from(as: :comment) |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
     assert all(query) ==
            ~s{SELECT c0.`x` FROM `comments` AS c0 } <>
-           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` AS `id` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)))}
+           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)))}
   end
 
   test "having" do

@@ -102,13 +102,11 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @impl true
-      def loaders({:embed, _}, type), do: [&Ecto.Type.embedded_load(type, &1, :json)]
       def loaders({:map, _}, type),   do: [&Ecto.Type.embedded_load(type, &1, :json)]
       def loaders(:binary_id, type),  do: [Ecto.UUID, type]
       def loaders(_, type),           do: [type]
 
       @impl true
-      def dumpers({:embed, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
       def dumpers({:map, _}, type),   do: [&Ecto.Type.embedded_dump(type, &1, :json)]
       def dumpers(:binary_id, type),  do: [type, Ecto.UUID]
       def dumpers(_, type),           do: [type]
