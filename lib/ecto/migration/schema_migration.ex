@@ -29,9 +29,9 @@ defmodule Ecto.Migration.SchemaMigration do
     repo.__adapter__().execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
   end
 
-  def versions(repo, prefix) do
-    {_repo, source} = get_repo_and_source(repo)
-    from(m in source, select: type(m.version, :integer))
+  def versions(repo) do
+    {repo, source} = get_repo_and_source(repo)
+    {repo, from(m in source, select: type(m.version, :integer))}
   end
 
   def up(repo, version, prefix) do

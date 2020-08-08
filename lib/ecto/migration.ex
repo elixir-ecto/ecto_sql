@@ -236,9 +236,9 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_default_prefix: "my_prefix"
 
-    * `:migration_repo` - Ecto defaults to the repository that is being configured. The
-      migration repository is where the table managing the migrations will be stored
-      (`migration_source` defines the table name). You can configure the repository via:
+    * `:migration_repo` - The migration repository is where the table managing the
+      migrations will be stored (`migration_source` defines the table name). It defaults
+      to the given repository itself but you can configure it via:
 
           config :app, App.Repo, migration_repo: App.MigrationRepo
 

@@ -135,7 +135,8 @@ defmodule Ecto.Migrator do
     {:ok, repo_started} = repo.__adapter__().ensure_all_started(config, mode)
     started = extra_started ++ repo_started
     pool_size = Keyword.get(opts, :pool_size, 2)
-    migration_repo = repo.config[:migration_repo] || repo
+    migration_repo = config[:migration_repo] || repo
+
     case ensure_repo_started(repo, pool_size) do
       {:ok, repo_after} ->
         case ensure_migration_repo_started(migration_repo, repo) do
@@ -146,10 +147,12 @@ defmodule Ecto.Migrator do
               after_action(repo, repo_after)
               after_action(migration_repo, migration_repo_after)
             end
+
           {:error, _} = error ->
             after_action(repo, repo_after)
             error
         end
+
       {:error, _} = error ->
         error
     end
@@ -157,7 +160,7 @@ defmodule Ecto.Migrator do
 
   @doc """
   Gets the migrations path from a repository.
-  
+
   This function accepts an optional second parameter to customize the
   migrations directory. This can be used to specify a custom migrations
   path.
@@ -480,23 +483,20 @@ defmodule Ecto.Migrator do
     dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
-    {lookup_meta_repo, migration_repo} =
-      if migration_repo = repo.config[:migration_repo] do
-        {migration_repo, migration_repo}
-      else
-        {dynamic_repo, repo}
-      end
-
     try do
       verbose_schema_migration repo, "create schema migrations table", fn ->
         SchemaMigration.ensure_schema_migrations_table!(repo, opts)
       end
 
-      meta = Ecto.Adapter.lookup_meta(lookup_meta_repo)
-      query = SchemaMigration.versions(repo)
+      {migration_repo, query} = SchemaMigration.versions(repo)
       callback = &fun.(migration_repo.all(&1, prefix: opts[:prefix], timeout: :infinity, log: false))
 
       if should_lock? do
+        # If there is a migration_repo, it wins over dynamic_repo,
+        # otherwise the dynamic_repo is the one locked in migrations.
+        meta_repo = if migration_repo != repo, do: migration_repo, else: dynamic_repo
+        meta = Ecto.Adapter.lookup_meta(meta_repo)
+
         case migration_repo.__adapter__().lock_for_migrations(meta, query, opts, callback) do
           {kind, reason, stacktrace} ->
             :erlang.raise(kind, reason, stacktrace)

@@ -9,6 +9,7 @@ defmodule Ecto.Adapters.SQL do
 
     * `Ecto.Adapters.Postgres` for Postgres
     * `Ecto.Adapters.MyXQL` for MySQL
+    * `Ecto.Adapters.Tds` for SQLServer
 
   ## Migrations
 
