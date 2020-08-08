@@ -18,10 +18,9 @@ defmodule Ecto.MigrationTest do
 
   setup meta do
     direction = meta[:direction] || :forward
-
-    {:ok, runner} =
-      Runner.start_link({self(), TestRepo, __MODULE__, direction, :up, %{level: false, sql: false}})
-
+    log = %{level: false, sql: false}
+    args = {self(), TestRepo, TestRepo.config(), __MODULE__, direction, :up, log}
+    {:ok, runner} = Runner.start_link(args)
     Runner.metadata(runner, meta)
     {:ok, runner: runner}
   end

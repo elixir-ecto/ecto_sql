@@ -188,7 +188,7 @@ defmodule Ecto.Migrator do
   """
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
   def migrated_versions(repo, opts \\ []) do
-    lock_for_migrations true, repo, opts, fn versions -> versions end
+    lock_for_migrations true, repo, opts, fn _config, versions -> versions end
   end
 
   @doc """
@@ -207,11 +207,11 @@ defmodule Ecto.Migrator do
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
-    conditional_lock_for_migrations module, repo, opts, fn versions ->
+    conditional_lock_for_migrations module, repo, opts, fn config, versions ->
       if version in versions do
         :already_up
       else
-        result = do_up(repo, version, module, opts)
+        result = do_up(repo, config, version, module, opts)
 
         if version != Enum.max([version | versions]) do
           latest = Enum.max(versions)
@@ -240,10 +240,10 @@ defmodule Ecto.Migrator do
     end
   end
 
-  defp do_up(repo, version, module, opts) do
-    async_migrate_maybe_in_transaction(repo, version, module, :up, opts, fn ->
-      attempt(repo, version, module, :forward, :up, :up, opts)
-        || attempt(repo, version, module, :forward, :change, :up, opts)
+  defp do_up(repo, config, version, module, opts) do
+    async_migrate_maybe_in_transaction(repo, config, version, module, :up, opts, fn ->
+      attempt(repo, config, version, module, :forward, :up, :up, opts)
+        || attempt(repo, config, version, module, :forward, :change, :up, opts)
         || {:error, Ecto.MigrationError.exception(
             "#{inspect module} does not implement a `up/0` or `change/0` function")}
     end)
@@ -265,25 +265,25 @@ defmodule Ecto.Migrator do
   """
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
   def down(repo, version, module, opts \\ []) do
-    conditional_lock_for_migrations module, repo, opts, fn versions ->
+    conditional_lock_for_migrations module, repo, opts, fn config, versions ->
       if version in versions do
-        do_down(repo, version, module, opts)
+        do_down(repo, config, version, module, opts)
       else
         :already_down
       end
     end
   end
 
-  defp do_down(repo, version, module, opts) do
-    async_migrate_maybe_in_transaction(repo, version, module, :down, opts, fn ->
-      attempt(repo, version, module, :forward, :down, :down, opts)
-        || attempt(repo, version, module, :backward, :change, :down, opts)
+  defp do_down(repo, config, version, module, opts) do
+    async_migrate_maybe_in_transaction(repo, config, version, module, :down, opts, fn ->
+      attempt(repo, config, version, module, :forward, :down, :down, opts)
+        || attempt(repo, config, version, module, :backward, :change, :down, opts)
         || {:error, Ecto.MigrationError.exception(
             "#{inspect module} does not implement a `down/0` or `change/0` function")}
     end)
   end
 
-  defp async_migrate_maybe_in_transaction(repo, version, module, direction, opts, fun) do
+  defp async_migrate_maybe_in_transaction(repo, config, version, module, direction, opts, fun) do
     parent = self()
     ref = make_ref()
     dynamic_repo = repo.get_dynamic_repo()
@@ -294,7 +294,7 @@ defmodule Ecto.Migrator do
         # The table with schema migrations can only be updated from
         # the parent process because it has a lock on the table
         verbose_schema_migration repo, "update schema migrations", fn ->
-          apply(SchemaMigration, direction, [repo, version, opts[:prefix]])
+          apply(SchemaMigration, direction, [repo, config, version, opts[:prefix]])
         end
       catch
         kind, error ->
@@ -339,10 +339,10 @@ defmodule Ecto.Migrator do
     receive do: (^ref -> value)
   end
 
-  defp attempt(repo, version, module, direction, operation, reference, opts) do
+  defp attempt(repo, config, version, module, direction, operation, reference, opts) do
     if Code.ensure_loaded?(module) and
        function_exported?(module, operation, 0) do
-      Runner.run(repo, version, module, direction, operation, reference, opts)
+      Runner.run(repo, config, version, module, direction, operation, reference, opts)
       :ok
     end
   end
@@ -406,7 +406,7 @@ defmodule Ecto.Migrator do
     migration_source = List.wrap(migration_source)
 
     pending =
-      lock_for_migrations true, repo, opts, fn versions ->
+      lock_for_migrations true, repo, opts, fn _config, versions ->
         cond do
           opts[:all] ->
             pending_all(versions, migration_source, direction)
@@ -484,12 +484,15 @@ defmodule Ecto.Migrator do
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
     try do
+      config = repo.config()
+
       verbose_schema_migration repo, "create schema migrations table", fn ->
-        SchemaMigration.ensure_schema_migrations_table!(repo, opts)
+        SchemaMigration.ensure_schema_migrations_table!(repo, config, opts)
       end
 
-      {migration_repo, query} = SchemaMigration.versions(repo)
-      callback = &fun.(migration_repo.all(&1, prefix: opts[:prefix], timeout: :infinity, log: false))
+      all_opts = [prefix: opts[:prefix], timeout: :infinity, log: false]
+      {migration_repo, query} = SchemaMigration.versions(repo, config)
+      callback = &fun.(config, migration_repo.all(&1, all_opts))
 
       if should_lock? do
         # If there is a migration_repo, it wins over dynamic_repo,
@@ -628,17 +631,17 @@ defmodule Ecto.Migrator do
   end
 
   defp do_direction(:up, repo, version, mod, opts) do
-    conditional_lock_for_migrations mod, repo, opts, fn versions ->
+    conditional_lock_for_migrations mod, repo, opts, fn config, versions ->
       unless version in versions do
-        do_up(repo, version, mod, opts)
+        do_up(repo, config, version, mod, opts)
       end
     end
   end
 
   defp do_direction(:down, repo, version, mod, opts) do
-    conditional_lock_for_migrations mod, repo, opts, fn versions ->
+    conditional_lock_for_migrations mod, repo, opts, fn config, versions ->
       if version in versions do
-        do_down(repo, version, mod, opts)
+        do_down(repo, config, version, mod, opts)
       end
     end
   end

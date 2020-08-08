@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Ecto.Dump do
       ensure_implements(repo.__adapter__(), Ecto.Adapter.Structure,
                                             "dump structure for #{inspect repo}")
 
-      {migration_repo, _source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
+      migration_repo = repo.config()[:migration_repo] || repo
 
       for repo <- Enum.uniq([repo, migration_repo]) do
         config = Keyword.merge(repo.config(), opts)
