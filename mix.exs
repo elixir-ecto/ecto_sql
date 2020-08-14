@@ -8,7 +8,7 @@ defmodule EctoSQL.MixProject do
     [
       app: :ecto_sql,
       version: @version,
-      elixir: "~> 1.7",
+      elixir: "~> 1.8",
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [
