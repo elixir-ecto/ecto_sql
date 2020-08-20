@@ -782,6 +782,13 @@ defmodule Ecto.Migration do
   @doc """
   Executes arbitrary SQL, anonymous function or a keyword command.
 
+  The argument is typically a string, containing the SQL command to be executed.
+  Keyword commands exist for non-SQL adapters and are not used in most situations.
+
+  Supplying an anonymous function does allow for arbitrary code to execute as
+  part of the migration. This is most often used in combination with `repo/0`
+  by library authors who want to create high-level migration helpers.
+
   Reversible commands can be defined by calling `execute/2`.
 
   ## Examples
@@ -790,7 +797,9 @@ defmodule Ecto.Migration do
 
       execute create: "posts", capped: true, size: 1024
 
-      execute(fn -> repo().query!("select 'Anonymous function query …';", [], [log: :info]) end)
+      execute(fn -> repo().query!("SELECT $1::integer + $2", [40, 2], [log: :info]) end)
+
+      execute(fn -> repo().update_all("posts", set: [published: true]) end)
   """
   def execute(command) when is_binary(command) or is_function(command, 0) or is_list(command) do
     Runner.execute command
@@ -804,6 +813,8 @@ defmodule Ecto.Migration do
   a PostgreSQL extension. The `execute/2` form avoids having to define
   separate `up/0` and `down/0` blocks that each contain an `execute/1`
   expression.
+
+  The allowed parameters are explained in `execute/1`.
 
   ## Examples
 
