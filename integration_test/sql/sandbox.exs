@@ -2,10 +2,16 @@ defmodule Ecto.Integration.SandboxTest do
   use ExUnit.Case
 
   alias Ecto.Adapters.SQL.Sandbox
-  alias Ecto.Integration.{DynamicRepo, PoolRepo, TestRepo}
+  alias Ecto.Integration.{PoolRepo, TestRepo}
   alias Ecto.Integration.Post
 
   import ExUnit.CaptureLog
+
+  Application.put_env(:ecto_sql, __MODULE__.DynamicRepo, Application.get_env(:ecto_sql, TestRepo))
+
+  defmodule DynamicRepo do
+    use Ecto.Repo, otp_app: :ecto_sql, adapter: TestRepo.__adapter__()
+  end
 
   describe "errors" do
     test "raises if repo doesn't exist" do
@@ -15,7 +21,7 @@ defmodule Ecto.Integration.SandboxTest do
     end
     
     test "raises if repo is not started" do
-      assert_raise RuntimeError, ~r"could not lookup Ecto repo Ecto.Integration.DynamicRepo because it was not started", fn ->
+      assert_raise RuntimeError, ~r"could not lookup Ecto repo #{inspect DynamicRepo} because it was not started", fn ->
         Sandbox.mode(DynamicRepo, :manual)
       end
     end

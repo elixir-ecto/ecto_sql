@@ -50,19 +50,6 @@ defmodule Ecto.Integration.PoolRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
 end
 
-# Pool repo for dynamic repo tests
-alias Ecto.Integration.DynamicRepo
-
-Application.put_env(:ecto_sql, DynamicRepo,
-  url: Application.get_env(:ecto_sql, :pg_test_url) <> "/ecto_test",
-  pool: Ecto.Adapters.SQL.Sandbox,
-  show_sensitive_data_on_connection_error: true
-)
-
-defmodule Ecto.Integration.DynamicRepo do
-  use Ecto.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
-end
-
 # Load support files
 ecto = Mix.Project.deps_paths()[:ecto]
 Code.require_file "#{ecto}/integration_test/support/schemas.exs", __DIR__
