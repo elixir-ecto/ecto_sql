@@ -814,7 +814,7 @@ defmodule Ecto.Migration do
   separate `up/0` and `down/0` blocks that each contain an `execute/1`
   expression.
 
-  The allowed parameters are explained for `execute/1`.
+  The allowed parameters are explained in `execute/1`.
 
   ## Examples
 
