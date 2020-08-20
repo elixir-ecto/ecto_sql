@@ -130,12 +130,34 @@ defmodule Ecto.Integration.PoolRepo do
   end
 end
 
+# Pool repo for dynamic repo tests
+alias Ecto.Integration.DynamicRepo
+
+Application.put_env(:ecto_sql, DynamicRepo,
+  url: Application.get_env(:ecto_sql, :tds_test_url) <> "/ecto_test",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  set_allow_snapshot_isolation: :on,
+  show_sensitive_data_on_connection_error: true
+)
+
+defmodule Ecto.Integration.DynamicRepo do
+  use Ecto.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Tds
+
+  def create_prefix(prefix) do
+    "create schema #{prefix}"
+  end
+
+  def drop_prefix(prefix) do
+    "drop schema #{prefix}"
+  end
+end
+
 defmodule Ecto.Integration.Case do
   use ExUnit.CaseTemplate
 
   setup context do
     level = Map.get(context, :isolation_level, :read_committed)
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo, [isolation_level: level])
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo, isolation_level: level)
   end
 end
 
