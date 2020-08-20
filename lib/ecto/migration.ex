@@ -782,13 +782,14 @@ defmodule Ecto.Migration do
   @doc """
   Executes arbitrary SQL, anonymous function or a keyword command.
 
-  Reversible commands can be defined by calling `execute/2`.
-
+  The argument is typically a string, containing the SQL command to be executed.
   Keyword commands exist for non-SQL adapters and are not used in most situations.
 
   Supplying an anonymous function does allow for arbitrary code to execute as
-  part of the migration. This is especially useful in combination with `repo/0`
-  for a higher level api instead of raw sql queries.
+  part of the migration. This is most often used in combination with `repo/0`
+  by library authors who want to create high-level migration helpers.
+
+  Reversible commands can be defined by calling `execute/2`.
 
   ## Examples
 
