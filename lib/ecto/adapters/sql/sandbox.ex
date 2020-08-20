@@ -531,7 +531,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   end
 
   defp lookup_meta!(repo) do
-    %{opts: opts} = meta = Ecto.Adapter.lookup_meta(repo)
+    %{opts: opts} = meta = Ecto.Adapter.lookup_meta(repo.get_dynamic_repo())
 
     if opts[:pool] != DBConnection.Ownership do
       raise """
