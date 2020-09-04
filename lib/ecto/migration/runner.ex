@@ -275,18 +275,17 @@ defmodule Ecto.Migration.Runner do
         module.after_begin()
       end
 
-      result = apply(module, operation, [])
+      apply(module, operation, [])
+      flush()
 
       if function_exported?(module, :before_commit, 0) do
         module.before_commit()
+        flush() # flush it again if `before_commit/0` queued anything up
       end
-
-      result
     else
       apply(module, operation, [])
+      flush()
     end
-
-    flush()
   end
 
   defp runner do

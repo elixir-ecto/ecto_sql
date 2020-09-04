@@ -84,12 +84,28 @@ defmodule Ecto.MigratorTest do
     end
 
     def before_commit() do
-      execute "before_commit", "before_commit_down"
+      if flushed?() do
+        execute "before_commit", "before_commit_down"
+      end
     end
 
     def change do
       create index(:posts, [:foo])
     end
+
+    defp flushed?() do
+      %{commands: commands} =
+        Agent.get(runner(), fn state -> state end)
+      Enum.empty?(commands)
+    end
+
+    defp runner do
+      case Process.get(:ecto_migration) do
+        %{runner: runner} -> runner
+        _ -> raise "could not find migration runner process for #{inspect self()}"
+      end
+    end
+
   end
 
   defmodule MigrationWithCallbacksAndNoTransaction do
