@@ -273,6 +273,7 @@ defmodule Ecto.Migration.Runner do
     if function_exported?(repo, :in_transaction?, 0) and repo.in_transaction?() do
       if function_exported?(module, :after_begin, 0) do
         module.after_begin()
+        flush()
       end
 
       apply(module, operation, [])
@@ -280,7 +281,7 @@ defmodule Ecto.Migration.Runner do
 
       if function_exported?(module, :before_commit, 0) do
         module.before_commit()
-        flush() # flush it again if `before_commit/0` queued anything up
+        flush()
       end
     else
       apply(module, operation, [])
