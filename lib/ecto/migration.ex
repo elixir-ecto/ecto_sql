@@ -284,7 +284,7 @@ defmodule Ecto.Migration do
   ## Transaction Callbacks
 
   If possible, each migration runs inside a transaction. This is true for Postgres,
-  but not true for MySQL, as the later does not support DDL transactions.
+  but not true for MySQL, as the latter does not support DDL transactions.
 
   In some rare cases, you may need to execute some common behavior after beginning
   a migration transaction, or before commiting that transaction. For instance, one
