@@ -184,7 +184,11 @@ defmodule Ecto.Migrator do
     * `:prefix` - the prefix to run the migrations on
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
-
+    * `:skip_table_creation` - skips any attempt to create the migration table
+      Useful for situations where user needs to check migrations but has
+      insufficient permissions to create the table.  Note that migrations
+      commands may fail if this is set to true. Defaults to `false`.  Accepts a
+      boolean.
   """
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
   def migrated_versions(repo, opts \\ []) do
@@ -441,12 +445,12 @@ defmodule Ecto.Migrator do
   Returns an array of tuples as the migration status of the given repo,
   without actually running any migrations.
   """
-  @spec migrations(Ecto.Repo.t, [String.t]) :: [{:up | :down, id :: integer(), name :: String.t}]
-  def migrations(repo, directories) do
+  @spec migrations(Ecto.Repo.t, [String.t], Keyword.t) :: [{:up | :down, id :: integer(), name :: String.t}]
+  def migrations(repo, directories, opts \\ []) do
     directories = List.wrap(directories)
 
     repo
-    |> migrated_versions
+    |> migrated_versions(opts)
     |> collect_migrations(directories)
     |> Enum.sort_by(fn {_, version, _} -> version end)
   end
@@ -481,13 +485,16 @@ defmodule Ecto.Migrator do
 
   defp lock_for_migrations(should_lock?, repo, opts, fun) when is_boolean(should_lock?) do
     dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
+    skip_table_creation = Keyword.get(opts, :skip_table_creation, false)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
     try do
       config = repo.config()
 
-      verbose_schema_migration repo, "create schema migrations table", fn ->
-        SchemaMigration.ensure_schema_migrations_table!(repo, config, opts)
+      unless skip_table_creation do
+        verbose_schema_migration repo, "create schema migrations table", fn ->
+          SchemaMigration.ensure_schema_migrations_table!(repo, config, opts)
+        end
       end
 
       all_opts = [prefix: opts[:prefix], timeout: :infinity, log: false]

@@ -105,7 +105,6 @@ defmodule Ecto.MigratorTest do
         _ -> raise "could not find migration runner process for #{inspect self()}"
       end
     end
-
   end
 
   defmodule MigrationWithCallbacksAndNoTransaction do
@@ -378,18 +377,18 @@ defmodule Ecto.MigratorTest do
 
     test "on up" do
       assert up(TestRepo, 9, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _, _}
+      assert_receive {:lock_for_migrations, _, _, _}
 
       assert up(TestRepo, 10, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _, _}
+      refute_received {:lock_for_migrations, _, _, _}
     end
 
     test "on down" do
       assert down(TestRepo, 1, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _, _}
+      assert_receive {:lock_for_migrations, _, _, _}
 
       assert down(TestRepo, 2, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _, _}
+      refute_received {:lock_for_migrations, _, _, _}
     end
 
     test "on run" do
@@ -397,14 +396,49 @@ defmodule Ecto.MigratorTest do
         create_migration "13_sample.exs"
         assert run(TestRepo, path, :up, all: true, log: false) == [13]
         # One lock for fetching versions, another for running
-        assert_receive {:lock_for_migrations, _, _}
-        assert_receive {:lock_for_migrations, _, _}
+        assert_receive {:lock_for_migrations, _, _, _}
+        assert_receive {:lock_for_migrations, _, _, _}
 
         create_migration "14_sample.exs", [:disable_migration_lock]
         assert run(TestRepo, path, :up, all: true, log: false) == [14]
         # One lock for fetching versions, another from running
-        assert_receive {:lock_for_migrations, _, _}
-        refute_received {:lock_for_migrations, _, _}
+        assert_receive {:lock_for_migrations, _, _, _}
+        refute_received {:lock_for_migrations, _, _, _}
+      end
+    end
+  end
+
+  describe "migration options" do
+    setup do
+      put_test_adapter_config(test_process: self())
+      Process.put(:migrated_versions, [{15, nil}])
+    end
+
+    test "skip schema migrations table creation" do
+      in_tmp fn path ->
+        create_migration "15_sample.exs"
+
+        expected_result = [{:up, 15, "sample"}]
+        assert migrations(TestRepo, path, skip_table_creation: true) == expected_result
+
+        assert_receive {:lock_for_migrations, _, _, [skip_table_creation: true]}
+        refute_received {:lock_for_migrations, _, _, _}
+
+        assert match?(nil, last_command())
+      end
+    end
+
+    test "default to create schema migrations table" do
+      in_tmp fn path ->
+        create_migration "15_sample.exs"
+
+        expected_result = [{:up, 15, "sample"}]
+        assert migrations(TestRepo, path) == expected_result
+
+        assert_receive {:lock_for_migrations, _, _, []}
+        refute_received {:lock_for_migrations, _, _, _}
+
+        assert match?({:create_if_not_exists, %_{name: :schema_migrations}, _}, last_command())
       end
     end
   end
@@ -775,4 +809,6 @@ defmodule Ecto.MigratorTest do
       refute Process.get(:stopped)
     end
   end
+
+  defp last_command(), do: Process.get(:last_command)
 end
