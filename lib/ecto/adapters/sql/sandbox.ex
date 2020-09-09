@@ -458,7 +458,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       be bumped whenever necessary.
 
   """
-  def checkout(repo, opts \\ []) when is_atom(repo) do
+  def checkout(repo, opts \\ []) do
     %{pid: pool, opts: pool_opts} = lookup_meta!(repo)
 
     pool_opts =
