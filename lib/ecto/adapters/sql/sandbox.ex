@@ -430,8 +430,8 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   other database connections to be checked in (causing errors).
   """
   def mode(repo, mode)
-      when is_atom(repo) and mode in [:auto, :manual]
-      when is_atom(repo) and elem(mode, 0) == :shared and is_pid(elem(mode, 1)) do
+      when is_atom(repo) or (is_pid(repo) and mode in [:auto, :manual])
+      when is_atom(repo) or (is_pid(repo) and elem(mode, 0) == :shared and is_pid(elem(mode, 1))) do
     %{pid: pool, opts: opts} = lookup_meta!(repo)
     DBConnection.Ownership.ownership_mode(pool, mode, opts)
   end
@@ -458,7 +458,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       be bumped whenever necessary.
 
   """
-  def checkout(repo, opts \\ []) when is_atom(repo) do
+  def checkout(repo, opts \\ []) when is_atom(repo) or is_pid(repo) do
     %{pid: pool, opts: pool_opts} = lookup_meta!(repo)
 
     pool_opts =
@@ -503,7 +503,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   @doc """
   Checks in the connection back into the sandbox pool.
   """
-  def checkin(repo, _opts \\ []) when is_atom(repo) do
+  def checkin(repo, _opts \\ []) when is_atom(repo) or is_pid(repo) do
     %{pid: pool, opts: opts} = lookup_meta!(repo)
     DBConnection.Ownership.ownership_checkin(pool, opts)
   end
@@ -511,7 +511,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   @doc """
   Allows the `allow` process to use the same connection as `parent`.
   """
-  def allow(repo, parent, allow, _opts \\ []) when is_atom(repo) do
+  def allow(repo, parent, allow, _opts \\ []) when is_atom(repo) or is_pid(repo) do
     %{pid: pool, opts: opts} = lookup_meta!(repo)
     DBConnection.Ownership.ownership_allow(pool, parent, allow, opts)
   end
@@ -519,7 +519,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   @doc """
   Runs a function outside of the sandbox.
   """
-  def unboxed_run(repo, fun) when is_atom(repo) do
+  def unboxed_run(repo, fun) when is_atom(repo) or is_pid(repo) do
     checkin(repo)
     checkout(repo, sandbox: false)
 
@@ -531,19 +531,26 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   end
 
   defp lookup_meta!(repo) do
-    %{opts: opts} = meta = Ecto.Adapter.lookup_meta(repo.get_dynamic_repo())
+    %{opts: opts} =
+      meta =
+      repo
+      |> find_repo()
+      |> Ecto.Adapter.lookup_meta()
 
     if opts[:pool] != DBConnection.Ownership do
       raise """
-      cannot invoke sandbox operation with pool #{inspect opts[:pool]}.
+      cannot invoke sandbox operation with pool #{inspect(opts[:pool])}.
       To use the SQL Sandbox, configure your repository pool as:
 
-          pool: #{inspect __MODULE__}
+          pool: #{inspect(__MODULE__)}
       """
     end
 
     meta
   end
+
+  defp find_repo(repo) when is_atom(repo), do: repo.get_dynamic_repo()
+  defp find_repo(repo), do: repo
 
   defp post_checkout(conn_mod, conn_state, opts) do
     case conn_mod.handle_begin([mode: :transaction] ++ opts, conn_state) do

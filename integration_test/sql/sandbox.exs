@@ -108,6 +108,20 @@ defmodule Ecto.Integration.SandboxTest do
       Sandbox.checkout(DynamicRepo)
       assert DynamicRepo.all(Post) == []
     end
+
+    test "works with a repo pid" do
+      repo_pid = start_supervised!({DynamicRepo, name: nil})
+      DynamicRepo.put_dynamic_repo(repo_pid)
+
+      assert Sandbox.mode(repo_pid, :manual) == :ok
+
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        DynamicRepo.all(Post)
+      end
+
+      Sandbox.checkout(repo_pid)
+      assert DynamicRepo.all(Post) == []
+    end
   end
 
   describe "savepoints" do
