@@ -76,6 +76,11 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  defmodule NoLockErrorMigration do
+    use Ecto.Migration
+    @disable_migration_lock true
+  end
+
   defmodule MigrationWithCallbacks do
     use Ecto.Migration
 
@@ -373,6 +378,12 @@ defmodule Ecto.MigratorTest do
   describe "lock for migrations" do
     setup do
       put_test_adapter_config(test_process: self())
+    end
+
+    test "on error" do
+      assert_raise Ecto.MigrationError, fn ->
+        up(TestRepo, 11, NoLockErrorMigration, log: false)
+      end
     end
 
     test "on up" do

@@ -501,24 +501,27 @@ defmodule Ecto.Migrator do
       {migration_repo, query} = SchemaMigration.versions(repo, config)
       callback = &fun.(config, migration_repo.all(&1, all_opts))
 
-      if should_lock? do
-        # If there is a migration_repo, it wins over dynamic_repo,
-        # otherwise the dynamic_repo is the one locked in migrations.
-        meta_repo = if migration_repo != repo, do: migration_repo, else: dynamic_repo
-        meta = Ecto.Adapter.lookup_meta(meta_repo)
+      result =
+        if should_lock? do
+          # If there is a migration_repo, it wins over dynamic_repo,
+          # otherwise the dynamic_repo is the one locked in migrations.
+          meta_repo = if migration_repo != repo, do: migration_repo, else: dynamic_repo
+          meta = Ecto.Adapter.lookup_meta(meta_repo)
 
-        case migration_repo.__adapter__().lock_for_migrations(meta, query, opts, callback) do
-          {kind, reason, stacktrace} ->
-            :erlang.raise(kind, reason, stacktrace)
-
-          {:error, error} ->
-            raise error
-
-          result ->
-            result
+          migration_repo.__adapter__().lock_for_migrations(meta, query, opts, callback)
+        else
+          callback.(query)
         end
-      else
-        callback.(query)
+
+      case result do
+        {kind, reason, stacktrace} ->
+          :erlang.raise(kind, reason, stacktrace)
+
+        {:error, error} ->
+          raise error
+
+        result ->
+          result
       end
     after
       repo.put_dynamic_repo(previous_dynamic_repo)
