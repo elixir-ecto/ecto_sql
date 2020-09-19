@@ -1,15 +1,27 @@
 # Changelog for v3.x
 
+## v3.5.0-rc.1 (2020-09-19)
+
+### Enhancements
+
+  * [migrations] Add logic to optionally skip schema migrations table checks
+  * [sandbox] Allow for dynamic repos to be checked out in sandbox
+
+### Bug fixes
+
+  * [migrations] Flush migration commands before executing `before_commit` callback
+  * [migrations] Raise migration error when migration lock is disabled
+
 ## v3.5.0-rc.0 (2020-08-31)
 
 ### Enhancements
 
-  * [sql] Support `Repo.explain(:all | :update_all | :delete_all, query)` for Ecto adapters
-  * [postgres] Support for `:identity` key types in Postgres 10 or later
-  * [postgres] Use IF NOT EXIST when creating index with `create_if_not_exists`, this requires PG 9.5+ or later
   * [migrations] Add `:migration_repo` configuration to allow a different repository to host the schema migrations
   * [migrations] Support `validate: false` on references
   * [migrations] Accept `:migration_primary_key` as false and add `:migration_foreign_key` repo config
+  * [postgres] Support for `:identity` key types in Postgres 10 or later
+  * [postgres] Use IF NOT EXIST when creating index with `create_if_not_exists`, this requires PG 9.5+ or later
+  * [sql] Support `Repo.explain(:all | :update_all | :delete_all, query)` for Ecto adapters
 
 ## v3.4.5 (2020-07-05)
 

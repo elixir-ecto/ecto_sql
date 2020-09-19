@@ -181,7 +181,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     # Callback invoked by autogenerate fields.
-    @doc false
+    @impl true
     def autogenerate, do: generate()
 
     defp encode(<<a1::4, a2::4, a3::4, a4::4,
