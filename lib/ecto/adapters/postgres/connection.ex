@@ -125,6 +125,16 @@ if Code.ensure_loaded?(Postgrex) do
       [cte, select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
     end
 
+    def basic_where_clause(query) do
+      case create_names(query, []) do
+        {{a, _, b}} ->
+          {:ok, boolean("", query.wheres, {{a, nil, b}}, query)}
+
+        _sources ->
+          {:error, "Too many sources"}
+      end
+    end
+
     @impl true
     def update_all(%{from: %{source: source}} = query, prefix \\ nil) do
       sources = create_names(query, [])
@@ -532,14 +542,20 @@ if Code.ensure_loaded?(Postgrex) do
     defp lock(%{lock: expr} = query, sources), do: [?\s | expr(expr, sources, query)]
 
     defp boolean(_name, [], _sources, _query), do: []
+
     defp boolean(name, [%{expr: expr, op: op} | query_exprs], sources, query) do
-      [name |
-       Enum.reduce(query_exprs, {op, paren_expr(expr, sources, query)}, fn
-         %BooleanExpr{expr: expr, op: op}, {op, acc} ->
-           {op, [acc, operator_to_boolean(op), paren_expr(expr, sources, query)]}
-         %BooleanExpr{expr: expr, op: op}, {_, acc} ->
-           {op, [?(, acc, ?), operator_to_boolean(op), paren_expr(expr, sources, query)]}
-       end) |> elem(1)]
+      [
+        name
+        | Enum.reduce(query_exprs, {op, paren_expr(expr, sources, query)}, fn
+            %BooleanExpr{expr: expr, op: op}, {op, acc} ->
+              {op, [acc, operator_to_boolean(op), paren_expr(expr, sources, query)]}
+
+            %BooleanExpr{expr: expr, op: op}, {_, acc} ->
+              {op,
+               [?(, acc, ?), operator_to_boolean(op), paren_expr(expr, sources, query)]}
+          end)
+          |> elem(1)
+      ]
     end
 
     defp operator_to_boolean(:and), do: " AND "
@@ -555,6 +571,10 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp paren_expr(expr, sources, query) do
       [?(, expr(expr, sources, query), ?)]
+    end
+
+    defp expr({:^, [], [_ix]}, {{_, nil, _}}, _query) do
+      raise "Must only use raw values, not interpolated values, in queries when generating a basic where clause. e.g (id == 5) and not (id == ^5)"
     end
 
     defp expr({:^, [], [ix]}, _sources, _query) do
@@ -1182,8 +1202,12 @@ if Code.ensure_loaded?(Postgrex) do
       {expr || expr(source, sources, query), name}
     end
 
+    defp quote_qualified_name(name, {{_, nil, _}}, _ix) do
+      [quote_name(name)]
+    end
     defp quote_qualified_name(name, sources, ix) do
       {_, source, _} = elem(sources, ix)
+
       [source, ?. | quote_name(name)]
     end
 
