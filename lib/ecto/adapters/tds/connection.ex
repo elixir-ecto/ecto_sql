@@ -1061,6 +1061,10 @@ if Code.ensure_loaded?(Tds) do
       error!(nil, msg)
     end
 
+    def execute_ddl({:create, %Constraint{validate: false}}) do
+      error!(nil, "`:validate` is not supported by the Tds adapter")
+    end
+
     def execute_ddl({:create, %Constraint{} = constraint}) do
       table_name = quote_table(constraint.prefix, constraint.table)
 

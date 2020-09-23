@@ -1253,6 +1253,14 @@ defmodule Ecto.Adapters.TdsTest do
              ]
   end
 
+  test "create check constraint with invalid validate opts" do
+    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0", validate: false)}
+
+    assert_raise ArgumentError, "`:validate` is not supported by the Tds adapter", fn ->
+      execute_ddl(create)
+    end
+  end
+
   test "drop constraint" do
     drop = {:drop, constraint(:products, "price_must_be_positive")}
 

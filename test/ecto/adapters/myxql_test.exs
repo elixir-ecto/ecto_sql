@@ -1339,8 +1339,18 @@ defmodule Ecto.Adapters.MyXQLTest do
       assert execute_ddl(create)
     end
 
+    assert_raise ArgumentError, "MySQL adapter does not support check constraints", fn ->
+      create = {:create, constraint(:products, "foo", check: "price", validate: false)}
+      assert execute_ddl(create)
+    end
+
     assert_raise ArgumentError, "MySQL adapter does not support exclusion constraints", fn ->
       create = {:create, constraint(:products, "bar", exclude: "price")}
+      assert execute_ddl(create)
+    end
+
+    assert_raise ArgumentError, "MySQL adapter does not support exclusion constraints", fn ->
+      create = {:create, constraint(:products, "bar", exclude: "price", validate: false)}
       assert execute_ddl(create)
     end
   end
