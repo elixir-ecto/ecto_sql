@@ -40,7 +40,7 @@ defmodule Ecto.Adapters.Tds do
 
   ### After connect flags
 
-  After connectiong to MSSQL server, TDS will check if there are any flags set in
+  After connecting to MSSQL server, TDS will check if there are any flags set in
   connection options that should affect connection session behaviour. All flags are
   MSSQL standard *SET* options. The following flags are currently supported:
 
