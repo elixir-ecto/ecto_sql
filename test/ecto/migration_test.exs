@@ -114,13 +114,21 @@ defmodule Ecto.MigrationTest do
 
   test "creates a constraint" do
     assert constraint(:posts, :price_is_positive, check: "price > 0") ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0"}
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: true}
     assert constraint("posts", :price_is_positive, check: "price > 0") ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0"}
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: true}
     assert constraint(:posts, :exclude_price, exclude: "price") ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price"}
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
     assert constraint("posts", :exclude_price, exclude: "price") ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price"}
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
+    assert constraint(:posts, :price_is_positive, check: "price > 0", validate: false) ==
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: false}
+    assert constraint("posts", :price_is_positive, check: "price > 0", validate: false) ==
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: false}
+    assert constraint(:posts, :exclude_price, exclude: "price", validate: false) ==
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
+    assert constraint("posts", :exclude_price, exclude: "price", validate: false) ==
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
   end
 
   test "runs a reversible command" do

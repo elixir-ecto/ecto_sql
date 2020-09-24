@@ -390,9 +390,9 @@ defmodule Ecto.Migration do
 
     To define a constraint in a migration, see `Ecto.Migration.constraint/3`.
     """
-    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil, comment: nil
+    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil, comment: nil, validate: true
     @type t :: %__MODULE__{name: atom, table: String.t, prefix: atom | nil,
-                           check: String.t | nil, exclude: String.t | nil, comment: String.t | nil}
+                           check: String.t | nil, exclude: String.t | nil, comment: String.t | nil, validate: boolean}
   end
 
   defmodule Command do
@@ -1165,6 +1165,9 @@ defmodule Ecto.Migration do
     * `:check` - A check constraint expression. Required when creating a check constraint.
     * `:exclude` - An exclusion constraint expression. Required when creating an exclusion constraint.
     * `:prefix` - The prefix for the table.
+    * `:validate` - Whether or not to validate the constraint on creation (true by default). Only
+       available in PostgreSQL, and should be followed by a command to validate the foreign key in
+       a following migration if false.
 
   """
   def constraint(table, name, opts \\ [])

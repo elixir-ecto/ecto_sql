@@ -1691,6 +1691,11 @@ defmodule Ecto.Adapters.PostgresTest do
     ~s|COMMENT ON CONSTRAINT "price_must_be_positive" ON "foo"."products" IS 'comment'|]
   end
 
+  test "create invalid constraint" do
+    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0", prefix: "foo", validate: false)}
+    assert execute_ddl(create) == [~s|ALTER TABLE "foo"."products" ADD CONSTRAINT "price_must_be_positive" CHECK (price > 0) NOT VALID|]
+  end
+
   test "drop constraint" do
     drop = {:drop, constraint(:products, "price_must_be_positive")}
     assert execute_ddl(drop) ==

@@ -1029,10 +1029,10 @@ if Code.ensure_loaded?(Postgrex) do
     defp null_expr(_), do: []
 
     defp new_constraint_expr(%Constraint{check: check} = constraint) when is_binary(check) do
-      ["CONSTRAINT ", quote_name(constraint.name), " CHECK (", check, ")"]
+      ["CONSTRAINT ", quote_name(constraint.name), " CHECK (", check, ")", validate(constraint.validate)]
     end
     defp new_constraint_expr(%Constraint{exclude: exclude} = constraint) when is_binary(exclude) do
-      ["CONSTRAINT ", quote_name(constraint.name), " EXCLUDE USING ", exclude]
+      ["CONSTRAINT ", quote_name(constraint.name), " EXCLUDE USING ", exclude, validate(constraint.validate)]
     end
 
     defp default_expr({:ok, nil}, _type),    do: " DEFAULT NULL"
