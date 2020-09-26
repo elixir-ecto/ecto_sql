@@ -1,14 +1,14 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
-  @version "3.4.4"
+  @version "3.5.0-rc.1"
   @adapters ~w(pg myxql tds)
 
   def project do
     [
       app: :ecto_sql,
       version: @version,
-      elixir: "~> 1.7",
+      elixir: "~> 1.8",
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [
@@ -76,7 +76,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, "~> 3.4.3"}
+      {:ecto, "~> 3.5.0-rc.1"}
     end
   end
 

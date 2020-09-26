@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     * `--all` - run all pending migrations
 
-    * `--step` / `-n` - run n number of pending migrations
+    * `--step`, `-n` - run n number of pending migrations
 
     * `--to` - run all migrations up to and including version
 

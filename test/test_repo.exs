@@ -59,8 +59,8 @@ defmodule EctoSQL.TestAdapter do
 
   ## Migrations
 
-  def lock_for_migrations(mod, query, _opts, fun) do
-    send test_process(), {:lock_for_migrations, mod, fun}
+  def lock_for_migrations(mod, query, opts, fun) do
+    send test_process(), {:lock_for_migrations, mod, fun, opts}
     fun.(query)
   end
 

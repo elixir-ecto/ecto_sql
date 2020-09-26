@@ -607,13 +607,13 @@ defmodule Ecto.Adapters.TdsTest do
     query = "comments" |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
     assert all(query) ==
            ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
-           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] AS [id] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)))}
+           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)))}
 
     posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([p], p.id))
     query = "comments" |> from(as: :comment) |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
     assert all(query) ==
            ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
-           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] AS [id] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])))}
+           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])))}
   end
 
   test "having" do
@@ -1017,8 +1017,8 @@ defmodule Ecto.Adapters.TdsTest do
          {:add, :name, :string, [default: "Untitled", size: 20, null: false]},
          {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
          {:add, :on_hand, :integer, [default: 0, null: true]},
-         {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
-         {:add, :published_at, :"datetime(6)", [null: true]},
+         {:add, :likes, "smallint unsigned", [default: 0, null: false]},
+         {:add, :published_at, "datetime(6)", [null: true]},
          {:add, :is_active, :boolean, [default: true]}
        ]}
 
@@ -1141,6 +1141,19 @@ defmodule Ecto.Adapters.TdsTest do
              ]
   end
 
+  test "create table with an unsupported type" do
+    create = {:create, table(:posts),
+              [
+                {:add, :a, {:a, :b, :c}, [default: %{}]}
+              ]
+            }
+    assert_raise ArgumentError,
+                 "unsupported type `{:a, :b, :c}`. " <>
+                 "The type can either be an atom, a string or a tuple of the form " <>
+                 "`{:map, t}` where `t` itself follows the same conditions.",
+                 fn -> execute_ddl(create) end
+  end
+
   test "drop table" do
     drop = {:drop, table(:posts)}
     assert execute_ddl(drop) == ["DROP TABLE [posts]; "]
@@ -1238,6 +1251,14 @@ defmodule Ecto.Adapters.TdsTest do
              [
                ~s|ALTER TABLE [foo].[products] ADD CONSTRAINT [price_must_be_positive] CHECK (price > 0); |
              ]
+  end
+
+  test "create check constraint with invalid validate opts" do
+    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0", validate: false)}
+
+    assert_raise ArgumentError, "`:validate` is not supported by the Tds adapter", fn ->
+      execute_ddl(create)
+    end
   end
 
   test "drop constraint" do

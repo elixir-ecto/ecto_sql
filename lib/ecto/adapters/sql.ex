@@ -9,6 +9,7 @@ defmodule Ecto.Adapters.SQL do
 
     * `Ecto.Adapters.Postgres` for Postgres
     * `Ecto.Adapters.MyXQL` for MySQL
+    * `Ecto.Adapters.Tds` for SQLServer
 
   ## Migrations
 
@@ -102,13 +103,11 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @impl true
-      def loaders({:embed, _}, type), do: [&Ecto.Type.embedded_load(type, &1, :json)]
       def loaders({:map, _}, type),   do: [&Ecto.Type.embedded_load(type, &1, :json)]
       def loaders(:binary_id, type),  do: [Ecto.UUID, type]
       def loaders(_, type),           do: [type]
 
       @impl true
-      def dumpers({:embed, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
       def dumpers({:map, _}, type),   do: [&Ecto.Type.embedded_dump(type, &1, :json)]
       def dumpers(:binary_id, type),  do: [type, Ecto.UUID]
       def dumpers(_, type),           do: [type]
@@ -252,11 +251,11 @@ defmodule Ecto.Adapters.SQL do
   ## Examples
 
       # Postgres
-      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post)
+      iex> Ecto.Adapters.SQL.explain(Repo, :all, Post)
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
 
       # MySQL
-      iex> Ecto.Adapters.SQL.explain(:all, from(p in Post, where: p.title == "title")) |> IO.puts()
+      iex> Ecto.Adapters.SQL.explain(Repo, :all, from(p in Post, where: p.title == "title")) |> IO.puts()
       +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
       | id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
       +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
@@ -264,12 +263,12 @@ defmodule Ecto.Adapters.SQL do
       +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
 
       # Shared opts
-      iex> Ecto.Adapters.SQL.explain(:all, Repo, Post, analyze: true, timeout: 20_000)
+      iex> Ecto.Adapters.SQL.explain(Repo, :all, Post, analyze: true, timeout: 20_000)
       "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
 
   It's safe to execute it for updates and deletes, no data change will be commited:
 
-      iex> Ecto.Adapters.SQL.explain(:update_all, Repo, from(p in Post, update: [set: [title: "new title"]]))
+      iex> Ecto.Adapters.SQL.explain(Repo, :update_all, from(p in Post, update: [set: [title: "new title"]]))
       "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
   This function is also available under the repository with name `explain`:
@@ -733,13 +732,7 @@ defmodule Ecto.Adapters.SQL do
               source: source, params: params, count: num_rows, operation: operation
 
       {:error, err} ->
-        # TODO: Deprecate to_constraints should be removed in future versions
-        if function_exported?(conn, :to_constraints, 1) do
-          conn.to_constraints(err)
-        else
-          conn.to_constraints(err, source: source)
-        end
-        |> case do
+        case conn.to_constraints(err, source: source) do
           [] -> raise_sql_call_error err
           constraints -> {:invalid, constraints}
         end

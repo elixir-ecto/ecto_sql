@@ -76,6 +76,11 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  defmodule NoLockErrorMigration do
+    use Ecto.Migration
+    @disable_migration_lock true
+  end
+
   defmodule MigrationWithCallbacks do
     use Ecto.Migration
 
@@ -84,11 +89,26 @@ defmodule Ecto.MigratorTest do
     end
 
     def before_commit() do
-      execute "before_commit", "before_commit_down"
+      if flushed?() do
+        execute "before_commit", "before_commit_down"
+      end
     end
 
     def change do
       create index(:posts, [:foo])
+    end
+
+    defp flushed?() do
+      %{commands: commands} =
+        Agent.get(runner(), fn state -> state end)
+      Enum.empty?(commands)
+    end
+
+    defp runner do
+      case Process.get(:ecto_migration) do
+        %{runner: runner} -> runner
+        _ -> raise "could not find migration runner process for #{inspect self()}"
+      end
     end
   end
 
@@ -239,8 +259,11 @@ defmodule Ecto.MigratorTest do
   end
 
   test "custom schema migrations table is right" do
-    assert {_repo, "schema_migrations"} = SchemaMigration.get_repo_and_source(TestRepo)
-    assert {_repo, "my_schema_migrations"} = SchemaMigration.get_repo_and_source(MigrationSourceRepo)
+    assert {_repo, "schema_migrations"} =
+             SchemaMigration.get_repo_and_source(TestRepo, TestRepo.config())
+
+    assert {_repo, "my_schema_migrations"} =
+             SchemaMigration.get_repo_and_source(MigrationSourceRepo, MigrationSourceRepo.config())
   end
 
   test "migrator prefix" do
@@ -254,6 +277,12 @@ defmodule Ecto.MigratorTest do
 
     capture_log(fn ->
       :ok = up(TestRepo, 11, ChangeMigration, prefix: :custom)
+    end)
+
+    assert [{11, :custom} | _] = Process.get(:migrated_versions)
+
+    capture_log(fn ->
+      :already_up = up(TestRepo, 11, ChangeMigration, prefix: :custom)
     end)
 
     assert [{11, :custom} | _] = Process.get(:migrated_versions)
@@ -351,20 +380,26 @@ defmodule Ecto.MigratorTest do
       put_test_adapter_config(test_process: self())
     end
 
+    test "on error" do
+      assert_raise Ecto.MigrationError, fn ->
+        up(TestRepo, 11, NoLockErrorMigration, log: false)
+      end
+    end
+
     test "on up" do
       assert up(TestRepo, 9, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _, _}
+      assert_receive {:lock_for_migrations, _, _, _}
 
       assert up(TestRepo, 10, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _, _}
+      refute_received {:lock_for_migrations, _, _, _}
     end
 
     test "on down" do
       assert down(TestRepo, 1, Migration, log: false) == :ok
-      assert_receive {:lock_for_migrations, _, _}
+      assert_receive {:lock_for_migrations, _, _, _}
 
       assert down(TestRepo, 2, NoLockMigration, log: false) == :ok
-      refute_received {:lock_for_migrations, _, _}
+      refute_received {:lock_for_migrations, _, _, _}
     end
 
     test "on run" do
@@ -372,14 +407,49 @@ defmodule Ecto.MigratorTest do
         create_migration "13_sample.exs"
         assert run(TestRepo, path, :up, all: true, log: false) == [13]
         # One lock for fetching versions, another for running
-        assert_receive {:lock_for_migrations, _, _}
-        assert_receive {:lock_for_migrations, _, _}
+        assert_receive {:lock_for_migrations, _, _, _}
+        assert_receive {:lock_for_migrations, _, _, _}
 
         create_migration "14_sample.exs", [:disable_migration_lock]
         assert run(TestRepo, path, :up, all: true, log: false) == [14]
         # One lock for fetching versions, another from running
-        assert_receive {:lock_for_migrations, _, _}
-        refute_received {:lock_for_migrations, _, _}
+        assert_receive {:lock_for_migrations, _, _, _}
+        refute_received {:lock_for_migrations, _, _, _}
+      end
+    end
+  end
+
+  describe "migration options" do
+    setup do
+      put_test_adapter_config(test_process: self())
+      Process.put(:migrated_versions, [{15, nil}])
+    end
+
+    test "skip schema migrations table creation" do
+      in_tmp fn path ->
+        create_migration "15_sample.exs"
+
+        expected_result = [{:up, 15, "sample"}]
+        assert migrations(TestRepo, path, skip_table_creation: true) == expected_result
+
+        assert_receive {:lock_for_migrations, _, _, [skip_table_creation: true]}
+        refute_received {:lock_for_migrations, _, _, _}
+
+        assert match?(nil, last_command())
+      end
+    end
+
+    test "default to create schema migrations table" do
+      in_tmp fn path ->
+        create_migration "15_sample.exs"
+
+        expected_result = [{:up, 15, "sample"}]
+        assert migrations(TestRepo, path) == expected_result
+
+        assert_receive {:lock_for_migrations, _, _, []}
+        refute_received {:lock_for_migrations, _, _, _}
+
+        assert match?({:create_if_not_exists, %_{name: :schema_migrations}, _}, last_command())
       end
     end
   end
@@ -750,4 +820,6 @@ defmodule Ecto.MigratorTest do
       refute Process.get(:stopped)
     end
   end
+
+  defp last_command(), do: Process.get(:last_command)
 end

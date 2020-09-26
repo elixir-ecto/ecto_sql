@@ -12,11 +12,11 @@ defmodule Ecto.Migration.Runner do
   @doc """
   Runs the given migration.
   """
-  def run(repo, version, module, direction, operation, migrator_direction, opts) do
+  def run(repo, config, version, module, direction, operation, migrator_direction, opts) do
     level = Keyword.get(opts, :log, :info)
     sql = Keyword.get(opts, :log_sql, false)
     log = %{level: level, sql: sql}
-    args  = {self(), repo, module, direction, migrator_direction, log}
+    args  = {self(), repo, config, module, direction, migrator_direction, log}
 
     {:ok, runner} = DynamicSupervisor.start_child(Ecto.MigratorSupervisor, {__MODULE__, args})
     metadata(runner, opts)
@@ -39,7 +39,7 @@ defmodule Ecto.Migration.Runner do
   @doc """
   Starts the runner for the specified repo.
   """
-  def start_link({parent, repo, module, direction, migrator_direction, log}) do
+  def start_link({parent, repo, config, module, direction, migrator_direction, log}) do
     Agent.start_link(fn ->
       Process.link(parent)
 
@@ -52,7 +52,7 @@ defmodule Ecto.Migration.Runner do
         subcommands: [],
         log: log,
         commands: [],
-        config: repo.config()
+        config: config
       }
     end)
   end
@@ -273,20 +273,20 @@ defmodule Ecto.Migration.Runner do
     if function_exported?(repo, :in_transaction?, 0) and repo.in_transaction?() do
       if function_exported?(module, :after_begin, 0) do
         module.after_begin()
+        flush()
       end
 
-      result = apply(module, operation, [])
+      apply(module, operation, [])
+      flush()
 
       if function_exported?(module, :before_commit, 0) do
         module.before_commit()
+        flush()
       end
-
-      result
     else
       apply(module, operation, [])
+      flush()
     end
-
-    flush()
   end
 
   defp runner do

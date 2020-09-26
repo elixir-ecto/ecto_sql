@@ -541,13 +541,13 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = "comments" |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
     assert all(query) ==
            ~s{SELECT c0.`x` FROM `comments` AS c0 } <>
-           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` AS `id` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)))}
+           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)))}
 
     posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([p], p.id))
     query = "comments" |> from(as: :comment) |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
     assert all(query) ==
            ~s{SELECT c0.`x` FROM `comments` AS c0 } <>
-           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` AS `id` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)))}
+           ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)))}
   end
 
   test "having" do
@@ -1008,8 +1008,8 @@ defmodule Ecto.Adapters.MyXQLTest do
                 {:add, :token, :binary, [size: 20, null: false]},
                 {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                 {:add, :on_hand, :integer, [default: 0, null: true]},
-                {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
-                {:add, :published_at, :"datetime(6)", [null: true]},
+                {:add, :likes, "smallint unsigned", [default: 0, null: false]},
+                {:add, :published_at, "datetime(6)", [null: true]},
                 {:add, :is_active, :boolean, [default: true]}]}
 
     assert execute_ddl(create) == ["""
@@ -1193,6 +1193,19 @@ defmodule Ecto.Adapters.MyXQLTest do
     """ |> remove_newlines]
   end
 
+  test "create table with an unsupported type" do
+    create = {:create, table(:posts),
+              [
+                {:add, :a, {:a, :b, :c}, [default: %{}]}
+              ]
+            }
+    assert_raise ArgumentError,
+                 "unsupported type `{:a, :b, :c}`. " <>
+                 "The type can either be an atom, a string or a tuple of the form " <>
+                 "`{:map, t}` where `t` itself follows the same conditions.",
+                 fn -> execute_ddl(create) end
+  end
+
   test "drop table" do
     drop = {:drop, table(:posts)}
     assert execute_ddl(drop) == [~s|DROP TABLE `posts`|]
@@ -1326,8 +1339,18 @@ defmodule Ecto.Adapters.MyXQLTest do
       assert execute_ddl(create)
     end
 
+    assert_raise ArgumentError, "MySQL adapter does not support check constraints", fn ->
+      create = {:create, constraint(:products, "foo", check: "price", validate: false)}
+      assert execute_ddl(create)
+    end
+
     assert_raise ArgumentError, "MySQL adapter does not support exclusion constraints", fn ->
       create = {:create, constraint(:products, "bar", exclude: "price")}
+      assert execute_ddl(create)
+    end
+
+    assert_raise ArgumentError, "MySQL adapter does not support exclusion constraints", fn ->
+      create = {:create, constraint(:products, "bar", exclude: "price", validate: false)}
       assert execute_ddl(create)
     end
   end

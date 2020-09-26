@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Ecto.Load do
         "load structure for #{inspect(repo)}"
       )
 
-      {migration_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo)
+      {migration_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo, repo.config())
       {:ok, loaded?, _} = Ecto.Migrator.with_repo(migration_repo, &table_exists?.(&1, source))
 
       for repo <- Enum.uniq([repo, migration_repo]) do

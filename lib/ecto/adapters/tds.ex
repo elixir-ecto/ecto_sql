@@ -40,7 +40,7 @@ defmodule Ecto.Adapters.Tds do
 
   ### After connect flags
 
-  After connectiong to MSSQL server, TDS will check if there are any flags set in
+  After connecting to MSSQL server, TDS will check if there are any flags set in
   connection options that should affect connection session behaviour. All flags are
   MSSQL standard *SET* options. The following flags are currently supported:
 
@@ -148,7 +148,6 @@ defmodule Ecto.Adapters.Tds do
 
   @doc false
   @impl true
-  def loaders({:embed, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
   def loaders({:map, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
   def loaders(:map, type), do: [&json_decode/1, type]
   def loaders(:boolean, type), do: [&bool_decode/1, type]
@@ -156,7 +155,6 @@ defmodule Ecto.Adapters.Tds do
   def loaders(_, type), do: [type]
 
   @impl true
-  def dumpers({:embed, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers(:binary_id, type), do: [type, Tds.Ecto.UUID]
   def dumpers(_, type), do: [type]

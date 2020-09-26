@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
     * `--no-compile` - does not compile applications before running
 
-    * `--no-deps-check` - does not check depedendencies before running
+    * `--no-deps-check` - does not check dependencies before running
 
     * `--migrations-path` - the path to load the migrations from, defaults to
       `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations

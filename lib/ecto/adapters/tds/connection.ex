@@ -1125,6 +1125,10 @@ if Code.ensure_loaded?(Tds) do
       error!(nil, msg)
     end
 
+    def execute_ddl({:create, %Constraint{validate: false}}) do
+      error!(nil, "`:validate` is not supported by the Tds adapter")
+    end
+
     def execute_ddl({:create, %Constraint{} = constraint}) do
       table_name = quote_table(constraint.prefix, constraint.table)
 
@@ -1618,9 +1622,18 @@ if Code.ensure_loaded?(Tds) do
       "#{Atom.to_string(other)}(#{precision},#{scale || 0})"
     end
 
-    defp ecto_to_db(other, nil, nil, nil, _) do
-      Atom.to_string(other)
+    defp ecto_to_db(atom, nil, nil, nil, _) when is_atom(atom) do
+      Atom.to_string(atom)
     end
+
+    defp ecto_to_db(str, nil, nil, nil, _)  when is_binary(str), do: str
+
+    defp ecto_to_db(type, _, _, _, _) do
+      raise ArgumentError,
+            "unsupported type `#{inspect(type)}`. The type can either be an atom, a string " <>
+              "or a tuple of the form `{:map, t}` where `t` itself follows the same conditions."
+    end
+
 
     defp error!(nil, message) do
       raise ArgumentError, message

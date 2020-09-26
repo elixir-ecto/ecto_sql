@@ -236,9 +236,9 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_default_prefix: "my_prefix"
 
-    * `:migration_repo` - Ecto defaults to the repository that is being configured. The
-      migration repository is where the table managing the migrations will be stored
-      (`migration_source` defines the table name). You can configure the repository via:
+    * `:migration_repo` - The migration repository is where the table managing the
+      migrations will be stored (`migration_source` defines the table name). It defaults
+      to the given repository itself but you can configure it via:
 
           config :app, App.Repo, migration_repo: App.MigrationRepo
 
@@ -284,7 +284,7 @@ defmodule Ecto.Migration do
   ## Transaction Callbacks
 
   If possible, each migration runs inside a transaction. This is true for Postgres,
-  but not true for MySQL, as the later does not support DDL transactions.
+  but not true for MySQL, as the latter does not support DDL transactions.
 
   In some rare cases, you may need to execute some common behavior after beginning
   a migration transaction, or before commiting that transaction. For instance, one
@@ -390,9 +390,9 @@ defmodule Ecto.Migration do
 
     To define a constraint in a migration, see `Ecto.Migration.constraint/3`.
     """
-    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil, comment: nil
+    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil, comment: nil, validate: true
     @type t :: %__MODULE__{name: atom, table: String.t, prefix: atom | nil,
-                           check: String.t | nil, exclude: String.t | nil, comment: String.t | nil}
+                           check: String.t | nil, exclude: String.t | nil, comment: String.t | nil, validate: boolean}
   end
 
   defmodule Command do
@@ -782,6 +782,13 @@ defmodule Ecto.Migration do
   @doc """
   Executes arbitrary SQL, anonymous function or a keyword command.
 
+  The argument is typically a string, containing the SQL command to be executed.
+  Keyword commands exist for non-SQL adapters and are not used in most situations.
+
+  Supplying an anonymous function does allow for arbitrary code to execute as
+  part of the migration. This is most often used in combination with `repo/0`
+  by library authors who want to create high-level migration helpers.
+
   Reversible commands can be defined by calling `execute/2`.
 
   ## Examples
@@ -790,7 +797,9 @@ defmodule Ecto.Migration do
 
       execute create: "posts", capped: true, size: 1024
 
-      execute(fn -> repo().query!("select 'Anonymous function query …';", [], [log: :info]) end)
+      execute(fn -> repo().query!("SELECT $1::integer + $2", [40, 2], [log: :info]) end)
+
+      execute(fn -> repo().update_all("posts", set: [published: true]) end)
   """
   def execute(command) when is_binary(command) or is_function(command, 0) or is_list(command) do
     Runner.execute command
@@ -804,6 +813,8 @@ defmodule Ecto.Migration do
   a PostgreSQL extension. The `execute/2` form avoids having to define
   separate `up/0` and `down/0` blocks that each contain an `execute/1`
   expression.
+
+  The allowed parameters are explained in `execute/1`.
 
   ## Examples
 
@@ -1154,6 +1165,9 @@ defmodule Ecto.Migration do
     * `:check` - A check constraint expression. Required when creating a check constraint.
     * `:exclude` - An exclusion constraint expression. Required when creating an exclusion constraint.
     * `:prefix` - The prefix for the table.
+    * `:validate` - Whether or not to validate the constraint on creation (true by default). Only
+       available in PostgreSQL, and should be followed by a command to validate the foreign key in
+       a following migration if false.
 
   """
   def constraint(table, name, opts \\ [])

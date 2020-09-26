@@ -7,10 +7,22 @@ defmodule Ecto.Integration.SandboxTest do
 
   import ExUnit.CaptureLog
 
+  Application.put_env(:ecto_sql, __MODULE__.DynamicRepo, Application.get_env(:ecto_sql, TestRepo))
+
+  defmodule DynamicRepo do
+    use Ecto.Repo, otp_app: :ecto_sql, adapter: TestRepo.__adapter__()
+  end
+
   describe "errors" do
-    test "raises if repo is not started or not exist" do
-      assert_raise RuntimeError, ~r"could not lookup Ecto repo UnknownRepo because it was not started", fn ->
+    test "raises if repo doesn't exist" do
+      assert_raise UndefinedFunctionError, ~r"function UnknownRepo.get_dynamic_repo/0 is undefined", fn ->
         Sandbox.mode(UnknownRepo, :manual)
+      end
+    end
+    
+    test "raises if repo is not started" do
+      assert_raise RuntimeError, ~r"could not lookup Ecto repo #{inspect DynamicRepo} because it was not started", fn ->
+        Sandbox.mode(DynamicRepo, :manual)
       end
     end
 
@@ -81,6 +93,34 @@ defmodule Ecto.Integration.SandboxTest do
       assert Task.async(fn -> TestRepo.all(Post) end) |> Task.await == []
     after
       Sandbox.mode(TestRepo, :manual)
+    end
+    
+    test "works with a dynamic repo" do
+      repo_pid = start_supervised!({DynamicRepo, name: nil})
+      DynamicRepo.put_dynamic_repo(repo_pid)
+      
+      assert Sandbox.mode(DynamicRepo, :manual) == :ok
+      
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        DynamicRepo.all(Post)
+      end
+      
+      Sandbox.checkout(DynamicRepo)
+      assert DynamicRepo.all(Post) == []
+    end
+
+    test "works with a repo pid" do
+      repo_pid = start_supervised!({DynamicRepo, name: nil})
+      DynamicRepo.put_dynamic_repo(repo_pid)
+
+      assert Sandbox.mode(repo_pid, :manual) == :ok
+
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        DynamicRepo.all(Post)
+      end
+
+      Sandbox.checkout(repo_pid)
+      assert DynamicRepo.all(Post) == []
     end
   end
 

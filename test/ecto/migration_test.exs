@@ -18,10 +18,9 @@ defmodule Ecto.MigrationTest do
 
   setup meta do
     direction = meta[:direction] || :forward
-
-    {:ok, runner} =
-      Runner.start_link({self(), TestRepo, __MODULE__, direction, :up, %{level: false, sql: false}})
-
+    log = %{level: false, sql: false}
+    args = {self(), TestRepo, TestRepo.config(), __MODULE__, direction, :up, log}
+    {:ok, runner} = Runner.start_link(args)
     Runner.metadata(runner, meta)
     {:ok, runner: runner}
   end
@@ -80,6 +79,8 @@ defmodule Ecto.MigrationTest do
   test "creates a reference" do
     assert references(:posts) ==
            %Reference{table: "posts", column: :id, type: :bigserial}
+    assert references(:posts, type: :identity) ==
+           %Reference{table: "posts", column: :id, type: :identity}
     assert references("posts") ==
            %Reference{table: "posts", column: :id, type: :bigserial}
     assert references(:posts, type: :uuid, column: :other) ==
@@ -100,6 +101,12 @@ defmodule Ecto.MigrationTest do
            %Reference{table: "posts", column: :id, type: :binary_id}
   end
 
+  @tag repo_config: [migration_primary_key: [type: :identity]]
+  test "creates a reference with a foreign key type of identity" do
+    assert references(:posts) ==
+           %Reference{table: "posts", column: :id, type: :identity}
+  end
+
   test "creates a reference without validating" do
     assert references(:posts, validate: false) ==
       %Reference{table: "posts", column: :id, type: :bigserial, validate: false}
@@ -107,13 +114,21 @@ defmodule Ecto.MigrationTest do
 
   test "creates a constraint" do
     assert constraint(:posts, :price_is_positive, check: "price > 0") ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0"}
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: true}
     assert constraint("posts", :price_is_positive, check: "price > 0") ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0"}
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: true}
     assert constraint(:posts, :exclude_price, exclude: "price") ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price"}
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
     assert constraint("posts", :exclude_price, exclude: "price") ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price"}
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
+    assert constraint(:posts, :price_is_positive, check: "price > 0", validate: false) ==
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: false}
+    assert constraint("posts", :price_is_positive, check: "price > 0", validate: false) ==
+           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: false}
+    assert constraint(:posts, :exclude_price, exclude: "price", validate: false) ==
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
+    assert constraint("posts", :exclude_price, exclude: "price", validate: false) ==
+           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
   end
 
   test "runs a reversible command" do

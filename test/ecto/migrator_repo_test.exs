@@ -79,7 +79,7 @@ defmodule Ecto.MigratorRepoTest do
         up(MainRepo, 0, Migration)
 
         assert_receive {:transaction, %{repo: MainRepo}, _}
-        assert_receive {:lock_for_migrations, %{repo: MigrationRepo}, _}
+        assert_receive {:lock_for_migrations, %{repo: MigrationRepo}, _, _}
       end
     end
   end

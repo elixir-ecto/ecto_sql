@@ -135,7 +135,7 @@ defmodule Ecto.Integration.Case do
 
   setup context do
     level = Map.get(context, :isolation_level, :read_committed)
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo, [isolation_level: level])
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(TestRepo, isolation_level: level)
   end
 end
 
