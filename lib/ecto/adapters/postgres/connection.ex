@@ -122,7 +122,7 @@ if Code.ensure_loaded?(Postgrex) do
       offset = offset(query, sources)
       lock = lock(query, sources)
 
-      [cte, select, from, join, where, group_by, having, window, combinations, order_by, limit, offset | lock]
+      [cte, select, from, join, where, group_by, having, window, combinations, order_by, offset, limit | lock]
     end
 
     @impl true
@@ -508,12 +508,12 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp limit(%{limit: nil}, _sources), do: []
     defp limit(%{limit: %QueryExpr{expr: expr}} = query, sources) do
-      [" LIMIT " | expr(expr, sources, query)]
+      [" FETCH NEXT ", expr(expr, sources, query), " ROW ONLY"]
     end
 
     defp offset(%{offset: nil}, _sources), do: []
     defp offset(%{offset: %QueryExpr{expr: expr}} = query, sources) do
-      [" OFFSET " | expr(expr, sources, query)]
+      [" OFFSET (", expr(expr, sources, query), ")"]
     end
 
     defp combinations(%{combinations: combinations}) do

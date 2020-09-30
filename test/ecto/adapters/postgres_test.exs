@@ -207,7 +207,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert update_all(query) ==
       ~s{WITH "target_rows" AS } <>
-      ~s{(SELECT s0."id" AS "id" FROM "schema" AS s0 ORDER BY s0."id" LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{(SELECT s0."id" AS "id" FROM "schema" AS s0 ORDER BY s0."id" FETCH NEXT 10 ROW ONLY FOR UPDATE SKIP LOCKED) } <>
       ~s{UPDATE "schema" AS s0 } <>
       ~s{SET "x" = 123 } <>
       ~s{FROM "target_rows" AS t1 } <>
@@ -228,7 +228,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert delete_all(query) ==
       ~s{WITH "target_rows" AS } <>
-      ~s{(SELECT s0."id" AS "id" FROM "schema" AS s0 ORDER BY s0."id" LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{(SELECT s0."id" AS "id" FROM "schema" AS s0 ORDER BY s0."id" FETCH NEXT 10 ROW ONLY FOR UPDATE SKIP LOCKED) } <>
       ~s{DELETE FROM "schema" AS s0 } <>
       ~s{USING "target_rows" AS t1 } <>
       ~s{WHERE (t1."id" = s0."id") } <>
@@ -358,17 +358,17 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert all(query) ==
              ~s{SELECT s0."x" FROM "schema" AS s0 } <>
-               ~s{UNION (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" LIMIT 40 OFFSET 20) } <>
-               ~s{UNION (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
+               ~s{UNION (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" OFFSET (20) FETCH NEXT 40 ROW ONLY) } <>
+               ~s{UNION (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" OFFSET (30) FETCH NEXT 60 ROW ONLY) } <>
+               ~s{ORDER BY rand OFFSET (10) FETCH NEXT 5 ROW ONLY}
 
     query = base_query |> union_all(^union_query1) |> union_all(^union_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0."x" FROM "schema" AS s0 } <>
-               ~s{UNION ALL (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" LIMIT 40 OFFSET 20) } <>
-               ~s{UNION ALL (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
+               ~s{UNION ALL (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" OFFSET (20) FETCH NEXT 40 ROW ONLY) } <>
+               ~s{UNION ALL (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" OFFSET (30) FETCH NEXT 60 ROW ONLY) } <>
+               ~s{ORDER BY rand OFFSET (10) FETCH NEXT 5 ROW ONLY}
   end
 
   test "except and except all" do
@@ -380,17 +380,17 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert all(query) ==
              ~s{SELECT s0."x" FROM "schema" AS s0 } <>
-               ~s{EXCEPT (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" LIMIT 40 OFFSET 20) } <>
-               ~s{EXCEPT (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
+               ~s{EXCEPT (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" OFFSET (20) FETCH NEXT 40 ROW ONLY) } <>
+               ~s{EXCEPT (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" OFFSET (30) FETCH NEXT 60 ROW ONLY) } <>
+               ~s{ORDER BY rand OFFSET (10) FETCH NEXT 5 ROW ONLY}
 
     query = base_query |> except_all(^except_query1) |> except_all(^except_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0."x" FROM "schema" AS s0 } <>
-               ~s{EXCEPT ALL (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" LIMIT 40 OFFSET 20) } <>
-               ~s{EXCEPT ALL (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
+               ~s{EXCEPT ALL (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" OFFSET (20) FETCH NEXT 40 ROW ONLY) } <>
+               ~s{EXCEPT ALL (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" OFFSET (30) FETCH NEXT 60 ROW ONLY) } <>
+               ~s{ORDER BY rand OFFSET (10) FETCH NEXT 5 ROW ONLY}
   end
 
   test "intersect and intersect all" do
@@ -402,29 +402,29 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert all(query) ==
              ~s{SELECT s0."x" FROM "schema" AS s0 } <>
-               ~s{INTERSECT (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" LIMIT 40 OFFSET 20) } <>
-               ~s{INTERSECT (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
+               ~s{INTERSECT (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" OFFSET (20) FETCH NEXT 40 ROW ONLY) } <>
+               ~s{INTERSECT (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" OFFSET (30) FETCH NEXT 60 ROW ONLY) } <>
+               ~s{ORDER BY rand OFFSET (10) FETCH NEXT 5 ROW ONLY}
 
     query =
       base_query |> intersect_all(^intersect_query1) |> intersect_all(^intersect_query2) |> plan()
 
     assert all(query) ==
              ~s{SELECT s0."x" FROM "schema" AS s0 } <>
-               ~s{INTERSECT ALL (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" LIMIT 40 OFFSET 20) } <>
-               ~s{INTERSECT ALL (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" LIMIT 60 OFFSET 30) } <>
-               ~s{ORDER BY rand LIMIT 5 OFFSET 10}
+               ~s{INTERSECT ALL (SELECT s0."y" FROM "schema" AS s0 ORDER BY s0."y" OFFSET (20) FETCH NEXT 40 ROW ONLY) } <>
+               ~s{INTERSECT ALL (SELECT s0."z" FROM "schema" AS s0 ORDER BY s0."z" OFFSET (30) FETCH NEXT 60 ROW ONLY) } <>
+               ~s{ORDER BY rand OFFSET (10) FETCH NEXT 5 ROW ONLY}
   end
 
   test "limit and offset" do
     query = Schema |> limit([r], 3) |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 LIMIT 3}
+    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 FETCH NEXT 3 ROW ONLY}
 
     query = Schema |> offset([r], 5) |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 OFFSET 5}
+    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 OFFSET (5)}
 
     query = Schema |> offset([r], 5) |> limit([r], 3) |> select([], true) |> plan()
-    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 LIMIT 3 OFFSET 5}
+    assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 OFFSET (5) FETCH NEXT 3 ROW ONLY}
   end
 
   test "lock" do
@@ -669,7 +669,7 @@ defmodule Ecto.Adapters.PostgresTest do
       "GROUP BY $9, $10 HAVING ($11) AND ($12) " <>
       "UNION (SELECT s0.\"id\", $13 FROM \"schema1\" AS s0 WHERE ($14)) " <>
       "UNION ALL (SELECT s0.\"id\", $15 FROM \"schema2\" AS s0 WHERE ($16)) " <>
-      "ORDER BY $17 LIMIT $18 OFFSET $19"
+      "ORDER BY $17 OFFSET ($19) FETCH NEXT $18 ROW ONLY"
 
     assert all(query) == String.trim(result)
   end
