@@ -99,6 +99,9 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = subquery("posts" |> select([r], %{x: r.x, z: r.y})) |> select([r], r) |> plan()
     assert all(query) == ~s{SELECT s0.`x`, s0.`z` FROM (SELECT sp0.`x` AS `x`, sp0.`y` AS `z` FROM `posts` AS sp0) AS s0}
+
+    query = subquery(subquery("posts" |> select([r], %{x: r.x, z: r.y})) |> select([r], r)) |> select([r], r) |> plan()
+    assert all(query) == ~s{SELECT s0.`x`, s0.`z` FROM (SELECT ss0.`x` AS `x`, ss0.`z` AS `z` FROM (SELECT ssp0.`x` AS `x`, ssp0.`y` AS `z` FROM `posts` AS ssp0) AS ss0) AS s0}
   end
 
   test "CTE" do

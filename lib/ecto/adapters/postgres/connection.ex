@@ -100,7 +100,7 @@ if Code.ensure_loaded?(Postgrex) do
       Postgrex.stream(conn, sql, params, opts)
     end
 
-    @parent_as 0
+    @parent_as __MODULE__
     alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
 
     @impl true
@@ -606,7 +606,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
       query = put_in(query.aliases[@parent_as], sources)
-      [?(, all(query, [?s]), ?)]
+      [?(, all(query, subquery_as_prefix(sources)), ?)]
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
@@ -764,8 +764,12 @@ if Code.ensure_loaded?(Postgrex) do
       [create_name(sources, pos, as_prefix) | create_names(sources, pos + 1, limit, as_prefix)]
     end
 
-    defp create_names(_sources, pos, pos, _as_prefix) do
-      []
+    defp create_names(_sources, pos, pos, as_prefix) do
+      [as_prefix]
+    end
+
+    defp subquery_as_prefix(sources) do
+      [?s | :erlang.element(tuple_size(sources), sources)]
     end
 
     defp create_name(sources, pos, as_prefix) do

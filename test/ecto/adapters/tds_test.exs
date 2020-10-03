@@ -120,26 +120,54 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert all(query) ==
              ~s{SELECT s0.[x], s0.[z] FROM (SELECT sp0.[x] AS [x], sp0.[y] AS [z] FROM [posts] AS sp0) AS s0}
+
+    query =
+      subquery(subquery("posts" |> select([r], %{x: r.x, z: r.y})) |> select([r], r))
+      |> select([r], r)
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x], s0.[z] FROM (SELECT ss0.[x] AS [x], ss0.[z] AS [z] FROM (SELECT ssp0.[x] AS [x], ssp0.[y] AS [z] FROM [posts] AS ssp0) AS ss0) AS s0}
   end
 
   test "join with subquery" do
     posts = subquery("posts" |> where(title: ^"hello") |> select([r], %{x: r.x, y: r.y}))
-    query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p.x) |> plan()
+
+    query =
+      "comments"
+      |> join(:inner, [c], p in subquery(posts), on: true)
+      |> select([_, p], p.x)
+      |> plan()
+
     assert all(query) ==
-            "SELECT s1.[x] FROM [comments] AS c0 " <>
-            "INNER JOIN (SELECT sp0.[x] AS [x], sp0.[y] AS [y] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)) AS s1 ON 1 = 1"
+             "SELECT s1.[x] FROM [comments] AS c0 " <>
+               "INNER JOIN (SELECT sp0.[x] AS [x], sp0.[y] AS [y] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)) AS s1 ON 1 = 1"
 
     posts = subquery("posts" |> where(title: ^"hello") |> select([r], %{x: r.x, z: r.y}))
-    query = "comments" |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p) |> plan()
-    assert all(query) ==
-           "SELECT s1.[x], s1.[z] FROM [comments] AS c0 " <>
-           "INNER JOIN (SELECT sp0.[x] AS [x], sp0.[y] AS [z] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)) AS s1 ON 1 = 1"
 
-    posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([r], r.title))
-    query = "comments" |> from(as: :comment) |> join(:inner, [c], p in subquery(posts)) |> select([_, p], p) |> plan()
+    query =
+      "comments"
+      |> join(:inner, [c], p in subquery(posts), on: true)
+      |> select([_, p], p)
+      |> plan()
+
     assert all(query) ==
-           "SELECT s1.[title] FROM [comments] AS c0 " <>
-           "INNER JOIN (SELECT sp0.[title] AS [title] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])) AS s1 ON 1 = 1"
+             "SELECT s1.[x], s1.[z] FROM [comments] AS c0 " <>
+               "INNER JOIN (SELECT sp0.[x] AS [x], sp0.[y] AS [z] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)) AS s1 ON 1 = 1"
+
+    posts =
+      subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([r], r.title))
+
+    query =
+      "comments"
+      |> from(as: :comment)
+      |> join(:inner, [c], p in subquery(posts))
+      |> select([_, p], p)
+      |> plan()
+
+    assert all(query) ==
+             "SELECT s1.[title] FROM [comments] AS c0 " <>
+               "INNER JOIN (SELECT sp0.[title] AS [title] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])) AS s1 ON 1 = 1"
   end
 
   test "CTE" do
@@ -605,15 +633,23 @@ defmodule Ecto.Adapters.TdsTest do
   test "in subquery" do
     posts = subquery("posts" |> where(title: ^"hello") |> select([p], p.id))
     query = "comments" |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+
     assert all(query) ==
-           ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
-           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)))}
+             ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
+               ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] FROM [posts] AS sp0 WHERE (sp0.[title] = @1)))}
 
     posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([p], p.id))
-    query = "comments" |> from(as: :comment) |> where([c], c.post_id in subquery(posts)) |> select([c], c.x) |> plan()
+
+    query =
+      "comments"
+      |> from(as: :comment)
+      |> where([c], c.post_id in subquery(posts))
+      |> select([c], c.x)
+      |> plan()
+
     assert all(query) ==
-           ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
-           ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])))}
+             ~s{SELECT c0.[x] FROM [comments] AS c0 } <>
+               ~s{WHERE (c0.[post_id] IN (SELECT sp0.[id] FROM [posts] AS sp0 WHERE (sp0.[title] = c0.[subtitle])))}
   end
 
   test "having" do
@@ -1142,15 +1178,16 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "create table with an unsupported type" do
-    create = {:create, table(:posts),
-              [
-                {:add, :a, {:a, :b, :c}, [default: %{}]}
-              ]
-            }
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :a, {:a, :b, :c}, [default: %{}]}
+       ]}
+
     assert_raise ArgumentError,
                  "unsupported type `{:a, :b, :c}`. " <>
-                 "The type can either be an atom, a string or a tuple of the form " <>
-                 "`{:map, t}` where `t` itself follows the same conditions.",
+                   "The type can either be an atom, a string or a tuple of the form " <>
+                   "`{:map, t}` where `t` itself follows the same conditions.",
                  fn -> execute_ddl(create) end
   end
 
@@ -1228,7 +1265,9 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "alter table with invalid reference opts" do
-    alter = {:alter, table(:posts), [{:add, :author_id, %Reference{table: :author, validate: false}, []}]}
+    alter =
+      {:alter, table(:posts),
+       [{:add, :author_id, %Reference{table: :author, validate: false}, []}]}
 
     assert_raise ArgumentError, "validate: false on references is not supported in Tds", fn ->
       execute_ddl(alter)
@@ -1254,7 +1293,9 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "create check constraint with invalid validate opts" do
-    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0", validate: false)}
+    create =
+      {:create,
+       constraint(:products, "price_must_be_positive", check: "price > 0", validate: false)}
 
     assert_raise ArgumentError, "`:validate` is not supported by the Tds adapter", fn ->
       execute_ddl(create)
