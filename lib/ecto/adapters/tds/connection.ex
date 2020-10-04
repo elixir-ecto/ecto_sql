@@ -4,6 +4,7 @@ if Code.ensure_loaded?(Tds) do
     require Logger
     alias Tds.Query
     alias Ecto.Query.Tagged
+    alias Ecto.Adapters.SQL
     require Ecto.Schema
 
     @behaviour Ecto.Adapters.SQL.Connection
@@ -299,8 +300,28 @@ if Code.ensure_loaded?(Tds) do
     end
 
     @impl true
-    def explain_query(_conn, _query, _params, _opts) do
-      raise Tds.Error, "EXPLAIN is not supported by Ecto.Adapters.TDS at the moment"
+    def explain_query(conn, query, params, opts) do
+      params = prepare_params(params)
+
+      case Tds.query_multi(conn, build_explain_query(query), params, opts) do
+        {:ok, [_, %Tds.Result{} = result, _]} ->
+          {:ok, SQL.format_table(result)}
+
+        error ->
+          error
+      end
+    end
+
+    def build_explain_query(query) do
+      [
+        "SET STATISTICS XML ON; ",
+        "SET STATISTICS PROFILE ON; ",
+        query,
+        "; ",
+        "SET STATISTICS XML OFF; ",
+        "SET STATISTICS PROFILE OFF;"
+      ]
+      |> IO.iodata_to_binary()
     end
 
     ## Query generation

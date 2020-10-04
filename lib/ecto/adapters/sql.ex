@@ -447,6 +447,74 @@ defmodule Ecto.Adapters.SQL do
     query!(adapter_meta, query, params, []).num_rows != 0
   end
 
+
+  @doc """
+  Returns a formatted table for a given query `result`.
+
+
+  ## Examples
+
+      iex> Ecto.Adapters.SQL.format_table(query) |> IO.puts()
+      +---------------+---------+--------+
+      | title         | counter | public |
+      +---------------+---------+--------+
+      | My Post Title |       1 | NULL   |
+      +---------------+---------+--------+
+
+  """
+  @spec format_table(%{columns: [String.t] | nil, rows: [term()] | nil}) :: String.t
+  def format_table(result)
+
+  def format_table(nil), do: ""
+  def format_table(%{columns: nil}), do: ""
+  def format_table(%{columns: []}), do: ""
+  def format_table(%{columns: columns, rows: nil}), do: format_table(%{columns: columns, rows: []})
+
+  def format_table(%{columns: columns, rows: rows}) do
+    column_widths =
+      [columns | rows]
+      |> List.zip()
+      |> Enum.map(&Tuple.to_list/1)
+      |> Enum.map(fn column_with_rows ->
+        column_with_rows |> Enum.map(&binary_length/1) |> Enum.max()
+      end)
+
+    [
+      separator(column_widths),
+      "\n",
+      cells(columns, column_widths),
+      "\n",
+      separator(column_widths),
+      "\n",
+      Enum.map(rows, &cells(&1, column_widths) ++ ["\n"]),
+      separator(column_widths)
+    ]
+    |> IO.iodata_to_binary()
+  end
+
+
+  defp binary_length(nil), do: 4 # NULL
+  defp binary_length(binary) when is_binary(binary), do: String.length(binary)
+  defp binary_length(other), do: other |> inspect() |> String.length()
+
+  defp separator(widths) do
+    Enum.map(widths, & [?+, ?-, String.duplicate("-", &1), ?-]) ++ [?+]
+  end
+
+  defp cells(items, widths) do
+    cell =
+      [items, widths]
+      |> List.zip()
+      |> Enum.map(fn {item, width} -> [?|, " ", format_item(item, width) , " "] end)
+
+    [cell | [?|]]
+  end
+
+  defp format_item(nil, width), do: String.pad_trailing("NULL", width)
+  defp format_item(item, width) when is_binary(item), do: String.pad_trailing(item, width)
+  defp format_item(item, width) when is_number(item), do: item |> inspect() |> String.pad_leading(width)
+  defp format_item(item, width), do: item |> inspect() |> String.pad_trailing(width)
+
   ## Callbacks
 
   @doc false
