@@ -127,4 +127,28 @@ defmodule Ecto.Integration.SQLTest do
   test "returns false table doesn't exists" do
     refute Ecto.Adapters.SQL.table_exists?(TestRepo, "unknown")
   end
+
+  test "returns result as a formatted table" do
+    TestRepo.insert_all(Post, [%{title: "my post title", counter: 1, public: nil}])
+
+    # resolve correct query for each adapter
+    query = from(p in Post, select: [p.title, p.counter, p.public])
+    {query, _} = Ecto.Adapters.SQL.to_sql(:all, TestRepo, query)
+
+    table =
+      query
+      |> TestRepo.query!()
+      |> Ecto.Adapters.SQL.format_table()
+
+    assert table == "+---------------+---------+--------+\n| title         | counter | public |\n+---------------+---------+--------+\n| my post title |       1 | NULL   |\n+---------------+---------+--------+"
+  end
+
+  test "format_table edge cases" do
+    assert Ecto.Adapters.SQL.format_table(nil) == ""
+    assert Ecto.Adapters.SQL.format_table(%{columns: nil, rows: nil}) == ""
+    assert Ecto.Adapters.SQL.format_table(%{columns: [], rows: []}) == ""
+    assert Ecto.Adapters.SQL.format_table(%{columns: [], rows: [["test"]]}) == ""
+    assert Ecto.Adapters.SQL.format_table(%{columns: ["test"], rows: []}) == "+------+\n| test |\n+------+\n+------+"
+    assert Ecto.Adapters.SQL.format_table(%{columns: ["test"], rows: nil}) == "+------+\n| test |\n+------+\n+------+"
+  end
 end

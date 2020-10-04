@@ -1,6 +1,8 @@
 if Code.ensure_loaded?(MyXQL) do
   defmodule Ecto.Adapters.MyXQL.Connection do
     @moduledoc false
+    alias Ecto.Adapters.SQL
+
     @behaviour Ecto.Adapters.SQL.Connection
 
     ## Connection
@@ -212,8 +214,8 @@ if Code.ensure_loaded?(MyXQL) do
     # See Notes at https://dev.mysql.com/doc/refman/5.7/en/explain.html
     def explain_query(conn, query, params, opts) do
       case query(conn, build_explain_query(query), params, opts) do
-        {:ok, %MyXQL.Result{columns: columns, rows: rows}} ->
-          {:ok, format_result_as_table(columns, rows)}
+        {:ok, %MyXQL.Result{} = result} ->
+          {:ok, SQL.format_table(result)}
 
         error ->
           error
@@ -224,50 +226,6 @@ if Code.ensure_loaded?(MyXQL) do
       ["EXPLAIN ", query]
       |> IO.iodata_to_binary()
     end
-
-    defp format_result_as_table(columns, rows) do
-      column_widths =
-        [columns | rows]
-        |> List.zip()
-        |> Enum.map(&Tuple.to_list/1)
-        |> Enum.map(fn column_with_rows ->
-          column_with_rows |> Enum.map(&binary_length/1) |> Enum.max()
-        end)
-
-      [
-        separator(column_widths),
-        "\n",
-        cells(columns, column_widths),
-        "\n",
-        separator(column_widths),
-        "\n",
-        Enum.map(rows, &cells(&1, column_widths) ++ ["\n"]),
-        separator(column_widths)
-      ]
-      |> IO.iodata_to_binary()
-    end
-
-    defp binary_length(nil), do: 4 # NULL
-    defp binary_length(binary) when is_binary(binary), do: String.length(binary)
-    defp binary_length(other), do: other |> inspect() |> String.length()
-
-    defp separator(widths) do
-      Enum.map(widths, & [?+, ?-, String.duplicate("-", &1), ?-]) ++ [?+]
-    end
-
-    defp cells(items, widths) do
-      cell =
-        [items, widths]
-        |> List.zip()
-        |> Enum.map(fn {item, width} -> [?|, " ", format_item(item, width) , " "] end)
-
-      [cell | [?|]]
-    end
-
-    defp format_item(nil, width), do: String.pad_trailing("NULL", width)
-    defp format_item(item, width) when is_binary(item), do: String.pad_trailing(item, width)
-    defp format_item(item, width) when is_number(item), do: item |> inspect() |> String.pad_leading(width)
-    defp format_item(item, width), do: item |> inspect() |> String.pad_trailing(width)
 
     ## Query generation
 
