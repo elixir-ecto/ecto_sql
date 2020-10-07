@@ -1048,7 +1048,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
     defp default_type(literal, _type) when is_binary(literal) do
       if :binary.match(literal, <<0>>) == :nomatch and String.valid?(literal) do
-        [?', escape_string(literal), ?']
+        single_quote(literal)
       else
         encoded = "\\x" <> Base.encode16(literal, case: :lower)
         raise ArgumentError, "default values are interpolated as UTF-8 strings and cannot contain null bytes. " <>
