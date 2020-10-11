@@ -200,6 +200,9 @@ defmodule Ecto.Adapters.Postgres do
 
       {:ok, result} =
         transaction(meta, opts, fn ->
+          # SHARE UPDATE EXCLUSIVE MODE is the first lock that locks
+          # itself but still allows updates to happen, see
+          # # https://www.postgresql.org/docs/9.4/explicit-locking.html
           source = Keyword.get(adapter_opts, :migration_source, "schema_migrations")
           {:ok, _} = Ecto.Adapters.SQL.query(meta, "LOCK TABLE \"#{source}\" IN SHARE UPDATE EXCLUSIVE MODE", [], opts)
           fun.()
