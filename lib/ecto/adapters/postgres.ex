@@ -189,7 +189,7 @@ defmodule Ecto.Adapters.Postgres do
 
   @impl true
   def lock_for_migrations(meta, opts, fun) do
-    %{opts: adapter_opts, repo: repo} = meta
+    %{opts: adapter_opts} = meta
 
     if Keyword.get(adapter_opts, :migration_lock, true) do
       if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
