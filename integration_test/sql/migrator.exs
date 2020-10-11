@@ -81,11 +81,9 @@ defmodule Ecto.Integration.MigratorTest do
     assert up(PoolRepo, 33, AnotherSchemaMigration, log: false) == :ok
     assert migrated_versions(PoolRepo) == [33]
 
-    assert capture_log(fn ->
-      catch_error(up(PoolRepo, 34, GoodMigration, log: false, prefix: "bad_schema_migrations"))
-      catch_error(PoolRepo.all("good_migration"))
-      catch_error(PoolRepo.all("good_migration", prefix: "bad_schema_migrations"))
-    end) =~ "Could not update schema migrations"
+    catch_error(up(PoolRepo, 34, GoodMigration, log: false, prefix: "bad_schema_migrations"))
+    catch_error(PoolRepo.all("good_migration"))
+    catch_error(PoolRepo.all("good_migration", prefix: "bad_schema_migrations"))
 
     assert down(PoolRepo, 33, AnotherSchemaMigration, log: false) == :ok
   end

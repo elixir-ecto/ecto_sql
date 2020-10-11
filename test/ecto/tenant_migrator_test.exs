@@ -31,7 +31,7 @@ defmodule Ecto.TenantMigratorTest do
   end
 
   setup do
-    Process.put(:migrated_versions, [{1, nil}, {2, nil}, {3, nil}])
+    {:ok, _} = start_supervised({MigrationsAgent, [{1, nil}, {2, nil}, {3, nil}]})
     :ok
   end
 

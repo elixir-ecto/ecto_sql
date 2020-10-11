@@ -276,23 +276,27 @@ defmodule Ecto.Adapters.Tds do
     true
   end
 
-  @doc false
-  def lock_for_migrations(meta, query, opts, fun) do
-    %{opts: adapter_opts} = meta
+  @impl true
+  def lock_for_migrations(meta, opts, fun) do
+    %{opts: adapter_opts, repo: repo} = meta
 
-    if lock = Keyword.get(adapter_opts, :migration_lock, "UPDLOCK") do
+    if Keyword.get(adapter_opts, :migration_lock, true) do
       if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
-        Ecto.Adapters.SQL.raise_pool_size_error()
+        Ecto.Adapters.SQL.raise_migration_pool_size_error()
       end
 
+      opts = opts ++ [log: false, timeout: :infinity]
+
       {:ok, result} =
-        transaction(meta, opts ++ [log: false, timeout: :infinity], fn ->
-          fun.(put_in(query.from.hints, [lock]))
+        transaction(meta, opts, fn ->
+          lock_name = "'ecto_#{inspect(repo)}'"
+          Ecto.Adapters.SQL.query!(meta, "sp_getapplock @Resource = #{lock_name}, @LockMode = 'Exclusive'", [], opts)
+          fun.()
         end)
 
       result
     else
-      fun.(query)
+      fun.()
     end
   end
 end

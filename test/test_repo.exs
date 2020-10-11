@@ -1,3 +1,23 @@
+defmodule MigrationsAgent do
+  use Agent
+
+  def start_link(versions) do
+    Agent.start_link(fn -> versions end, name: __MODULE__)
+  end
+
+  def get do
+    Agent.get(__MODULE__, & &1)
+  end
+
+  def up(version, opts) do
+    Agent.update(__MODULE__, &[{version, opts[:prefix]} | &1])
+  end
+
+  def down(version, opts) do
+    Agent.update(__MODULE__, &List.delete(&1, {version, opts[:prefix]}))
+  end
+end
+
 defmodule EctoSQL.TestAdapter do
   @behaviour Ecto.Adapter
   @behaviour Ecto.Adapter.Queryable
@@ -33,17 +53,18 @@ defmodule EctoSQL.TestAdapter do
   # Migration emulation
 
   def execute(_, _, {:nocache, {:all, %{from: %{source: {"schema_migrations", _}}}}}, _, _) do
-    {length(migrated_versions()), Enum.map(migrated_versions(), &[elem(&1, 0)])}
+    versions = MigrationsAgent.get()
+    {length(versions), Enum.map(versions, &[elem(&1, 0)])}
   end
 
   def execute(_, _meta, {:nocache, {:delete_all, %{from: %{source: {"schema_migrations", _}}}}}, [version], opts) do
-    Process.put(:migrated_versions, List.delete(migrated_versions(), {version, opts[:prefix]}))
+    MigrationsAgent.down(version, opts)
     {1, nil}
   end
 
   def insert(_, %{source: "schema_migrations"}, val, _, _, opts) do
     version = Keyword.fetch!(val, :version)
-    Process.put(:migrated_versions, [{version, opts[:prefix]} | migrated_versions()])
+    MigrationsAgent.up(version, opts)
     {:ok, []}
   end
 
@@ -59,18 +80,14 @@ defmodule EctoSQL.TestAdapter do
 
   ## Migrations
 
-  def lock_for_migrations(mod, query, opts, fun) do
+  def lock_for_migrations(mod, opts, fun) do
     send test_process(), {:lock_for_migrations, mod, fun, opts}
-    fun.(query)
+    fun.()
   end
 
   def execute_ddl(_, command, _) do
     Process.put(:last_command, command)
     {:ok, []}
-  end
-
-  defp migrated_versions do
-    Process.get(:migrated_versions, [])
   end
 
   def supports_ddl_transaction? do
