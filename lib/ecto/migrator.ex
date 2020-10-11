@@ -423,6 +423,9 @@ defmodule Ecto.Migrator do
         end
       end
 
+    # The lock above already created the table, so we can now skip it.
+    opts = Keyword.put(opts, :skip_table_creation, true)
+
     ensure_no_duplication!(pending)
     migrate(Enum.map(pending, &load_migration!/1), direction, repo, opts)
   end
@@ -499,7 +502,6 @@ defmodule Ecto.Migrator do
 
       all_opts = [prefix: opts[:prefix], timeout: :infinity, log: false]
       {migration_repo, query} = SchemaMigration.versions(repo, config)
-      callback = &fun.(config, migration_repo.all(&1, all_opts))
 
       result =
         if should_lock? do
@@ -508,9 +510,16 @@ defmodule Ecto.Migrator do
           meta_repo = if migration_repo != repo, do: migration_repo, else: dynamic_repo
           meta = Ecto.Adapter.lookup_meta(meta_repo)
 
-          migration_repo.__adapter__().lock_for_migrations(meta, query, opts, callback)
+          migration_repo.__adapter__().lock_for_migrations(meta, query, opts, fn locked_query ->
+            # Lock all entries
+            _ = migration_repo.all(locked_query, all_opts)
+
+            # Once we have locked all results, do another query
+            # to pick anything that has been added meanwhile
+            fun.(config, migration_repo.all(query, all_opts))
+          end)
         else
-          callback.(query)
+          fun.(config, migration_repo.all(query, all_opts))
         end
 
       case result do
