@@ -2,6 +2,9 @@ defmodule Ecto.Integration.Migration do
   use Ecto.Migration
 
   def change do
+    # IO.puts "TESTING MIGRATION LOCK"
+    # Process.sleep(10000)
+
     create table(:users, comment: "users table") do
       add :name, :string, comment: "name column"
       add :custom_id, :uuid

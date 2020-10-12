@@ -227,9 +227,9 @@ defmodule Ecto.Migration do
 
     * `:migration_lock` - By default, Ecto will lock the migration table. This allows
       multiple nodes to attempt to run migrations at the same time but only one will
-      succeed. You can disable the `migration_lock` by setting it to `nil`:
+      succeed. You can disable the `migration_lock` by setting it to `false`
 
-          config :app, App.Repo, migration_lock: nil
+          config :app, App.Repo, migration_lock: false
 
     * `:migration_default_prefix` - Ecto defaults to `nil` for the database prefix for
       migrations, but you can configure it via:

@@ -189,9 +189,10 @@ defmodule Ecto.MigratorTest do
   end
 
   Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
+  @moduletag migrated_versions: [{1, nil}, {2, nil}, {3, nil}]
 
-  setup do
-    Process.put(:migrated_versions, [{1, nil}, {2, nil}, {3, nil}])
+  setup context do
+    {:ok, _} = start_supervised({MigrationsAgent, context.migrated_versions})
     :ok
   end
 
@@ -271,7 +272,7 @@ defmodule Ecto.MigratorTest do
       :ok = up(TestRepo, 10, ChangeMigration, prefix: :custom)
     end)
 
-    assert [{10, :custom} | _] = Process.get(:migrated_versions)
+    assert [{10, :custom} | _] = MigrationsAgent.get()
 
     Process.put(:repo_default_options, [prefix: nil])
 
@@ -279,13 +280,13 @@ defmodule Ecto.MigratorTest do
       :ok = up(TestRepo, 11, ChangeMigration, prefix: :custom)
     end)
 
-    assert [{11, :custom} | _] = Process.get(:migrated_versions)
+    assert [{11, :custom} | _] = MigrationsAgent.get()
 
     capture_log(fn ->
       :already_up = up(TestRepo, 11, ChangeMigration, prefix: :custom)
     end)
 
-    assert [{11, :custom} | _] = Process.get(:migrated_versions)
+    assert [{11, :custom} | _] = MigrationsAgent.get()
   end
 
   test "logs migrations" do
@@ -420,9 +421,11 @@ defmodule Ecto.MigratorTest do
   end
 
   describe "migration options" do
+    @describetag migrated_versions: [{15, nil}]
+
     setup do
       put_test_adapter_config(test_process: self())
-      Process.put(:migrated_versions, [{15, nil}])
+      :ok
     end
 
     test "skip schema migrations table creation" do

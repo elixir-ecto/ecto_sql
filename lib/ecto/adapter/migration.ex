@@ -56,7 +56,7 @@ defmodule Ecto.Adapter.Migration do
 
   It returns the result of calling the given function with a list of versions.
   """
-  @callback lock_for_migrations(adapter_meta, Ecto.Query.t(), options :: Keyword.t(), fun) ::
+  @callback lock_for_migrations(adapter_meta, options :: Keyword.t(), fun) ::
               result
-            when fun: (Ecto.Query.t() -> result), result: var
+            when fun: (() -> result), result: var
 end

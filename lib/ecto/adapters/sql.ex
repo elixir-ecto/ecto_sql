@@ -59,10 +59,6 @@ defmodule Ecto.Adapters.SQL do
 
     * `:driver` (required) - the database driver library.
       For example: `:postgrex`
-    * `:migration_lock` - the lock to use on migration locks.
-      For example: "FOR UPDATE". It may also be `nil` (for no lock).
-      The user can still override this by setting `:migration_lock`
-      in the repository configuration
 
   """
 
@@ -80,7 +76,6 @@ defmodule Ecto.Adapters.SQL do
       opts = unquote(opts)
       @conn __MODULE__.Connection
       @driver Keyword.fetch!(opts, :driver)
-      @migration_lock Keyword.get(opts, :migration_lock)
 
       @impl true
       defmacro __before_compile__(env) do
@@ -196,14 +191,9 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.execute_ddl(meta, @conn, definition, opts)
       end
 
-      @impl true
-      def lock_for_migrations(meta, query, opts, fun) do
-        Ecto.Adapters.SQL.lock_for_migrations(meta, query, opts, @migration_lock, fun)
-      end
-
       defoverridable [prepare: 2, execute: 5, insert: 6, update: 6, delete: 4, insert_all: 7,
                       execute_ddl: 3, loaders: 2, dumpers: 2, autogenerate: 1,
-                      ensure_all_started: 2, lock_for_migrations: 4, __before_compile__: 1]
+                      ensure_all_started: 2, __before_compile__: 1]
     end
   end
 
@@ -842,27 +832,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
-  def lock_for_migrations(meta, query, opts, migration_lock, fun) do
-    %{opts: adapter_opts} = meta
-
-    if lock = Keyword.get(adapter_opts, :migration_lock, migration_lock) do
-      if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
-        raise_pool_size_error()
-      end
-
-      {:ok, result} =
-        transaction(meta, opts ++ [log: false, timeout: :infinity], fn ->
-          query |> Map.put(:lock, lock) |> fun.()
-        end)
-
-      result
-    else
-      fun.(query)
-    end
-  end
-
-  @doc false
-  def raise_pool_size_error do
+  def raise_migration_pool_size_error do
     raise Ecto.MigrationError, """
     Migrations failed to run because the connection pool size is less than 2.
 
