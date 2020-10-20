@@ -1477,8 +1477,14 @@ if Code.ensure_loaded?(Tds) do
 
     defp quote_table(nil, name), do: quote_table(name)
 
+    defp quote_table({server, db, schema}, name),
+      do: [quote_table(server), ".", quote_table(db), ".", quote_table(schema), ".", quote_table(name)]
+
+    defp quote_table({db, schema}, name),
+      do: [quote_table(db), ".", quote_table(schema), ".", quote_table(name)]
+
     defp quote_table(prefix, name),
-      do: Enum.map_join([quote_table(prefix), ".", quote_table(name)], "", &"#{&1}")
+      do: [quote_table(prefix), ".", quote_table(name)]
 
     defp quote_table(name) when is_atom(name), do: quote_table(Atom.to_string(name))
 
