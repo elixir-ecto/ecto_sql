@@ -1059,7 +1059,8 @@ defmodule Ecto.Adapters.MyXQLTest do
                 {:add, :category_2, %Reference{table: :categories, on_delete: :nothing}, []},
                 {:add, :category_3, %Reference{table: :categories, on_delete: :delete_all}, [null: false]},
                 {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
-                {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all}, []}]}
+                {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all}, []},
+                {:add, :category_6, %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []}]}
 
     assert execute_ddl(create) == ["""
     CREATE TABLE `posts` (`id` bigint unsigned not null auto_increment,
@@ -1075,6 +1076,8 @@ defmodule Ecto.Adapters.MyXQLTest do
     CONSTRAINT `posts_category_4_fkey` FOREIGN KEY (`category_4`) REFERENCES `categories`(`id`) ON DELETE SET NULL,
     `category_5` BIGINT UNSIGNED,
     CONSTRAINT `posts_category_5_fkey` FOREIGN KEY (`category_5`) REFERENCES `foo`.`categories`(`id`) ON DELETE SET NULL,
+    `category_6` BIGINT UNSIGNED,
+    CONSTRAINT `posts_category_6_fkey` FOREIGN KEY (`category_6`,`here`) REFERENCES `categories`(`id`,`there`) ON DELETE SET NULL,
     PRIMARY KEY (`id`)) ENGINE = INNODB
     """ |> remove_newlines]
   end
@@ -1102,7 +1105,7 @@ defmodule Ecto.Adapters.MyXQLTest do
                 {:add, :name, :string, []}]}
 
     assert execute_ddl(create) == ["""
-    CREATE TABLE `posts` (`a` integer, `b` integer, `name` varchar(255), PRIMARY KEY (`a`, `b`)) ENGINE = INNODB
+    CREATE TABLE `posts` (`a` integer, `b` integer, `name` varchar(255), PRIMARY KEY (`a`,`b`)) ENGINE = INNODB
     """ |> remove_newlines]
   end
 

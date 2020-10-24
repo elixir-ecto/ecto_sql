@@ -141,7 +141,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     def insert(prefix, table, header, rows, on_conflict, []) do
-      fields = intersperse_map(header, ?,, &quote_name/1)
+      fields = quote_names(header)
       ["INSERT INTO ", quote_table(prefix, table), " (", fields, ") VALUES ",
        insert_all(rows) | on_conflict(on_conflict, header)]
     end
@@ -794,7 +794,7 @@ if Code.ensure_loaded?(MyXQL) do
 
       case pks do
         [] -> []
-        _  -> [[prefix, "PRIMARY KEY (", intersperse_map(pks, ", ", &quote_name/1), ?)]]
+        _  -> [[prefix, "PRIMARY KEY (", quote_names(pks), ?)]]
       end
     end
 
@@ -923,26 +923,28 @@ if Code.ensure_loaded?(MyXQL) do
       end
     end
 
-    defp constraint_expr(%Reference{} = ref, table, name),
-      do: [", ADD CONSTRAINT ", reference_name(ref, table, name),
-           " FOREIGN KEY (", quote_name(name), ?),
-           " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
-           ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+    defp reference_expr(type, ref, table, name) do
+      {current_columns, reference_columns} = Enum.unzip([{name, ref.column} | ref.with])
 
-    defp constraint_if_not_exists_expr(%Reference{} = ref, table, name),
-      do: [", ADD CONSTRAINT ", reference_name(ref, table, name),
-           " FOREIGN KEY IF NOT EXISTS (", quote_name(name), ?),
-           " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
-           ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+      if ref.match do
+        error!(nil, ":match is not supported in references for tds")
+      end
+
+      ["CONSTRAINT ", reference_name(ref, table, name),
+       " ", type, " (", quote_names(current_columns), ?),
+       " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
+       ?(, quote_names(reference_columns), ?),
+       reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+    end
 
     defp reference_expr(%Reference{} = ref, table, name),
-      do: [", CONSTRAINT ", reference_name(ref, table, name),
-           " FOREIGN KEY (", quote_name(name), ?),
-           " REFERENCES ", quote_table(ref.prefix || table.prefix, ref.table),
-           ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update)]
+      do: [", " | reference_expr("FOREIGN KEY", ref, table, name)]
+
+    defp constraint_expr(%Reference{} = ref, table, name),
+      do: [", ADD " | reference_expr("FOREIGN KEY", ref, table, name)]
+
+    defp constraint_if_not_exists_expr(%Reference{} = ref, table, name),
+      do: [", ADD " | reference_expr("FOREIGN KEY IF NOT EXISTS", ref, table, name)]
 
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP FOREIGN KEY ", reference_name(ref, table, name), ", "]
@@ -980,9 +982,9 @@ if Code.ensure_loaded?(MyXQL) do
       {expr || expr(source, sources, query), name}
     end
 
-    defp quote_name(name)
     defp quote_name(name) when is_atom(name),
       do: quote_name(Atom.to_string(name))
+
     defp quote_name(name) do
       if String.contains?(name, "`") do
         error!(nil, "bad field name #{inspect name}")
@@ -990,6 +992,8 @@ if Code.ensure_loaded?(MyXQL) do
 
       [?`, name, ?`]
     end
+
+    defp quote_names(names), do: intersperse_map(names, ?,, &quote_name/1)
 
     defp quote_table(nil, name),    do: quote_table(name)
     defp quote_table(prefix, name), do: [quote_table(prefix), ?., quote_table(name)]

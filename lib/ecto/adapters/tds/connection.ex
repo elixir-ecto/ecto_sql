@@ -209,7 +209,7 @@ if Code.ensure_loaded?(Tds) do
           [
             ?\s,
             ?(,
-            intersperse_map(header, ", ", &quote_name/1),
+            quote_names(header),
             ?),
             returning,
             " VALUES " | insert_all(rows, 1)
@@ -432,9 +432,9 @@ if Code.ensure_loaded?(Tds) do
     defp cte_header(%Ecto.Query{select: %{fields: fields}} = query, _) do
       [
         " (",
-        intersperse_map(fields, ", ", fn
+        intersperse_map(fields, ",", fn
           {key, _} ->
-            [quote_name(key)]
+            quote_name(key)
 
           other ->
             error!(
@@ -1194,7 +1194,7 @@ if Code.ensure_loaded?(Tds) do
           []
 
         _ ->
-          [prefix, "PRIMARY KEY CLUSTERED (#{intersperse_map(pks, ", ", &quote_name/1)})"]
+          [prefix, "PRIMARY KEY CLUSTERED (", quote_names(pks), ?)]
       end
     end
 
@@ -1419,13 +1419,19 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp constraint_expr(%Reference{} = ref, table, name) do
+      {current_columns, reference_columns} = Enum.unzip([{name, ref.column} | ref.with])
+
+      if ref.match do
+        error!(nil, ":match is not supported in references for tds")
+      end
+
       [
         " CONSTRAINT ",
         reference_name(ref, table, name),
-        " FOREIGN KEY (#{quote_name(name)})",
+        " FOREIGN KEY (#{quote_names(current_columns)})",
         " REFERENCES ",
         quote_table(ref.prefix || table.prefix, ref.table),
-        "(#{quote_name(ref.column)})",
+        "(#{quote_names(reference_columns)})",
         reference_on_delete(ref.on_delete),
         reference_on_update(ref.on_update)
       ]
@@ -1433,7 +1439,6 @@ if Code.ensure_loaded?(Tds) do
 
     defp reference_expr(%Reference{} = ref, table, name) do
       [",", constraint_expr(ref, table, name)]
-      |> Enum.map_join("", &"#{&1}")
     end
 
     defp reference_name(%Reference{name: nil}, table, column),
@@ -1474,6 +1479,8 @@ if Code.ensure_loaded?(Tds) do
 
       "[#{name}]"
     end
+
+    defp quote_names(names), do: intersperse_map(names, ?,, &quote_name/1)
 
     defp quote_table(nil, name), do: quote_table(name)
 
