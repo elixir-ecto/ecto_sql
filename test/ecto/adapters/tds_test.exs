@@ -89,6 +89,16 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) == ~s{SELECT s0.[binary] FROM [foo].[schema3] AS s0}
   end
 
+  test "from with 2-part prefix" do
+    query = Schema |> select([r], r.x) |> Map.put(:prefix, {"database", "db_schema"}) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [database].[db_schema].[schema] AS s0}
+  end
+
+  test "from with 3-part prefix" do
+    query = Schema |> select([r], r.x) |> Map.put(:prefix, {"server", "database", "db_schema"}) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] FROM [server].[database].[db_schema].[schema] AS s0}
+  end
+
   test "from without schema" do
     query = "schema" |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0}
