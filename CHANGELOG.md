@@ -1,5 +1,13 @@
 # Changelog for v3.x
 
+## v3.5.2 (2020-10-24)
+
+### Enhancements
+
+  * [migrations] Support `:with` option in `references` for composite foreign keys
+  * [migrations] Support `:match` option in `references`
+  * [tds] Support TDS 3-part and 4-part prefixes
+
 ## v3.5.1 (2020-10-12)
 
 ### Enhancements
