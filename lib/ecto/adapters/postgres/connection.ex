@@ -157,7 +157,7 @@ if Code.ensure_loaded?(Postgrex) do
         if header == [] do
           [" VALUES " | intersperse_map(rows, ?,, fn _ -> "(DEFAULT)" end)]
         else
-          [?\s, ?(, intersperse_map(header, ?,, &quote_name/1), ") VALUES " | insert_all(rows, 1)]
+          [?\s, ?(, quote_names(header), ") VALUES " | insert_all(rows, 1)]
         end
 
       ["INSERT INTO ", quote_table(prefix, table), insert_as(on_conflict),
@@ -188,7 +188,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp conflict_target([]),
       do: []
     defp conflict_target(targets),
-      do: [?(, intersperse_map(targets, ?,, &quote_name/1), ?), ?\s]
+      do: [?(, quote_names(targets), ?), ?\s]
 
     defp replace(fields) do
       ["UPDATE SET " |
@@ -754,7 +754,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp returning([]),
       do: []
     defp returning(returning),
-      do: [" RETURNING " | intersperse_map(returning, ", ", &quote_name/1)]
+      do: [" RETURNING " | quote_names(returning)]
 
     defp create_names(%{sources: sources}, as_prefix) do
       create_names(sources, 0, tuple_size(sources), as_prefix) |> List.to_tuple()
@@ -905,7 +905,7 @@ if Code.ensure_loaded?(Postgrex) do
       {"SELECT true FROM information_schema.tables WHERE table_name = $1 AND table_schema = current_schema() LIMIT 1", [table]}
     end
 
-    # From https://www.postgresql.org/docs/9.3/static/protocol-error-fields.html.
+    # From https://www.postgresql.org/docs/current/protocol-error-fields.html.
     defp ddl_log_level("DEBUG"), do: :debug
     defp ddl_log_level("LOG"), do: :info
     defp ddl_log_level("INFO"), do: :info
@@ -924,7 +924,7 @@ if Code.ensure_loaded?(Postgrex) do
 
       case pks do
         [] -> []
-        _  -> [prefix, "PRIMARY KEY (", intersperse_map(pks, ", ", &quote_name/1), ")"]
+        _  -> [prefix, "PRIMARY KEY (", quote_names(pks), ")"]
       end
     end
 
@@ -954,7 +954,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp column_definition(table, {:add, name, %Reference{} = ref, opts}) do
       [quote_name(name), ?\s, reference_column_type(ref.type, opts),
-       column_options(ref.type, opts), reference_expr(ref, table, name)]
+       column_options(ref.type, opts), ", ", reference_expr(ref, table, name)]
     end
 
     defp column_definition(_table, {:add, name, type, opts}) do
@@ -967,7 +967,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp column_change(table, {:add, name, %Reference{} = ref, opts}) do
       ["ADD COLUMN ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
-       column_options(ref.type, opts), reference_expr(ref, table, name)]
+       column_options(ref.type, opts), ", ADD ", reference_expr(ref, table, name)]
     end
 
     defp column_change(_table, {:add, name, type, opts}) do
@@ -977,7 +977,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
       ["ADD COLUMN IF NOT EXISTS ", quote_name(name), ?\s, reference_column_type(ref.type, opts),
-       column_options(ref.type, opts), reference_expr(ref, table, name)]
+       column_options(ref.type, opts), ", ADD ", reference_expr(ref, table, name)]
     end
 
     defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
@@ -986,23 +986,25 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
-      [drop_constraint_expr(opts[:from], table, name), "ALTER COLUMN ", quote_name(name), " TYPE ", reference_column_type(ref.type, opts),
-       constraint_expr(ref, table, name), modify_null(name, opts), modify_default(name, ref.type, opts)]
+      [drop_reference_expr(opts[:from], table, name), "ALTER COLUMN ", quote_name(name),
+      " TYPE ", reference_column_type(ref.type, opts),
+       ", ADD ", reference_expr(ref, table, name),
+       modify_null(name, opts), modify_default(name, ref.type, opts)]
     end
 
     defp column_change(table, {:modify, name, type, opts}) do
-      [drop_constraint_expr(opts[:from], table, name), "ALTER COLUMN ", quote_name(name), " TYPE ",
+      [drop_reference_expr(opts[:from], table, name), "ALTER COLUMN ", quote_name(name), " TYPE ",
        column_type(type, opts), modify_null(name, opts), modify_default(name, type, opts)]
     end
 
     defp column_change(_table, {:remove, name}), do: ["DROP COLUMN ", quote_name(name)]
     defp column_change(table, {:remove, name, %Reference{} = ref, _opts}) do
-      [drop_constraint_expr(ref, table, name), "DROP COLUMN ", quote_name(name)]
+      [drop_reference_expr(ref, table, name), "DROP COLUMN ", quote_name(name)]
     end
     defp column_change(_table, {:remove, name, _type, _opts}), do: ["DROP COLUMN ", quote_name(name)]
 
     defp column_change(table, {:remove_if_exists, name, %Reference{} = ref}) do
-      [drop_constraint_if_exists_expr(ref, table, name), "DROP COLUMN IF EXISTS ", quote_name(name)]
+      [drop_reference_if_exists_expr(ref, table, name), "DROP COLUMN IF EXISTS ", quote_name(name)]
     end
     defp column_change(_table, {:remove_if_exists, name, _type}), do: ["DROP COLUMN IF EXISTS ", quote_name(name)]
 
@@ -1135,25 +1137,24 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
-    defp reference_expr(%Reference{} = ref, table, name),
-      do: [" CONSTRAINT ", reference_name(ref, table, name), " REFERENCES ",
-           quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update), validate(ref.validate)]
+    defp reference_expr(%Reference{} = ref, table, name) do
+      {current_columns, reference_columns} = Enum.unzip([{name, ref.column} | ref.with])
 
-    defp constraint_expr(%Reference{} = ref, table, name),
-      do: [", ADD CONSTRAINT ", reference_name(ref, table, name), ?\s,
-           "FOREIGN KEY (", quote_name(name), ") REFERENCES ",
-           quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_name(ref.column), ?),
-           reference_on_delete(ref.on_delete), reference_on_update(ref.on_update), validate(ref.validate)]
+      ["CONSTRAINT ", reference_name(ref, table, name), ?\s,
+       "FOREIGN KEY (", quote_names(current_columns), ") REFERENCES ",
+       quote_table(ref.prefix || table.prefix, ref.table), ?(, quote_names(reference_columns), ?),
+       reference_match(ref.match), reference_on_delete(ref.on_delete),
+       reference_on_update(ref.on_update), validate(ref.validate)]
+    end
 
-    defp drop_constraint_expr(%Reference{} = ref, table, name),
+    defp drop_reference_expr(%Reference{} = ref, table, name),
       do: ["DROP CONSTRAINT ", reference_name(ref, table, name), ", "]
-    defp drop_constraint_expr(_, _, _),
+    defp drop_reference_expr(_, _, _),
       do: []
 
-    defp drop_constraint_if_exists_expr(%Reference{} = ref, table, name),
+    defp drop_reference_if_exists_expr(%Reference{} = ref, table, name),
       do: ["DROP CONSTRAINT IF EXISTS ", reference_name(ref, table, name), ", "]
-    defp drop_constraint_if_exists_expr(_, _, _),
+    defp drop_reference_if_exists_expr(_, _, _),
       do: []
 
     defp reference_name(%Reference{name: nil}, table, column),
@@ -1176,6 +1177,11 @@ if Code.ensure_loaded?(Postgrex) do
     defp reference_on_update(:restrict), do: " ON UPDATE RESTRICT"
     defp reference_on_update(_), do: []
 
+    defp reference_match(nil), do: []
+    defp reference_match(:full), do: " MATCH FULL"
+    defp reference_match(:simple), do: " MATCH SIMPLE"
+    defp reference_match(:partial), do: " MATCH PARTIAL"
+
     defp validate(false), do: " NOT VALID"
     defp validate(_), do: []
 
@@ -1189,6 +1195,10 @@ if Code.ensure_loaded?(Postgrex) do
     defp quote_qualified_name(name, sources, ix) do
       {_, source, _} = elem(sources, ix)
       [source, ?. | quote_name(name)]
+    end
+
+    defp quote_names(names) do
+      intersperse_map(names, ?,, &quote_name/1)
     end
 
     defp quote_name(name) when is_atom(name) do

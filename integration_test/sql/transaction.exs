@@ -100,7 +100,7 @@ defmodule Ecto.Integration.TransactionTest do
     end
   end
 
-  @tag :pk_insert
+  @tag :assigns_id_type
   test "transaction rolls back with reason on aborted transaction" do
     e1 = PoolRepo.insert!(%Trans{num: 13})
 

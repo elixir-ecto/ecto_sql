@@ -202,7 +202,7 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan()
 
     assert all(query) ==
-             ~s{WITH [tree] ([id], [depth]) AS (} <>
+             ~s{WITH [tree] ([id],[depth]) AS (} <>
                ~s{SELECT c0.[id] AS [id], 1 AS [depth] FROM [categories] AS c0 WHERE (c0.[parent_id] IS NULL) } <>
                ~s{UNION ALL } <>
                ~s{(SELECT c0.[id], t1.[depth] + 1 FROM [categories] AS c0 } <>
@@ -241,7 +241,7 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan()
 
     assert all(query) ==
-             ~s{WITH [comments_scope] ([entity_id], [text]) AS (} <>
+             ~s{WITH [comments_scope] ([entity_id],[text]) AS (} <>
                ~s{SELECT c0.[entity_id] AS [entity_id], c0.[text] AS [text] } <>
                ~s{FROM [comments] AS c0 WHERE (c0.[deleted_at] IS NULL)) } <>
                ~s{SELECT p0.[title], c1.[text] } <>
@@ -734,7 +734,7 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan()
 
     result =
-      ~s{WITH [cte1] ([id], [smth]) AS } <>
+      ~s{WITH [cte1] ([id],[smth]) AS } <>
         ~s{(SELECT s0.[id] AS [id], @1 AS [smth] FROM [schema1] AS s0 WHERE (@2)) } <>
         ~s{SELECT s0.[id], @3 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON @4 } <>
         ~s{INNER JOIN [schema2] AS s2 ON @5 } <>
@@ -988,12 +988,12 @@ defmodule Ecto.Adapters.TdsTest do
   test "insert" do
     # prefx, table, header, rows, on_conflict, returning
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [])
-    assert query == ~s{INSERT INTO [schema] ([x], [y]) VALUES (@1, @2)}
+    assert query == ~s{INSERT INTO [schema] ([x],[y]) VALUES (@1, @2)}
 
     query = insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id])
 
     assert query ==
-             ~s{INSERT INTO [schema] ([x], [y]) OUTPUT INSERTED.[id] VALUES (@1, @2),(DEFAULT, @3)}
+             ~s{INSERT INTO [schema] ([x],[y]) OUTPUT INSERTED.[id] VALUES (@1, @2),(DEFAULT, @3)}
 
     query = insert(nil, "schema", [], [[]], {:raise, [], []}, [:id])
     assert query == ~s{INSERT INTO [schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
@@ -1016,7 +1016,7 @@ defmodule Ecto.Adapters.TdsTest do
       )
 
     assert query ==
-             ~s{INSERT INTO [schema] ([x], [y], [z]) VALUES (@1, (SELECT s0.[id] FROM [schema] AS s0), @4),(DEFAULT, DEFAULT, (SELECT s0.[id] FROM [schema] AS s0))}
+             ~s{INSERT INTO [schema] ([x],[y],[z]) VALUES (@1, (SELECT s0.[id] FROM [schema] AS s0), @4),(DEFAULT, DEFAULT, (SELECT s0.[id] FROM [schema] AS s0))}
   end
 
   test "update" do
@@ -1109,7 +1109,8 @@ defmodule Ecto.Adapters.TdsTest do
           [null: false]},
          {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
          {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all},
-          []}
+          []},
+         {:add, :category_6, %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []}
        ]}
 
     assert execute_ddl(create) == [
@@ -1127,6 +1128,8 @@ defmodule Ecto.Adapters.TdsTest do
              CONSTRAINT [posts_category_4_fkey] FOREIGN KEY ([category_4]) REFERENCES [categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
              [category_5] BIGINT,
              CONSTRAINT [posts_category_5_fkey] FOREIGN KEY ([category_5]) REFERENCES [foo].[categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
+             [category_6] BIGINT,
+             CONSTRAINT [posts_category_6_fkey] FOREIGN KEY ([category_6],[here]) REFERENCES [categories]([id],[there]) ON DELETE SET NULL ON UPDATE NO ACTION,
              CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]));
              """
              |> remove_newlines
@@ -1162,7 +1165,7 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl(create) == [
              """
              CREATE TABLE [posts] ([a] integer, [b] integer, [name] nvarchar(255),
-             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([a], [b]));
+             CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([a],[b]));
              """
              |> remove_newlines
              |> Kernel.<>(" ")

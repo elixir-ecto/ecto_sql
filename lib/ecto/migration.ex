@@ -380,8 +380,12 @@ defmodule Ecto.Migration do
 
     To define a reference in a migration, see `Ecto.Migration.references/2`.
     """
-    defstruct name: nil, prefix: nil, table: nil, column: :id, type: :bigserial, on_delete: :nothing, on_update: :nothing, validate: true
-    @type t :: %__MODULE__{table: String.t, prefix: atom | nil, column: atom, type: atom, on_delete: atom, on_update: atom, validate: boolean}
+    defstruct name: nil, prefix: nil, table: nil, column: :id, type: :bigserial,
+              on_delete: :nothing, on_update: :nothing, validate: true,
+              with: [], match: nil
+    @type t :: %__MODULE__{table: String.t, prefix: atom | nil, column: atom, type: atom,
+                           on_delete: atom, on_update: atom, validate: boolean,
+                           with: list, match: atom | nil}
   end
 
   defmodule Constraint do
@@ -657,12 +661,12 @@ defmodule Ecto.Migration do
     * `:where` - specify conditions for a partial index.
     * `:include` - specify fields for a covering index. This is not supported
       by all databases. For more information on PostgreSQL support, please
-      [read the official docs](https://www.postgresql.org/docs/11/indexes-index-only-scans.html).
+      [read the official docs](https://www.postgresql.org/docs/current/indexes-index-only-scans.html).
 
   ## Adding/dropping indexes concurrently
 
   PostgreSQL supports adding/dropping indexes concurrently (see the
-  [docs](http://www.postgresql.org/docs/9.4/static/sql-createindex.html)).
+  [docs](http://www.postgresql.org/docs/current/static/sql-createindex.html)).
   However, this feature does not work well with the transactions used by
   Ecto to guarantee integrity during migrations.
 
@@ -697,7 +701,7 @@ defmodule Ecto.Migration do
 
   For example, PostgreSQL supports several index types like B-tree (the
   default), Hash, GIN, and GiST. More information on index types can be found
-  in the [PostgreSQL docs](http://www.postgresql.org/docs/9.4/static/indexes-types.html).
+  in the [PostgreSQL docs](http://www.postgresql.org/docs/current/indexes-types.html).
 
   ## Partial indexes
 
@@ -709,7 +713,7 @@ defmodule Ecto.Migration do
   to the generated `WHERE` clause as-is.
 
   More information on partial indexes can be found in the [PostgreSQL
-  docs](http://www.postgresql.org/docs/9.4/static/indexes-partial.html).
+  docs](http://www.postgresql.org/docs/current/indexes-partial.html).
 
   ## Examples
 
@@ -1102,6 +1106,13 @@ defmodule Ecto.Migration do
         add :group_id, references("groups")
       end
 
+      create table("categories") do
+        add :group_id, :integer
+        # A composite foreign that points from categories (product_id, group_id)
+        # to products (id, group_id)
+        add :product_id, references("products", with: [group_id: :group_id])
+      end
+
   ## Options
 
     * `:name` - The name of the underlying reference, which defaults to
@@ -1118,6 +1129,11 @@ defmodule Ecto.Migration do
     * `:validate` - Whether or not to validate the foreign key constraint on
        creation or not. Only available in PostgreSQL, and should be followed by
        a command to validate the foreign key in a following migration if false.
+    * `:with` - defines additional keys to the foreign key in order to build
+      a composite primary key
+    * `:match` - select if the match is `:simple`, `:partial`, or `:full`. This is
+      [supported only by PostgreSQL](https://www.postgresql.org/docs/current/sql-createtable.html)
+      at the moment.
 
   """
   def references(table, opts \\ [])

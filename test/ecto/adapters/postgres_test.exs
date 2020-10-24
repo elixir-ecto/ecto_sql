@@ -1206,7 +1206,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert execute_ddl(create) == ["""
     CREATE TABLE "foo"."posts"
-    ("category_0" bigint CONSTRAINT "posts_category_0_fkey" REFERENCES "foo"."categories"("id"))
+    ("category_0" bigint, CONSTRAINT "posts_category_0_fkey" FOREIGN KEY ("category_0") REFERENCES "foo"."categories"("id"))
     """ |> remove_newlines]
   end
 
@@ -1219,7 +1219,7 @@ defmodule Ecto.Adapters.PostgresTest do
               ]}
     assert execute_ddl(create) == [remove_newlines("""
     CREATE TABLE "posts"
-    ("category_0" bigint CONSTRAINT "posts_category_0_fkey" REFERENCES "categories"("id"), "created_at" timestamp, "updated_at" timestamp)
+    ("category_0" bigint, CONSTRAINT "posts_category_0_fkey" FOREIGN KEY ("category_0") REFERENCES "categories"("id"), "created_at" timestamp, "updated_at" timestamp)
     """),
     ~s|COMMENT ON TABLE "posts" IS 'comment'|,
     ~s|COMMENT ON COLUMN "posts"."category_0" IS 'column comment'|,
@@ -1231,7 +1231,7 @@ defmodule Ecto.Adapters.PostgresTest do
               [{:add, :category_0, %Reference{table: :categories}, []}]}
     assert execute_ddl(create) == [remove_newlines("""
     CREATE TABLE "foo"."posts"
-    ("category_0" bigint CONSTRAINT "posts_category_0_fkey" REFERENCES "foo"."categories"("id"))
+    ("category_0" bigint, CONSTRAINT "posts_category_0_fkey" FOREIGN KEY ("category_0") REFERENCES "foo"."categories"("id"))
     """),
     ~s|COMMENT ON TABLE "foo"."posts" IS 'table comment'|]
   end
@@ -1245,7 +1245,7 @@ defmodule Ecto.Adapters.PostgresTest do
               ]}
     assert execute_ddl(create) == [remove_newlines("""
     CREATE TABLE "foo"."posts"
-    ("category_0" bigint CONSTRAINT "posts_category_0_fkey" REFERENCES "foo"."categories"("id"), "created_at" timestamp, "updated_at" timestamp)
+    ("category_0" bigint, CONSTRAINT "posts_category_0_fkey" FOREIGN KEY ("category_0") REFERENCES "foo"."categories"("id"), "created_at" timestamp, "updated_at" timestamp)
     """),
     ~s|COMMENT ON COLUMN "foo"."posts"."category_0" IS 'column comment'|,
     ~s|COMMENT ON COLUMN "foo"."posts"."updated_at" IS 'column comment 2'|]
@@ -1265,22 +1265,26 @@ defmodule Ecto.Adapters.PostgresTest do
                {:add, :category_8, %Reference{table: :categories, on_delete: :nilify_all, on_update: :update_all}, [null: false]},
                {:add, :category_9, %Reference{table: :categories, on_delete: :restrict}, []},
                {:add, :category_10, %Reference{table: :categories, on_update: :restrict}, []},
-               {:add, :category_11, %Reference{table: :categories, prefix: "foo", on_update: :restrict}, []}]}
+               {:add, :category_11, %Reference{table: :categories, prefix: "foo", on_update: :restrict}, []},
+               {:add, :category_12, %Reference{table: :categories, with: [here: :there]}, []},
+               {:add, :category_13, %Reference{table: :categories, on_update: :restrict, with: [here: :there], match: :full}, []},]}
 
     assert execute_ddl(create) == ["""
     CREATE TABLE "posts" ("id" serial,
-    "category_0" bigint CONSTRAINT "posts_category_0_fkey" REFERENCES "categories"("id"),
-    "category_1" bigint CONSTRAINT "foo_bar" REFERENCES "categories"("id"),
-    "category_2" bigint CONSTRAINT "posts_category_2_fkey" REFERENCES "categories"("id"),
-    "category_3" bigint NOT NULL CONSTRAINT "posts_category_3_fkey" REFERENCES "categories"("id") ON DELETE CASCADE,
-    "category_4" bigint CONSTRAINT "posts_category_4_fkey" REFERENCES "categories"("id") ON DELETE SET NULL,
-    "category_5" bigint CONSTRAINT "posts_category_5_fkey" REFERENCES "categories"("id"),
-    "category_6" bigint NOT NULL CONSTRAINT "posts_category_6_fkey" REFERENCES "categories"("id") ON UPDATE CASCADE,
-    "category_7" bigint CONSTRAINT "posts_category_7_fkey" REFERENCES "categories"("id") ON UPDATE SET NULL,
-    "category_8" bigint NOT NULL CONSTRAINT "posts_category_8_fkey" REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    "category_9" bigint CONSTRAINT "posts_category_9_fkey" REFERENCES "categories"("id") ON DELETE RESTRICT,
-    "category_10" bigint CONSTRAINT "posts_category_10_fkey" REFERENCES "categories"("id") ON UPDATE RESTRICT,
-    "category_11" bigint CONSTRAINT "posts_category_11_fkey" REFERENCES "foo"."categories"("id") ON UPDATE RESTRICT,
+    "category_0" bigint, CONSTRAINT "posts_category_0_fkey" FOREIGN KEY ("category_0") REFERENCES "categories"("id"),
+    "category_1" bigint, CONSTRAINT "foo_bar" FOREIGN KEY ("category_1") REFERENCES "categories"("id"),
+    "category_2" bigint, CONSTRAINT "posts_category_2_fkey" FOREIGN KEY ("category_2") REFERENCES "categories"("id"),
+    "category_3" bigint NOT NULL, CONSTRAINT "posts_category_3_fkey" FOREIGN KEY ("category_3") REFERENCES "categories"("id") ON DELETE CASCADE,
+    "category_4" bigint, CONSTRAINT "posts_category_4_fkey" FOREIGN KEY ("category_4") REFERENCES "categories"("id") ON DELETE SET NULL,
+    "category_5" bigint, CONSTRAINT "posts_category_5_fkey" FOREIGN KEY ("category_5") REFERENCES "categories"("id"),
+    "category_6" bigint NOT NULL, CONSTRAINT "posts_category_6_fkey" FOREIGN KEY ("category_6") REFERENCES "categories"("id") ON UPDATE CASCADE,
+    "category_7" bigint, CONSTRAINT "posts_category_7_fkey" FOREIGN KEY ("category_7") REFERENCES "categories"("id") ON UPDATE SET NULL,
+    "category_8" bigint NOT NULL, CONSTRAINT "posts_category_8_fkey" FOREIGN KEY ("category_8") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    "category_9" bigint, CONSTRAINT "posts_category_9_fkey" FOREIGN KEY ("category_9") REFERENCES "categories"("id") ON DELETE RESTRICT,
+    "category_10" bigint, CONSTRAINT "posts_category_10_fkey" FOREIGN KEY ("category_10") REFERENCES "categories"("id") ON UPDATE RESTRICT,
+    "category_11" bigint, CONSTRAINT "posts_category_11_fkey" FOREIGN KEY ("category_11") REFERENCES "foo"."categories"("id") ON UPDATE RESTRICT,
+    "category_12" bigint, CONSTRAINT "posts_category_12_fkey" FOREIGN KEY ("category_12","here") REFERENCES "categories"("id","there"),
+    "category_13" bigint, CONSTRAINT "posts_category_13_fkey" FOREIGN KEY ("category_13","here") REFERENCES "categories"("id","there") MATCH FULL ON UPDATE RESTRICT,
     PRIMARY KEY ("id"))
     """ |> remove_newlines]
   end
@@ -1300,7 +1304,7 @@ defmodule Ecto.Adapters.PostgresTest do
                {:add, :name, :string, []}]}
 
     assert execute_ddl(create) == ["""
-    CREATE TABLE "posts" ("a" integer, "b" integer, "name" varchar(255), PRIMARY KEY ("a", "b"))
+    CREATE TABLE "posts" ("a" integer, "b" integer, "name" varchar(255), PRIMARY KEY ("a","b"))
     """ |> remove_newlines]
   end
 
@@ -1312,7 +1316,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert execute_ddl(create) == ["""
     CREATE TABLE "posts" ("id" bigint GENERATED BY DEFAULT AS IDENTITY,
-    "category_0" bigint CONSTRAINT "posts_category_0_fkey" REFERENCES "categories"("id"),
+    "category_0" bigint, CONSTRAINT "posts_category_0_fkey" FOREIGN KEY ("category_0") REFERENCES "categories"("id"),
     "name" varchar(255),
     PRIMARY KEY ("id"))
     """ |> remove_newlines]
@@ -1493,10 +1497,13 @@ defmodule Ecto.Adapters.PostgresTest do
     assert execute_ddl(alter) == ["""
     ALTER TABLE "posts"
     ADD COLUMN "title" varchar(100) DEFAULT 'Untitled' NOT NULL,
-    ADD COLUMN "author_id" bigint CONSTRAINT "posts_author_id_fkey" REFERENCES "author"("id"),
-    ADD COLUMN "category_id" bigint CONSTRAINT "posts_category_id_fkey" REFERENCES "categories"("id") NOT VALID,
+    ADD COLUMN "author_id" bigint,
+    ADD CONSTRAINT "posts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "author"("id"),
+    ADD COLUMN "category_id" bigint,
+    ADD CONSTRAINT "posts_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "categories"("id") NOT VALID,
     ADD COLUMN IF NOT EXISTS "subtitle" varchar(100) NOT NULL,
-    ADD COLUMN IF NOT EXISTS "editor_id" bigint CONSTRAINT "posts_editor_id_fkey" REFERENCES "editor"("id"),
+    ADD COLUMN IF NOT EXISTS "editor_id" bigint,
+    ADD CONSTRAINT "posts_editor_id_fkey" FOREIGN KEY ("editor_id") REFERENCES "editor"("id"),
     ALTER COLUMN "price" TYPE numeric(8,2),
     ALTER COLUMN "price" DROP NOT NULL,
     ALTER COLUMN "cost" TYPE integer,
@@ -1551,7 +1558,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert execute_ddl(alter) == ["""
     ALTER TABLE "foo"."posts"
-    ADD COLUMN "author_id" bigint CONSTRAINT "posts_author_id_fkey" REFERENCES "foo"."author"("id"),
+    ADD COLUMN "author_id" bigint, ADD CONSTRAINT "posts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "foo"."author"("id"),
     ALTER COLUMN \"permalink_id\" TYPE bigint,
     ADD CONSTRAINT "posts_permalink_id_fkey" FOREIGN KEY ("permalink_id") REFERENCES "foo"."permalinks"("id"),
     ALTER COLUMN "permalink_id" SET NOT NULL

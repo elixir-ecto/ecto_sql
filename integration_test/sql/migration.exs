@@ -133,10 +133,6 @@ defmodule Ecto.Integration.MigrationTest do
       alter table(:alter_fk_posts) do
         modify :alter_fk_user_id, references(:alter_fk_users, on_delete: :nilify_all)
       end
-
-      execute "INSERT INTO alter_fk_users (id) VALUES ('1')"
-      execute "INSERT INTO alter_fk_posts (id, alter_fk_user_id) VALUES ('1', '1')"
-      execute "DELETE FROM alter_fk_users"
     end
 
     def down do
@@ -158,10 +154,6 @@ defmodule Ecto.Integration.MigrationTest do
       alter table(:alter_fk_posts) do
         modify :alter_fk_user_id, references(:alter_fk_users, on_update: :update_all)
       end
-
-      execute "INSERT INTO alter_fk_users (id) VALUES ('1')"
-      execute "INSERT INTO alter_fk_posts (id, alter_fk_user_id) VALUES ('1', '1')"
-      execute "UPDATE alter_fk_users SET id = '2'"
     end
 
     def down do
@@ -229,6 +221,23 @@ defmodule Ecto.Integration.MigrationTest do
       drop table(:ref_migration)
       drop table(:parent1)
       drop table(:parent2)
+    end
+  end
+
+  defmodule CompositeForeignKeyMigration do
+    use Ecto.Migration
+
+    def change do
+      create table(:composite_parent) do
+        add :key_id, :integer
+      end
+
+      create unique_index(:composite_parent, [:id, :key_id])
+
+      create table(:composite_child) do
+        add :parent_key_id, :integer
+        add :parent_id, references(:composite_parent, with: [parent_key_id: :key_id])
+      end
     end
   end
 
@@ -431,7 +440,7 @@ defmodule Ecto.Integration.MigrationTest do
     assert :ok == down(PoolRepo, num, InferredDropIndexMigration, log: false)
   end
 
-  test "supports references", %{migration_number: num} do
+  test "supports on delete", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, OnDeleteMigration, log: false)
 
     parent1 = PoolRepo.insert! Ecto.put_meta(%Parent{}, source: "parent1")
@@ -450,6 +459,18 @@ defmodule Ecto.Integration.MigrationTest do
     assert PoolRepo.all(reader) == []
 
     assert :ok == down(PoolRepo, num, OnDeleteMigration, log: false)
+  end
+
+  test "composite foreign keys", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, CompositeForeignKeyMigration, log: false)
+
+    PoolRepo.insert_all("composite_parent", [[key_id: 2]])
+    assert [id] = PoolRepo.all(from p in "composite_parent", select: p.id)
+
+    catch_error(PoolRepo.insert_all("composite_child", [[parent_id: id, parent_key_id: 1]]))
+    assert {1, nil} = PoolRepo.insert_all("composite_child", [[parent_id: id, parent_key_id: 2]])
+
+    assert :ok == down(PoolRepo, num, CompositeForeignKeyMigration, log: false)
   end
 
   test "rolls back references in change/1", %{migration_number: num} do
@@ -498,7 +519,6 @@ defmodule Ecto.Integration.MigrationTest do
     :ok = down(PoolRepo, num, AlterColumnMigration, log: false)
   end
 
-  @tag :modify_column_with_from
   test "modify column with from", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, AlterColumnFromMigration, log: false)
 
@@ -508,9 +528,8 @@ defmodule Ecto.Integration.MigrationTest do
     :ok = down(PoolRepo, num, AlterColumnFromMigration, log: false)
   end
 
-  @tag :modify_column_with_from
   @tag :alter_primary_key
-  test "modify column with from andd pkey", %{migration_number: num} do
+  test "modify column with from and pkey", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, AlterColumnFromPkeyMigration, log: false)
 
     assert [1] ==
@@ -519,17 +538,31 @@ defmodule Ecto.Integration.MigrationTest do
     :ok = down(PoolRepo, num, AlterColumnFromPkeyMigration, log: false)
   end
 
-  @tag :modify_foreign_key_on_delete
   test "modify foreign key's on_delete constraint", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, AlterForeignKeyOnDeleteMigration, log: false)
+
+    PoolRepo.insert_all("alter_fk_users", [[]])
+    assert [id] = PoolRepo.all from p in "alter_fk_users", select: p.id
+
+    PoolRepo.insert_all("alter_fk_posts", [[alter_fk_user_id: id]])
+    PoolRepo.delete_all("alter_fk_users")
     assert [nil] == PoolRepo.all from p in "alter_fk_posts", select: p.alter_fk_user_id
+
     :ok = down(PoolRepo, num, AlterForeignKeyOnDeleteMigration, log: false)
   end
 
-  @tag :modify_foreign_key_on_update
+  @tag :assigns_id_type
   test "modify foreign key's on_update constraint", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, AlterForeignKeyOnUpdateMigration, log: false)
-    assert [2] == PoolRepo.all from p in "alter_fk_posts", select: p.alter_fk_user_id
+
+    PoolRepo.insert_all("alter_fk_users", [[]])
+    assert [id] = PoolRepo.all from p in "alter_fk_users", select: p.id
+
+    PoolRepo.insert_all("alter_fk_posts", [[alter_fk_user_id: id]])
+    PoolRepo.update_all("alter_fk_users", set: [id: 12345])
+    assert [12345] == PoolRepo.all from p in "alter_fk_posts", select: p.alter_fk_user_id
+
+    PoolRepo.delete_all("alter_fk_posts")
     :ok = down(PoolRepo, num, AlterForeignKeyOnUpdateMigration, log: false)
   end
 

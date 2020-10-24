@@ -8,17 +8,12 @@ ExUnit.start(
     :subquery_aggregates,
     # sql don't have array type
     :array_type,
-    # I'm not sure if this is even possible if we SET IDENTITY_INSERT ON
-    :modify_foreign_key_on_update,
-    :modify_foreign_key_on_delete,
-    # NEXT 4 exclusions: can only be supported with MERGE statement and it is tricky to make it fast
-    :with_conflict_target,
-    :without_conflict_target,
-    :upsert_all,
+    # upserts can only be supported with MERGE statement and it is tricky to make it fast
     :upsert,
-    # I'm not sure why, but if decimal is passed as parameter mssql server will round differently ecto/integration_test/cases/interval.exs:186
+    :upsert_all,
+    # mssql rounds differently than ecto/integration_test/cases/interval.exs
     :uses_msec,
-    # Unique index compares even NULL values for post_id, so below fails inserting permalinks without setting valid post_id
+    # unique index compares even NULL values for post_id, so below fails inserting permalinks without setting valid post_id
     :insert_cell_wise_defaults,
     # MSSQL does not support strings on text fields
     :text_type_as_string,
@@ -45,10 +40,6 @@ ExUnit.start(
     # But I couldn't make it work :(
     :on_replace_nilify,
     :on_replace_update,
-    # This can't be executed since it requires
-    # `SET IDENTITY_INSERT [ [ database_name . ] schema_name . ] table_name  ON`
-    # and after insert we need to turn it on, must be run manually in transaction
-    :pk_insert,
     # Tds allows nested transactions so this will never raise and SQL query should be "BEGIN TRAN"
     :transaction_checkout_raises,
     # JSON_VALUE always returns strings (even for e.g. integers) and returns null for
