@@ -147,13 +147,15 @@ defmodule Ecto.Adapters.Postgres do
     end
   end
 
-  defp concat_if(content, nil, _fun),  do: content
+  defp concat_if(content, nil, _),  do: content
+  defp concat_if(content, false, _),  do: content
   defp concat_if(content, value, fun), do: content <> " " <> fun.(value)
 
   @impl true
   def storage_down(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
-    command  = "DROP DATABASE \"#{database}\""
+    command = "DROP DATABASE \"#{database}\""
+              |> concat_if(opts[:force_drop], fn _ -> "WITH (FORCE)" end)
     maintenance_database = Keyword.get(opts, :maintenance_database, @default_maintenance_database)
     opts = Keyword.put(opts, :database, maintenance_database)
 
