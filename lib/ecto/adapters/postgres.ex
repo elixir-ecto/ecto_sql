@@ -69,7 +69,7 @@ defmodule Ecto.Adapters.Postgres do
     * `:lc_ctype` - the character classification
     * `:dump_path` - where to place dumped structures
     * `:force_drop` - force the database to be dropped even
-      if it has connections to it
+      if it has connections to it (requires PostgreSQL 13+)
 
   ### After connect callback
 
