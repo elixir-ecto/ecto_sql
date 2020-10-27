@@ -68,6 +68,8 @@ defmodule Ecto.Adapters.Postgres do
     * `:lc_collate` - the collation order
     * `:lc_ctype` - the character classification
     * `:dump_path` - where to place dumped structures
+    * `:force_drop` - force the database to be dropped even
+      if it has connections to it
 
   ### After connect callback
 
