@@ -32,16 +32,19 @@ defmodule EctoSQL.TestAdapter do
 
   # Migration emulation
 
-  def execute(_, _, {:nocache, {:all, %{from: %{source: {"schema_migrations", _}}}}}, _, _) do
+  def execute(_, _, {:nocache, {:all, %{from: %{source: {"schema_migrations", _}}}}}, _, opts) do
+    true = opts[:schema_migration]
     {length(migrated_versions()), Enum.map(migrated_versions(), &[elem(&1, 0)])}
   end
 
   def execute(_, _meta, {:nocache, {:delete_all, %{from: %{source: {"schema_migrations", _}}}}}, [version], opts) do
+    true = opts[:schema_migration]
     Process.put(:migrated_versions, List.delete(migrated_versions(), {version, opts[:prefix]}))
     {1, nil}
   end
 
   def insert(_, %{source: "schema_migrations"}, val, _, _, opts) do
+    true = opts[:schema_migration]
     version = Keyword.fetch!(val, :version)
     Process.put(:migrated_versions, [{version, opts[:prefix]} | migrated_versions()])
     {:ok, []}

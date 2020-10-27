@@ -12,7 +12,9 @@ defmodule Ecto.Migration.SchemaMigration do
     timestamps updated_at: false
   end
 
-  @opts [timeout: :infinity, log: false]
+  # The migration flag is used to signal to the repository
+  # we are in a migration operation.
+  @opts [timeout: :infinity, log: false, schema_migration: true]
 
   def ensure_schema_migrations_table!(repo, config, opts) do
     {repo, source} = get_repo_and_source(repo, config)
@@ -29,9 +31,9 @@ defmodule Ecto.Migration.SchemaMigration do
     repo.__adapter__().execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
   end
 
-  def versions(repo, config) do
+  def versions(repo, config, prefix) do
     {repo, source} = get_repo_and_source(repo, config)
-    {repo, from(m in source, select: type(m.version, :integer))}
+    {repo, from(m in source, select: type(m.version, :integer)), [prefix: prefix] ++ @opts}
   end
 
   def up(repo, config, version, prefix) do

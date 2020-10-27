@@ -500,8 +500,7 @@ defmodule Ecto.Migrator do
         end
       end
 
-      all_opts = [prefix: opts[:prefix], timeout: :infinity, log: false]
-      {migration_repo, query} = SchemaMigration.versions(repo, config)
+      {migration_repo, query, all_opts} = SchemaMigration.versions(repo, config, opts[:prefix])
 
       result =
         if should_lock? do
