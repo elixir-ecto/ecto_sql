@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.5.3 (2020-10-27)
+
+### Enhancements
+
+  * [migrations] Pass `:schema_migration` option to repo operations for `prepare_query` checks
+  * [psql] Support `:force_drop` configuration to force a DB to be dropped
+
 ## v3.5.2 (2020-10-24)
 
 ### Enhancements
