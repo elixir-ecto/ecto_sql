@@ -881,8 +881,11 @@ if Code.ensure_loaded?(MyXQL) do
       do: [" DEFAULT ", to_string(literal)]
     defp default_expr({:ok, {:fragment, expr}}),
       do: [" DEFAULT ", expr]
-    defp default_expr({:ok, value}) when is_map(value),
-      do: error!(nil, ":default is not supported for json columns by MySQL")
+    defp default_expr({:ok, value}) when is_map(value) do
+      library = Application.get_env(:myxql, :json_library, Jason)
+      expr = IO.iodata_to_binary(library.encode_to_iodata!(value))
+      [" DEFAULT ", ?(, ?', escape_string(expr), ?', ?)]
+    end
     defp default_expr(:error),
       do: []
 

@@ -1116,9 +1116,9 @@ defmodule Ecto.Adapters.MyXQLTest do
               ]
             }
 
-    assert_raise ArgumentError, ~r/:default is not supported for json columns by MySQL/, fn ->
-      execute_ddl(create)
-    end
+    assert execute_ddl(create) == ["""
+    CREATE TABLE `posts` (`a` json DEFAULT ('{\"baz\":\"boom\",\"foo\":\"bar\"}')) ENGINE = INNODB
+    """ |> remove_newlines]
   end
 
   test "create table with time columns" do
