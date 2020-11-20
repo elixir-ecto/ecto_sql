@@ -932,6 +932,30 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @3))}
   end
 
+  test "inner lateral join with fragment" do
+    query = Schema
+            |> join(:inner_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10))
+            |> select([p, q], {p.id, q.z})
+            |> where([p], p.id > 0 and p.id < ^100)
+            |> plan()
+    assert all(query) ==
+           ~s{SELECT s0.[id], f1.[z] FROM [schema] AS s0 CROSS APPLY } <>
+           ~s{((SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @1)) AS f1 } <>
+           ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @2))}
+  end
+
+  test "left lateral join with fragment" do
+    query = Schema
+            |> join(:left_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10))
+            |> select([p, q], {p.id, q.z})
+            |> where([p], p.id > 0 and p.id < ^100)
+            |> plan()
+    assert all(query) ==
+           ~s{SELECT s0.[id], f1.[z] FROM [schema] AS s0 OUTER APPLY } <>
+           ~s{((SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @1)) AS f1 } <>
+           ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @2))}
+  end
+
   test "join with fragment and on defined" do
     query =
       Schema
