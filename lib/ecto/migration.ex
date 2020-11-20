@@ -141,11 +141,6 @@ defmodule Ecto.Migration do
   type by the various database adapters. For example, `:string` is
   converted to `:varchar`, `:binary` to `:bytea` or `:blob`, and so on.
 
-  Similarly, you can pass any field type supported by your database
-  as long as it maps to an Ecto type. For instance, for an Ecto schema
-  with the field `:string`, the database migration type can be any of
-  `:text`, `:char` or `:varchar` (the default).
-
   In particular, note that:
 
     * the `:string` type in migrations by default has a limit of 255 characters.
@@ -157,10 +152,10 @@ defmodule Ecto.Migration do
       to impose a limit, pass the `:size` option accordingly. In MySQL, passing
       the size option changes the underlying field from "blob" to "varbinary"
 
-  Remember, atoms can contain arbitrary characters by enclosing in
-  double quotes the characters following the colon. So, if you want to use a
-  field type with database-specific options, you can pass atoms containing
-  these options like `:"int unsigned"`, `:"time without time zone"`, etc.
+  Any other type will be given as is to the database. For example, you
+  can use `:text`, `:char`, or `:varchar` as types. Types that have spaces
+  in their names can be wrapped in double quotes, such as `:"int unsigned"`,
+  `:"time without time zone"`, etc.
 
   ## Executing and flushing
 
