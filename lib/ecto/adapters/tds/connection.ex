@@ -484,13 +484,18 @@ if Code.ensure_loaded?(Tds) do
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
             {join, name} = get_source(query, sources, ix, source)
             qual_text = join_qual(qual)
-            join = join || ["(", expr(source, sources, query) | ")"]
+            join = (join && join_expr(qual, join)) || ["(", expr(source, sources, query) | ")"]
             [qual_text, join, " AS ", name, hints(hints) | join_on(qual, expr, sources, query)]
         end)
       ]
     end
 
+    defp join_expr(qual, join) when qual in [:inner_lateral, :left_lateral], do: ["(", join | ")"]
+    defp join_expr(_qual, join), do: join
+
     defp join_on(:cross, true, _sources, _query), do: []
+    defp join_on(:inner_lateral, true, _sources, _query), do: []
+    defp join_on(:left_lateral, true, _sources, _query), do: []
     defp join_on(_qual, true, _sources, _query), do: [" ON 1 = 1"]
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
@@ -503,6 +508,8 @@ if Code.ensure_loaded?(Tds) do
     defp join_qual(:right), do: "RIGHT OUTER JOIN "
     defp join_qual(:full), do: "FULL OUTER JOIN "
     defp join_qual(:cross), do: "CROSS JOIN "
+    defp join_qual(:inner_lateral), do: "CROSS APPLY "
+    defp join_qual(:left_lateral), do: "OUTER APPLY "
 
     defp where(%Query{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
