@@ -491,6 +491,8 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp join_on(:cross, true, _sources, _query), do: []
+    defp join_on(:inner_lateral, true, _sources, _query), do: []
+    defp join_on(:left_lateral, true, _sources, _query), do: []
     defp join_on(_qual, true, _sources, _query), do: [" ON 1 = 1"]
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
@@ -503,6 +505,8 @@ if Code.ensure_loaded?(Tds) do
     defp join_qual(:right), do: "RIGHT OUTER JOIN "
     defp join_qual(:full), do: "FULL OUTER JOIN "
     defp join_qual(:cross), do: "CROSS JOIN "
+    defp join_qual(:inner_lateral), do: "CROSS APPLY "
+    defp join_qual(:left_lateral), do: "OUTER APPLY "
 
     defp where(%Query{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
@@ -623,7 +627,7 @@ if Code.ensure_loaded?(Tds) do
     defp operator_to_boolean(:or), do: " OR "
 
     defp parens_for_select([first_expr | _] = expr) do
-      if is_binary(first_expr) and String.starts_with?(first_expr, ["SELECT", "select"]) do
+      if is_binary(first_expr) and String.match?(first_expr, ~r/^\s*select/i) do
         [?(, expr, ?)]
       else
         expr
