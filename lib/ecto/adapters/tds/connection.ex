@@ -484,14 +484,11 @@ if Code.ensure_loaded?(Tds) do
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
             {join, name} = get_source(query, sources, ix, source)
             qual_text = join_qual(qual)
-            join = (join && join_expr(qual, join)) || ["(", expr(source, sources, query) | ")"]
+            join = join || ["(", expr(source, sources, query) | ")"]
             [qual_text, join, " AS ", name, hints(hints) | join_on(qual, expr, sources, query)]
         end)
       ]
     end
-
-    defp join_expr(qual, join) when qual in [:inner_lateral, :left_lateral], do: ["(", join | ")"]
-    defp join_expr(_qual, join), do: join
 
     defp join_on(:cross, true, _sources, _query), do: []
     defp join_on(:inner_lateral, true, _sources, _query), do: []
@@ -630,7 +627,7 @@ if Code.ensure_loaded?(Tds) do
     defp operator_to_boolean(:or), do: " OR "
 
     defp parens_for_select([first_expr | _] = expr) do
-      if is_binary(first_expr) and String.starts_with?(first_expr, ["SELECT", "select"]) do
+      if is_binary(first_expr) and String.match?(first_expr, ~r/^\s*select/i) do
         [?(, expr, ?)]
       else
         expr
