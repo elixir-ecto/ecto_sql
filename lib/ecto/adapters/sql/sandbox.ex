@@ -7,12 +7,13 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   repository will automatically check connections out as with any
   other pool.
 
-  The `mode/2` function can be used to change the pool mode to
-  manual or shared. In both modes, the connection must be explicitly
-  checked out before use. When explicit checkouts are made, the
-  sandbox will wrap the connection in a transaction by default and
-  control who has access to it. This means developers have a safe
-  mechanism for running concurrent tests against the database.
+  The `mode/2` function can be used to change the pool mode from
+  automatic to either manual or shared. In the later two modes,
+  the connection must be explicitly checked out before use.
+  When explicit checkouts are made, the sandbox will wrap the
+  connection in a transaction by default and control who has
+  access to it. This means developers have a safe mechanism for
+  running concurrent tests against the database.
 
   ## Database support
 
@@ -423,15 +424,33 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   @doc """
   Sets the mode for the `repo` pool.
 
-  The mode can be `:auto`, `:manual` or `{:shared, <pid>}`.
+  The modes can be:
 
-  Warning: you should only call this function in the setup block for a test and
-  not within a test, because if the mode is changed during the test it will cause
-  other database connections to be checked in (causing errors).
+    * `:auto` - this is the default mode. When trying to use the repository,
+      processes can automatically checkout a connection without calling
+      `checkout/2` or `start_owner/2` before. This is the mode you will run
+      on before your test suite starts
+
+    * `:manual` - in this mode, the connection always has to be explicitly
+      checked before used. Other processes are allowed to use the same
+      connection if they are explicitly allowed via `allow/4`. You usually
+      set the mode to manual at the end of your `test/test_helper.exs` file.
+      This is also the mode you will run your async tests in
+
+    * `{:shared, pid}` - after checking out a connection in manual mode,
+      you can change the mode to `{:shared, pid}`, where pid is the process
+      that owns the connection, most often `{:shared, self()}`. This makes it
+      so all processes can use the same connection as the one owner by the
+      current process. This is the mode you will your sync tests in
+
+  Whenever you change the mode to `:manual` or `:auto`, all existing
+  connections are checked in. Therefore, it is recommend to set those
+  modes before your test suite starts, as otherwise you will check in
+  connections being used in any other test running concurrently.
   """
   def mode(repo, mode)
-      when is_atom(repo) or (is_pid(repo) and mode in [:auto, :manual])
-      when is_atom(repo) or (is_pid(repo) and elem(mode, 0) == :shared and is_pid(elem(mode, 1))) do
+      when (is_atom(repo) or is_pid(repo)) and mode in [:auto, :manual]
+      when (is_atom(repo) or is_pid(repo)) and elem(mode, 0) == :shared and is_pid(elem(mode, 1)) do
     %{pid: pool, opts: opts} = lookup_meta!(repo)
     DBConnection.Ownership.ownership_mode(pool, mode, opts)
   end
