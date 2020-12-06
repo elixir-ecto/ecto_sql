@@ -226,7 +226,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         ownership_timeout: NEW_TIMEOUT_IN_MILLISECONDS
 
   The `:ownership_timeout` option is part of `DBConnection.Ownership`
-  and defaults to 60000ms. Timeouts are given as integers in milliseconds.
+  and defaults to 120000ms. Timeouts are given as integers in milliseconds.
 
   Alternately, if this is an issue for only a handful of long-running tests,
   you can pass an `:ownership_timeout` option when calling
