@@ -215,7 +215,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
       09:56:43.081 [error] Postgrex.Protocol (#PID<>) disconnected:
           ** (DBConnection.ConnectionError) owner #PID<> timed out
-          because it owned the connection for longer than 60000ms
+          because it owned the connection for longer than 120000ms
 
   If you have a long running test (or you're debugging with IEx.pry),
   the timeout for the connection ownership may be too short.  You can
@@ -472,7 +472,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
     * `:ownership_timeout` - limits how long the connection can be
       owned. Defaults to the value in your repo config in
       `config/config.exs` (or preferably in `config/test.exs`), or
-      60000 ms if not set. The timeout exists for sanity checking
+      120000 ms if not set. The timeout exists for sanity checking
       purposes, to ensure there is no connection leakage, and can
       be bumped whenever necessary.
 
