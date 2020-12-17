@@ -642,7 +642,6 @@ defmodule Ecto.Adapters.SQL do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
     placeholder_value_map = Keyword.get(opts, :placeholders, %{})
-
     {rows, {params, placeholder_index_map, counter_offset}} = unzip_inserts(header, rows)
 
     placeholder_values = placeholder_index_map
@@ -654,6 +653,7 @@ defmodule Ecto.Adapters.SQL do
 
     placeholder_index_map = placeholder_index_map
     |> Enum.map(fn {k, v} -> {k, Integer.to_string(v)} end)
+    |> Map.new
 
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholder_index_map, counter_offset)
 
