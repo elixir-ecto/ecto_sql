@@ -641,32 +641,59 @@ defmodule Ecto.Adapters.SQL do
   def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, opts) do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
-    {rows, params} = unzip_inserts(header, rows)
-    sql = conn.insert(prefix, source, header, rows, on_conflict, returning)
+    placeholder_value_map = Keyword.get(opts, :placeholders, %{})
+
+    {rows, {params, placeholder_index_map, counter_offset}} = unzip_inserts(header, rows)
+
+    placeholder_values = placeholder_index_map
+    |> Enum.map(fn {ph_key, ph_idx} ->
+      {ph_idx, Map.fetch!(placeholder_value_map, ph_key)}
+    end)
+    |> List.keysort(0)
+    |> Enum.map(fn {_, ph_val} -> ph_val end)
+
+    placeholder_index_map = placeholder_index_map
+    |> Enum.map(fn {k, v} -> {k, Integer.to_string(v)} end)
+
+    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholder_index_map, counter_offset)
 
     opts = [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
 
+    all_params = placeholder_values ++ Enum.reverse(params) ++ conflict_params
     %{num_rows: num, rows: rows} =
-      query!(adapter_meta, sql, Enum.reverse(params) ++ conflict_params, opts)
+      query!(adapter_meta, sql, all_params, opts)
 
     {num, rows}
   end
 
   defp unzip_inserts(header, rows) do
-    Enum.map_reduce rows, [], fn fields, params ->
-      Enum.map_reduce header, params, fn key, acc ->
+    Enum.map_reduce(rows, {[], %{}, 1}, fn fields, params ->
+      Enum.map_reduce(header, params, fn key, {values_acc, placeholder_acc, counter} ->
         case :lists.keyfind(key, 1, fields) do
           {^key, {%Ecto.Query{} = query, query_params}} ->
-            {{query, length(query_params)}, Enum.reverse(query_params) ++ acc}
+            {
+              {query, length(query_params)},
+              {Enum.reverse(query_params) ++ values_acc, placeholder_acc, counter}
+            }
 
-          {^key, value} ->
-            {key, [value | acc]}
+          {^key, {:placeholder, placeholder_key}} ->
+            {placeholder_acc, counter} = case placeholder_acc do
+              %{^placeholder_key => _} ->
+                {placeholder_acc, counter}
+              _ ->
+                {Map.put(placeholder_acc, placeholder_key, counter), counter + 1}
+            end
 
-          false -> {nil, acc}
+            {{:placeholder, placeholder_key}, {values_acc, placeholder_acc, counter}}
+
+          {^key, value} -> {key, {[value | values_acc], placeholder_acc, counter}}
+
+          false -> {nil, {values_acc, placeholder_acc, counter}}
         end
-      end
-    end
+      end)
+    end)
   end
+
 
   @doc false
   def execute(adapter_meta, query_meta, prepared, params, opts) do

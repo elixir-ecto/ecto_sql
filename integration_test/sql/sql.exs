@@ -91,6 +91,19 @@ defmodule Ecto.Integration.SQLTest do
     assert ["'"] == TestRepo.all(query)
   end
 
+  test "Repo.insert_all fills in placeholders" do
+    TestRepo.insert_all(Post, [%{title: {:placeholder, :foo}}], placeholders: %{foo: "Title"})
+
+    query = from(p in Post, select: p.title)
+    assert ["Title"] == TestRepo.all(query)
+  end
+
+  test "Repo.insert_all errors when placeholder key is not found" do
+    assert_raise KeyError, fn ->
+      TestRepo.insert_all(Post, [%{title: {:placeholder, :bad_key}}], placeholders: %{foo: "Title"})
+    end
+  end
+
   test "Repo.update_all escape" do
     TestRepo.insert!(%Post{title: "hello"})
 

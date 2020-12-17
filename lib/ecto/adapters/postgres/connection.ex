@@ -152,12 +152,12 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, returning) do
+    def insert(prefix, table, header, rows, on_conflict, returning, placeholder_index_map \\ %{}, counter_start \\ 1) do
       values =
         if header == [] do
           [" VALUES " | intersperse_map(rows, ?,, fn _ -> "(DEFAULT)" end)]
         else
-          [?\s, ?(, quote_names(header), ") VALUES " | insert_all(rows, 1)]
+          [?\s, ?(, quote_names(header), ") VALUES " | insert_all(rows, counter_start, placeholder_index_map)]
         end
 
       ["INSERT INTO ", quote_table(prefix, table), insert_as(on_conflict),
@@ -198,15 +198,15 @@ if Code.ensure_loaded?(Postgrex) do
        end)]
     end
 
-    defp insert_all(rows, counter) do
+    defp insert_all(rows, counter, placeholder_index_map \\ %{}) do
       intersperse_reduce(rows, ?,, counter, fn row, counter ->
-        {row, counter} = insert_each(row, counter)
+        {row, counter} = insert_each(row, counter, placeholder_index_map)
         {[?(, row, ?)], counter}
       end)
       |> elem(0)
     end
 
-    defp insert_each(values, counter) do
+    defp insert_each(values, counter, placeholder_index_map \\ %{}) do
       intersperse_reduce(values, ?,, counter, fn
         nil, counter ->
           {"DEFAULT", counter}
@@ -214,6 +214,9 @@ if Code.ensure_loaded?(Postgrex) do
         {%Ecto.Query{} = query, params_counter}, counter ->
           {[?(, all(query), ?)], counter + params_counter}
 
+        {:placeholder, placeholder_key}, counter ->
+          {[?$ | Map.fetch!(placeholder_index_map, placeholder_key)], counter}
+          
         _, counter ->
           {[?$ | Integer.to_string(counter)], counter + 1}
       end)
