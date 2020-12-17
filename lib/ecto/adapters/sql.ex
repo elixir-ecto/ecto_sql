@@ -667,8 +667,8 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp unzip_inserts(header, rows) do
-    Enum.map_reduce(rows, {[], %{}, 1}, fn fields, params ->
-      Enum.map_reduce(header, params, fn key, {values_acc, placeholder_acc, counter} ->
+    Enum.map_reduce rows, {[], %{}, 1}, fn fields, params ->
+      Enum.map_reduce header, params, fn key, {values_acc, placeholder_acc, counter} ->
         case :lists.keyfind(key, 1, fields) do
           {^key, {%Ecto.Query{} = query, query_params}} ->
             {
@@ -690,8 +690,8 @@ defmodule Ecto.Adapters.SQL do
 
           false -> {nil, {values_acc, placeholder_acc, counter}}
         end
-      end)
-    end)
+      end
+    end
   end
 
 
