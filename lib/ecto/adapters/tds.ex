@@ -60,7 +60,7 @@ defmodule Ecto.Adapters.Tds do
 
   ### UUIDs
 
-  MSSQL server has slighlty different binary storage format for UUIDs (`uniqueidenitifer`).
+  MSSQL server has slightly different binary storage format for UUIDs (`uniqueidenitifer`).
   If you use `:binary_id`, the proper choice is made. Otherwise you must use the `Tds.Ecto.UUID`
   type. Avoid using `Ecto.UUID` since it may cause unpredictable application behaviour.
 
