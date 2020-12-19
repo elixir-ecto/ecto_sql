@@ -198,7 +198,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, returning) do
+    def insert(prefix, table, header, rows, on_conflict, returning, counter_start \\ 1) do
       [] = on_conflict(on_conflict, header)
       returning = returning(returning, "INSERTED")
 
@@ -212,7 +212,7 @@ if Code.ensure_loaded?(Tds) do
             quote_names(header),
             ?),
             returning,
-            " VALUES " | insert_all(rows, 1)
+            " VALUES " | insert_all(rows, counter_start)
           ]
         end
 
@@ -242,6 +242,9 @@ if Code.ensure_loaded?(Tds) do
 
         {%Query{} = query, params_counter}, counter ->
           {[?(, all(query), ?)], counter + params_counter}
+
+        {:placeholder, placeholder_index}, counter ->
+          {[?@ | placeholder_index], counter}
 
         _, counter ->
           {[?@ | Integer.to_string(counter)], counter + 1}
