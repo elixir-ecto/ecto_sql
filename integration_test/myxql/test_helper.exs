@@ -97,7 +97,9 @@ excludes = [
   :add_column_if_not_exists,
   :remove_column_if_exists,
   # MySQL doesn't have a boolean type, so this ends up returning 0/1
-  :map_boolean_in_expression
+  :map_boolean_in_expression,
+  # MySQL doesn't support indexed parameters
+  :placeholders
 ]
 
 if Version.match?(version, ">= 8.0.0") do
