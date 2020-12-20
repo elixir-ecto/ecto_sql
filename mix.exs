@@ -76,7 +76,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, "~> 3.5.0"}
+      {:ecto, github: "un3qual/ecto", branch: "add_placeholders_initial"}
     end
   end
 
