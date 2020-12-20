@@ -150,7 +150,7 @@ if Code.ensure_loaded?(MyXQL) do
       error!(nil, ":returning is not supported in insert/insert_all by MySQL")
     end
     def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, _counter_start) do
-      error!(nil, "The :placeholders is not supported by MySQL")
+      error!(nil, ":placeholders is not supported by MySQL")
     end
     
     defp on_conflict({_, _, [_ | _]}, _header) do
