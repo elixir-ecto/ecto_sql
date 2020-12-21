@@ -253,7 +253,7 @@ defmodule Ecto.Adapters.MyXQL do
 
     key = primary_key!(schema_meta, returning)
     {fields, values} = :lists.unzip(params)
-    sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [])
+    sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [], [])
     opts = [{:cache_statement, "ecto_insert_#{source}"} | opts]
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
