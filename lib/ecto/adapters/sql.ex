@@ -140,15 +140,15 @@ defmodule Ecto.Adapters.SQL do
       def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
 
       @impl true
-      def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, opts) do
-        Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, opts)
+      def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, placeholder_vals_list, opts) do
+        Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, placeholder_vals_list, opts)
       end
 
       @impl true
       def insert(adapter_meta, %{source: source, prefix: prefix}, params,
                  {kind, conflict_params, _} = on_conflict, returning, opts) do
         {fields, values} = :lists.unzip(params)
-        sql = @conn.insert(prefix, source, fields, [fields], on_conflict, returning)
+        sql = @conn.insert(prefix, source, fields, [fields], on_conflict, returning, [])
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :insert, source, [], values ++ conflict_params, kind, returning, opts)
       end
 
@@ -191,7 +191,7 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.execute_ddl(meta, @conn, definition, opts)
       end
 
-      defoverridable [prepare: 2, execute: 5, insert: 6, update: 6, delete: 4, insert_all: 7,
+      defoverridable [prepare: 2, execute: 5, insert: 6, update: 6, delete: 4, insert_all: 8,
                       execute_ddl: 3, loaders: 2, dumpers: 2, autogenerate: 1,
                       ensure_all_started: 2, __before_compile__: 1]
     end
@@ -638,24 +638,16 @@ defmodule Ecto.Adapters.SQL do
   ## Query
 
   @doc false
-  def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, opts) do
+  def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, placeholder_vals_list, opts) do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
-    {rows, {params, placeholder_index_map, counter_offset}} = unzip_inserts(header, rows)
+    {rows, params} = unzip_inserts(header, rows)
 
-    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, counter_offset)
+    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholder_vals_list)
 
     opts = [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
 
-    placeholder_map = Keyword.get(opts, :placeholders, %{})
-    placeholder_values = placeholder_index_map
-    |> Enum.map(fn {ph_key, ph_idx} ->
-      {ph_idx, Map.fetch!(placeholder_map, ph_key)}
-    end)
-    |> List.keysort(0)
-    |> Enum.map(&elem(&1, 1))
-
-    all_params = placeholder_values ++ Enum.reverse(params) ++ conflict_params
+    all_params = placeholder_vals_list ++ Enum.reverse(params,  conflict_params)
     %{num_rows: num, rows: rows} =
       query!(adapter_meta, sql, all_params, opts)
 
@@ -663,29 +655,18 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp unzip_inserts(header, rows) do
-    Enum.map_reduce rows, {[], %{}, 1}, fn fields, acc ->
-      Enum.map_reduce header, acc, fn key, {values_acc, placeholder_idx_acc, counter} ->
+    Enum.map_reduce rows, [], fn fields, acc ->
+      Enum.map_reduce header, acc, fn key, values_acc ->
         case :lists.keyfind(key, 1, fields) do
           {^key, {%Ecto.Query{} = query, query_params}} ->
-            {
-              {query, length(query_params)},
-              {Enum.reverse(query_params) ++ values_acc, placeholder_idx_acc, counter}
-            }
+            {{query, length(query_params)}, Enum.reverse(query_params, values_acc)}
 
-          {^key, {:placeholder, placeholder_key}} ->
-            {{counter, idx}, placeholder_idx_acc} = Map.get_and_update(
-              placeholder_idx_acc,
-              placeholder_key,
-              fn
-                nil  -> {{counter + 1, counter}, counter}
-                curr -> {{counter, curr},        curr}
-              end)
+          {^key, {:placeholder, placeholder_index}} ->
+            {{:placeholder, Integer.to_string(placeholder_index)}, values_acc}
 
-            {{:placeholder, Integer.to_string(idx)}, {values_acc, placeholder_idx_acc, counter}}
+          {^key, value} -> {key, [value | values_acc]}
 
-          {^key, value} -> {key, {[value | values_acc], placeholder_idx_acc, counter}}
-
-          false -> {nil, {values_acc, placeholder_idx_acc, counter}}
+          false -> {nil, values_acc}
         end
       end
     end

@@ -140,16 +140,15 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, returning, counter_start \\ 1)
-    def insert(prefix, table, header, rows, on_conflict, [], 1) do
+    def insert(prefix, table, header, rows, on_conflict, [], []) do
       fields = quote_names(header)
       ["INSERT INTO ", quote_table(prefix, table), " (", fields, ") VALUES ",
        insert_all(rows) | on_conflict(on_conflict, header)]
     end
-    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, 1) do
+    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, []) do
       error!(nil, ":returning is not supported in insert/insert_all by MySQL")
     end
-    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, _counter_start) do
+    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, _placeholders) do
       error!(nil, ":placeholders is not supported by MySQL")
     end
     

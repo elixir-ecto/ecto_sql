@@ -7,8 +7,7 @@ Application.put_env(:ecto_sql, :lock_for_update, "FOR UPDATE")
 
 # Configure PG connection
 Application.put_env(:ecto_sql, :pg_test_url,
-  "ecto://" <> (System.get_env("PG_URL") || "docker:development@127.0.0.1")
-  # "ecto://" <> (System.get_env("PG_URL") || "postgres:postgres@127.0.0.1")
+  "ecto://" <> (System.get_env("PG_URL") || "postgres:postgres@127.0.0.1")
 )
 
 Code.require_file "../support/repo.exs", __DIR__

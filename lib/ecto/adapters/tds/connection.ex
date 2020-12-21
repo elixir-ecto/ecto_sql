@@ -198,7 +198,8 @@ if Code.ensure_loaded?(Tds) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, returning, counter_start \\ 1) do
+    def insert(prefix, table, header, rows, on_conflict, returning, placeholders) do
+      counter_offset = length(placeholders) + 1
       [] = on_conflict(on_conflict, header)
       returning = returning(returning, "INSERTED")
 
@@ -212,7 +213,7 @@ if Code.ensure_loaded?(Tds) do
             quote_names(header),
             ?),
             returning,
-            " VALUES " | insert_all(rows, counter_start)
+            " VALUES " | insert_all(rows, counter_offset)
           ]
         end
 

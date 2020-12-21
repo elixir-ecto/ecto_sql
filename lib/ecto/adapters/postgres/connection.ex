@@ -152,12 +152,13 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, returning, counter_start \\ 1) do
+    def insert(prefix, table, header, rows, on_conflict, returning, placeholders) do
+      counter_offset = length(placeholders) + 1
       values =
         if header == [] do
           [" VALUES " | intersperse_map(rows, ?,, fn _ -> "(DEFAULT)" end)]
         else
-          [?\s, ?(, quote_names(header), ") VALUES " | insert_all(rows, counter_start)]
+          [?\s, ?(, quote_names(header), ") VALUES " | insert_all(rows, counter_offset)]
         end
 
       ["INSERT INTO ", quote_table(prefix, table), insert_as(on_conflict),
