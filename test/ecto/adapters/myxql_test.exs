@@ -54,7 +54,7 @@ defmodule Ecto.Adapters.MyXQLTest do
   defp execute_ddl(query), do: query |> SQL.execute_ddl |> Enum.map(&IO.iodata_to_binary/1)
 
   defp insert(prefx, table, header, rows, on_conflict, returning) do
-    IO.iodata_to_binary SQL.insert(prefx, table, header, rows, on_conflict, returning)
+    IO.iodata_to_binary SQL.insert(prefx, table, header, rows, on_conflict, returning, [])
   end
 
   defp update(prefx, table, fields, filter, returning) do
