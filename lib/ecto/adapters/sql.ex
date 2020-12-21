@@ -140,8 +140,8 @@ defmodule Ecto.Adapters.SQL do
       def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
 
       @impl true
-      def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, placeholder_vals_list, opts) do
-        Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, placeholder_vals_list, opts)
+      def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, placeholders, opts) do
+        Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, placeholders, opts)
       end
 
       @impl true
@@ -638,16 +638,16 @@ defmodule Ecto.Adapters.SQL do
   ## Query
 
   @doc false
-  def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, placeholder_vals_list, opts) do
+  def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, placeholders, opts) do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
     {rows, params} = unzip_inserts(header, rows)
 
-    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholder_vals_list)
+    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders)
 
     opts = [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
 
-    all_params = placeholder_vals_list ++ Enum.reverse(params,  conflict_params)
+    all_params = placeholders ++ Enum.reverse(params,  conflict_params)
     %{num_rows: num, rows: rows} =
       query!(adapter_meta, sql, all_params, opts)
 
@@ -655,23 +655,22 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp unzip_inserts(header, rows) do
-    Enum.map_reduce rows, [], fn fields, acc ->
-      Enum.map_reduce header, acc, fn key, values_acc ->
+    Enum.map_reduce rows, [], fn fields, params ->
+      Enum.map_reduce header, params, fn key, acc ->
         case :lists.keyfind(key, 1, fields) do
           {^key, {%Ecto.Query{} = query, query_params}} ->
-            {{query, length(query_params)}, Enum.reverse(query_params, values_acc)}
+            {{query, length(query_params)}, Enum.reverse(query_params, acc)}
 
           {^key, {:placeholder, placeholder_index}} ->
-            {{:placeholder, Integer.to_string(placeholder_index)}, values_acc}
+            {{:placeholder, Integer.to_string(placeholder_index)}, acc}
 
-          {^key, value} -> {key, [value | values_acc]}
+          {^key, value} -> {key, [value | acc]}
 
-          false -> {nil, values_acc}
+          false -> {nil, acc}
         end
       end
     end
   end
-
 
   @doc false
   def execute(adapter_meta, query_meta, prepared, params, opts) do
