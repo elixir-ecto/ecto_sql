@@ -1,6 +1,7 @@
 defmodule EctoSQL.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/elixir-ecto/ecto_sql"
   @version "3.6.0-dev"
   @adapters ~w(pg myxql tds)
 
@@ -112,7 +113,7 @@ defmodule EctoSQL.MixProject do
     [
       maintainers: ["Eric Meadows-Jönsson", "José Valim", "James Fish", "Michał Muskała"],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => "https://github.com/elixir-ecto/ecto_sql"},
+      links: %{"GitHub" => @source_url},
       files:
         ~w(.formatter.exs mix.exs README.md CHANGELOG.md lib) ++
           ~w(integration_test/sql integration_test/support)
@@ -173,7 +174,9 @@ defmodule EctoSQL.MixProject do
       main: "Ecto.Adapters.SQL",
       source_ref: "v#{@version}",
       canonical: "http://hexdocs.pm/ecto_sql",
-      source_url: "https://github.com/elixir-ecto/ecto_sql",
+      source_url: @source_url,
+      extras: ["CHANGELOG.md"],
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       groups_for_modules: [
         # Ecto.Adapters.SQL,
         # Ecto.Adapters.SQL.Sandbox,

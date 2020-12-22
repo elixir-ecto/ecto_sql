@@ -282,7 +282,7 @@ defmodule Ecto.Migration do
   but not true for MySQL, as the latter does not support DDL transactions.
 
   In some rare cases, you may need to execute some common behavior after beginning
-  a migration transaction, or before commiting that transaction. For instance, one
+  a migration transaction, or before committing that transaction. For instance, one
   might desire to set a `lock_timeout` for each lock in the migration transaction.
 
   You can do so by defining `c:after_begin/0` and `c:before_commit/0` callbacks to

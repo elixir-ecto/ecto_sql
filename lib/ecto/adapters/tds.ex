@@ -35,7 +35,7 @@ defmodule Ecto.Adapters.Tds do
 
       config :tds, :text_encoder, Tds.Encoding
 
-  This should give you extended set of most encoding. For cemplete list check
+  This should give you extended set of most encoding. For complete list check
   `Tds.Encoding` [documentation](https://hexdocs.pm/tds_encoding).
 
   ### After connect flags
@@ -66,7 +66,7 @@ defmodule Ecto.Adapters.Tds do
 
   ### SQL `Char`, `VarChar` and `Text` types
 
-  When working with binaries and strings,there are some limitions you should be aware of:
+  When working with binaries and strings,there are some limitations you should be aware of:
 
     - Strings that should be stored in mentioned sql types must be encoded to column
       codepage (defined in collation). If collation is different than database collation,
@@ -116,9 +116,9 @@ defmodule Ecto.Adapters.Tds do
 
   To avoid deadlocks in your app, we exposed `:isolation_level`  repo transaction option.
   This will tell to SQL Server Transaction Manager how to begin transaction.
-  By default, if this option is ommited, isolation level is set to `:read_committed`.
+  By default, if this option is omitted, isolation level is set to `:read_committed`.
 
-  Any attempt to manualy set the transaction isolation via queries, such as
+  Any attempt to manually set the transaction isolation via queries, such as
 
       Ecto.Adapter.SQL.query("SET TRANSACTION ISOLATION LEVEL XYZ")
 
@@ -126,7 +126,7 @@ defmodule Ecto.Adapters.Tds do
   and reset back to :read_commited.
 
   There is `Ecto.Query.lock/3` function can help by setting it to `WITH(NOLOCK)`.
-  This should allow you to do eventualy consistent reads and avoid locks on given
+  This should allow you to do eventually consistent reads and avoid locks on given
   table if you don't need to write to database.
 
   NOTE: after explicit transaction ends (commit or rollback) implicit transactions
@@ -215,7 +215,7 @@ defmodule Ecto.Adapters.Tds do
   @impl Ecto.Adapter.Storage
   def storage_status(opts) do
     database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repostory configuration"
+      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
 
     opts = Keyword.put(opts, :database, "master")
 

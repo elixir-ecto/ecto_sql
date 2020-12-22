@@ -1,5 +1,6 @@
 Ecto SQL
 =========
+
 [![Build Status](https://github.com/elixir-ecto/ecto_sql/workflows/CI/badge.svg)](https://github.com/elixir-ecto/ecto_sql/actions)
 
 Ecto SQL ([documentation](https://hexdocs.pm/ecto_sql)) provides building blocks for writing SQL adapters for Ecto. It features:
@@ -9,7 +10,7 @@ Ecto SQL ([documentation](https://hexdocs.pm/ecto_sql)) provides building blocks
   * A test sandbox (Ecto.Adapters.SQL.Sandbox) that concurrently runs database tests inside transactions
   * Support for database migrations via Mix tasks
 
-To learn more about getting started, [see the Ecto repository](https://github.com/elixir-ecto/ecto). 
+To learn more about getting started, [see the Ecto repository](https://github.com/elixir-ecto/ecto).
 
 ## Running tests
 
