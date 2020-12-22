@@ -225,7 +225,7 @@ if Code.ensure_loaded?(Tds) do
 
   defmodule Tds.Ecto.VarChar do
     @moduledoc """
-    An Tds adatper Ecto Type that wrapps erlang string into tuple so TDS driver
+    An Tds adapter Ecto Type that wraps erlang string into tuple so TDS driver
     can understand if erlang string should be encoded as NVarChar or Varchar.
 
     Due some limitations in Ecto and Tds driver, it is not possible to

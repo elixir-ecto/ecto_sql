@@ -117,7 +117,7 @@
 ### Enhancements
 
   * [ecto] Upgrade and support Ecto v3.3
-  * [repo] Include `:idle_time` on telemetry measuremnts
+  * [repo] Include `:idle_time` on telemetry measurements
   * [migration] Support anonymous functions in `Ecto.Migration.execute/2`
 
 ### Bug fixes
@@ -216,7 +216,7 @@ v3.1 requires Elixir v1.5+.
   * [sandbox] Respect `:ownership_timeout` repo configuration on SQL Sandbox
   * [migrations] Commit and relock after every migration to avoid leaving the DB in an inconsistent state under certain failures
 
-### Backwards incompatible changess
+### Backwards incompatible changes
 
   * [migrations] If you are creating indexes concurrently, you need to disable the migration lock: `config :app, App.Repo, migration_lock: nil`. This will migrations behave the same way as they did in Ecto 2.0.
 

@@ -55,7 +55,7 @@ jobs:
           mix local.hex --force
           mix deps.get
       - run: MYSQL_URL=root:root@mysql ECTO_ADAPTER=myxql mix test
-  
+
   test-mssql:
     runs-on: ubuntu-latest
 
@@ -73,7 +73,7 @@ jobs:
         mssql_version: ["2017-latest", "2019-latest"]
         otp: [22.1.7]
         elixir: [1.9.4]
-        
+
     env:
       ACCEPT_EULA: Y
       MIX_ENV: test
@@ -95,7 +95,7 @@ jobs:
       - run: |
           export PATH="/opt/mssql-tools/bin:$PATH"
           ECTO_ADAPTER=tds mix test
-          
+
   test-pg:
     runs-on: ubuntu-18.04
 
