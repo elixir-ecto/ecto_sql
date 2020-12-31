@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-d`, `--dump-path` - the path of the dump file to create
     * `-q`, `--quiet` - run the command quietly
     * `--no-compile` - does not compile applications before dumping
-    * `--no-deps-check` - does not check depedendencies before dumping
+    * `--no-deps-check` - does not check dependencies before dumping
   """
 
   @impl true

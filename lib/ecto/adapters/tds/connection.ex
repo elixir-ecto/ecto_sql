@@ -683,7 +683,7 @@ if Code.ensure_loaded?(Tds) do
       Enum.map_join(fields, ", ", &"#{name}.#{quote_name(&1)}")
     end
 
-    # eaxmple from {:in, [], [1,   {:^, [], [0, 0]}]}
+    # example from {:in, [], [1,   {:^, [], [0, 0]}]}
     defp expr({:in, _, [_left, []]}, _sources, _query) do
       "0=1"
     end
@@ -806,7 +806,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr(%Decimal{exp: exp} = decimal, _sources, _query) do
-      # this should help gaining precision for decimals values embeded in query
+      # this should help gaining precision for decimals values embedded in query
       # but this is still not good enough, for instance:
       #
       # from(p in Post, select: type(2.0 + ^"2", p.cost())))
@@ -819,7 +819,7 @@ if Code.ensure_loaded?(Tds) do
       # FROM [posts] AS p0
       #
       # as long as we have CAST(... as DECIMAL) without precision and scale
-      # value could be trucated
+      # value could be truncated
       [
         "CAST(",
         Decimal.to_string(decimal, :normal),
@@ -1478,7 +1478,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp quote_name(name) do
       if String.contains?(name, ["[", "]"]) do
-        error!(nil, "bad field name #{inspect(name)} '[' and ']' are not permited")
+        error!(nil, "bad field name #{inspect(name)} '[' and ']' are not permitted")
       end
 
       "[#{name}]"
@@ -1501,7 +1501,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp quote_table(name) do
       if String.contains?(name, "[") or String.contains?(name, "]") do
-        error!(nil, "bad table name #{inspect(name)} '[' and ']' are not permited")
+        error!(nil, "bad table name #{inspect(name)} '[' and ']' are not permitted")
       end
 
       "[#{name}]"
@@ -1523,7 +1523,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp unquoted_name(name) do
       if String.contains?(name, ["[", "]"]) do
-        error!(nil, "bad table name #{inspect(name)} '[' and ']' are not permited")
+        error!(nil, "bad table name #{inspect(name)} '[' and ']' are not permitted")
       end
 
       name

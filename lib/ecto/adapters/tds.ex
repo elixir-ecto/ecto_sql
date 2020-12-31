@@ -60,7 +60,7 @@ defmodule Ecto.Adapters.Tds do
 
   ### UUIDs
 
-  MSSQL server has slightly different binary storage format for UUIDs (`uniqueidenitifer`).
+  MSSQL server has slightly different binary storage format for UUIDs (`uniqueidentifier`).
   If you use `:binary_id`, the proper choice is made. Otherwise you must use the `Tds.Ecto.UUID`
   type. Avoid using `Ecto.UUID` since it may cause unpredictable application behaviour.
 
@@ -75,9 +75,9 @@ defmodule Ecto.Adapters.Tds do
       codepage.
 
     - If you need other than Latin1 or other than your database default collation, as
-      mentioned in "Storage Options" section, then manualy encode strings using
+      mentioned in "Storage Options" section, then manually encode strings using
       `Tds.Encoding.encode/2` into desired codepage and then tag parameter as `:binary`.
-      Please be aware that queries that use this approach in where calues can be 10x slower
+      Please be aware that queries that use this approach in where clauses can be 10x slower
       due increased logical reads in database.
 
     - You can't store VarChar codepoints encoded in one collation/codepage to column that
@@ -123,7 +123,7 @@ defmodule Ecto.Adapters.Tds do
       Ecto.Adapter.SQL.query("SET TRANSACTION ISOLATION LEVEL XYZ")
 
   will fail once explicit transaction is started using `c:Ecto.Repo.transaction/2`
-  and reset back to :read_commited.
+  and reset back to :read_committed.
 
   There is `Ecto.Query.lock/3` function can help by setting it to `WITH(NOLOCK)`.
   This should allow you to do eventually consistent reads and avoid locks on given

@@ -16,7 +16,7 @@ if Code.ensure_loaded?(Tds) do
     @type t :: <<_::288>>
 
     @typedoc """
-    A raw binary represenation of a UUID.
+    A raw binary representation of a UUID.
     """
     @type raw :: <<_::128>>
 
@@ -233,7 +233,7 @@ if Code.ensure_loaded?(Tds) do
     Please be aware of this limitation if you plan to store varchar values in
     your database using Ecto since you will probably lose some codepoints in
     the value during encoding. Instead use `tds_encoding` library and first
-    encode value and then anotate it as `:binary` by calling `Ecto.Query.API.type/2`
+    encode value and then annotate it as `:binary` by calling `Ecto.Query.API.type/2`
     in your query. This way all codepoints will be properly preserved during
     insert to database.
     """
