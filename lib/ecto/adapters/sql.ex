@@ -27,7 +27,7 @@ defmodule Ecto.Adapters.SQL do
     * `mix ecto.migrate` - runs a migration
     * `mix ecto.rollback` - rolls back a previously run migration
 
-  If you want to run migrations programatically, see `Ecto.Migrator`.
+  If you want to run migrations programmatically, see `Ecto.Migrator`.
 
   ## SQL sandbox
 

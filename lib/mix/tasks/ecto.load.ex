@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Ecto.Load do
       Configuration is asked only when `:start_permanent` is set to true
       (typically in production)
     * `--no-compile` - does not compile applications before loading
-    * `--no-deps-check` - does not check depedendencies before loading
+    * `--no-deps-check` - does not check dependencies before loading
     * `--skip-if-loaded` - does not load the dump file if the repo has the migrations table up
   """
 

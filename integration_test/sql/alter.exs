@@ -70,7 +70,7 @@ defmodule Ecto.Integration.AlterTest do
     assert :ok == run(:down, PoolRepo, AlterMigrationOne)
   end
 
-  test "reset cache on parameterised query after alter column type" do
+  test "reset cache on parameterized query after alter column type" do
     values = from v in "alter_col_type"
 
     assert :ok == run(:up, PoolRepo, AlterMigrationOne)

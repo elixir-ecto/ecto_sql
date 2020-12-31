@@ -41,8 +41,8 @@ defmodule Mix.Tasks.Ecto.Rollback do
       config :my_app, MyApp.Repo, priv: "priv/custom_repo"
 
   This task rolls back the last applied migration by default. To roll
-  back to a version number, supply `--to version_number`. To roll 
-  back a specific number of times, use `--step n`. To undo all applied 
+  back to a version number, supply `--to version_number`. To roll
+  back a specific number of times, use `--step n`. To undo all applied
   migrations, provide `--all`.
 
   The repositories to rollback are the ones specified under the
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     * `--no-compile` - does not compile applications before rolling back
 
-    * `--no-deps-check` - does not check depedendencies before rolling back
+    * `--no-deps-check` - does not check dependencies before rolling back
 
     * `--migrations-path` - the path to load the migrations from, defaults to
       `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations

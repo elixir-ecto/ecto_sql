@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
     * `-r`, `--repo` - the repo to generate migration for
     * `--no-compile` - does not compile applications before running
-    * `--no-deps-check` - does not check depedendencies before running
+    * `--no-deps-check` - does not check dependencies before running
     * `--migrations-path` - the path to run the migrations from, defaults to `priv/repo/migrations`
 
   ## Configuration
