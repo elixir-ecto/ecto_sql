@@ -66,10 +66,6 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
     Enum.map repos, fn repo ->
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
         {opts, [name]} ->
-          unless opts[:migrations_path] do
-            no_umbrella!("ecto.gen.migration")
-          end
-
           ensure_repo(repo, args)
           path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
           base_name = "#{underscore(name)}.exs"
