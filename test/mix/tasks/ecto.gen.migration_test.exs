@@ -68,4 +68,27 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
   test "raises when missing file" do
     assert_raise Mix.Error, fn -> run ["-r", to_string(Repo)] end
   end
+
+  test "generates migration within umbrella app without raising" do
+    # Turn the project into an umbrella app
+    project = Mix.ProjectStack.pop()
+    umbrella_project_config = Keyword.put(project.config, :apps_path, "apps/")
+    assert :ok == Mix.ProjectStack.push(project.name, umbrella_project_config, project.file)
+
+    # Turn the project back into the original app config once the test ends
+    on_exit(fn ->
+      Mix.ProjectStack.pop()
+      assert :ok == Mix.ProjectStack.push(project.name, project.config, project.file)
+    end)
+
+    assert Mix.Project.umbrella?()
+    [path] = run ["-r", to_string(Repo), "my_migration"]
+    assert Path.dirname(path) == @migrations_path
+    assert Path.basename(path) =~ ~r/^\d{14}_my_migration\.exs$/
+    assert_file path, fn file ->
+      assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.MyMigration do"
+      assert file =~ "use Ecto.Migration"
+      assert file =~ "def change do"
+    end
+  end
 end
