@@ -61,7 +61,6 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
   @impl true
   def run(args) do
-    no_umbrella!("ecto.gen.migration")
     repos = parse_repo(args)
 
     Enum.map repos, fn repo ->
