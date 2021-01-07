@@ -26,4 +26,27 @@ defmodule Ecto.Integration.ExplainTest do
       TestRepo.explain(:all, Post, analyze: "1")
     end)
   end
+
+  test "explain JSON format" do
+    [explain] = TestRepo.explain(:all, Post, analyze: true, verbose: true, timeout: 20000, format: :json) |> Jason.decode!()
+    keys = explain["Plan"] |> Map.keys
+    assert Enum.member?(keys, "Actual Loops")
+    assert Enum.member?(keys, "Actual Rows")
+    assert Enum.member?(keys, "Actual Startup Time")
+  end
+
+  test "explain MAP format" do
+    [explain] = TestRepo.explain(:all, Post, analyze: true, verbose: true, timeout: 20000, format: :map)
+    keys = explain["Plan"] |> Map.keys
+    assert Enum.member?(keys, "Actual Loops")
+    assert Enum.member?(keys, "Actual Rows")
+    assert Enum.member?(keys, "Actual Startup Time")
+  end
+
+  test "explain YAML format" do
+    explain = TestRepo.explain(:all, Post, analyze: true, verbose: true, timeout: 20000, format: :yaml)
+    assert explain =~ ~r/Plan:/
+    assert explain =~ ~r/Node Type:/
+    assert explain =~ ~r/Relation Name:/
+  end
 end

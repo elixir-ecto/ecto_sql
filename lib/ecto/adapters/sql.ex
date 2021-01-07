@@ -281,8 +281,7 @@ defmodule Ecto.Adapters.SQL do
 
   Also note that:
 
-    * `FORMAT` isn't supported at the moment and the only possible output
-      is a textual format, so you may want to call `IO.puts/1` to display it;
+    * Currently `:json`, `:map`, `:yaml` and `:text` format options are supported for PostgreSQL
     * Any other value passed to `opts` will be forwarded to the underlying
       adapter query function, including Repo shared options such as `:timeout`;
     * Non built-in adapters may have specific behavior and you should consult
