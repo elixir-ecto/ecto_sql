@@ -27,8 +27,14 @@ defmodule Ecto.Integration.StorageTest do
     run_psql("DROP DATABASE #{params()[:database]};")
   end
 
-  def create_database do
-    run_psql("CREATE DATABASE #{params()[:database]};")
+  def create_database(owner \\ nil) do
+    query = "CREATE DATABASE #{params()[:database]}"
+    query = if owner do
+      query <> " OWNER #{owner};"
+    else
+      query <> ";"
+    end
+    run_psql(query)
   end
 
   def create_posts do
@@ -71,6 +77,20 @@ defmodule Ecto.Integration.StorageTest do
     create_database()
     refute Postgres.storage_down(wrong_params()) == :ok
   after
+    drop_database()
+  end
+
+  test "storage up with unprivileged user with access to the database" do
+    unprivileged_params = Keyword.merge(params(),
+      username: "unprivileged",
+      password: "pass"
+    )
+    run_psql("CREATE USER unprivileged WITH NOCREATEDB PASSWORD 'pass'")
+    refute Postgres.storage_up(unprivileged_params) == :ok
+    create_database("unprivileged")
+    assert Postgres.storage_up(unprivileged_params) == {:error, :already_up}
+  after
+    run_psql("DROP USER unprivileged")
     drop_database()
   end
 

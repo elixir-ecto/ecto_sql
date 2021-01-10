@@ -26,8 +26,11 @@ defmodule Ecto.Integration.StorageTest do
     run_mysql("DROP DATABASE #{params()[:database]};")
   end
 
-  def create_database do
+  def create_database(grant_privileges_to \\ nil) do
     run_mysql("CREATE DATABASE #{params()[:database]};")
+    if grant_privileges_to do
+      run_mysql("GRANT ALL PRIVILEGES ON #{params()[:database]}.* to #{grant_privileges_to}")
+    end
   end
 
   def create_posts do
@@ -70,6 +73,20 @@ defmodule Ecto.Integration.StorageTest do
     create_database()
     refute Ecto.Adapters.MyXQL.storage_down(wrong_params()) == :ok
   after
+    drop_database()
+  end
+
+  test "storage up with unprivileged user with access to the database" do
+    unprivileged_params = Keyword.merge(params(),
+      username: "unprivileged",
+      password: "pass"
+    )
+    run_mysql("CREATE USER unprivileged IDENTIFIED BY 'pass'")
+    refute Ecto.Adapters.MyXQL.storage_up(unprivileged_params) == :ok
+    create_database("unprivileged")
+    assert Ecto.Adapters.MyXQL.storage_up(unprivileged_params) == {:error, :already_up}
+  after
+    run_mysql("DROP USER unprivileged")
     drop_database()
   end
 

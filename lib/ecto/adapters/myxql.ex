@@ -159,19 +159,25 @@ defmodule Ecto.Adapters.MyXQL do
     opts = Keyword.delete(opts, :database)
     charset = opts[:charset] || "utf8mb4"
 
-    command =
-      ~s(CREATE DATABASE `#{database}` DEFAULT CHARACTER SET = #{charset})
-      |> concat_if(opts[:collation], &"DEFAULT COLLATE = #{&1}")
-
-    case run_query(command, opts) do
-      {:ok, _} ->
-        :ok
-      {:error, %{mysql: %{name: :ER_DB_CREATE_EXISTS}}} ->
+    check_existence_command = "SELECT TRUE FROM information_schema.schemata WHERE schema_name = '#{database}'"
+    case run_query(check_existence_command, opts) do
+      {:ok, %{num_rows: 1}} ->
         {:error, :already_up}
-      {:error, error} ->
-        {:error, Exception.message(error)}
-      {:exit, exit} ->
-        {:error, exit_to_exception(exit)}
+      _ ->
+        create_command =
+          ~s(CREATE DATABASE `#{database}` DEFAULT CHARACTER SET = #{charset})
+          |> concat_if(opts[:collation], &"DEFAULT COLLATE = #{&1}")
+
+        case run_query(create_command, opts) do
+          {:ok, _} ->
+            :ok
+          {:error, %{mysql: %{name: :ER_DB_CREATE_EXISTS}}} ->
+            {:error, :already_up}
+          {:error, error} ->
+            {:error, Exception.message(error)}
+          {:exit, exit} ->
+            {:error, exit_to_exception(exit)}
+        end
     end
   end
 
