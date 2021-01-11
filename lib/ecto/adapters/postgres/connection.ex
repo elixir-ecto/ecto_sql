@@ -253,10 +253,21 @@ if Code.ensure_loaded?(Postgrex) do
     @impl true
     def explain_query(conn, query, params, opts) do
       {explain_opts, opts} =
-        Keyword.split(opts, ~w[analyze verbose costs settings buffers timing summary]a)
+        Keyword.split(opts, ~w[analyze verbose costs settings buffers timing summary format]a)
+
+      json_format? = {:format, :json} in explain_opts
+      map_format? = {:format, :map} in explain_opts
 
       case query(conn, build_explain_query(query, explain_opts), params, opts) do
-        {:ok, %Postgrex.Result{rows: rows}} -> {:ok, Enum.map_join(rows, "\n", & &1)}
+        {:ok, %Postgrex.Result{rows: rows}} when json_format? ->
+          case Jason.encode(List.flatten(rows)) do
+            {:ok, json} -> {:ok, json}
+            {:error, error} -> error
+          end
+        {:ok, %Postgrex.Result{rows: rows}} when map_format? ->
+          {:ok, List.flatten(rows)}
+        {:ok, %Postgrex.Result{rows: rows}} ->
+          {:ok, Enum.map_join(rows, "\n", & &1)}
         error -> error
       end
     end
@@ -288,6 +299,9 @@ if Code.ensure_loaded?(Postgrex) do
             |> Enum.reduce([], fn
               {_, nil}, acc ->
                 acc
+
+              {:format, value}, acc ->
+                [String.upcase("#{format_to_sql(value)}") | acc]
 
               {opt, value}, acc ->
                 [String.upcase("#{opt} #{quote_boolean(value)}") | acc]
@@ -1228,6 +1242,11 @@ if Code.ensure_loaded?(Postgrex) do
     defp quote_boolean(true), do: "TRUE"
     defp quote_boolean(false), do: "FALSE"
     defp quote_boolean(value), do: error!(nil, "bad boolean value #{value}")
+
+    defp format_to_sql(:text), do: "FORMAT TEXT"
+    defp format_to_sql(:json), do: "FORMAT JSON"
+    defp format_to_sql(:map), do: "FORMAT JSON"
+    defp format_to_sql(:yaml), do: "FORMAT YAML"
 
     defp single_quote(value), do: [?', escape_string(value), ?']
 
