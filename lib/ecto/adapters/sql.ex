@@ -281,7 +281,9 @@ defmodule Ecto.Adapters.SQL do
 
   Also note that:
 
-    * Currently `:json`, `:map`, `:yaml` and `:text` format options are supported for PostgreSQL
+    * Currently `:map`, `:yaml`, and `:text` format options are supported
+      for PostgreSQL. `:map` is the deserialized JSON encoding. The last two
+      options return the result as a string.
     * Any other value passed to `opts` will be forwarded to the underlying
       adapter query function, including Repo shared options such as `:timeout`;
     * Non built-in adapters may have specific behavior and you should consult
