@@ -127,25 +127,37 @@ defmodule Ecto.Adapters.Postgres do
 
   @impl true
   def storage_up(opts) do
-    database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database =
+      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+
     encoding = if opts[:encoding] == :unspecified, do: nil, else: opts[:encoding] || "UTF8"
     maintenance_database = Keyword.get(opts, :maintenance_database, @default_maintenance_database)
     opts = Keyword.put(opts, :database, maintenance_database)
 
-    command =
-      ~s(CREATE DATABASE "#{database}")
-      |> concat_if(encoding, &"ENCODING '#{&1}'")
-      |> concat_if(opts[:template], &"TEMPLATE=#{&1}")
-      |> concat_if(opts[:lc_ctype], &"LC_CTYPE='#{&1}'")
-      |> concat_if(opts[:lc_collate], &"LC_COLLATE='#{&1}'")
+    check_existence_command = "SELECT FROM pg_database WHERE datname = '#{database}'"
 
-    case run_query(command, opts) do
-      {:ok, _} ->
-        :ok
-      {:error, %{postgres: %{code: :duplicate_database}}} ->
+    case run_query(check_existence_command, opts) do
+      {:ok, %{num_rows: 1}} ->
         {:error, :already_up}
-      {:error, error} ->
-        {:error, Exception.message(error)}
+
+      _ ->
+        create_command =
+          ~s(CREATE DATABASE "#{database}")
+          |> concat_if(encoding, &"ENCODING '#{&1}'")
+          |> concat_if(opts[:template], &"TEMPLATE=#{&1}")
+          |> concat_if(opts[:lc_ctype], &"LC_CTYPE='#{&1}'")
+          |> concat_if(opts[:lc_collate], &"LC_COLLATE='#{&1}'")
+
+        case run_query(create_command, opts) do
+          {:ok, _} ->
+            :ok
+
+          {:error, %{postgres: %{code: :duplicate_database}}} ->
+            {:error, :already_up}
+
+          {:error, error} ->
+            {:error, Exception.message(error)}
+        end
     end
   end
 
