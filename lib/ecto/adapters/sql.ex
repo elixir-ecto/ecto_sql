@@ -411,7 +411,7 @@ defmodule Ecto.Adapters.SQL do
   defp sql_call(adapter_meta, callback, args, params, opts) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
     conn = get_conn_or_pool(pool)
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    opts = with_log(telemetry, params, adapter_meta, opts ++ default_opts)
     args = args ++ [params, opts]
     apply(sql, callback, [conn | args])
   end
@@ -751,7 +751,7 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def reduce(adapter_meta, statement, params, opts, acc, fun) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    opts = with_log(telemetry, params, adapter_meta, opts ++ default_opts)
 
     case get_conn(pool) do
       nil  ->
@@ -767,7 +767,7 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def into(adapter_meta, statement, params, opts) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    opts = with_log(telemetry, params, adapter_meta, opts ++ default_opts)
 
     case get_conn(pool) do
       nil ->
@@ -864,11 +864,11 @@ defmodule Ecto.Adapters.SQL do
 
   ## Log
 
-  defp with_log(telemetry, params, opts) do
-    [log: &log(telemetry, params, &1, opts)] ++ opts
+  defp with_log(telemetry, params, adapter_meta, opts) do
+    [log: &log(telemetry, params, &1, adapter_meta, opts)] ++ opts
   end
 
-  defp log({repo, log, event_name}, params, entry, opts) do
+  defp log({repo, log, event_name}, params, entry, adapter_meta, opts) do
     %{
       connection_time: query_time,
       decode_time: decode_time,
@@ -886,6 +886,16 @@ defmodule Ecto.Adapters.SQL do
         %Ecto.Query.Tagged{value: value} -> value
         value -> value
       end)
+
+    custom_log? = Kernel.function_exported?(adapter_meta.sql, :parse_log_param, 1)
+
+    params = case entry.result do
+      {:ok, %{param_types: types}, _result} when custom_log? ->
+        Enum.zip(params, types)
+        |> Enum.map(&adapter_meta.sql.parse_log_param/1)
+      _ ->
+        params
+    end
 
     acc =
       if idle_time, do: [idle_time: idle_time], else: []
@@ -996,7 +1006,7 @@ defmodule Ecto.Adapters.SQL do
 
   defp checkout_or_transaction(fun, adapter_meta, opts, callback) do
     %{pid: pool, telemetry: telemetry, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, [], opts ++ default_opts)
+    opts = with_log(telemetry, [], adapter_meta, opts ++ default_opts)
 
     callback = fn conn ->
       previous_conn = put_conn(pool, conn)

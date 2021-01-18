@@ -165,6 +165,16 @@ if Code.ensure_loaded?(Postgrex) do
        values, on_conflict(on_conflict, header) | returning(returning)]
     end
 
+    @impl true
+    def parse_log_param({binary, Postgrex.Extensions.UUID}) do
+      case Ecto.UUID.load(binary) do
+        {:ok, uuid} -> uuid
+        :error -> binary
+      end
+    end
+
+    def parse_log_param({param, _type}), do: param
+
     defp insert_as({%{sources: sources}, _, _}) do
       {_expr, name, _schema} = create_name(sources, 0, [])
       [" AS " | name]
