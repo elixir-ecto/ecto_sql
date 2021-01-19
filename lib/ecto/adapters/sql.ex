@@ -140,15 +140,15 @@ defmodule Ecto.Adapters.SQL do
       def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
 
       @impl true
-      def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, opts) do
-        Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, opts)
+      def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, placeholders, opts) do
+        Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, placeholders, opts)
       end
 
       @impl true
       def insert(adapter_meta, %{source: source, prefix: prefix}, params,
                  {kind, conflict_params, _} = on_conflict, returning, opts) do
         {fields, values} = :lists.unzip(params)
-        sql = @conn.insert(prefix, source, fields, [fields], on_conflict, returning)
+        sql = @conn.insert(prefix, source, fields, [fields], on_conflict, returning, [])
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :insert, source, [], values ++ conflict_params, kind, returning, opts)
       end
 
@@ -191,7 +191,7 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.execute_ddl(meta, @conn, definition, opts)
       end
 
-      defoverridable [prepare: 2, execute: 5, insert: 6, update: 6, delete: 4, insert_all: 7,
+      defoverridable [prepare: 2, execute: 5, insert: 6, update: 6, delete: 4, insert_all: 8,
                       execute_ddl: 3, loaders: 2, dumpers: 2, autogenerate: 1,
                       ensure_all_started: 2, __before_compile__: 1]
     end
@@ -639,16 +639,18 @@ defmodule Ecto.Adapters.SQL do
   ## Query
 
   @doc false
-  def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, opts) do
+  def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, placeholders, opts) do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
     {rows, params} = unzip_inserts(header, rows)
-    sql = conn.insert(prefix, source, header, rows, on_conflict, returning)
+
+    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders)
 
     opts = [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
 
+    all_params = placeholders ++ Enum.reverse(params,  conflict_params)
     %{num_rows: num, rows: rows} =
-      query!(adapter_meta, sql, Enum.reverse(params) ++ conflict_params, opts)
+      query!(adapter_meta, sql, all_params, opts)
 
     {num, rows}
   end
@@ -658,10 +660,12 @@ defmodule Ecto.Adapters.SQL do
       Enum.map_reduce header, params, fn key, acc ->
         case :lists.keyfind(key, 1, fields) do
           {^key, {%Ecto.Query{} = query, query_params}} ->
-            {{query, length(query_params)}, Enum.reverse(query_params) ++ acc}
+            {{query, length(query_params)}, Enum.reverse(query_params, acc)}
 
-          {^key, value} ->
-            {key, [value | acc]}
+          {^key, {:placeholder, placeholder_index}} ->
+            {{:placeholder, Integer.to_string(placeholder_index)}, acc}
+
+          {^key, value} -> {key, [value | acc]}
 
           false -> {nil, acc}
         end
