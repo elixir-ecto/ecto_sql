@@ -1,5 +1,25 @@
 # Changelog for v3.x
 
+## v3.6.0-dev
+
+### Bug fixes
+
+  * [migrations] Fix a bug where the migration lock would not apply on the first migration (when the schema migrations table is empty). This fix changes how migration tables are locked, therefore let us know of any possible regressions in your workflow
+
+### Enhancements
+
+  * [migrations] Allow generating migrations from within umbrella app
+  * [psql] Add `:format` option to PostgreSQL explain
+  * [storage] Do not fail `storage_up` if the user has access to an already-created database
+  * [tds] Support for `:inner_lateral` and `:left_lateral`
+
+## v3.5.3 (2020-10-27)
+
+### Enhancements
+
+  * [migrations] Pass `:schema_migration` option to repo operations for `prepare_query` checks
+  * [psql] Support `:force_drop` configuration to force a DB to be dropped
+
 ## v3.5.2 (2020-10-24)
 
 ### Enhancements
