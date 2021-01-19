@@ -59,8 +59,10 @@ defmodule Ecto.Adapters.TdsTest do
   defp delete_all(query), do: query |> SQL.delete_all() |> IO.iodata_to_binary()
   defp execute_ddl(query), do: query |> SQL.execute_ddl() |> Enum.map(&IO.iodata_to_binary/1)
 
-  defp insert(prefx, table, header, rows, on_conflict, returning) do
-    IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning, []))
+  defp insert(prefx, table, header, rows, on_conflict, returning, placeholders \\ []) do
+    IO.iodata_to_binary(
+      SQL.insert(prefx, table, header, rows, on_conflict, returning, placeholders)
+    )
   end
 
   defp update(prefx, table, fields, filter, returning) do
@@ -1034,20 +1036,21 @@ defmodule Ecto.Adapters.TdsTest do
   # Schema based
 
   test "insert" do
-    # prefx, table, header, rows, on_conflict, returning
-    query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, [])
-    assert query == ~s{INSERT INTO [schema] ([x],[y]) VALUES (@1, @2)}
+    # prefx, table, header, rows, on_conflict, returning, placeholders
+    assert insert(nil, "schema", [:x, :y], [[:x, :y]], {:raise, [], []}, []) ==
+             ~s{INSERT INTO [schema] ([x],[y]) VALUES (@1, @2)}
 
-    query = insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id])
-
-    assert query ==
+    assert insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id]) ==
              ~s{INSERT INTO [schema] ([x],[y]) OUTPUT INSERTED.[id] VALUES (@1, @2),(DEFAULT, @3)}
 
-    query = insert(nil, "schema", [], [[]], {:raise, [], []}, [:id])
-    assert query == ~s{INSERT INTO [schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
+    assert insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :y]], {:raise, [], []}, [:id], [1, 2]) ==
+             ~s{INSERT INTO [schema] ([x],[y]) OUTPUT INSERTED.[id] VALUES (@3, @4),(DEFAULT, @5)}
 
-    query = insert("prefix", "schema", [], [[]], {:raise, [], []}, [:id])
-    assert query == ~s{INSERT INTO [prefix].[schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
+    assert insert(nil, "schema", [], [[]], {:raise, [], []}, [:id]) ==
+             ~s{INSERT INTO [schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
+
+    assert insert("prefix", "schema", [], [[]], {:raise, [], []}, [:id]) ==
+             ~s{INSERT INTO [prefix].[schema] OUTPUT INSERTED.[id] DEFAULT VALUES}
   end
 
   test "insert with query" do

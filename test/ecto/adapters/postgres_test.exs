@@ -55,16 +55,18 @@ defmodule Ecto.Adapters.PostgresTest do
   defp delete_all(query), do: query |> SQL.delete_all |> IO.iodata_to_binary()
   defp execute_ddl(query), do: query |> SQL.execute_ddl |> Enum.map(&IO.iodata_to_binary/1)
 
-  defp insert(prefx, table, header, rows, on_conflict, returning) do
-    IO.iodata_to_binary SQL.insert(prefx, table, header, rows, on_conflict, returning, [])
+  defp insert(prefx, table, header, rows, on_conflict, returning, placeholders \\ []) do
+    IO.iodata_to_binary(
+      SQL.insert(prefx, table, header, rows, on_conflict, returning, placeholders)
+    )
   end
 
   defp update(prefx, table, fields, filter, returning) do
-    IO.iodata_to_binary SQL.update(prefx, table, fields, filter, returning)
+    IO.iodata_to_binary(SQL.update(prefx, table, fields, filter, returning))
   end
 
   defp delete(prefx, table, filter, returning) do
-    IO.iodata_to_binary SQL.delete(prefx, table, filter, returning)
+    IO.iodata_to_binary(SQL.delete(prefx, table, filter, returning))
   end
 
   test "from" do
@@ -1094,6 +1096,9 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :z]], {:raise, [], []}, [:id])
     assert query == ~s{INSERT INTO "schema" ("x","y") VALUES ($1,$2),(DEFAULT,$3) RETURNING "id"}
+
+    query = insert(nil, "schema", [:x, :y], [[:x, :y], [nil, :z]], {:raise, [], []}, [:id], [1, 2])
+    assert query == ~s{INSERT INTO "schema" ("x","y") VALUES ($3,$4),(DEFAULT,$5) RETURNING "id"}
 
     query = insert(nil, "schema", [], [[]], {:raise, [], []}, [:id])
     assert query == ~s{INSERT INTO "schema" VALUES (DEFAULT) RETURNING "id"}
