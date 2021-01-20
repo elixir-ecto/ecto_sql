@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.5.4 (2020-01-20)
+
+### Enhancements
+
+  * [mysql] Support defaults for JSON columns
+  * [psql] Allow Postgrex v1.0
+
 ## v3.5.3 (2020-10-27)
 
 ### Enhancements
