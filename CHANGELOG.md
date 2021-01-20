@@ -13,6 +13,13 @@
   * [storage] Do not fail `storage_up` if the user has access to an already-created database
   * [tds] Support for `:inner_lateral` and `:left_lateral`
 
+## v3.5.4 (2020-01-20)
+
+### Enhancements
+
+  * [mysql] Support defaults for JSON columns
+  * [psql] Allow Postgrex v1.0
+
 ## v3.5.3 (2020-10-27)
 
 ### Enhancements
