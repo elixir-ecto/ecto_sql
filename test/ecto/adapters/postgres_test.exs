@@ -1480,6 +1480,14 @@ defmodule Ecto.Adapters.PostgresTest do
     assert execute_ddl(drop) == [~s|DROP TABLE "foo"."posts"|]
   end
 
+  test "drop table with cascade" do
+    drop = {:drop, table(:posts), :cascade}
+    assert execute_ddl(drop) == [~s|DROP TABLE "posts" CASCADE|]
+
+    drop = {:drop, table(:posts, prefix: :foo), :cascade}
+    assert execute_ddl(drop) == [~s|DROP TABLE "foo"."posts" CASCADE|]
+  end
+
   test "alter table" do
     alter = {:alter, table(:posts),
              [{:add, :title, :string, [default: "Untitled", size: 100, null: false]},
@@ -1680,6 +1688,14 @@ defmodule Ecto.Adapters.PostgresTest do
     index = index(:posts, [:id], name: "posts$main")
     drop = {:drop, %{index | concurrently: true}}
     assert execute_ddl(drop) == [~s|DROP INDEX CONCURRENTLY "posts$main"|]
+  end
+
+  test "drop index with cascade" do
+    drop = {:drop, index(:posts, [:id], name: "posts$main"), :cascade}
+    assert execute_ddl(drop) == [~s|DROP INDEX "posts$main" CASCADE|]
+
+    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo), :cascade}
+    assert execute_ddl(drop) == [~s|DROP INDEX "foo"."posts$main" CASCADE|]
   end
 
   test "create check constraint" do
