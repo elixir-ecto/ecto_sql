@@ -408,6 +408,20 @@ defmodule Ecto.MigrationTest do
     assert result == table(:posts)
   end
 
+  test "forward: drops a table with cascade" do
+    result = drop table(:posts), cascade: true
+    flush()
+    assert {:drop, %Table{}, :cascade} = last_command()
+    assert result == table(:posts)
+  end
+
+  test "forward: drops a table if table exists with cascade" do
+    result = drop_if_exists table(:posts), cascade: true
+    flush()
+    assert {:drop_if_exists, %Table{}, :cascade} = last_command()
+    assert result == table(:posts)
+  end
+
   test "forward: creates an index" do
     create index(:posts, [:title])
     flush()
@@ -442,6 +456,12 @@ defmodule Ecto.MigrationTest do
     drop index(:posts, [:title])
     flush()
     assert {:drop, %Index{}} = last_command()
+  end
+
+  test "forward: drops an index with cascade" do
+    drop index(:posts, [:title]), cascade: true
+    flush()
+    assert {:drop, %Index{}, :cascade} = last_command()
   end
 
   test "forward: drops a constraint" do
