@@ -723,6 +723,11 @@ if Code.ensure_loaded?(MyXQL) do
         quote_table(table.prefix, table.name)]]
     end
 
+    def execute_ddl({command, %Table{} = table, :cascade}) when command in [:drop, :drop_if_exists] do
+      [cmd | _] = execute_ddl({command, %Table{} = table})
+      [cmd ++ [" CASCADE"]]
+    end
+
     def execute_ddl({:alter, %Table{} = table, changes}) do
       [["ALTER TABLE ", quote_table(table.prefix, table.name), ?\s,
         column_changes(table, changes), pk_definitions(changes, ", ADD ")]]
@@ -756,6 +761,10 @@ if Code.ensure_loaded?(MyXQL) do
         " ON ", quote_table(index.prefix, index.table),
         if_do(index.concurrently, " LOCK=NONE")]]
     end
+
+    def execute_ddl({:drop, %Index{}, :cascade}),
+      do: error!(nil, "MySQL adapter does not support cascade in drop index")
+
 
     def execute_ddl({:drop, %Constraint{}}),
       do: error!(nil, "MySQL adapter does not support constraints")

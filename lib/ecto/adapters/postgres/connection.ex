@@ -831,6 +831,11 @@ if Code.ensure_loaded?(Postgrex) do
         quote_table(table.prefix, table.name)]]
     end
 
+    def execute_ddl({command, %Table{} = table, :cascade}) when command in @drops do
+      [cmd | _] = execute_ddl({command, table})
+      [cmd ++ [" CASCADE"]]
+    end
+
     def execute_ddl({:alter, %Table{} = table, changes}) do
       table_name = quote_table(table.prefix, table.name)
       query = ["ALTER TABLE ", table_name, ?\s,
@@ -866,6 +871,11 @@ if Code.ensure_loaded?(Postgrex) do
         if_do(index.concurrently, "CONCURRENTLY "),
         if_do(command == :drop_if_exists, "IF EXISTS "),
         quote_table(index.prefix, index.name)]]
+    end
+
+    def execute_ddl({command, %Index{} = index, :cascade}) when command in @drops do
+      [cmd | _] = execute_ddl({command, index})
+      [cmd ++ [" CASCADE"]]
     end
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
