@@ -379,7 +379,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   The owner process is not linked to the caller, it is your responsibility to
   ensure it will be stopped. In tests, this is done by terminating the pool
-  in `on_exit` callbacks:
+  in an `ExUnit.Callbacks.on_exit/2` callback:
 
       setup tags do
         pid = Ecto.Adapters.SQL.Sandbox.start_owner!(MyApp.Repo, shared: not tags[:async])
