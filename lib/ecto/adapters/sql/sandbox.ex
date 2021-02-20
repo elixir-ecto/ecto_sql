@@ -93,7 +93,8 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   to collaborate over the same connection. Let's give it a try:
 
       test "calls worker that runs a query" do
-        Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), MyApp.Worker)
+        allow = Process.whereis(MyApp.Worker)
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), allow)
         GenServer.call(MyApp.Worker, :run_query)
       end
 
