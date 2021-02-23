@@ -2,23 +2,44 @@ name: CI
 on: [push, pull_request]
 jobs:
   test-elixir:
-    runs-on: ubuntu-18.04
-    container: elixir:${{ matrix.elixir_version }}-slim
-
+    runs-on: ubuntu-16.04
+    env:
+      MIX_ENV: test
     strategy:
+      fail-fast: false
       matrix:
-        elixir_version: ["1.8", "1.9", "1.10"]
-
+        include:
+          - pair:
+              elixir: 1.8.2
+              otp: 20.3.8.26
+          - pair:
+              elixir: 1.11.3
+              otp: 23.2.5
+            lint: lint
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+
+      - uses: erlef/setup-elixir@v1
+        with:
+          otp-version: ${{matrix.pair.otp}}
+          elixir-version: ${{matrix.pair.elixir}}
+
       - name: Install Dependencies
         run: |
-          apt-get update
-          apt-get install -y git
-          mix local.rebar --force
-          mix local.hex --force
-          mix deps.get
+          mix deps.get --only test
+          mix deps.compile
+
+      - run: mix format --check-formatted
+        if: ${{ matrix.lint }}
+
+      - run: mix deps.get && mix deps.unlock --check-unused
+        if: ${{ matrix.lint }}
+
+      - run: mix compile --warnings-as-errors
+        if: ${{ matrix.lint }}
+
       - run: mix test
+
       - run: mix test.as_a_dep
 
   test-mysql:
