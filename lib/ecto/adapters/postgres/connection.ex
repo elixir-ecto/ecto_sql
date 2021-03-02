@@ -687,7 +687,7 @@ if Code.ensure_loaded?(Postgrex) do
       case handle_call(fun, length(args)) do
         {:binary_op, op} ->
           [left, right] = args
-          [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
+          [maybe_paren(left, sources, query), op | maybe_paren(right, sources, query)]
         {:fun, fun} ->
           [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
       end
@@ -707,7 +707,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
-      [expr(other, sources, query), ?:, ?: | tagged_to_db(type)]
+      [maybe_paren(other, sources, query), ?:, ?: | tagged_to_db(type)]
     end
 
     defp expr(nil, _sources, _query),   do: "NULL"
@@ -749,13 +749,13 @@ if Code.ensure_loaded?(Postgrex) do
        interval(1, interval, sources, query), ?)]
     end
 
-    defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
+    defp maybe_paren({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
       do: paren_expr(expr, sources, query)
 
-    defp op_to_binary({:is_nil, _, [_]} = expr, sources, query),
+    defp maybe_paren({:is_nil, _, [_]} = expr, sources, query),
       do: paren_expr(expr, sources, query)
 
-    defp op_to_binary(expr, sources, query),
+    defp maybe_paren(expr, sources, query),
       do: expr(expr, sources, query)
 
     defp returning(%{select: nil}, _sources),
