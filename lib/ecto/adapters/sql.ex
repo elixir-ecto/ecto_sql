@@ -642,7 +642,10 @@ defmodule Ecto.Adapters.SQL do
   def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, placeholders, opts) do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
-    {rows, params} = unzip_inserts(header, rows)
+    {rows, params} = case rows do
+      %Ecto.Query{} = query -> Ecto.Adapter.Queryable.plan_query(:all, Ecto.Adapters.Postgres, query)
+      rows ->  unzip_inserts(header, rows)
+    end
 
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders)
 
