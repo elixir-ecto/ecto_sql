@@ -643,7 +643,10 @@ defmodule Ecto.Adapters.SQL do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
     {rows, params} = case rows do
-      %Ecto.Query{} = query -> Ecto.Adapter.Queryable.plan_query(:all, Ecto.Adapters.Postgres, query)
+      %Ecto.Query{} = query ->
+        {query, params} = Ecto.Adapter.Queryable.plan_query(:all, Ecto.Adapters.Postgres, query)
+        {query, Enum.reverse(params)}
+
       rows ->  unzip_inserts(header, rows)
     end
 
@@ -651,7 +654,7 @@ defmodule Ecto.Adapters.SQL do
 
     opts = [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
 
-    all_params = placeholders ++ Enum.reverse(params,  conflict_params)
+    all_params = placeholders ++ Enum.reverse(params, conflict_params)
     %{num_rows: num, rows: rows} =
       query!(adapter_meta, sql, all_params, opts)
 
