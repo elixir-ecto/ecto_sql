@@ -644,6 +644,7 @@ defmodule Ecto.Adapters.SQL do
     {_, conflict_params, _} = on_conflict
     {rows, params} = case rows do
       %Ecto.Query{} = query ->
+        # adapter name has to be dynamic. but unsure where to get it. adapter_meta only has a key for `sql`, which points to the conn
         {query, params} = Ecto.Adapter.Queryable.plan_query(:all, Ecto.Adapters.Postgres, query)
         {query, Enum.reverse(params)}
 
