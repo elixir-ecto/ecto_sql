@@ -7,7 +7,6 @@ defmodule Ecto.Integration.InsertAllTest do
 
   @tag :insert_all
   test "insert_all" do
-    TestRepo.query("SET IDENTITY_INSERT = 'ON'")
     assert {:ok, %Post{id: id}} = TestRepo.insert(%Post{
       title: "A generic title"
     })
