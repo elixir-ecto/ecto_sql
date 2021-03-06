@@ -5,6 +5,7 @@ defmodule Ecto.Integration.InsertAllTest do
   alias Ecto.Integration.Post
   import Ecto.Query
 
+  @tag :insert_all
   test "insert_all" do
     TestRepo.insert(%Post{
       id: 1,
@@ -16,6 +17,7 @@ defmodule Ecto.Integration.InsertAllTest do
         id: p.id * 10,
         title: ^"foobar"
       }
-    assert {1, [%Post{id: 10, title: "foobar"}]} = TestRepo.insert_all(Post, source, conflict_target: [:id], on_conflict: :replace_all, returning: [:id, :title])
+    assert {1, _} = TestRepo.insert_all(Post, source, on_conflict: :replace_all)
+    assert %Post{id: 10, title: "foobar"} = TestRepo.get(Post, 10)
   end
 end
