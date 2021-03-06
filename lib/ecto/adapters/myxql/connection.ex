@@ -142,7 +142,7 @@ if Code.ensure_loaded?(MyXQL) do
     @impl true
     def insert(prefix, table, header, rows, on_conflict, [], []) do
       fields = quote_names(header)
-      ["INSERT INTO ", quote_table(prefix, table), " (", fields, ") VALUES ",
+      ["INSERT INTO ", quote_table(prefix, table), " (", fields, ") ",
        insert_all(rows) | on_conflict(on_conflict, header)]
     end
     def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, []) do
@@ -151,7 +151,7 @@ if Code.ensure_loaded?(MyXQL) do
     def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, _placeholders) do
       error!(nil, ":placeholders is not supported by MySQL")
     end
-    
+
     defp on_conflict({_, _, [_ | _]}, _header) do
       error!(nil, "The :conflict_target option is not supported in insert/insert_all by MySQL")
     end
@@ -176,10 +176,14 @@ if Code.ensure_loaded?(MyXQL) do
       error!(nil, "Using a query with :where in combination with the :on_conflict option is not supported by MySQL")
     end
 
-    defp insert_all(rows) do
-      intersperse_map(rows, ?,, fn row ->
+    defp insert_all(rows) when is_list(rows) do
+      ["VALUES ", intersperse_map(rows, ?,, fn row ->
         [?(, intersperse_map(row, ?,, &insert_all_value/1), ?)]
-      end)
+      end)]
+    end
+
+    defp insert_all(%Ecto.Query{} = query) do
+      [?(, all(query), ?)]
     end
 
     defp insert_all_value(nil), do: "DEFAULT"
