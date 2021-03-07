@@ -974,6 +974,13 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert query == ~s{INSERT INTO `schema` (`x`,`y`,`z`) VALUES (?,(SELECT s0.`id` FROM `schema` AS s0),?),(DEFAULT,DEFAULT,(SELECT s0.`id` FROM `schema` AS s0))}
   end
 
+  test "insert with query as rows" do
+    query = from(s in "schema", select: %{ foo: fragment("3"), bar: s.bar }) |> plan(:all)
+    query = insert(nil, "schema", [:foo, :bar], query, {:raise, [], []}, [])
+
+    assert query == ~s{INSERT INTO `schema` (`foo`,`bar`) (SELECT 3, s0.`bar` FROM `schema` AS s0)}
+  end
+
   test "update" do
     query = update(nil, "schema", [:id], [x: 1, y: 2], [])
     assert query == ~s{UPDATE `schema` SET `id` = ? WHERE `x` = ? AND `y` = ?}

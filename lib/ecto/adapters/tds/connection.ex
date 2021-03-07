@@ -229,7 +229,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp insert_all(%Ecto.Query{} = query, _counter) do
-      [all(query)]
+      [?\s, all(query)]
     end
     defp insert_all(rows, counter) do
       sql =
