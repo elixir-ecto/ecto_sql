@@ -10,6 +10,7 @@
 
   * [migrations] Allow generating migrations from within umbrella app
   * [psql] Add `:format` option to PostgreSQL explain
+  * [psql] Support `:socket_dir` connection option when using `mix ecto.load` or `mix ecto.dump`
   * [storage] Do not fail `storage_up` if the user has access to an already-created database
   * [tds] Support for `:inner_lateral` and `:left_lateral`
 
