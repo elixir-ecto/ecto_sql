@@ -343,7 +343,15 @@ defmodule Ecto.Adapters.Postgres do
     args =
       if port = opts[:port], do: ["-p", to_string(port)|args], else: args
 
-    host = opts[:hostname] || System.get_env("PGHOST") || "localhost"
+    host = opts[:socket_dir] || opts[:hostname] || System.get_env("PGHOST") || "localhost"
+
+    if opts[:socket] do
+      IO.warn(
+        ":socket option is ignored when connecting in structure_load/2 and structure_dump/2," <>
+          " use :socket_dir or :hostname instead"
+      )
+    end
+
     args = ["--host", host|args]
     args = args ++ opt_args
     System.cmd(cmd, args, env: env, stderr_to_stdout: true)
