@@ -346,10 +346,10 @@ defmodule Ecto.Adapters.Postgres do
     host = opts[:socket_dir] || opts[:hostname] || System.get_env("PGHOST") || "localhost"
 
     if opts[:socket] do
-      IO.warn("""
-      Using `:socket` connection option is not supported by some operations on `Ecto.Adapters.Postgres`.
-      Trying to connect using fallback options...
-      """)
+      IO.warn(
+        ":socket option is ignored when connecting in structure_load/2 and structure_dump/2," <>
+          " use :socket_dir or :hostname instead"
+      )
     end
 
     args = ["--host", host|args]
