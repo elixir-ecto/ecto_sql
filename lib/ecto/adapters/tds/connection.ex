@@ -212,8 +212,8 @@ if Code.ensure_loaded?(Tds) do
             ?(,
             quote_names(header),
             ?),
-            returning,
-            " VALUES " | insert_all(rows, counter_offset)
+            returning |
+            insert_all(rows, counter_offset)
           ]
         end
 
@@ -228,12 +228,18 @@ if Code.ensure_loaded?(Tds) do
       error!(nil, "Tds adapter supports only on_conflict: :raise")
     end
 
+    defp insert_all(%Ecto.Query{} = query, _counter) do
+      [?\s, all(query)]
+    end
     defp insert_all(rows, counter) do
-      intersperse_reduce(rows, ",", counter, fn row, counter ->
-        {row, counter} = insert_each(row, counter)
-        {[?(, row, ?)], counter}
-      end)
-      |> elem(0)
+      sql =
+        intersperse_reduce(rows, ",", counter, fn row, counter ->
+          {row, counter} = insert_each(row, counter)
+          {[?(, row, ?)], counter}
+        end)
+        |> elem(0)
+
+      [" VALUES " | sql]
     end
 
     defp insert_each(values, counter) do

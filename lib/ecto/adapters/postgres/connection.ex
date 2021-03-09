@@ -158,7 +158,7 @@ if Code.ensure_loaded?(Postgrex) do
         if header == [] do
           [" VALUES " | intersperse_map(rows, ?,, fn _ -> "(DEFAULT)" end)]
         else
-          [?\s, ?(, quote_names(header), ") VALUES " | insert_all(rows, counter_offset)]
+          [" (", quote_names(header), ") " | insert_all(rows, counter_offset)]
         end
 
       ["INSERT INTO ", quote_table(prefix, table), insert_as(on_conflict),
@@ -199,12 +199,16 @@ if Code.ensure_loaded?(Postgrex) do
        end)]
     end
 
+    defp insert_all(query = %Ecto.Query{}, _counter) do
+      [?(, all(query), ?)]
+    end
+
     defp insert_all(rows, counter) do
-      intersperse_reduce(rows, ?,, counter, fn row, counter ->
+      ["VALUES ", intersperse_reduce(rows, ?,, counter, fn row, counter ->
         {row, counter} = insert_each(row, counter)
         {[?(, row, ?)], counter}
       end)
-      |> elem(0)
+      |> elem(0)]
     end
 
     defp insert_each(values, counter) do
@@ -217,7 +221,7 @@ if Code.ensure_loaded?(Postgrex) do
 
         {:placeholder, placeholder_index}, counter ->
           {[?$ | placeholder_index], counter}
-          
+
         _, counter ->
           {[?$ | Integer.to_string(counter)], counter + 1}
       end)

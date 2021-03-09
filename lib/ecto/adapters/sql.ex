@@ -642,13 +642,16 @@ defmodule Ecto.Adapters.SQL do
   def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, placeholders, opts) do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
-    {rows, params} = unzip_inserts(header, rows)
+    {rows, params} = case rows do
+      {%Ecto.Query{} = query, params} -> {query, Enum.reverse(params)}
+      rows -> unzip_inserts(header, rows)
+    end
 
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders)
 
     opts = [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
 
-    all_params = placeholders ++ Enum.reverse(params,  conflict_params)
+    all_params = placeholders ++ Enum.reverse(params, conflict_params)
     %{num_rows: num, rows: rows} =
       query!(adapter_meta, sql, all_params, opts)
 

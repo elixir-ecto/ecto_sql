@@ -1147,6 +1147,13 @@ defmodule Ecto.Adapters.PostgresTest do
     assert query == ~s{INSERT INTO "schema" ("x","y","z") VALUES ($1,(SELECT s0."id" FROM "schema" AS s0),$5),(DEFAULT,(SELECT s0."id" FROM "schema" AS s0),$8) RETURNING "id"}
   end
 
+  test "insert with query as rows" do
+    query = from(s in "schema", select: %{ foo: fragment("3"), bar: s.bar }) |> plan(:all)
+    query = insert(nil, "schema", [:foo, :bar], query, {:raise, [], []}, [:foo])
+
+    assert query == ~s{INSERT INTO "schema" ("foo","bar") (SELECT 3, s0."bar" FROM "schema" AS s0) RETURNING "foo"}
+  end
+
   test "update" do
     query = update(nil, "schema", [:x, :y], [id: 1], [])
     assert query == ~s{UPDATE "schema" SET "x" = $1, "y" = $2 WHERE "id" = $3}
