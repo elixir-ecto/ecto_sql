@@ -519,6 +519,7 @@ defmodule Ecto.Integration.MigrationTest do
     :ok = down(PoolRepo, num, AlterColumnMigration, log: false)
   end
 
+  @tag :modify_column
   test "modify column with from", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, AlterColumnFromMigration, log: false)
 
@@ -538,6 +539,7 @@ defmodule Ecto.Integration.MigrationTest do
     :ok = down(PoolRepo, num, AlterColumnFromPkeyMigration, log: false)
   end
 
+  @tag :alter_foreign_key
   test "modify foreign key's on_delete constraint", %{migration_number: num} do
     assert :ok == up(PoolRepo, num, AlterForeignKeyOnDeleteMigration, log: false)
 
