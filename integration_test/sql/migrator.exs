@@ -76,6 +76,7 @@ defmodule Ecto.Integration.MigratorTest do
     assert migrated_versions(PoolRepo) == []
   end
 
+  @tag :prefix
   test "does not commit migration if insert into schema migration fails" do
     # First we create a new schema migration table in another prefix
     assert up(PoolRepo, 33, AnotherSchemaMigration, log: false) == :ok
@@ -171,6 +172,7 @@ defmodule Ecto.Integration.MigratorTest do
     end
   end
 
+  @tag :lock_for_migrations
   test "raises when connection pool is too small" do
     config = Application.fetch_env!(:ecto_sql, PoolRepo)
     config = Keyword.merge(config, pool_size: 1)
