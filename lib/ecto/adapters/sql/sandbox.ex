@@ -530,10 +530,21 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   @doc """
   Allows the `allow` process to use the same connection as `parent`.
+
+  `allow` may be a PID or a locally registered name.
   """
   def allow(repo, parent, allow, _opts \\ []) when is_atom(repo) or is_pid(repo) do
-    %{pid: pool, opts: opts} = lookup_meta!(repo)
-    DBConnection.Ownership.ownership_allow(pool, parent, allow, opts)
+    case GenServer.whereis(allow) do
+      pid when is_pid(pid) ->
+        %{pid: pool, opts: opts} = lookup_meta!(repo)
+        DBConnection.Ownership.ownership_allow(pool, parent, pid, opts)
+
+      other ->
+        raise """
+        only PID or a locally registered process can be allowed to \
+        use the same connection as parent but the lookup returned #{inspect(other)}
+        """
+    end
   end
 
   @doc """

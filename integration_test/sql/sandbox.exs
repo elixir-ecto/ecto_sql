@@ -19,7 +19,7 @@ defmodule Ecto.Integration.SandboxTest do
         Sandbox.mode(UnknownRepo, :manual)
       end
     end
-    
+
     test "raises if repo is not started" do
       assert_raise RuntimeError, ~r"could not lookup Ecto repo #{inspect DynamicRepo} because it was not started", fn ->
         Sandbox.mode(DynamicRepo, :manual)
@@ -75,6 +75,27 @@ defmodule Ecto.Integration.SandboxTest do
       assert TestRepo.all(Post) == []
     end
 
+    test "uses the repository when allowed from another process by registered name" do
+      assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
+        TestRepo.all(Post)
+      end
+
+      parent = self()
+      Process.register(parent, __MODULE__)
+
+      Task.start_link fn ->
+        Sandbox.checkout(TestRepo)
+        Sandbox.allow(TestRepo, self(), __MODULE__)
+        send(parent, :allowed)
+        Process.sleep(:infinity)
+      end
+
+      assert_receive :allowed
+      assert TestRepo.all(Post) == []
+
+      Process.unregister(__MODULE__)
+    end
+
     test "uses the repository when shared from another process" do
       assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
         TestRepo.all(Post)
@@ -94,17 +115,17 @@ defmodule Ecto.Integration.SandboxTest do
     after
       Sandbox.mode(TestRepo, :manual)
     end
-    
+
     test "works with a dynamic repo" do
       repo_pid = start_supervised!({DynamicRepo, name: nil})
       DynamicRepo.put_dynamic_repo(repo_pid)
-      
+
       assert Sandbox.mode(DynamicRepo, :manual) == :ok
-      
+
       assert_raise DBConnection.OwnershipError, ~r"cannot find ownership process", fn ->
         DynamicRepo.all(Post)
       end
-      
+
       Sandbox.checkout(DynamicRepo)
       assert DynamicRepo.all(Post) == []
     end
