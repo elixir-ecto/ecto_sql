@@ -541,7 +541,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
       other ->
         raise """
-        only PID or a locally registered process can be allowed to
+        only PID or a locally registered process can be allowed to \
         use the same connection as parent but the lookup returned #{inspect(other)}
         """
     end
