@@ -15,7 +15,7 @@ defmodule Ecto.Adapters.Tds do
     * `:username` - Username
     * `:password` - User password
     * `:database` - the database to connect to
-    * `:pool` - The connection pool module, defaults to `DBConnection.ConnectionPool`
+    * `:pool` - The connection pool module, may be set to `Ecto.Adapters.SQL.Sandbox`
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
     * `:show_sensitive_data_on_connection_error` - show connection data and

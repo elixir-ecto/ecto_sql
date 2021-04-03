@@ -20,7 +20,7 @@ defmodule Ecto.Adapters.MyXQL do
     * `:username` - Username
     * `:password` - User password
     * `:database` - the database to connect to
-    * `:pool` - The connection pool module, defaults to `DBConnection.ConnectionPool`
+    * `:pool` - The connection pool module, may be set to `Ecto.Adapters.SQL.Sandbox`
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
     * `:connect_timeout` - The timeout for establishing new connections (default: 5000)

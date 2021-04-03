@@ -36,7 +36,7 @@ defmodule Ecto.Adapters.Postgres do
     * `:database` - the database to connect to
     * `:maintenance_database` - Specifies the name of the database to connect to when
       creating or dropping the database. Defaults to `"postgres"`
-    * `:pool` - The connection pool module, defaults to `DBConnection.ConnectionPool`
+    * `:pool` - The connection pool module, may be set to `Ecto.Adapters.SQL.Sandbox`
     * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl_opts` - A list of ssl options, see Erlang's `ssl` docs
     * `:parameters` - Keyword list of connection parameters
