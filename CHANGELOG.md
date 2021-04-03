@@ -1,6 +1,6 @@
 # Changelog for v3.x
 
-## v3.6.0-dev
+## v3.6.0 (2021-04-03)
 
 ### Bug fixes
 
@@ -11,6 +11,7 @@
   * [migrations] Allow generating migrations from within umbrella app
   * [psql] Add `:format` option to PostgreSQL explain
   * [psql] Support `:socket_dir` connection option when using `mix ecto.load` or `mix ecto.dump`
+  * [sandbox] Support locally registered processes in `allow/3`
   * [storage] Do not fail `storage_up` if the user has access to an already-created database
   * [tds] Support for `:inner_lateral` and `:left_lateral`
 
