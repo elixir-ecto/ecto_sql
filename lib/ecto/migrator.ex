@@ -477,8 +477,14 @@ defmodule Ecto.Migrator do
 
       {migration_repo, query, all_opts} = SchemaMigration.versions(repo, config, opts[:prefix])
 
+      migration_lock? =
+        Keyword.get(opts, :migration_lock, Keyword.get(config, :migration_lock, true))
+
+      opts =
+        Keyword.put_new(opts, :migration_source, config[:migration_source] || "schema_migrations")
+
       result =
-        if lock_or_migration_number do
+        if lock_or_migration_number && migration_lock? do
           # If there is a migration_repo, it wins over dynamic_repo,
           # otherwise the dynamic_repo is the one locked in migrations.
           meta_repo = if migration_repo != repo, do: migration_repo, else: dynamic_repo

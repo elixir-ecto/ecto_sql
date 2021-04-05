@@ -227,29 +227,25 @@ defmodule Ecto.Adapters.MyXQL do
   def lock_for_migrations(meta, opts, fun) do
     %{opts: adapter_opts, repo: repo} = meta
 
-    if Keyword.get(adapter_opts, :migration_lock, true) do
-      if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
-        Ecto.Adapters.SQL.raise_migration_pool_size_error()
-      end
-
-      opts = opts ++ [log: false, timeout: :infinity]
-
-      {:ok, result} =
-        transaction(meta, opts, fn ->
-          lock_name = "\"ecto_#{inspect(repo)}\""
-
-          try do
-            {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT GET_LOCK(#{lock_name}, -1)", [], opts)
-            fun.()
-          after
-            {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT RELEASE_LOCK(#{lock_name})", [], opts)
-          end
-        end)
-
-      result
-    else
-      fun.()
+    if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
+      Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
+
+    opts = opts ++ [log: false, timeout: :infinity]
+
+    {:ok, result} =
+      transaction(meta, opts, fn ->
+        lock_name = "\"ecto_#{inspect(repo)}\""
+
+        try do
+          {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT GET_LOCK(#{lock_name}, -1)", [], opts)
+          fun.()
+        after
+          {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT RELEASE_LOCK(#{lock_name})", [], opts)
+        end
+      end)
+
+    result
   end
 
   @impl true

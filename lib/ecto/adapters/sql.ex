@@ -579,7 +579,7 @@ defmodule Ecto.Adapters.SQL do
     Application.ensure_all_started(driver, type)
   end
 
-  @pool_opts [:timeout, :pool, :pool_size, :migration_lock] ++
+  @pool_opts [:timeout, :pool, :pool_size] ++
                [:queue_target, :queue_interval, :ownership_timeout]
 
   @doc false
