@@ -481,7 +481,7 @@ defmodule Ecto.Migrator do
         Keyword.get(opts, :migration_lock, Keyword.get(config, :migration_lock, true))
 
       opts =
-        Keyword.put_new(opts, :migration_source, config[:migration_source] || "schema_migrations")
+        Keyword.put(opts, :migration_source, config[:migration_source] || "schema_migrations")
 
       result =
         if lock_or_migration_number && migration_lock? do

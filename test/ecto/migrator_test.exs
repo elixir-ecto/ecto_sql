@@ -187,7 +187,6 @@ defmodule Ecto.MigratorTest do
     def change, do: flush()
   end
 
-  Application.put_env(:ecto_sql, MigrationSourceRepo, [migration_source: "my_schema_migrations"])
   @moduletag migrated_versions: [{1, nil}, {2, nil}, {3, nil}]
 
   setup context do
@@ -394,12 +393,6 @@ defmodule Ecto.MigratorTest do
       refute_received {:lock_for_migrations, _, _, _}
     end
 
-    test "on migration_source" do
-      assert up(TestRepo, 9, Migration, log: false, migration_source: "custom") == :ok
-      assert_receive {:lock_for_migrations, _, _, opts}
-      assert opts[:migration_source] == "custom"
-    end
-
     test "on migration_lock" do
       assert up(TestRepo, 9, Migration, log: false, migration_lock: false) == :ok
       refute_receive {:lock_for_migrations, _, _, _}
@@ -410,13 +403,16 @@ defmodule Ecto.MigratorTest do
         create_migration "13_sample.exs"
         assert run(TestRepo, path, :up, all: true, log: false) == [13]
         # One lock for fetching versions, another for running
-        assert_receive {:lock_for_migrations, _, _, _}
-        assert_receive {:lock_for_migrations, _, _, _}
+        assert_receive {:lock_for_migrations, _, _, opts}
+        assert opts[:migration_source] == "schema_migrations"
+        assert_receive {:lock_for_migrations, _, _, opts}
+        assert opts[:migration_source] == "schema_migrations"
 
         create_migration "14_sample.exs", [:disable_migration_lock]
         assert run(TestRepo, path, :up, all: true, log: false) == [14]
         # One lock for fetching versions, another from running
-        assert_receive {:lock_for_migrations, _, _, _}
+        assert_receive {:lock_for_migrations, _, _, opts}
+        assert opts[:migration_source] == "schema_migrations"
         refute_received {:lock_for_migrations, _, _, _}
       end
     end
@@ -452,8 +448,7 @@ defmodule Ecto.MigratorTest do
         expected_result = [{:up, 15, "sample"}]
         assert migrations(TestRepo, path) == expected_result
 
-        assert_receive {:lock_for_migrations, _, _, opts}
-        assert opts[:migration_source] == "schema_migrations"
+        assert_receive {:lock_for_migrations, _, _, _}
         refute_received {:lock_for_migrations, _, _, _}
 
         assert match?({:create_if_not_exists, %_{name: :schema_migrations}, _}, last_command())
