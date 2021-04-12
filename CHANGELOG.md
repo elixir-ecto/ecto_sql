@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.6.1 (2021-04-12)
+
+### Bug fixes
+
+  * [migrations] Ensure migration_source option is respected in PostgreSQL adapter
+
 ## v3.6.0 (2021-04-03)
 
 ### Bug fixes
