@@ -309,6 +309,9 @@ defmodule Ecto.Adapters.PostgresTest do
     query = Schema |> order_by([r], [r.y]) |> distinct([r], desc: r.x) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT DISTINCT ON (s0."x") s0."x" FROM "schema" AS s0 ORDER BY s0."x" DESC, s0."y"}
 
+    query = Schema |> order_by([r], desc: r.x) |> distinct([r], desc: r.x) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT DISTINCT ON (s0."x") s0."x" FROM "schema" AS s0 ORDER BY s0."x" DESC}
+
     query = Schema |> order_by([r], [r.y]) |> distinct([r], desc_nulls_last: r.x) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT DISTINCT ON (s0."x") s0."x" FROM "schema" AS s0 ORDER BY s0."x" DESC NULLS LAST, s0."y"}
   end

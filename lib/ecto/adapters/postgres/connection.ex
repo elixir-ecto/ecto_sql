@@ -505,9 +505,12 @@ if Code.ensure_loaded?(Postgrex) do
     defp order_by(%{order_bys: []}, _distinct, _sources), do: []
     defp order_by(%{order_bys: order_bys} = query, distinct, sources) do
       order_bys = Enum.flat_map(order_bys, & &1.expr)
-      [" ORDER BY " |
-       intersperse_map(distinct ++ order_bys, ", ", &order_by_expr(&1, sources, query))]
+      order_bys = order_by_concat(distinct, order_bys)
+      [" ORDER BY " | intersperse_map(order_bys, ", ", &order_by_expr(&1, sources, query))]
     end
+
+    defp order_by_concat([head | left], [head | right]), do: [head | order_by_concat(left, right)]
+    defp order_by_concat(left, right), do: left ++ right
 
     defp order_by_expr({dir, expr}, sources, query) do
       str = expr(expr, sources, query)
