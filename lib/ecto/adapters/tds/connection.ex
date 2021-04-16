@@ -1613,14 +1613,11 @@ if Code.ensure_loaded?(Tds) do
       Atom.to_string(atom)
     end
 
-    defp ecto_to_db(str, nil, nil, nil, _)  when is_binary(str), do: str
-
     defp ecto_to_db(type, _, _, _, _) do
       raise ArgumentError,
             "unsupported type `#{inspect(type)}`. The type can either be an atom, a string " <>
               "or a tuple of the form `{:map, t}` where `t` itself follows the same conditions."
     end
-
 
     defp error!(nil, message) do
       raise ArgumentError, message

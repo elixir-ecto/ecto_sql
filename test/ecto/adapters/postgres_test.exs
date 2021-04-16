@@ -1200,7 +1200,7 @@ defmodule Ecto.Adapters.PostgresTest do
               [{:add, :name, :string, [default: "Untitled", size: 20, null: false]},
                {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                {:add, :on_hand, :integer, [default: 0, null: true]},
-               {:add, :published_at, "time without time zone", [null: true]},
+               {:add, :published_at, :"time without time zone", [null: true]},
                {:add, :is_active, :boolean, [default: true]},
                {:add, :tags, {:array, :string}, [default: []]},
                {:add, :languages, {:array, :string}, [default: ["pt", "es"]]},
