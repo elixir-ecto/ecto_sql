@@ -1231,6 +1231,21 @@ defmodule Ecto.Migration do
     reference
   end
 
+  defp validate_type!(type) do
+    raise ArgumentError, """
+    invalid migration type: #{inspect(type)}. Expected one of:
+
+      * an atom, such as :string
+      * a quoted atom, such as :"integer unsigned"
+      * an Ecto.Type, such as Ecto.UUID
+      * a tuple of the above, such as {:array, :integer} or {:array, Ecto.UUID}
+      * a reference, such as references(:users)
+
+    All Ecto types are allowed and properly translated.
+    All other types are sent to the database as is.
+    """
+  end
+
   defp validate_index_opts!(opts) when is_list(opts) do
     case Keyword.get_values(opts, :where) do
       [_, _ | _] ->
