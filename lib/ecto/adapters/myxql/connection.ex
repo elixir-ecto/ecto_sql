@@ -1069,7 +1069,6 @@ if Code.ensure_loaded?(MyXQL) do
     defp ecto_to_db(:naive_datetime, _query),      do: "datetime"
     defp ecto_to_db(:naive_datetime_usec, _query), do: "datetime"
     defp ecto_to_db(atom, _query) when is_atom(atom),  do: Atom.to_string(atom)
-    defp ecto_to_db(str, _query)  when is_binary(str), do: str
     defp ecto_to_db(type, _query) do
       raise ArgumentError,
             "unsupported type `#{inspect(type)}`. The type can either be an atom, a string " <>

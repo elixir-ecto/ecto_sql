@@ -1018,8 +1018,8 @@ defmodule Ecto.Adapters.MyXQLTest do
                 {:add, :token, :binary, [size: 20, null: false]},
                 {:add, :price, :numeric, [precision: 8, scale: 2, default: {:fragment, "expr"}]},
                 {:add, :on_hand, :integer, [default: 0, null: true]},
-                {:add, :likes, "smallint unsigned", [default: 0, null: false]},
-                {:add, :published_at, "datetime(6)", [null: true]},
+                {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
+                {:add, :published_at, :"datetime(6)", [null: true]},
                 {:add, :is_active, :boolean, [default: true]}]}
 
     assert execute_ddl(create) == ["""
