@@ -1,151 +1,73 @@
 name: CI
 on: [push, pull_request]
 jobs:
-  test-elixir:
-    runs-on: ubuntu-16.04
-    env:
-      MIX_ENV: test
+  test:
+    name: unittest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - pair:
-              elixir: 1.8.2
-              otp: 20.3.8.26
-          - pair:
-              elixir: 1.11.3
-              otp: 23.2.5
-            lint: lint
+        elixirbase:
+          - "1.11.0-erlang-23.1.1-alpine-3.13.1"
+          - "1.11.0-erlang-21.3.8.21-alpine-3.13.1"
     steps:
-      - uses: actions/checkout@v2
-
-      - uses: erlef/setup-elixir@v1
+      - uses: earthly/actions/setup-earthly@v1
         with:
-          otp-version: ${{matrix.pair.otp}}
-          elixir-version: ${{matrix.pair.elixir}}
-
-      - name: Install Dependencies
-        run: mix deps.get --only test
-
-      - run: mix format --check-formatted
-        if: ${{ matrix.lint }}
-
-      - run: mix deps.get && mix deps.unlock --check-unused
-        if: ${{ matrix.lint }}
-
-      - run: mix deps.compile
-
-      - run: mix compile --warnings-as-errors
-        if: ${{ matrix.lint }}
-
-      - run: mix test
-
-      - run: mix test.as_a_dep
-
+          version: v0.5.10
+      - uses: actions/checkout@v2
+      - name: test ectl_sql
+        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} +test
+  test-postgres:
+    name: postgres integration test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        elixirbase:
+          - "1.9.4-erlang-22.3.4.16-alpine-3.13.1"
+        postgres:
+          - "11.11"
+          - "9.6"
+          - "9.5"
+    steps:
+      - uses: earthly/actions/setup-earthly@v1
+        with:
+          version: v0.5.10
+      - uses: actions/checkout@v2
+      - name: test ectl_sql
+        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-postgres
   test-mysql:
-    runs-on: ubuntu-18.04
-
-    services:
-      mysql:
-        image: mysql:${{ matrix.mysql_version }}
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
-    container: elixir:1.9-slim
-
+    name: mysql integration test
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        mysql_version: ["5.7"]
-
+        elixirbase:
+          - "1.9.4-erlang-22.3.4.16-alpine-3.13.1"
+        mysql:
+          - "5.7"
     steps:
-      - name: Install MySQL Client
-        run: |
-          apt-get update
-          apt-get install -y default-mysql-client
-          mysql --version
-      - uses: actions/checkout@v1
-      - name: Install Dependencies
-        run: |
-          apt-get install -y git
-          mix local.rebar --force
-          mix local.hex --force
-          mix deps.get
-      - run: MYSQL_URL=root:root@mysql ECTO_ADAPTER=myxql mix test
-
-  test-mssql:
-    runs-on: ubuntu-16.04
-
-    services:
-      mssql:
-        image: mcr.microsoft.com/mssql/server:${{ matrix.mssql_version }}
-        env:
-          ACCEPT_EULA: Y
-          SA_PASSWORD: some!Password
-        ports:
-          - 1433:1433
-
-    strategy:
-      matrix:
-        mssql_version: ["2017-latest", "2019-latest"]
-        otp: [22.1.7]
-        elixir: [1.9.4]
-
-    env:
-      ACCEPT_EULA: Y
-      MIX_ENV: test
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - name: Install MsSql Client Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mssql-tools unixodbc-dev
-      - uses: actions/checkout@v2
-      - name: Setup elixir
-        uses: actions/setup-elixir@v1
+      - uses: earthly/actions/setup-earthly@v1
         with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
-      - name: Install Dependencies
-        run: mix deps.get
-      - run: |
-          export PATH="/opt/mssql-tools/bin:$PATH"
-          ECTO_ADAPTER=tds mix test
-
-  test-pg:
-    runs-on: ubuntu-18.04
-
-    services:
-      pg:
-        image: postgres:${{ matrix.pg_version }}
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-    container: elixir:1.9-slim
-
+          version: v0.5.10
+      - uses: actions/checkout@v2
+      - name: test ectl_sql
+        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-mysql
+  test-mssql:
+    name: mssql integration test
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        pg_version: ["9.5", "9.6", "11"]
-
+        elixirbase:
+          - "1.9.4-erlang-22.1.7-alpine-3.11.3"
+        mssql:
+          - "2017"
+          - "2019"
     steps:
-      - name: Install PG Client
-        run: |
-          apt-get update
-          apt-get install -y wget ca-certificates gnupg
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-          echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main ${{ matrix.pg_version }}" >> /etc/apt/sources.list.d/pgdg.list
-          apt-get update
-          apt-get install -y postgresql-${{ matrix.pg_version }} postgresql-contrib-${{ matrix.pg_version }}
-          psql --version
-      - uses: actions/checkout@v1
-      - name: Install Dependencies
-        run: |
-          apt-get install -y git
-          mix local.rebar --force
-          mix local.hex --force
-          mix deps.get
-      - run: PG_URL=postgres:postgres@pg ECTO_ADAPTER=pg mix test
+      - uses: earthly/actions/setup-earthly@v1
+        with:
+          version: v0.5.10
+      - uses: actions/checkout@v2
+      - name: test ectl_sql
+        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MSSQL=${{matrix.mssql}} +integration-test-mssql
