@@ -34,6 +34,7 @@ defmodule EctoSQL.TestAdapter do
   end
 
   def checkout(_, _, _), do: raise "not implemented"
+  def checked_out?(_), do: raise "not implemented"
   def delete(_, _, _, _), do: raise "not implemented"
   def insert_all(_, _, _, _, _, _, _, _), do: raise "not implemented"
   def rollback(_, _), do: raise "not implemented"

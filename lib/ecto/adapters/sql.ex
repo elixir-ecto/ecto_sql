@@ -98,6 +98,11 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @impl true
+      def checked_out?(meta) do
+        Ecto.Adapters.SQL.checked_out?(meta)
+      end
+
+      @impl true
       def loaders({:map, _}, type),   do: [&Ecto.Type.embedded_load(type, &1, :json)]
       def loaders(:binary_id, type),  do: [Ecto.UUID, type]
       def loaders(_, type),           do: [type]
@@ -636,6 +641,12 @@ defmodule Ecto.Adapters.SQL do
     checkout_or_transaction(:run, adapter_meta, opts, callback)
   end
 
+  @doc false
+  def checked_out?(adapter_meta) do
+    %{pid: pool} = adapter_meta
+    get_conn(pool) != nil
+  end
+
   ## Query
 
   @doc false
@@ -754,13 +765,13 @@ defmodule Ecto.Adapters.SQL do
     opts = with_log(telemetry, params, opts ++ default_opts)
 
     case get_conn(pool) do
-      nil  ->
-        raise "cannot reduce stream outside of transaction"
-
-      conn ->
+      %DBConnection{conn_mode: :transaction} = conn ->
         sql
         |> apply(:stream, [conn, statement, params, opts])
         |> Enumerable.reduce(acc, fun)
+
+      _ ->
+        raise "cannot reduce stream outside of transaction"
     end
   end
 
@@ -770,12 +781,13 @@ defmodule Ecto.Adapters.SQL do
     opts = with_log(telemetry, params, opts ++ default_opts)
 
     case get_conn(pool) do
-      nil ->
-        raise "cannot collect into stream outside of transaction"
-      conn ->
+      %DBConnection{conn_mode: :transaction} = conn ->
         sql
         |> apply(:stream, [conn, statement, params, opts])
         |> Collectable.into()
+
+      _ ->
+        raise "cannot collect into stream outside of transaction"
     end
   end
 

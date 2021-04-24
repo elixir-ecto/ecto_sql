@@ -241,26 +241,42 @@ defmodule Ecto.Integration.SandboxTest do
   describe "checkouts" do
     test "with transaction inside checkout" do
       Sandbox.checkout(TestRepo)
+      refute TestRepo.checked_out?()
+      refute TestRepo.in_transaction?()
 
       TestRepo.checkout(fn ->
+        assert TestRepo.checked_out?()
         refute TestRepo.in_transaction?()
         TestRepo.transaction(fn ->
+          assert TestRepo.checked_out?()
           assert TestRepo.in_transaction?()
         end)
+        assert TestRepo.checked_out?()
         refute TestRepo.in_transaction?()
       end)
+
+      refute TestRepo.checked_out?()
+      refute TestRepo.in_transaction?()
     end
 
     test "with checkout inside transaction" do
       Sandbox.checkout(TestRepo)
+      refute TestRepo.checked_out?()
+      refute TestRepo.in_transaction?()
 
       TestRepo.transaction(fn ->
+        assert TestRepo.checked_out?()
         assert TestRepo.in_transaction?()
         TestRepo.checkout(fn ->
+          assert TestRepo.checked_out?()
           assert TestRepo.in_transaction?()
         end)
+        assert TestRepo.checked_out?()
         assert TestRepo.in_transaction?()
       end)
+
+      refute TestRepo.checked_out?()
+      refute TestRepo.in_transaction?()
     end
   end
 
