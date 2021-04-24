@@ -15,6 +15,8 @@ defmodule Ecto.Adapters.MySQL do
 
   def checkout(_, _, _), do: error!()
 
+  def checked_out?(_), do: error!()
+
   def loaders(_, _), do: error!()
 
   def dumpers(_, _), do: error!()
