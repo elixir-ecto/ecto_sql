@@ -34,7 +34,7 @@ jobs:
         with:
           version: v0.5.10
       - uses: actions/checkout@v2
-      - name: test ectl_sql
+      - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-postgres
   test-mysql:
     name: mysql integration test
@@ -51,7 +51,7 @@ jobs:
         with:
           version: v0.5.10
       - uses: actions/checkout@v2
-      - name: test ectl_sql
+      - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-mysql
   test-mssql:
     name: mssql integration test
@@ -69,5 +69,5 @@ jobs:
         with:
           version: v0.5.10
       - uses: actions/checkout@v2
-      - name: test ectl_sql
+      - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MSSQL=${{matrix.mssql}} +integration-test-mssql
