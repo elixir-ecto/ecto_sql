@@ -624,7 +624,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
-      query = put_in(query.aliases[@parent_as], sources)
+      query = put_parent_as_alias(query, sources)
       [?(, all(query, subquery_as_prefix(sources)), ?)]
     end
 
@@ -1315,6 +1315,14 @@ if Code.ensure_loaded?(Postgrex) do
     end
     defp error!(query, message) do
       raise Ecto.QueryError, query: query, message: message
+    end
+
+    defp put_parent_as_alias(query, sources) do
+      query = put_in(query.aliases[@parent_as], sources)
+      combinations = Enum.map(query.combinations, fn {type, combination_query} ->
+        {type, put_parent_as_alias(combination_query, sources)}
+      end)
+      %{query | combinations: combinations}
     end
   end
 end
