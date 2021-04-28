@@ -1017,7 +1017,8 @@ defmodule Ecto.Migration do
 
   ## Options
 
-    * `:null` - determines whether the column accepts null values.
+    * `:null` - determines whether the column accepts null values (the value will be negated
+       when run in reverse).
     * `:default` - changes the default value of the column.
     * `:from` - specifies the current type of the column.
     * `:size` - specifies the size of the type (for example, the number of characters).
