@@ -115,6 +115,14 @@ defmodule Ecto.Integration.Migration do
       modify :composite_a, references(:composite_pk, column: :a, with: [composite_b: :b], type: :integer)
     end
 
+    create table(:posts_composite_pk) do
+      add :post_id, references(:posts), primary_key: true
+      add :composite_a, references(:composite_pk, column: :a, with: [composite_b: :b], type: :integer), primary_key: true
+      add :composite_b, :integer, primary_key: true
+    end
+
+    create unique_index(:posts_composite_pk, [:post_id, :composite_a, :composite_b])
+
     create table(:corrupted_pk, primary_key: false) do
       add :a, :string
     end
