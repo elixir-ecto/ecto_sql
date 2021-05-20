@@ -1177,7 +1177,7 @@ defmodule Ecto.Migration do
     * `:exclude` - An exclusion constraint expression. Required when creating an exclusion constraint.
     * `:prefix` - The prefix for the table.
     * `:validate` - Whether or not to validate the constraint on creation (true by default). Only
-       available in PostgreSQL, and should be followed by a command to validate the foreign key in
+       available in PostgreSQL, and should be followed by a command to validate the new constraint in
        a following migration if false.
 
   """
