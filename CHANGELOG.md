@@ -1,5 +1,13 @@
 # Changelog for v3.x
 
+## v3.6.2 (2021-05-28)
+
+### Bug fixes
+
+  * [migration] Improve error message on invalid migration type
+  * [postgres] Avoid duplicate order_by with distinct
+  * [sql] Implement new checked_out? callback required by latest Ecto
+
 ## v3.6.1 (2021-04-12)
 
 ### Bug fixes
