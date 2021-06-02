@@ -443,21 +443,17 @@ defmodule Ecto.Adapters.SQL do
     query!(adapter_meta, query, params, []).num_rows != 0
   end
 
-
-  @doc """
-  Returns a formatted table for a given query `result`.
-
-
-  ## Examples
-
-      iex> Ecto.Adapters.SQL.format_table(query) |> IO.puts()
-      +---------------+---------+--------+
-      | title         | counter | public |
-      +---------------+---------+--------+
-      | My Post Title |       1 | NULL   |
-      +---------------+---------+--------+
-
-  """
+  # Returns a formatted table for a given query `result`.
+  #
+  # ## Examples
+  #
+  #     iex> Ecto.Adapters.SQL.format_table(query) |> IO.puts()
+  #     +---------------+---------+--------+
+  #     | title         | counter | public |
+  #     +---------------+---------+--------+
+  #     | My Post Title |       1 | NULL   |
+  #     +---------------+---------+--------+
+  @doc false
   @spec format_table(%{columns: [String.t] | nil, rows: [term()] | nil}) :: String.t
   def format_table(result)
 
