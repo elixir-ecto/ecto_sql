@@ -151,4 +151,17 @@ defmodule Ecto.Integration.SQLTest do
     assert Ecto.Adapters.SQL.format_table(%{columns: ["test"], rows: []}) == "+------+\n| test |\n+------+\n+------+"
     assert Ecto.Adapters.SQL.format_table(%{columns: ["test"], rows: nil}) == "+------+\n| test |\n+------+\n+------+"
   end
+
+  test "format_tuple_list a filled result" do
+    assert Ecto.Adapters.SQL.format_tuple_list(%{columns: ["name", "number"], rows: [["Joe", 1], ["Kate", nil]]})  == [[{"name", "Joe"}, {"number", 1}], [{"name", "Kate"}, {"number", nil}]]
+  end
+
+  test "format_tuple_list edge cases" do
+    assert Ecto.Adapters.SQL.format_tuple_list(nil) == []
+    assert Ecto.Adapters.SQL.format_tuple_list(%{columns: nil, rows: nil}) == []
+    assert Ecto.Adapters.SQL.format_tuple_list(%{columns: [], rows: []}) == []
+    assert Ecto.Adapters.SQL.format_tuple_list(%{columns: [], rows: [["test"]]}) == []
+    assert Ecto.Adapters.SQL.format_tuple_list(%{columns: ["test"], rows: []}) == []
+    assert Ecto.Adapters.SQL.format_tuple_list(%{columns: ["test"], rows: nil}) == []
+  end
 end

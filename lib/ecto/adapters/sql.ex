@@ -458,7 +458,7 @@ defmodule Ecto.Adapters.SQL do
       +---------------+---------+--------+
 
   """
-  @spec format_table(%{columns: [String.t] | nil, rows: [term()] | nil}) :: String.t
+  @spec format_table(%{columns: [String.t] | nil, rows: [term()] | nil} | nil) :: String.t
   def format_table(result)
 
   def format_table(nil), do: ""
@@ -488,6 +488,38 @@ defmodule Ecto.Adapters.SQL do
     |> IO.iodata_to_binary()
   end
 
+  @doc """
+  Returns a tuple list for a given query `result`.
+  It's useful when reading the result of a query with a lot of columns,
+  a situation when `format_table/1` has little use.
+
+
+  ## Examples
+
+      iex> Ecto.Adapters.SQL.format_tuple_list(query)
+      [
+        [
+          {"title", "My Post Title"},
+          {"counter", 1},
+          {"public", nil},
+        ]
+      ]
+
+  """
+  @spec format_tuple_list(%{columns: [String.t] | nil, rows: [term()] | nil} | nil) :: list()
+  def format_tuple_list(result)
+
+  def format_tuple_list(nil), do: []
+  def format_tuple_list(%{columns: nil}), do: []
+  def format_tuple_list(%{columns: []}), do: []
+  def format_tuple_list(%{rows: nil}), do: []
+  def format_tuple_list(%{rows: []}), do: []
+
+  def format_tuple_list(%{columns: columns, rows: rows}) do
+    Enum.map(rows, fn row ->
+      Enum.zip(columns, row)
+    end)
+  end
 
   defp binary_length(nil), do: 4 # NULL
   defp binary_length(binary) when is_binary(binary), do: String.length(binary)
