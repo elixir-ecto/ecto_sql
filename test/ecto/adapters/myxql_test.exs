@@ -553,6 +553,17 @@ defmodule Ecto.Adapters.MyXQLTest do
            ~s{WHERE (c0.`post_id` IN (SELECT sp0.`id` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)))}
   end
 
+  test "subquery using parent_as at the right side of a union expression" do
+    comments = "comments" |> where([c], c.post_id == parent_as(:posts).id) |> select(:true)
+    query = "posts" |> from(as: :posts) |> where([p], exists(union(comments, ^comments))) |> select([p], p.id) |> plan()
+
+    assert all(query) == """
+    SELECT p0.`id` FROM `posts` AS p0 \
+    WHERE (exists((SELECT TRUE FROM `comments` AS sc0 WHERE (sc0.`post_id` = p0.`id`) \
+    UNION (SELECT TRUE FROM `comments` AS c0 WHERE (c0.`post_id` = p0.`id`)))))\
+    """
+  end
+
   test "having" do
     query = Schema |> having([p], p.x == p.x) |> select([p], p.x) |> plan()
     assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 HAVING (s0.`x` = s0.`x`)}
