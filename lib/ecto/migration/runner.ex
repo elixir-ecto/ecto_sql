@@ -363,8 +363,12 @@ defmodule Ecto.Migration.Runner do
     do: "alter table #{quote_name(table.prefix, table.name)}"
   defp command({:drop, %Table{} = table}),
     do: "drop table #{quote_name(table.prefix, table.name)}"
+  defp command({:drop, %Table{} = table, :cascade}),
+    do: command({:drop, table}) <> " cascade"
   defp command({:drop_if_exists, %Table{} = table}),
     do: "drop table if exists #{quote_name(table.prefix, table.name)}"
+  defp command({:drop_if_exists, %Table{} = table, :cascade}),
+    do: command({:drop_if_exists, table}) <> " cascade"
 
   defp command({:create, %Index{} = index}),
     do: "create index #{quote_name(index.prefix, index.name)}"
@@ -372,8 +376,12 @@ defmodule Ecto.Migration.Runner do
     do: "create index if not exists #{quote_name(index.prefix, index.name)}"
   defp command({:drop, %Index{} = index}),
     do: "drop index #{quote_name(index.prefix, index.name)}"
+  defp command({:drop, %Index{} = index, :cascade}),
+    do: command({:drop, index}) <> " cascade"
   defp command({:drop_if_exists, %Index{} = index}),
     do: "drop index if exists #{quote_name(index.prefix, index.name)}"
+  defp command({:drop_if_exists, %Index{} = index, :cascade}),
+    do: command({:drop_if_exists, index}) <> " cascade"
   defp command({:rename, %Table{} = current_table, %Table{} = new_table}),
     do: "rename table #{quote_name(current_table.prefix, current_table.name)} to #{quote_name(new_table.prefix, new_table.name)}"
   defp command({:rename, %Table{} = table, current_column, new_column}),
@@ -389,8 +397,12 @@ defmodule Ecto.Migration.Runner do
     do: "create exclude constraint #{constraint.name} on table #{quote_name(constraint.prefix, constraint.table)}"
   defp command({:drop, %Constraint{} = constraint}),
     do: "drop constraint #{constraint.name} from table #{quote_name(constraint.prefix, constraint.table)}"
+  defp command({:drop, %Constraint{} = constraint, _}),
+    do: command({:drop, constraint})
   defp command({:drop_if_exists, %Constraint{} = constraint}),
     do: "drop constraint if exists #{constraint.name} from table #{quote_name(constraint.prefix, constraint.table)}"
+  defp command({:drop_if_exists, %Constraint{} = constraint, _}),
+    do: command({:drop_if_exists, constraint})
 
   defp quote_name(nil, name), do: quote_name(name)
   defp quote_name(prefix, name), do: quote_name(prefix) <> "." <> quote_name(name)

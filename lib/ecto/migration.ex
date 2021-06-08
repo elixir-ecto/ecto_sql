@@ -573,10 +573,25 @@ defmodule Ecto.Migration do
       drop index("posts", [:name])
       drop table("posts")
       drop constraint("products", "price_must_be_positive")
+      drop index("posts", [:name]), cascade: true
+      drop table("posts"), cascade: true
+
+  ## Options
+
+    * `:cascade` - when `true`, automatically drop objects that depend
+      - on the index, and in turn all objects that depend on those objects
+      - on the table
+      Default is `false`
 
   """
-  def drop(%{} = index_or_table_or_constraint) do
-    Runner.execute {:drop, __prefix__(index_or_table_or_constraint)}
+  def drop(%{} = index_or_table_or_constraint, opts \\ []) when is_list(opts) do
+
+    if Keyword.get(opts, :cascade, false) do
+      Runner.execute {:drop, __prefix__(index_or_table_or_constraint), :cascade}
+    else
+      Runner.execute {:drop, __prefix__(index_or_table_or_constraint)}
+    end
+
     index_or_table_or_constraint
   end
 
@@ -589,10 +604,24 @@ defmodule Ecto.Migration do
 
       drop_if_exists index("posts", [:name])
       drop_if_exists table("posts")
+      drop_if_exists index("posts, [:name]), cascade: true
+      drop_if_exists table("posts"), cascade: true
 
+  ## Options
+
+    * `:cascade` - when `true`, automatically drop objects that depend
+      - on the index, and in turn all objects that depend on those objects
+      - on the table
+      Default is `false`
   """
-  def drop_if_exists(%{} = index_or_table) do
-    Runner.execute {:drop_if_exists, __prefix__(index_or_table)}
+  def drop_if_exists(%{} = index_or_table, opts \\ []) when is_list(opts) do
+
+    if Keyword.get(opts, :cascade, false) do
+      Runner.execute {:drop_if_exists, __prefix__(index_or_table), :cascade}
+    else
+      Runner.execute {:drop_if_exists, __prefix__(index_or_table)}
+    end
+
     index_or_table
   end
 
