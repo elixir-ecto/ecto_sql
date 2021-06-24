@@ -253,8 +253,16 @@ defmodule Ecto.Migration.Runner do
   end
   defp table_reverse([{:modify, name, type, opts} | t], acc) do
     case opts[:from] do
-      nil -> false
-      from -> table_reverse(t, [{:modify, name, from, Keyword.put(opts, :from, type)} | acc])
+      nil ->
+        false
+
+      from ->
+        opts = Keyword.put(opts, :from, type)
+
+        case opts[:null] do
+          nil -> table_reverse(t, [{:modify, name, from, opts} | acc])
+          null -> table_reverse(t, [{:modify, name, from, Keyword.put(opts, :null, !null)} | acc])
+        end
     end
   end
   defp table_reverse([{:add, name, _type, _opts} | t], acc) do

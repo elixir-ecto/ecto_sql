@@ -698,12 +698,15 @@ defmodule Ecto.MigrationTest do
     alter table(:posts) do
       add :summary, :text
       modify :extension, :text, from: :string
+      modify :title, :string, null: false, from: :string
     end
     flush()
 
     assert last_command() ==
            {:alter, %Table{name: "posts"},
-              [{:modify, :extension, :string, from: :text}, {:remove, :summary}]}
+              [{:modify, :title, :string, null: true, from: :string},
+               {:modify, :extension, :string, from: :text},
+               {:remove, :summary}]}
 
     assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
       alter table(:posts) do
