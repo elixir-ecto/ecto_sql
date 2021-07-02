@@ -1142,14 +1142,15 @@ defmodule Ecto.Adapters.PostgresTest do
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {[:x, :y], [], [:id]}, [])
     assert query == ~s{INSERT INTO "schema" ("x","y") VALUES ($1,$2) ON CONFLICT ("id") DO UPDATE SET "x" = EXCLUDED."x","y" = EXCLUDED."y"}
 
-    query = insert(nil, "schema", [:x, :y], [[:x, :y]], {[:x, :y], [], []}, [])
-    assert query == ~s{INSERT INTO "schema" ("x","y") VALUES ($1,$2) ON CONFLICT DO UPDATE SET "x" = EXCLUDED."x","y" = EXCLUDED."y"}
-
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {[:x, :y], [], {:constraint, :foo}}, [])
     assert query == ~s{INSERT INTO "schema" ("x","y") VALUES ($1,$2) ON CONFLICT ON CONSTRAINT \"foo\" DO UPDATE SET "x" = EXCLUDED."x","y" = EXCLUDED."y"}
 
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {[:x, :y], [], {:unsafe_fragment, "(\"id\")"}}, [])
     assert query == ~s{INSERT INTO "schema" ("x","y") VALUES ($1,$2) ON CONFLICT (\"id\") DO UPDATE SET "x" = EXCLUDED."x","y" = EXCLUDED."y"}
+
+    assert_raise ArgumentError, "the :conflict_target option is required on upserts by PostgreSQL", fn ->
+      insert(nil, "schema", [:x, :y], [[:x, :y]], {[:x, :y], [], []}, [])
+    end
   end
 
   test "insert with query" do

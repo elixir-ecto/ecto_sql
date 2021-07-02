@@ -178,9 +178,14 @@ if Code.ensure_loaded?(Postgrex) do
     defp on_conflict({:nothing, _, targets}, _header),
       do: [" ON CONFLICT ", conflict_target(targets) | "DO NOTHING"]
     defp on_conflict({fields, _, targets}, _header) when is_list(fields),
-      do: [" ON CONFLICT ", conflict_target(targets), "DO " | replace(fields)]
+      do: [" ON CONFLICT ", conflict_target!(targets), "DO " | replace(fields)]
     defp on_conflict({query, _, targets}, _header),
-      do: [" ON CONFLICT ", conflict_target(targets), "DO " | update_all(query, "UPDATE SET ")]
+      do: [" ON CONFLICT ", conflict_target!(targets), "DO " | update_all(query, "UPDATE SET ")]
+
+    defp conflict_target!([]),
+      do: error!(nil, "the :conflict_target option is required on upserts by PostgreSQL")
+    defp conflict_target!(target),
+      do: conflict_target(target)
 
     defp conflict_target({:constraint, constraint}),
       do: ["ON CONSTRAINT ", quote_name(constraint), ?\s]

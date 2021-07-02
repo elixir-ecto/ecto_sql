@@ -958,7 +958,7 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {[:x, :y], [], []}, [])
     assert query == ~s{INSERT INTO `schema` (`x`,`y`) VALUES (?,?) ON DUPLICATE KEY UPDATE `x` = VALUES(`x`),`y` = VALUES(`y`)}
 
-    assert_raise ArgumentError, "The :conflict_target option is not supported in insert/insert_all by MySQL", fn ->
+    assert_raise ArgumentError, ":conflict_target is not supported in insert/insert_all by MySQL", fn ->
       insert(nil, "schema", [:x, :y], [[:x, :y]], {[:x, :y], [], [:x]}, [])
     end
 

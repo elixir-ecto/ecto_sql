@@ -153,7 +153,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp on_conflict({_, _, [_ | _]}, _header) do
-      error!(nil, "The :conflict_target option is not supported in insert/insert_all by MySQL")
+      error!(nil, ":conflict_target is not supported in insert/insert_all by MySQL")
     end
     defp on_conflict({:raise, _, []}, _header) do
       []
