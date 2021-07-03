@@ -53,7 +53,7 @@ defmodule EctoSQL.MixProject do
   defp deps do
     [
       ecto_dep(),
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4.0 or ~> 1.0"},
 
       # Drivers
       {:db_connection, "~> 2.2"},
