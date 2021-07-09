@@ -27,6 +27,8 @@ defmodule Ecto.Integration.Migration do
       add :intensity, :float
       add :author_id, :integer
       add :posted, :date
+      add :composite_a, :integer
+      add :composite_b, :integer
       timestamps(null: true)
     end
 
@@ -107,6 +109,19 @@ defmodule Ecto.Integration.Migration do
       add :b, :integer, primary_key: true
       add :name, :string
     end
+
+    # TODO not sure if it is important to have a foreign keys defined properly; see other associations in "posts"
+    alter table(:posts) do
+      modify :composite_a, references(:composite_pk, column: :a, with: [composite_b: :b], type: :integer)
+    end
+
+    create table(:posts_composite_pk) do
+      add :post_id, references(:posts), primary_key: true
+      add :composite_a, references(:composite_pk, column: :a, with: [composite_b: :b], type: :integer), primary_key: true
+      add :composite_b, :integer, primary_key: true
+    end
+
+    create unique_index(:posts_composite_pk, [:post_id, :composite_a, :composite_b])
 
     create table(:corrupted_pk, primary_key: false) do
       add :a, :string
