@@ -77,6 +77,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
             Mix.raise "migration can't be created, there is already a migration file with name #{name}."
           end
 
+          # The :change option may be used by other tasks but not the CLI
           assigns = [mod: Module.concat([repo, Migrations, camelize(name)]), change: opts[:change]]
           create_file file, migration_template(assigns)
 
