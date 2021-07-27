@@ -310,6 +310,44 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
   end
 
+  test "parent binding subquery and CTE" do
+    initial_query =
+      "categories"
+      |> where([c], c.id == parent_as(:parent_category).id)
+      |> select([:id, :parent_id])
+
+    iteration_query =
+      "categories"
+      |> join(:inner, [c], t in "tree", on: t.parent_id == c.id)
+      |> select([:id, :parent_id])
+
+    cte_query = initial_query |> union_all(^iteration_query)
+    
+    breadcrumbs_query =
+      "tree"
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: ^cte_query)
+      |> select([t], %{breadcrumbs: fragment("STRING_AGG(?, ' / ')", t.id)})
+
+    query =
+      from(c in "categories",
+        as: :parent_category,
+        left_lateral_join: b in subquery(breadcrumbs_query),
+        select: %{id: c.id, breadcrumbs: b.breadcrumbs}
+      )
+      |> plan()
+
+    assert all(query) ==
+      ~s{SELECT c0.[id], s1.[breadcrumbs] FROM [categories] AS c0 } <>
+      ~s{OUTER APPLY } <>
+      ~s{(WITH [tree] ([id],[parent_id]) AS } <>
+      ~s{(SELECT ssc0.[id] AS [id], ssc0.[parent_id] AS [parent_id] FROM [categories] AS ssc0 WHERE (ssc0.[id] = c0.[id]) } <>
+      ~s{UNION ALL } <>
+      ~s{(SELECT c0.[id], c0.[parent_id] FROM [categories] AS c0 } <>
+      ~s{INNER JOIN [tree] AS t1 ON t1.[parent_id] = c0.[id])) } <>
+      ~s{SELECT STRING_AGG(st0.[id], ' / ') AS [breadcrumbs] FROM [tree] AS st0) AS s1}
+  end
+
   test "select" do
     query = Schema |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT s0.[x], s0.[y] FROM [schema] AS s0}
