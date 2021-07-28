@@ -127,7 +127,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert all(query) ==
       ~s{WITH RECURSIVE `tree` AS } <>
-      ~s{(SELECT c0.`id` AS `id`, 1 AS `depth` FROM `categories` AS c0 WHERE (c0.`parent_id` IS NULL) } <>
+      ~s{(SELECT sc0.`id` AS `id`, 1 AS `depth` FROM `categories` AS sc0 WHERE (sc0.`parent_id` IS NULL) } <>
       ~s{UNION ALL } <>
       ~s{(SELECT c0.`id`, t1.`depth` + 1 FROM `categories` AS c0 } <>
       ~s{INNER JOIN `tree` AS t1 ON t1.`id` = c0.`parent_id`)) } <>
@@ -166,8 +166,8 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert all(query) ==
       ~s{WITH `comments_scope` AS (} <>
-      ~s{SELECT c0.`entity_id` AS `entity_id`, c0.`text` AS `text` } <>
-      ~s{FROM `comments` AS c0 WHERE (c0.`deleted_at` IS NULL)) } <>
+      ~s{SELECT sc0.`entity_id` AS `entity_id`, sc0.`text` AS `text` } <>
+      ~s{FROM `comments` AS sc0 WHERE (sc0.`deleted_at` IS NULL)) } <>
       ~s{SELECT p0.`title`, c1.`text` } <>
       ~s{FROM `posts` AS p0 } <>
       ~s{INNER JOIN `comments_scope` AS c1 ON c1.`entity_id` = p0.`guid` } <>
@@ -206,7 +206,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert update_all(query) ==
       ~s{WITH `target_rows` AS } <>
-      ~s{(SELECT s0.`id` AS `id` FROM `schema` AS s0 ORDER BY s0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{(SELECT ss0.`id` AS `id` FROM `schema` AS ss0 ORDER BY ss0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
       ~s{UPDATE `schema` AS s0, `target_rows` AS t1 } <>
       ~s{SET s0.`x` = 123 } <>
       ~s{WHERE (t1.`id` = s0.`id`)}
@@ -224,7 +224,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert delete_all(query) ==
       ~s{WITH `target_rows` AS } <>
-      ~s{(SELECT s0.`id` AS `id` FROM `schema` AS s0 ORDER BY s0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{(SELECT ss0.`id` AS `id` FROM `schema` AS ss0 ORDER BY ss0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
       ~s{DELETE s0.* } <>
       ~s{FROM `schema` AS s0 } <>
       ~s{INNER JOIN `target_rows` AS t1 ON t1.`id` = s0.`id`}
@@ -646,7 +646,7 @@ defmodule Ecto.Adapters.MyXQLTest do
             |> plan()
 
     result =
-      "WITH `cte1` AS (SELECT s0.`id` AS `id`, ? AS `smth` FROM `schema1` AS s0 WHERE (?)), " <>
+      "WITH `cte1` AS (SELECT ss0.`id` AS `id`, ? AS `smth` FROM `schema1` AS ss0 WHERE (?)), " <>
       "`cte2` AS (SELECT * FROM schema WHERE ?) " <>
       "SELECT s0.`id`, ? FROM `schema` AS s0 INNER JOIN `schema2` AS s1 ON ? " <>
       "INNER JOIN `schema2` AS s2 ON ? WHERE (?) AND (?) " <>

@@ -429,7 +429,6 @@ if Code.ensure_loaded?(Tds) do
     defp cte(%{with_ctes: _}, _), do: []
 
     defp cte_expr({name, cte}, sources, query) do
-      cte = put_in(cte.aliases[@parent_as], {query, sources})
       [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query)]
     end
 
@@ -458,7 +457,10 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    defp cte_query(%Ecto.Query{} = query, sources, _), do: [?(, all(query, subquery_as_prefix(sources)), ?)]
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
+      [?(, all(query, subquery_as_prefix(sources)), ?)]
+    end
 
     defp update_fields(%Query{updates: updates} = query, sources) do
       for(

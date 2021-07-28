@@ -387,12 +387,17 @@ if Code.ensure_loaded?(Postgrex) do
     defp cte(%{with_ctes: _}, _), do: []
 
     defp cte_expr({name, cte}, sources, query) do
-      cte = put_in(cte.aliases[@parent_as], {query, sources})
       [quote_name(name), " AS ", cte_query(cte, sources, query)]
     end
 
-    defp cte_query(%Ecto.Query{} = query, sources, _), do: ["(", all(query, subquery_as_prefix(sources)), ")"]
-    defp cte_query(%QueryExpr{expr: expr}, sources, query), do: expr(expr, sources, query)
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
+      ["(", all(query, subquery_as_prefix(sources)), ")"]
+    end
+
+    defp cte_query(%QueryExpr{expr: expr}, sources, query) do
+      expr(expr, sources, query)
+    end
 
     defp update_fields(%{updates: updates} = query, sources) do
       for(%{expr: expr} <- updates,
