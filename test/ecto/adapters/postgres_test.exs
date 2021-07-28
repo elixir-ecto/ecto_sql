@@ -132,7 +132,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert all(query) ==
       ~s{WITH RECURSIVE "tree" AS } <>
-      ~s{(SELECT c0."id" AS "id", 1 AS "depth" FROM "categories" AS c0 WHERE (c0."parent_id" IS NULL) } <>
+      ~s{(SELECT sc0."id" AS "id", 1 AS "depth" FROM "categories" AS sc0 WHERE (sc0."parent_id" IS NULL) } <>
       ~s{UNION ALL } <>
       ~s{(SELECT c0."id", t1."depth" + 1 FROM "categories" AS c0 } <>
       ~s{INNER JOIN "tree" AS t1 ON t1."id" = c0."parent_id")) } <>
@@ -171,8 +171,8 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert all(query) ==
       ~s{WITH "comments_scope" AS (} <>
-      ~s{SELECT c0."entity_id" AS "entity_id", c0."text" AS "text" } <>
-      ~s{FROM "comments" AS c0 WHERE (c0."deleted_at" IS NULL)) } <>
+      ~s{SELECT sc0."entity_id" AS "entity_id", sc0."text" AS "text" } <>
+      ~s{FROM "comments" AS sc0 WHERE (sc0."deleted_at" IS NULL)) } <>
       ~s{SELECT p0."title", c1."text" } <>
       ~s{FROM "posts" AS p0 } <>
       ~s{INNER JOIN "comments_scope" AS c1 ON c1."entity_id" = p0."guid" } <>
@@ -212,7 +212,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert update_all(query) ==
       ~s{WITH "target_rows" AS } <>
-      ~s{(SELECT s0."id" AS "id" FROM "schema" AS s0 ORDER BY s0."id" LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{(SELECT ss0."id" AS "id" FROM "schema" AS ss0 ORDER BY ss0."id" LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
       ~s{UPDATE "schema" AS s0 } <>
       ~s{SET "x" = 123 } <>
       ~s{FROM "target_rows" AS t1 } <>
@@ -233,11 +233,49 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert delete_all(query) ==
       ~s{WITH "target_rows" AS } <>
-      ~s{(SELECT s0."id" AS "id" FROM "schema" AS s0 ORDER BY s0."id" LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{(SELECT ss0."id" AS "id" FROM "schema" AS ss0 ORDER BY ss0."id" LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
       ~s{DELETE FROM "schema" AS s0 } <>
       ~s{USING "target_rows" AS t1 } <>
       ~s{WHERE (t1."id" = s0."id") } <>
       ~s{RETURNING s0."id", s0."x", s0."y", s0."z", s0."w", s0."meta"}
+  end
+
+  test "parent binding subquery and CTE" do
+    initial_query =
+      "categories"
+      |> where([c], c.id == parent_as(:parent_category).id)
+      |> select([:id, :parent_id])
+
+    iteration_query =
+      "categories"
+      |> join(:inner, [c], t in "tree", on: t.parent_id == c.id)
+      |> select([:id, :parent_id])
+
+    cte_query = initial_query |> union_all(^iteration_query)
+    
+    breadcrumbs_query =
+      "tree"
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: ^cte_query)
+      |> select([t], %{breadcrumbs: fragment("STRING_AGG(?, ' / ')", t.id)})
+
+    query =
+      from(c in "categories",
+        as: :parent_category,
+        left_lateral_join: b in subquery(breadcrumbs_query),
+        select: %{id: c.id, breadcrumbs: b.breadcrumbs}
+      )
+      |> plan()
+
+    assert all(query) ==
+      ~s{SELECT c0."id", s1."breadcrumbs" FROM "categories" AS c0 } <>
+      ~s{LEFT OUTER JOIN LATERAL } <>
+      ~s{(WITH RECURSIVE "tree" AS } <>
+      ~s{(SELECT ssc0."id" AS "id", ssc0."parent_id" AS "parent_id" FROM "categories" AS ssc0 WHERE (ssc0."id" = c0."id") } <>
+      ~s{UNION ALL } <>
+      ~s{(SELECT c0."id", c0."parent_id" FROM "categories" AS c0 } <>
+      ~s{INNER JOIN "tree" AS t1 ON t1."parent_id" = c0."id")) } <>
+      ~s{SELECT STRING_AGG(st0."id", ' / ') AS "breadcrumbs" FROM "tree" AS st0) AS s1 ON TRUE}
   end
 
   test "select" do
@@ -682,7 +720,7 @@ defmodule Ecto.Adapters.PostgresTest do
             |> plan()
 
     result =
-      "WITH \"cte1\" AS (SELECT s0.\"id\" AS \"id\", $1 AS \"smth\" FROM \"schema1\" AS s0 WHERE ($2)), " <>
+      "WITH \"cte1\" AS (SELECT ss0.\"id\" AS \"id\", $1 AS \"smth\" FROM \"schema1\" AS ss0 WHERE ($2)), " <>
       "\"cte2\" AS (SELECT * FROM schema WHERE $3) " <>
       "SELECT s0.\"id\", $4 FROM \"schema\" AS s0 INNER JOIN \"schema2\" AS s1 ON $5 " <>
       "INNER JOIN \"schema2\" AS s2 ON $6 WHERE ($7) AND ($8) " <>

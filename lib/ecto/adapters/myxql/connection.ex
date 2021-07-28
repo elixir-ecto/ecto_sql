@@ -295,8 +295,14 @@ if Code.ensure_loaded?(MyXQL) do
       [quote_name(name), " AS ", cte_query(cte, sources, query)]
     end
 
-    defp cte_query(%Ecto.Query{} = query, _, _), do: ["(", all(query), ")"]
-    defp cte_query(%QueryExpr{expr: expr}, sources, query), do: expr(expr, sources, query)
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
+      ["(", all(query, subquery_as_prefix(sources)), ")"]
+    end
+
+    defp cte_query(%QueryExpr{expr: expr}, sources, query) do
+      expr(expr, sources, query)
+    end
 
     defp update_fields(type, %{updates: updates} = query, sources) do
      fields = for(%{expr: expr} <- updates,
@@ -479,9 +485,10 @@ if Code.ensure_loaded?(MyXQL) do
       '?'
     end
 
-    defp expr({{:., _, [{:parent_as, _, [{:&, _, [idx]}]}, field]}, _, []}, _sources, query)
+    defp expr({{:., _, [{:parent_as, _, [as]}, field]}, _, []}, _sources, query)
          when is_atom(field) do
-      {_, name, _} = elem(query.aliases[@parent_as], idx)
+      {ix, sources} = get_parent_sources_ix(query, as)
+      {_, name, _} = elem(sources, ix)
       [name, ?. | quote_name(field)]
     end
 
@@ -534,8 +541,8 @@ if Code.ensure_loaded?(MyXQL) do
       error!(query, "MySQL adapter does not support aggregate filters")
     end
 
-    defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
-      query = put_in(query.aliases[@parent_as], sources)
+    defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
       [?(, all(query, subquery_as_prefix(sources)), ?)]
     end
 
@@ -991,6 +998,13 @@ if Code.ensure_loaded?(MyXQL) do
     defp get_source(query, sources, ix, source) do
       {expr, name, _schema} = elem(sources, ix)
       {expr || expr(source, sources, query), name}
+    end
+
+    defp get_parent_sources_ix(query, as) do
+      case query.aliases[@parent_as] do
+        {%{aliases: %{^as => ix}}, sources} -> {ix, sources}
+        {%{} = parent, _sources} -> get_parent_sources_ix(parent, as)
+      end
     end
 
     defp quote_name(name) when is_atom(name),

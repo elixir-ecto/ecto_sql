@@ -390,8 +390,14 @@ if Code.ensure_loaded?(Postgrex) do
       [quote_name(name), " AS ", cte_query(cte, sources, query)]
     end
 
-    defp cte_query(%Ecto.Query{} = query, _, _), do: ["(", all(query), ")"]
-    defp cte_query(%QueryExpr{expr: expr}, sources, query), do: expr(expr, sources, query)
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
+      ["(", all(query, subquery_as_prefix(sources)), ")"]
+    end
+
+    defp cte_query(%QueryExpr{expr: expr}, sources, query) do
+      expr(expr, sources, query)
+    end
 
     defp update_fields(%{updates: updates} = query, sources) do
       for(%{expr: expr} <- updates,
@@ -585,9 +591,10 @@ if Code.ensure_loaded?(Postgrex) do
       [?$ | Integer.to_string(ix + 1)]
     end
 
-    defp expr({{:., _, [{:parent_as, _, [{:&, _, [idx]}]}, field]}, _, []}, _sources, query)
+    defp expr({{:., _, [{:parent_as, _, [as]}, field]}, _, []}, _sources, query)
          when is_atom(field) do
-      quote_qualified_name(field, query.aliases[@parent_as], idx)
+      {ix, sources} = get_parent_sources_ix(query, as)
+      quote_qualified_name(field, sources, ix)
     end
 
     defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query) when is_atom(field) do
@@ -628,8 +635,8 @@ if Code.ensure_loaded?(Postgrex) do
       ["NOT (", expr(expr, sources, query), ?)]
     end
 
-    defp expr(%Ecto.SubQuery{query: query}, sources, _query) do
-      query = put_in(query.aliases[@parent_as], sources)
+    defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
       [?(, all(query, subquery_as_prefix(sources)), ?)]
     end
 
@@ -1214,6 +1221,13 @@ if Code.ensure_loaded?(Postgrex) do
     defp get_source(query, sources, ix, source) do
       {expr, name, _schema} = elem(sources, ix)
       {expr || expr(source, sources, query), name}
+    end
+
+    defp get_parent_sources_ix(query, as) do
+      case query.aliases[@parent_as] do
+        {%{aliases: %{^as => ix}}, sources} -> {ix, sources}
+        {%{} = parent, _sources} -> get_parent_sources_ix(parent, as)
+      end
     end
 
     defp quote_qualified_name(name, sources, ix) do

@@ -205,7 +205,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert all(query) ==
              ~s{WITH [tree] ([id],[depth]) AS (} <>
-               ~s{SELECT c0.[id] AS [id], 1 AS [depth] FROM [categories] AS c0 WHERE (c0.[parent_id] IS NULL) } <>
+               ~s{SELECT sc0.[id] AS [id], 1 AS [depth] FROM [categories] AS sc0 WHERE (sc0.[parent_id] IS NULL) } <>
                ~s{UNION ALL } <>
                ~s{(SELECT c0.[id], t1.[depth] + 1 FROM [categories] AS c0 } <>
                ~s{INNER JOIN [tree] AS t1 ON t1.[id] = c0.[parent_id])) } <>
@@ -244,8 +244,8 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert all(query) ==
              ~s{WITH [comments_scope] ([entity_id],[text]) AS (} <>
-               ~s{SELECT c0.[entity_id] AS [entity_id], c0.[text] AS [text] } <>
-               ~s{FROM [comments] AS c0 WHERE (c0.[deleted_at] IS NULL)) } <>
+               ~s{SELECT sc0.[entity_id] AS [entity_id], sc0.[text] AS [text] } <>
+               ~s{FROM [comments] AS sc0 WHERE (sc0.[deleted_at] IS NULL)) } <>
                ~s{SELECT p0.[title], c1.[text] } <>
                ~s{FROM [posts] AS p0 } <>
                ~s{INNER JOIN [comments_scope] AS c1 ON c1.[entity_id] = p0.[guid] } <>
@@ -283,7 +283,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert update_all(query) ==
              ~s{WITH [target_rows] ([id]) AS } <>
-               ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id] OPTION (MERGE JOIN)) } <>
+               ~s{(SELECT TOP(10) ss0.[id] AS [id] FROM [schema] AS ss0 ORDER BY ss0.[id] OPTION (MERGE JOIN)) } <>
                ~s{UPDATE s0 } <>
                ~s{SET s0.[x] = 123 } <>
                ~s{OUTPUT INSERTED.[id], INSERTED.[x], INSERTED.[y], INSERTED.[z], INSERTED.[w] } <>
@@ -303,11 +303,49 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert delete_all(query) ==
              ~s{WITH [target_rows] ([id]) AS } <>
-               ~s{(SELECT TOP(10) s0.[id] AS [id] FROM [schema] AS s0 ORDER BY s0.[id]) } <>
+               ~s{(SELECT TOP(10) ss0.[id] AS [id] FROM [schema] AS ss0 ORDER BY ss0.[id]) } <>
                ~s{DELETE s0 } <>
                ~s{OUTPUT DELETED.[id], DELETED.[x], DELETED.[y], DELETED.[z], DELETED.[w] } <>
                ~s{FROM [schema] AS s0 } <>
                ~s{INNER JOIN [target_rows] AS t1 ON t1.[id] = s0.[id]}
+  end
+
+  test "parent binding subquery and CTE" do
+    initial_query =
+      "categories"
+      |> where([c], c.id == parent_as(:parent_category).id)
+      |> select([:id, :parent_id])
+
+    iteration_query =
+      "categories"
+      |> join(:inner, [c], t in "tree", on: t.parent_id == c.id)
+      |> select([:id, :parent_id])
+
+    cte_query = initial_query |> union_all(^iteration_query)
+    
+    breadcrumbs_query =
+      "tree"
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: ^cte_query)
+      |> select([t], %{breadcrumbs: fragment("STRING_AGG(?, ' / ')", t.id)})
+
+    query =
+      from(c in "categories",
+        as: :parent_category,
+        left_lateral_join: b in subquery(breadcrumbs_query),
+        select: %{id: c.id, breadcrumbs: b.breadcrumbs}
+      )
+      |> plan()
+
+    assert all(query) ==
+      ~s{SELECT c0.[id], s1.[breadcrumbs] FROM [categories] AS c0 } <>
+      ~s{OUTER APPLY } <>
+      ~s{(WITH [tree] ([id],[parent_id]) AS } <>
+      ~s{(SELECT ssc0.[id] AS [id], ssc0.[parent_id] AS [parent_id] FROM [categories] AS ssc0 WHERE (ssc0.[id] = c0.[id]) } <>
+      ~s{UNION ALL } <>
+      ~s{(SELECT c0.[id], c0.[parent_id] FROM [categories] AS c0 } <>
+      ~s{INNER JOIN [tree] AS t1 ON t1.[parent_id] = c0.[id])) } <>
+      ~s{SELECT STRING_AGG(st0.[id], ' / ') AS [breadcrumbs] FROM [tree] AS st0) AS s1}
   end
 
   test "select" do
@@ -737,7 +775,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     result =
       ~s{WITH [cte1] ([id],[smth]) AS } <>
-        ~s{(SELECT s0.[id] AS [id], @1 AS [smth] FROM [schema1] AS s0 WHERE (@2)) } <>
+        ~s{(SELECT ss0.[id] AS [id], @1 AS [smth] FROM [schema1] AS ss0 WHERE (@2)) } <>
         ~s{SELECT s0.[id], @3 FROM [schema] AS s0 INNER JOIN [schema2] AS s1 ON @4 } <>
         ~s{INNER JOIN [schema2] AS s2 ON @5 } <>
         ~s{WHERE (@6) AND (@7) } <>
