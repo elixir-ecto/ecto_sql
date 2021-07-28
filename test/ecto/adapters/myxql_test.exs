@@ -893,6 +893,18 @@ defmodule Ecto.Adapters.MyXQLTest do
            "SELECT s0.`id`, s1.`id` FROM `schema` AS s0 LEFT OUTER JOIN `schema2` AS s1 ON TRUE"
   end
 
+  test "lateral join with fragment" do
+    query = Schema
+            |> join(:inner_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10))
+            |> select([p, q], {p.id, q.z})
+            |> where([p], p.id > 0 and p.id < ^100)
+            |> plan()
+    assert all(query) ==
+           ~s{SELECT s0.`id`, f1.`z` FROM `schema` AS s0 INNER JOIN LATERAL } <>
+           ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0.`x` AND s2.field = ?) AS f1 ON TRUE } <>
+           ~s{WHERE ((s0.`id` > 0) AND (s0.`id` < ?))}
+  end
+
   test "cross join" do
     query = from(p in Schema, cross_join: c in Schema2, select: {p.id, c.id}) |> plan()
     assert all(query) ==
@@ -1405,16 +1417,6 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   # Unsupported types and clauses
-
-  test "lateral join with fragment" do
-    assert_raise Ecto.QueryError, ~r"join `:inner_lateral` not supported by MySQL", fn ->
-      Schema
-      |> join(:inner_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10))
-      |> select([p, q], {p.id, q.z})
-      |> plan()
-      |> all
-    end
-  end
 
   test "arrays" do
     assert_raise Ecto.QueryError, ~r"Array type is not supported by MySQL", fn ->

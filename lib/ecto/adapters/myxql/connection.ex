@@ -359,11 +359,12 @@ if Code.ensure_loaded?(MyXQL) do
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
     defp join_qual(:inner, _), do: " INNER JOIN "
+    defp join_qual(:inner_lateral, _), do: " INNER JOIN LATERAL "
     defp join_qual(:left, _),  do: " LEFT OUTER JOIN "
+    defp join_qual(:left_lateral, _),  do: " LEFT OUTER JOIN LATERAL "
     defp join_qual(:right, _), do: " RIGHT OUTER JOIN "
     defp join_qual(:full, _),  do: " FULL OUTER JOIN "
     defp join_qual(:cross, _), do: " CROSS JOIN "
-    defp join_qual(mode, q),   do: error!(q, "join `#{inspect mode}` not supported by MySQL")
 
     defp where(%{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
