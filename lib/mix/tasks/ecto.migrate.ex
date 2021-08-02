@@ -58,13 +58,13 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
   ## Examples
 
-      mix ecto.migrate
-      mix ecto.migrate -r Custom.Repo
+      $ mix ecto.migrate
+      $ mix ecto.migrate -r Custom.Repo
 
-      mix ecto.migrate -n 3
-      mix ecto.migrate --step 3
+      $ mix ecto.migrate -n 3
+      $ mix ecto.migrate --step 3
 
-      mix ecto.migrate --to 20080906120000
+      $ mix ecto.migrate --to 20080906120000
 
   ## Command line options
 

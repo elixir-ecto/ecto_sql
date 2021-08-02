@@ -28,8 +28,8 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
   ## Examples
 
-      mix ecto.gen.migration add_posts_table
-      mix ecto.gen.migration add_posts_table -r Custom.Repo
+      $ mix ecto.gen.migration add_posts_table
+      $ mix ecto.gen.migration add_posts_table -r Custom.Repo
 
   The generated migration filename will be prefixed with the current
   timestamp in UTC which is used for versioning and ordering.

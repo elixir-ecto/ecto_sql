@@ -32,7 +32,9 @@ defmodule Ecto.Migration do
 
   Each file in the migrations directory has the following structure:
 
-      NUMBER_NAME.exs
+  ```text
+  NUMBER_NAME.exs
+  ```
 
   The NUMBER is a unique number that identifies the migration. It is
   usually the timestamp of when the migration was created. The NAME

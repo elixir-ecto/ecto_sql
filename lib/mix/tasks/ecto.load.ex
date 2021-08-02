@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Ecto.Load do
 
   ## Example
 
-      mix ecto.load
+      $ mix ecto.load
 
   ## Command line options
 

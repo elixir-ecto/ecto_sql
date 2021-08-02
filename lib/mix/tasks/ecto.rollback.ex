@@ -54,13 +54,13 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
   ## Examples
 
-      mix ecto.rollback
-      mix ecto.rollback -r Custom.Repo
+      $ mix ecto.rollback
+      $ mix ecto.rollback -r Custom.Repo
 
-      mix ecto.rollback -n 3
-      mix ecto.rollback --step 3
+      $ mix ecto.rollback -n 3
+      $ mix ecto.rollback --step 3
 
-      mix ecto.rollback --to 20080906120000
+      $ mix ecto.rollback --to 20080906120000
 
   ## Command line options
 

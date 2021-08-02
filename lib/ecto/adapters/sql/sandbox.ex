@@ -264,14 +264,16 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   each test retrieves locks desired by the other, leading to a situation
   that cannot be resolved, a deadlock. For instance:
 
-      Transaction 1:                Transaction 2:
-      begin
-                                    begin
-      update posts where id = 1
-                                    update posts where id = 2
-                                    update posts where id = 1
-      update posts where id = 2
-                            **deadlock**
+  ```text
+  Transaction 1:                Transaction 2:
+  begin
+                                begin
+  update posts where id = 1
+                                update posts where id = 2
+                                update posts where id = 1
+  update posts where id = 2
+                        **deadlock**
+  ```
 
   There are different ways to avoid such problems. One of them is
   to make sure your tests work on distinct data. Regardless of

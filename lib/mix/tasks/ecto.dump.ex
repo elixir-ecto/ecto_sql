@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Ecto.Dump do
 
   ## Example
 
-      mix ecto.dump
+      $ mix ecto.dump
 
   ## Command line options
 
