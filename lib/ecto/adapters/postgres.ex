@@ -99,9 +99,7 @@ defmodule Ecto.Adapters.Postgres do
   """
 
   # Inherit all behaviour from Ecto.Adapters.SQL
-  use Ecto.Adapters.SQL,
-    driver: :postgrex,
-    migration_lock: "FOR UPDATE"
+  use Ecto.Adapters.SQL, driver: :postgrex
 
   # And provide a custom storage implementation
   @behaviour Ecto.Adapter.Storage
