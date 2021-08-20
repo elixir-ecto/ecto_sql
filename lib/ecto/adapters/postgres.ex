@@ -217,7 +217,8 @@ defmodule Ecto.Adapters.Postgres do
         # itself but still allows updates to happen, see
         # # https://www.postgresql.org/docs/9.4/explicit-locking.html
         source = Keyword.get(opts, :migration_source, "schema_migrations")
-        {:ok, _} = Ecto.Adapters.SQL.query(meta, "LOCK TABLE \"#{source}\" IN SHARE UPDATE EXCLUSIVE MODE", [], opts)
+        table = if prefix = opts[:prefix], do: ~s|"#{prefix}"."#{source}"|, else: ~s|"#{source}"|
+        {:ok, _} = Ecto.Adapters.SQL.query(meta, "LOCK TABLE #{table} IN SHARE UPDATE EXCLUSIVE MODE", [], opts)
         fun.()
       end)
 
