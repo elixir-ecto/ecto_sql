@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
           create_file file, migration_template(assigns)
 
           if open?(file) and Mix.shell().yes?("Do you want to run this migration?") do
-            Mix.Task.run "ecto.migrate", ["-r", inspect(repo)]
+            Mix.Task.run "ecto.migrate", ["-r", inspect(repo), "--migrations-path", path]
           end
 
           file
@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
     "#{y}#{pad(m)}#{pad(d)}#{pad(hh)}#{pad(mm)}#{pad(ss)}"
   end
 
-  defp pad(i) when i < 10, do: << ?0, ?0 + i >>
+  defp pad(i) when i < 10, do: <<?0, ?0 + i>>
   defp pad(i), do: to_string(i)
 
   defp migration_module do
