@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
           create_file file, migration_template(assigns)
 
           if open?(file) and Mix.shell().yes?("Do you want to run this migration?") do
-            Mix.Task.run "ecto.migrate", ["-r", inspect(repo), "--migrations-path", opts[:migrations_path]]
+            Mix.Task.run "ecto.migrate", ["-r", inspect(repo), "--migrations-path", path]
           end
 
           file
