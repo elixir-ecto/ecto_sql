@@ -397,26 +397,26 @@ defmodule Ecto.MigrationTest do
   test "forward: drops a table" do
     result = drop table(:posts)
     flush()
-    assert {:drop, %Table{}} = last_command()
+    assert {:drop, %Table{}, _} = last_command()
     assert result == table(:posts)
   end
 
   test "forward: drops a table if table exists" do
     result = drop_if_exists table(:posts)
     flush()
-    assert {:drop_if_exists, %Table{}} = last_command()
+    assert {:drop_if_exists, %Table{}, _} = last_command()
     assert result == table(:posts)
   end
 
   test "forward: drops a table with cascade" do
-    result = drop table(:posts), cascade: true
+    result = drop table(:posts), mode: :cascade
     flush()
     assert {:drop, %Table{}, :cascade} = last_command()
     assert result == table(:posts)
   end
 
   test "forward: drops a table if table exists with cascade" do
-    result = drop_if_exists table(:posts), cascade: true
+    result = drop_if_exists table(:posts), mode: :cascade
     flush()
     assert {:drop_if_exists, %Table{}, :cascade} = last_command()
     assert result == table(:posts)
@@ -455,11 +455,11 @@ defmodule Ecto.MigrationTest do
   test "forward: drops an index" do
     drop index(:posts, [:title])
     flush()
-    assert {:drop, %Index{}} = last_command()
+    assert {:drop, %Index{}, _} = last_command()
   end
 
   test "forward: drops an index with cascade" do
-    drop index(:posts, [:title]), cascade: true
+    drop index(:posts, [:title]), mode: :cascade
     flush()
     assert {:drop, %Index{}, :cascade} = last_command()
   end
@@ -467,13 +467,13 @@ defmodule Ecto.MigrationTest do
   test "forward: drops a constraint" do
     drop constraint(:posts, :price)
     flush()
-    assert {:drop, %Constraint{}} = last_command()
+    assert {:drop, %Constraint{}, _} = last_command()
   end
 
   test "forward: drops a constraint if constraint exists" do
     drop_if_exists constraint(:posts, :price)
     flush()
-    assert {:drop_if_exists, %Constraint{}} = last_command()
+    assert {:drop_if_exists, %Constraint{}, _} = last_command()
   end
 
   test "forward: renames a table" do
@@ -559,7 +559,7 @@ defmodule Ecto.MigrationTest do
   test "forward: drops a table with prefix from migration" do
     drop(table(:posts, prefix: "foo"))
     flush()
-    {:drop, table} = last_command()
+    {:drop, table, _} = last_command()
     assert table.prefix == "foo"
   end
 
@@ -567,7 +567,7 @@ defmodule Ecto.MigrationTest do
   test "forward: drops a table with prefix from manager" do
     drop(table(:posts))
     flush()
-    {:drop, table} = last_command()
+    {:drop, table, _} = last_command()
     assert table.prefix == "foo"
   end
 
@@ -575,7 +575,7 @@ defmodule Ecto.MigrationTest do
   test "forward: drops a table with prefix from configuration" do
     drop(table(:posts))
     flush()
-    {:drop, table} = last_command()
+    {:drop, table, _} = last_command()
     assert table.prefix == "baz"
   end
 
@@ -634,7 +634,7 @@ defmodule Ecto.MigrationTest do
   test "forward: drops an index with a prefix from migration" do
     drop index(:posts, [:title], prefix: "foo")
     flush()
-    {_, index} = last_command()
+    {_, index, _} = last_command()
     assert index.prefix == "foo"
   end
 
@@ -642,7 +642,7 @@ defmodule Ecto.MigrationTest do
   test "forward: drops an index with a prefix from manager" do
     drop index(:posts, [:title])
     flush()
-    {_, index} = last_command()
+    {_, index, _} = last_command()
     assert index.prefix == "foo"
   end
 
@@ -650,7 +650,7 @@ defmodule Ecto.MigrationTest do
   test "forward: drops an index with a prefix from configuration" do
     drop index(:posts, [:title])
     flush()
-    {_, index} = last_command()
+    {_, index, _} = last_command()
     assert index.prefix == "baz"
   end
 
@@ -694,7 +694,7 @@ defmodule Ecto.MigrationTest do
     end
     flush()
 
-    assert last_command() == {:drop, table}
+    assert last_command() == {:drop, table, nil}
   end
 
   test "backward: creates a table if not exists" do
@@ -704,14 +704,14 @@ defmodule Ecto.MigrationTest do
     end
     flush()
 
-    assert last_command() == {:drop_if_exists, table}
+    assert last_command() == {:drop_if_exists, table, nil}
   end
 
   test "backward: creates an empty table" do
     create table = table(:posts)
     flush()
 
-    assert last_command() == {:drop, table}
+    assert last_command() == {:drop, table, :nil}
   end
 
   test "backward: alters a table" do
@@ -783,13 +783,13 @@ defmodule Ecto.MigrationTest do
   test "backward: creates an index" do
     create index(:posts, [:title])
     flush()
-    assert {:drop, %Index{}} = last_command()
+    assert {:drop, %Index{}, _} = last_command()
   end
 
   test "backward: creates an index if not exists" do
     create_if_not_exists index(:posts, [:title])
     flush()
-    assert {:drop_if_exists, %Index{}} = last_command()
+    assert {:drop_if_exists, %Index{}, _} = last_command()
   end
 
   test "backward: drops an index" do

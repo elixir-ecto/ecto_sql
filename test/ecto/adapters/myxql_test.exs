@@ -1224,13 +1224,13 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "drop constraint" do
     assert_raise ArgumentError, ~r/MySQL adapter does not support constraints/, fn ->
-      execute_ddl({:drop, constraint(:products, "price_must_be_positive", prefix: :foo)})
+      execute_ddl({:drop, constraint(:products, "price_must_be_positive", prefix: :foo), nil})
     end
   end
 
   test "drop_if_exists constraint" do
     assert_raise ArgumentError, ~r/MySQL adapter does not support constraints/, fn ->
-      execute_ddl({:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: :foo)})
+      execute_ddl({:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: :foo), nil})
     end
   end
 
@@ -1368,12 +1368,12 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "drop index" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main")}
+    drop = {:drop, index(:posts, [:id], name: "posts$main"), nil}
     assert execute_ddl(drop) == [~s|DROP INDEX `posts$main` ON `posts`|]
   end
 
   test "drop index with prefix" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo)}
+    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo), nil}
     assert execute_ddl(drop) == [~s|DROP INDEX `posts$main` ON `foo`.`posts`|]
   end
 

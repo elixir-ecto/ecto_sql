@@ -1256,12 +1256,12 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "drop table" do
-    drop = {:drop, table(:posts)}
+    drop = {:drop, table(:posts), nil}
     assert execute_ddl(drop) == ["DROP TABLE [posts]; "]
   end
 
   test "drop table with prefixes" do
-    drop = {:drop, table(:posts, prefix: :foo)}
+    drop = {:drop, table(:posts, prefix: :foo), nil}
     assert execute_ddl(drop) == ["DROP TABLE [foo].[posts]; "]
   end
 
@@ -1367,19 +1367,19 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "drop constraint" do
-    drop = {:drop, constraint(:products, "price_must_be_positive")}
+    drop = {:drop, constraint(:products, "price_must_be_positive"), nil}
 
     assert execute_ddl(drop) ==
              [~s|ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; |]
 
-    drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo")}
+    drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo"), nil}
 
     assert execute_ddl(drop) ==
              [~s|ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; |]
   end
 
   test "drop_if_exists constraint" do
-    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive")}
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive"), nil}
 
     assert execute_ddl(drop) ==
              [
@@ -1389,7 +1389,7 @@ defmodule Ecto.Adapters.TdsTest do
                  "ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; "
              ]
 
-    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo")}
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo"), nil}
 
     assert execute_ddl(drop) ==
              [
@@ -1495,12 +1495,12 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "drop index" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main")}
+    drop = {:drop, index(:posts, [:id], name: "posts$main"), nil}
     assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts]; |]
   end
 
   test "drop index with prefix" do
-    drop = {:drop, index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo)}
+    drop = {:drop, index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), nil}
 
     assert execute_ddl(drop) ==
              [~s|DROP INDEX [posts_category_id_permalink_index] ON [foo].[posts]; |]
@@ -1509,7 +1509,7 @@ defmodule Ecto.Adapters.TdsTest do
   test "drop index with prefix if exists" do
     drop =
       {:drop_if_exists,
-       index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo)}
+       index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), nil}
 
     assert execute_ddl(drop) ==
              [
@@ -1525,7 +1525,7 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "drop index asserting concurrency" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main", concurrently: true)}
+    drop = {:drop, index(:posts, [:id], name: "posts$main", concurrently: true), nil}
     assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts] LOCK=NONE; |]
   end
 
