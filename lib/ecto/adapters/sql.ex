@@ -454,7 +454,7 @@ defmodule Ecto.Adapters.SQL do
   #     | My Post Title |       1 | NULL   |
   #     +---------------+---------+--------+
   @doc false
-  @spec format_table(%{columns: [String.t] | nil, rows: [term()] | nil}) :: String.t
+  @spec format_table(%{:columns => [String.t] | nil, :rows => [term()] | nil, optional(atom) => any()}) :: String.t
   def format_table(result)
 
   def format_table(nil), do: ""
