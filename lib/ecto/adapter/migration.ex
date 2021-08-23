@@ -20,8 +20,8 @@ defmodule Ecto.Adapter.Migration do
           | {:drop_if_exists, Table.t(), :restrict | :cascade | nil}
           | {:create, Index.t()}
           | {:create_if_not_exists, Index.t()}
-          | {:drop, Index.t()}
-          | {:drop_if_exists, Index.t()}
+          | {:drop, Index.t(), :restrict | :cascade | nil}
+          | {:drop_if_exists, Index.t(), :restrict | :cascade | nil}
 
   @typedoc "All commands allowed within the block passed to `table/2`"
   @type table_subcommand ::

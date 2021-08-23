@@ -1213,12 +1213,12 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "drop table" do
-    drop = {:drop, table(:posts)}
+    drop = {:drop, table(:posts), nil}
     assert execute_ddl(drop) == [~s|DROP TABLE `posts`|]
   end
 
   test "drop table with prefixes" do
-    drop = {:drop, table(:posts, prefix: :foo)}
+    drop = {:drop, table(:posts, prefix: :foo), nil}
     assert execute_ddl(drop) == [~s|DROP TABLE `foo`.`posts`|]
   end
 

@@ -718,14 +718,14 @@ if Code.ensure_loaded?(MyXQL) do
         engine_expr(table.engine), options_expr(table.options)]]
     end
 
-    def execute_ddl({command, %Table{} = table}) when command in [:drop, :drop_if_exists] do
-      [["DROP TABLE ", if_do(command == :drop_if_exists, "IF EXISTS "),
-        quote_table(table.prefix, table.name)]]
+    def execute_ddl({command, %Table{} = table, :cascade}) when command in [:drop, :drop_if_exists] do
+      [cmd | _] = execute_ddl({command, %Table{} = table, nil})
+      [cmd ++ [" CASCADE"]]
     end
 
-    def execute_ddl({command, %Table{} = table, :cascade}) when command in [:drop, :drop_if_exists] do
-      [cmd | _] = execute_ddl({command, %Table{} = table})
-      [cmd ++ [" CASCADE"]]
+    def execute_ddl({command, %Table{} = table, _}) when command in [:drop, :drop_if_exists] do
+      [["DROP TABLE ", if_do(command == :drop_if_exists, "IF EXISTS "),
+        quote_table(table.prefix, table.name)]]
     end
 
     def execute_ddl({:alter, %Table{} = table, changes}) do
