@@ -151,7 +151,7 @@ if Code.ensure_loaded?(MyXQL) do
     def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, _placeholders) do
       error!(nil, ":placeholders is not supported by MySQL")
     end
-    
+
     defp on_conflict({_, _, [_ | _]}, _header) do
       error!(nil, "The :conflict_target option is not supported in insert/insert_all by MySQL")
     end
@@ -755,24 +755,23 @@ if Code.ensure_loaded?(MyXQL) do
     def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
       do: error!(nil, "MySQL adapter does not support exclusion constraints")
 
-    def execute_ddl({:drop, %Index{} = index}) do
+    def execute_ddl({:drop, %Index{}, :cascade}),
+      do: error!(nil, "MySQL adapter does not support cascade in drop index")
+
+    def execute_ddl({:drop, %Index{} = index, _}) do
       [["DROP INDEX ",
         quote_name(index.name),
         " ON ", quote_table(index.prefix, index.table),
         if_do(index.concurrently, " LOCK=NONE")]]
     end
 
-    def execute_ddl({:drop, %Index{}, :cascade}),
-      do: error!(nil, "MySQL adapter does not support cascade in drop index")
-
-
-    def execute_ddl({:drop, %Constraint{}}),
+    def execute_ddl({:drop, %Constraint{}, _}),
       do: error!(nil, "MySQL adapter does not support constraints")
 
-    def execute_ddl({:drop_if_exists, %Constraint{}}),
+    def execute_ddl({:drop_if_exists, %Constraint{}, _}),
       do: error!(nil, "MySQL adapter does not support constraints")
 
-    def execute_ddl({:drop_if_exists, %Index{}}),
+    def execute_ddl({:drop_if_exists, %Index{}, _}),
       do: error!(nil, "MySQL adapter does not support drop if exists for index")
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
