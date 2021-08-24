@@ -730,7 +730,12 @@ if Code.ensure_loaded?(MyXQL) do
         engine_expr(table.engine), options_expr(table.options)]]
     end
 
-    def execute_ddl({command, %Table{} = table}) when command in [:drop, :drop_if_exists] do
+    def execute_ddl({command, %Table{} = table, :cascade}) when command in [:drop, :drop_if_exists] do
+      [cmd | _] = execute_ddl({command, %Table{} = table, nil})
+      [cmd ++ [" CASCADE"]]
+    end
+
+    def execute_ddl({command, %Table{} = table, _}) when command in [:drop, :drop_if_exists] do
       [["DROP TABLE ", if_do(command == :drop_if_exists, "IF EXISTS "),
         quote_table(table.prefix, table.name)]]
     end
@@ -762,20 +767,23 @@ if Code.ensure_loaded?(MyXQL) do
     def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
       do: error!(nil, "MySQL adapter does not support exclusion constraints")
 
-    def execute_ddl({:drop, %Index{} = index}) do
+    def execute_ddl({:drop, %Index{}, :cascade}),
+      do: error!(nil, "MySQL adapter does not support cascade in drop index")
+
+    def execute_ddl({:drop, %Index{} = index, _}) do
       [["DROP INDEX ",
         quote_name(index.name),
         " ON ", quote_table(index.prefix, index.table),
         if_do(index.concurrently, " LOCK=NONE")]]
     end
 
-    def execute_ddl({:drop, %Constraint{}}),
+    def execute_ddl({:drop, %Constraint{}, _}),
       do: error!(nil, "MySQL adapter does not support constraints")
 
-    def execute_ddl({:drop_if_exists, %Constraint{}}),
+    def execute_ddl({:drop_if_exists, %Constraint{}, _}),
       do: error!(nil, "MySQL adapter does not support constraints")
 
-    def execute_ddl({:drop_if_exists, %Index{}}),
+    def execute_ddl({:drop_if_exists, %Index{}, _}),
       do: error!(nil, "MySQL adapter does not support drop if exists for index")
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do

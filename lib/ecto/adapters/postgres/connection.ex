@@ -845,7 +845,12 @@ if Code.ensure_loaded?(Postgrex) do
         comments_for_columns(table_name, columns)
     end
 
-    def execute_ddl({command, %Table{} = table}) when command in @drops do
+    def execute_ddl({command, %Table{} = table, :cascade}) when command in @drops do
+      [cmd | _] = execute_ddl({command, table, nil})
+      [cmd ++ [" CASCADE"]]
+    end
+
+    def execute_ddl({command, %Table{} = table, _}) when command in @drops do
       [["DROP TABLE ", if_do(command == :drop_if_exists, "IF EXISTS "),
         quote_table(table.prefix, table.name)]]
     end
@@ -880,7 +885,12 @@ if Code.ensure_loaded?(Postgrex) do
       queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)
     end
 
-    def execute_ddl({command, %Index{} = index}) when command in @drops do
+    def execute_ddl({command, %Index{} = index, :cascade}) when command in @drops do
+      [cmd | _] = execute_ddl({command, index, nil})
+      [cmd ++ [" CASCADE"]]
+    end
+
+    def execute_ddl({command, %Index{} = index, _}) when command in @drops do
       [["DROP INDEX ",
         if_do(index.concurrently, "CONCURRENTLY "),
         if_do(command == :drop_if_exists, "IF EXISTS "),
@@ -905,12 +915,12 @@ if Code.ensure_loaded?(Postgrex) do
       queries ++ comments_on("CONSTRAINT", constraint.name, constraint.comment, table_name)
     end
 
-    def execute_ddl({:drop, %Constraint{} = constraint}) do
+    def execute_ddl({:drop, %Constraint{} = constraint, _}) do
       [["ALTER TABLE ", quote_table(constraint.prefix, constraint.table),
         " DROP CONSTRAINT ", quote_name(constraint.name)]]
     end
 
-    def execute_ddl({:drop_if_exists, %Constraint{} = constraint}) do
+    def execute_ddl({:drop_if_exists, %Constraint{} = constraint, _}) do
       [["ALTER TABLE ", quote_table(constraint.prefix, constraint.table),
         " DROP CONSTRAINT IF EXISTS ", quote_name(constraint.name)]]
     end
