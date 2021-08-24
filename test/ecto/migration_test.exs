@@ -694,7 +694,7 @@ defmodule Ecto.MigrationTest do
     end
     flush()
 
-    assert last_command() == {:drop, table, nil}
+    assert last_command() == {:drop, table, :restrict}
   end
 
   test "backward: creates a table if not exists" do
@@ -704,14 +704,14 @@ defmodule Ecto.MigrationTest do
     end
     flush()
 
-    assert last_command() == {:drop_if_exists, table, nil}
+    assert last_command() == {:drop_if_exists, table, :restrict}
   end
 
   test "backward: creates an empty table" do
     create table = table(:posts)
     flush()
 
-    assert last_command() == {:drop, table, :nil}
+    assert last_command() == {:drop, table, :restrict}
   end
 
   test "backward: alters a table" do

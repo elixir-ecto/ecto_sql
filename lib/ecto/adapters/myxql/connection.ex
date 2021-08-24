@@ -730,14 +730,10 @@ if Code.ensure_loaded?(MyXQL) do
         engine_expr(table.engine), options_expr(table.options)]]
     end
 
-    def execute_ddl({command, %Table{} = table, :cascade}) when command in [:drop, :drop_if_exists] do
-      [cmd | _] = execute_ddl({command, %Table{} = table, nil})
-      [cmd ++ [" CASCADE"]]
-    end
 
-    def execute_ddl({command, %Table{} = table, _}) when command in [:drop, :drop_if_exists] do
+    def execute_ddl({command, %Table{} = table, mode}) when command in [:drop, :drop_if_exists] do
       [["DROP TABLE ", if_do(command == :drop_if_exists, "IF EXISTS "),
-        quote_table(table.prefix, table.name)]]
+        quote_table(table.prefix, table.name), drop_mode(mode)]]
     end
 
     def execute_ddl({:alter, %Table{} = table, changes}) do
@@ -770,7 +766,7 @@ if Code.ensure_loaded?(MyXQL) do
     def execute_ddl({:drop, %Index{}, :cascade}),
       do: error!(nil, "MySQL adapter does not support cascade in drop index")
 
-    def execute_ddl({:drop, %Index{} = index, _}) do
+    def execute_ddl({:drop, %Index{} = index, :restrict}) do
       [["DROP INDEX ",
         quote_name(index.name),
         " ON ", quote_table(index.prefix, index.table),
@@ -808,6 +804,9 @@ if Code.ensure_loaded?(MyXQL) do
     def table_exists_query(table) do
       {"SELECT true FROM information_schema.tables WHERE table_name = ? AND table_schema = DATABASE() LIMIT 1", [table]}
     end
+
+    defp drop_mode(:cascade), do: " CASCADE"
+    defp drop_mode(:restrict), do: []
 
     defp pk_definitions(columns, prefix) do
       pks =
