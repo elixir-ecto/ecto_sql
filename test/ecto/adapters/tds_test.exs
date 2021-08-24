@@ -1258,6 +1258,12 @@ defmodule Ecto.Adapters.TdsTest do
   test "drop table" do
     drop = {:drop, table(:posts), nil}
     assert execute_ddl(drop) == ["DROP TABLE [posts]; "]
+
+    drop_cascade = {:drop, table(:posts), :cascade}
+
+    assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP TABLE commands", fn ->
+      execute_ddl(drop_cascade)
+    end
   end
 
   test "drop table with prefixes" do
@@ -1376,6 +1382,12 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert execute_ddl(drop) ==
              [~s|ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; |]
+
+    drop_cascade = {:drop, constraint(:products, "price_must_be_positive"), :cascade}
+
+    assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP CONSTRAINT commands", fn ->
+      execute_ddl(drop_cascade)
+    end
   end
 
   test "drop_if_exists constraint" do
@@ -1399,6 +1411,12 @@ defmodule Ecto.Adapters.TdsTest do
                  "AND [CONSTRAINT_SCHEMA] = N'foo') " <>
                  "ALTER TABLE [foo].[products] DROP CONSTRAINT [price_must_be_positive]; "
              ]
+
+    drop_cascade = {:drop_if_exists, constraint(:products, "price_must_be_positive"), :cascade}
+
+    assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP CONSTRAINT commands", fn ->
+      execute_ddl(drop_cascade)
+    end
   end
 
   test "rename table" do
@@ -1497,6 +1515,12 @@ defmodule Ecto.Adapters.TdsTest do
   test "drop index" do
     drop = {:drop, index(:posts, [:id], name: "posts$main"), nil}
     assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts]; |]
+
+    drop_cascade = {:drop, index(:posts, [:id], name: "posts$main"), :cascade}
+
+    assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP INDEX commands", fn ->
+      execute_ddl(drop_cascade)
+    end
   end
 
   test "drop index with prefix" do
@@ -1522,6 +1546,14 @@ defmodule Ecto.Adapters.TdsTest do
                |> remove_newlines
                |> Kernel.<>(" ")
              ]
+
+    drop_cascade =
+      {:drop_if_exists,
+      index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), :cascade}
+
+    assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP INDEX commands", fn ->
+      execute_ddl(drop_cascade)
+    end
   end
 
   test "drop index asserting concurrency" do

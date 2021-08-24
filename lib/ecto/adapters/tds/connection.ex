@@ -999,6 +999,9 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
+    def execute_ddl({command, %Table{}, :cascade}) when command in [:drop, :drop_if_exists],
+      do: error!(nil, "MSSQL does not support `CASCADE` in DROP TABLE commands")
+
     def execute_ddl({command, %Table{} = table, _}) when command in [:drop, :drop_if_exists] do
       prefix = table.prefix
 
@@ -1114,6 +1117,9 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
+    def execute_ddl({command, %Index{}, :cascade}) when command in [:drop, :drop_if_exists],
+      do: error!(nil, "MSSQL does not support `CASCADE` in DROP INDEX commands")
+
     def execute_ddl({command, %Index{} = index, _}) when command in [:drop, :drop_if_exists] do
       prefix = index.prefix
 
@@ -1133,6 +1139,9 @@ if Code.ensure_loaded?(Tds) do
         ]
       ]
     end
+
+    def execute_ddl({command, %Constraint{}, :cascade}) when command in [:drop, :drop_if_exists],
+      do: error!(nil, "MSSQL does not support `CASCADE` in DROP CONSTRAINT commands")
 
     def execute_ddl({command, %Constraint{} = constraint, _})
         when command in [:drop, :drop_if_exists] do
