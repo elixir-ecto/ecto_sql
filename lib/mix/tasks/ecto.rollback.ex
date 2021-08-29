@@ -64,33 +64,35 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
   ## Command line options
 
-    * `-r`, `--repo` - the repo to rollback
+    * `--all` - run all pending migrations
 
-    * `--all` - revert all applied migrations
+    * `--log-sql` - log the underlying sql statements for migrations
 
-    * `--step`, `-n` - revert n number of applied migrations
+    * `--migrations-path` - the path to load the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which
+      case the migrations are loaded from all the given directories and sorted
+      as if they were in the same one
 
-    * `--to` - revert all migrations down to and including version
+    * `--no-compile` - does not compile applications before migrating
 
-    * `--quiet` - do not log migration commands
+    * `--no-deps-check` - does not check dependencies before migrating
+
+    * `--pool-size` - the pool size if the repository is started
+      only for the task (defaults to 2)
 
     * `--prefix` - the prefix to run migrations on
 
-    * `--pool-size` - the pool size if the repository is started only for the task (defaults to 2)
+    * `--quiet` - do not log migration commands
 
-    * `--log-sql` - log the raw sql migrations are running
+    * `-r`, `--repo` - the repo to migrate
 
-    * `--no-compile` - does not compile applications before rolling back
+    * `--step`, `-n` - revert n migrations
 
-    * `--no-deps-check` - does not check dependencies before rolling back
+    * `--strict-version-order` - abort when applying a migration with old
+      timestamp (otherwise it emits a warning)
 
-    * `--migrations-path` - the path to load the migrations from, defaults to
-      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
-      are loaded from all the given directories and sorted as if they were all in the same one.
+    * `--to` - revert all migrations down to and including version
 
-      Note, if you have migrations paths e.g. `a/` and `b/`, and run
-      `mix ecto.rollback --migrations-path a/`, only the latest migrations from `a/` will be
-      rolled back (even if `b/` contains the overall latest migrations.)
   """
 
   @impl true

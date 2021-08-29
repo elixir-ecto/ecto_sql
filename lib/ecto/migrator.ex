@@ -209,6 +209,7 @@ defmodule Ecto.Migrator do
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
     * `:strict_version_order` - abort when applying a migration with old timestamp
+      (otherwise it emits a warning)
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do

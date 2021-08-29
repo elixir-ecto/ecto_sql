@@ -68,35 +68,35 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
   ## Command line options
 
-    * `-r`, `--repo` - the repo to migrate
-
     * `--all` - run all pending migrations
 
-    * `--step`, `-n` - run n number of pending migrations
+    * `--log-sql` - log the underlying sql statements for migrations
 
-    * `--to` - run all migrations up to and including version
-
-    * `--quiet` - do not log migration commands
-
-    * `--prefix` - the prefix to run migrations on
-
-    * `--pool-size` - the pool size if the repository is started only for the task (defaults to 2)
-
-    * `--log-sql` - log the raw sql migrations are running
-
-    * `--strict-version-order` - abort when applying a migration with old timestamp
+    * `--migrations-path` - the path to load the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which
+      case the migrations are loaded from all the given directories and sorted
+      as if they were in the same one
 
     * `--no-compile` - does not compile applications before migrating
 
     * `--no-deps-check` - does not check dependencies before migrating
 
-    * `--migrations-path` - the path to load the migrations from, defaults to
-      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
-      are loaded from all the given directories and sorted as if they were in the same one.
+    * `--pool-size` - the pool size if the repository is started
+      only for the task (defaults to 2)
 
-      Note, if you have migrations paths e.g. `a/` and `b/`, and run
-      `mix ecto.migrate --migrations-path a/`, the latest migrations from `a/` will be run (even
-      if `b/` contains the overall latest migrations.)
+    * `--prefix` - the prefix to run migrations on
+
+    * `--quiet` - do not log migration commands
+
+    * `-r`, `--repo` - the repo to migrate
+
+    * `--step`, `-n` - run n number of pending migrations
+
+    * `--strict-version-order` - abort when applying a migration with old
+      timestamp (otherwise it emits a warning)
+
+    * `--to` - run all migrations up to and including version
+
   """
 
   @impl true
