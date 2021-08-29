@@ -37,19 +37,21 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
   ## Command line options
 
-    * `-r`, `--repo` - the repo to obtain the status for
+    * `--migrations-path` - the path to load the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which
+      case the migrations are loaded from all the given directories and sorted as
+      if they were in the same one.
+
+      Note, if you have previously run migrations from paths `a/` and `b/`, and now
+      run `mix ecto.migrations --migrations-path a/` (omitting path `b/`), the
+      migrations from the path `b/` will be shown in the output as `** FILE NOT FOUND **`.
 
     * `--no-compile` - does not compile applications before running
 
     * `--no-deps-check` - does not check dependencies before running
 
-    * `--migrations-path` - the path to load the migrations from, defaults to
-      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
-      are loaded from all the given directories and sorted as if they were in the same one.
+    * `-r`, `--repo` - the repo to obtain the status for
 
-      Note, if you have previously run migrations from e.g. paths `a/` and `b/`, and now run `mix
-      ecto.migrations --migrations-path a/` (omitting path `b/`), the migrations from the path
-      `b/` will be shown in the output as `** FILE NOT FOUND **`.
   """
 
   @impl true
