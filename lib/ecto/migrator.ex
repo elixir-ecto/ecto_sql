@@ -205,6 +205,9 @@ defmodule Ecto.Migrator do
       Defaults to `:info`. Can be any of `Logger.level/0` values or a boolean.
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
+    * `:log_sql_mode` - how much SQL to log. Defaults to `"commands"`.
+      * `"commands"` - log SQL commands in the migration.
+      * `"all"` - log SQL commands in the migration and the SQL to manage the migration.
     * `:prefix` - the prefix to run the migrations on
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
@@ -263,6 +266,9 @@ defmodule Ecto.Migrator do
       Can be any of `Logger.level/0` values or a boolean.
     * `:log_sql` - the level to use for logging of SQL instructions.
       Defaults to `false`. Can be any of `Logger.level/0` values or a boolean.
+    * `:log_sql_mode` - how much SQL to log. Defaults to `"commands"`.
+      * `"commands"` - log SQL commands in the migration.
+      * `"all"` - log SQL commands in the migration and the SQL to manage the migration.
     * `:prefix` - the prefix to run the migrations on
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
@@ -293,16 +299,16 @@ defmodule Ecto.Migrator do
 
     fun_with_status = fn ->
       result = fun.()
-      apply(SchemaMigration, direction, [repo, config, version, opts[:prefix]])
+      apply(SchemaMigration, direction, [repo, config, version, opts])
       result
     end
 
-    fn -> run_maybe_in_transaction(repo, dynamic_repo, module, fun_with_status) end
+    fn -> run_maybe_in_transaction(repo, dynamic_repo, module, fun_with_status, opts) end
     |> Task.async()
     |> Task.await(:infinity)
   end
 
-  defp run_maybe_in_transaction(repo, dynamic_repo, module, fun) do
+  defp run_maybe_in_transaction(repo, dynamic_repo, module, fun, opts) do
     repo.put_dynamic_repo(dynamic_repo)
 
     if module.__migration__[:disable_ddl_transaction] ||
@@ -310,12 +316,19 @@ defmodule Ecto.Migrator do
       fun.()
     else
       {:ok, result} =
-        repo.transaction(fun, log: false, timeout: :infinity)
+        repo.transaction(fun, log_options(opts) ++ [timeout: :infinity])
 
       result
     end
   catch kind, reason ->
     {kind, reason, __STACKTRACE__}
+  end
+
+  defp log_options(opts) do
+    case Keyword.get(opts, :log_sql_mode, "commands") do
+      "all" -> [log: Keyword.get(opts, :log, :info), log_sql: Keyword.get(opts, :log_sql, :info)]
+      _ -> [log: false]
+    end
   end
 
   defp attempt(repo, config, version, module, direction, operation, reference, opts) do

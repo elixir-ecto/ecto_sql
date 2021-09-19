@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
     prefix: :string,
     pool_size: :integer,
     log_sql: :boolean,
+    log_sql_mode: :string,
     repo: [:keep, :string],
     no_compile: :boolean,
     no_deps_check: :boolean,
@@ -80,6 +81,10 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     * `--log-sql` - log the raw sql migrations are running
 
+    * `--log-sql-mode` - how much sql to log. `"commands"` logs only the sql
+      from commands in the migrations. `"all"` will log the all sql (default to
+      `"commands"`).
+
     * `--no-compile` - does not compile applications before rolling back
 
     * `--no-deps-check` - does not check dependencies before rolling back
@@ -107,6 +112,8 @@ defmodule Mix.Tasks.Ecto.Rollback do
       if opts[:quiet],
         do: Keyword.merge(opts, [log: false, log_sql: false]),
         else: opts
+
+    Mix.Tasks.Ecto.Migrate.validate_log_sql_mode!(opts[:log_sql_mode])
 
     # Start ecto_sql explicitly before as we don't need
     # to restart those apps if migrated.

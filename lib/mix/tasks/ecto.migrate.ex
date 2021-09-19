@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
     prefix: :string,
     pool_size: :integer,
     log_sql: :boolean,
+    log_sql_mode: :string,
     strict_version_order: :boolean,
     repo: [:keep, :string],
     no_compile: :boolean,
@@ -84,6 +85,10 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     * `--log-sql` - log the raw sql migrations are running
 
+    * `--log-sql-mode` - how much sql to log. `"commands"` logs only the sql
+      from commands in the migrations. `"all"` will log the all sql (default to
+      `"commands"`).
+
     * `--strict-version-order` - abort when applying a migration with old timestamp
 
     * `--no-compile` - does not compile applications before migrating
@@ -114,6 +119,8 @@ defmodule Mix.Tasks.Ecto.Migrate do
         do: Keyword.merge(opts, [log: false, log_sql: false]),
         else: opts
 
+    validate_log_sql_mode!(opts[:log_sql_mode])
+
     # Start ecto_sql explicitly before as we don't need
     # to restart those apps if migrated.
     {:ok, _} = Application.ensure_all_started(:ecto_sql)
@@ -137,5 +144,15 @@ defmodule Mix.Tasks.Ecto.Migrate do
     end
 
     :ok
+  end
+
+  def validate_log_sql_mode!("commands"), do: :ok
+  def validate_log_sql_mode!("all"), do: :ok
+  def validate_log_sql_mode!(nil), do: :ok
+  def validate_log_sql_mode!(any) do
+    Mix.raise("""
+    "#{any}" is not a valid log_sql_mode.
+    Valid options are: "all", "commands"
+    """)
   end
 end
