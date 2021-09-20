@@ -158,12 +158,12 @@ defmodule Mix.Tasks.Ecto.Migrate do
   def conform_log_options(opts) do
     opts =
       if opts[:log_sql_mode] == "all",
-        do: Keyword.merge(opts, [log_sql: true, log: true, log_all: true]),
+        do: Keyword.merge(opts, [log_sql: :info, log: :info, log_all: true]),
         else: opts
 
     opts =
       if opts[:log_sql_mode] == "commands",
-        do: Keyword.merge(opts, [log_sql: true, log: true, log_all: false]),
+        do: Keyword.merge(opts, [log_sql: :info, log: :info, log_all: false]),
         else: opts
 
     if opts[:quiet],
