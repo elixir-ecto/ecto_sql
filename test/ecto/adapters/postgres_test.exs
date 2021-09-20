@@ -1532,13 +1532,21 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "drop table" do
-    drop = {:drop, table(:posts)}
+    drop = {:drop, table(:posts), :restrict}
     assert execute_ddl(drop) == [~s|DROP TABLE "posts"|]
   end
 
   test "drop table with prefix" do
-    drop = {:drop, table(:posts, prefix: :foo)}
+    drop = {:drop, table(:posts, prefix: :foo), :restrict}
     assert execute_ddl(drop) == [~s|DROP TABLE "foo"."posts"|]
+  end
+
+  test "drop table with cascade" do
+    drop = {:drop, table(:posts), :cascade}
+    assert execute_ddl(drop) == [~s|DROP TABLE "posts" CASCADE|]
+
+    drop = {:drop, table(:posts, prefix: :foo), :cascade}
+    assert execute_ddl(drop) == [~s|DROP TABLE "foo"."posts" CASCADE|]
   end
 
   test "alter table" do
@@ -1728,19 +1736,27 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "drop index" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main")}
+    drop = {:drop, index(:posts, [:id], name: "posts$main"), :restrict}
     assert execute_ddl(drop) == [~s|DROP INDEX "posts$main"|]
   end
 
   test "drop index with prefix" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo)}
+    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo), :restrict}
     assert execute_ddl(drop) == [~s|DROP INDEX "foo"."posts$main"|]
   end
 
   test "drop index concurrently" do
     index = index(:posts, [:id], name: "posts$main")
-    drop = {:drop, %{index | concurrently: true}}
+    drop = {:drop, %{index | concurrently: true}, :restrict}
     assert execute_ddl(drop) == [~s|DROP INDEX CONCURRENTLY "posts$main"|]
+  end
+
+  test "drop index with cascade" do
+    drop = {:drop, index(:posts, [:id], name: "posts$main"), :cascade}
+    assert execute_ddl(drop) == [~s|DROP INDEX "posts$main" CASCADE|]
+
+    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo), :cascade}
+    assert execute_ddl(drop) == [~s|DROP INDEX "foo"."posts$main" CASCADE|]
   end
 
   test "create check constraint" do
@@ -1773,21 +1789,21 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "drop constraint" do
-    drop = {:drop, constraint(:products, "price_must_be_positive")}
+    drop = {:drop, constraint(:products, "price_must_be_positive"), :restrict}
     assert execute_ddl(drop) ==
       [~s|ALTER TABLE "products" DROP CONSTRAINT "price_must_be_positive"|]
 
-    drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo")}
+    drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
     assert execute_ddl(drop) ==
       [~s|ALTER TABLE "foo"."products" DROP CONSTRAINT "price_must_be_positive"|]
   end
 
   test "drop_if_exists constraint" do
-    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive")}
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive"), :restrict}
     assert execute_ddl(drop) ==
       [~s|ALTER TABLE "products" DROP CONSTRAINT IF EXISTS "price_must_be_positive"|]
 
-    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo")}
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
     assert execute_ddl(drop) ==
       [~s|ALTER TABLE "foo"."products" DROP CONSTRAINT IF EXISTS "price_must_be_positive"|]
   end

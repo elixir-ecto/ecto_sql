@@ -13,7 +13,8 @@ defmodule Mix.Tasks.Ecto.Migrations do
     repo: [:keep, :string],
     no_compile: :boolean,
     no_deps_check: :boolean,
-    migrations_path: :keep
+    migrations_path: :keep,
+    prefix: :string
   ]
 
   @moduledoc """
@@ -37,23 +38,27 @@ defmodule Mix.Tasks.Ecto.Migrations do
 
   ## Command line options
 
-    * `-r`, `--repo` - the repo to obtain the status for
+    * `--migrations-path` - the path to load the migrations from, defaults to
+      `"priv/repo/migrations"`. This option may be given multiple times in which
+      case the migrations are loaded from all the given directories and sorted as
+      if they were in the same one.
+
+      Note, if you have previously run migrations from paths `a/` and `b/`, and now
+      run `mix ecto.migrations --migrations-path a/` (omitting path `b/`), the
+      migrations from the path `b/` will be shown in the output as `** FILE NOT FOUND **`.
 
     * `--no-compile` - does not compile applications before running
 
     * `--no-deps-check` - does not check dependencies before running
 
-    * `--migrations-path` - the path to load the migrations from, defaults to
-      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
-      are loaded from all the given directories and sorted as if they were in the same one.
+    * `--prefix` - the prefix to check migrations on
 
-      Note, if you have previously run migrations from e.g. paths `a/` and `b/`, and now run `mix
-      ecto.migrations --migrations-path a/` (omitting path `b/`), the migrations from the path
-      `b/` will be shown in the output as `** FILE NOT FOUND **`.
+    * `-r`, `--repo` - the repo to obtain the status for
+
   """
 
   @impl true
-  def run(args, migrations \\ &Ecto.Migrator.migrations/2, puts \\ &IO.puts/1) do
+  def run(args, migrations \\ &Ecto.Migrator.migrations/3, puts \\ &IO.puts/1) do
     repos = parse_repo(args)
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
 
@@ -61,7 +66,7 @@ defmodule Mix.Tasks.Ecto.Migrations do
       ensure_repo(repo, args)
       paths = ensure_migrations_paths(repo, opts)
 
-      case Ecto.Migrator.with_repo(repo, &migrations.(&1, paths), [mode: :temporary]) do
+      case Ecto.Migrator.with_repo(repo, &migrations.(&1, paths, opts), [mode: :temporary]) do
         {:ok, repo_status, _} ->
           puts.(
             """

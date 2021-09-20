@@ -65,37 +65,39 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
   ## Command line options
 
-    * `-r`, `--repo` - the repo to rollback
+    * `--all` - run all pending migrations
 
-    * `--all` - revert all applied migrations
-
-    * `--step`, `-n` - revert n number of applied migrations
-
-    * `--to` - revert all migrations down to and including version
-
-    * `--quiet` - do not log migration commands
-
-    * `--prefix` - the prefix to run migrations on
-
-    * `--pool-size` - the pool size if the repository is started only for the task (defaults to 2)
-
-    * `--log-sql` - log the raw sql migrations are running
+    * `--log-sql` - log the underlying sql statements for migrations
 
     * `--log-sql-mode` - how much sql to log. `"commands"` logs only the sql
       from commands in the migrations. `"all"` will log the all sql (default to
       `"commands"`).
 
-    * `--no-compile` - does not compile applications before rolling back
-
-    * `--no-deps-check` - does not check dependencies before rolling back
-
     * `--migrations-path` - the path to load the migrations from, defaults to
-      `"priv/repo/migrations"`. This option may be given multiple times in which case the migrations
-      are loaded from all the given directories and sorted as if they were all in the same one.
+      `"priv/repo/migrations"`. This option may be given multiple times in which
+      case the migrations are loaded from all the given directories and sorted
+      as if they were in the same one
 
-      Note, if you have migrations paths e.g. `a/` and `b/`, and run
-      `mix ecto.rollback --migrations-path a/`, only the latest migrations from `a/` will be
-      rolled back (even if `b/` contains the overall latest migrations.)
+    * `--no-compile` - does not compile applications before migrating
+
+    * `--no-deps-check` - does not check dependencies before migrating
+
+    * `--pool-size` - the pool size if the repository is started
+      only for the task (defaults to 2)
+
+    * `--prefix` - the prefix to run migrations on
+
+    * `--quiet` - do not log migration commands
+
+    * `-r`, `--repo` - the repo to migrate
+
+    * `--step`, `-n` - revert n migrations
+
+    * `--strict-version-order` - abort when applying a migration with old
+      timestamp (otherwise it emits a warning)
+
+    * `--to` - revert all migrations down to and including version
+
   """
 
   @impl true

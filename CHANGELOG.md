@@ -1,5 +1,15 @@
 # Changelog for v3.x
 
+## v3.7.0 (2021-08-19)
+
+### Enhancements
+
+  * [mysql] Support lateral joins
+
+### Bug fixes
+
+  * [sql] Fix CTE subqueries not finding parent bindings
+
 ## v3.6.2 (2021-05-28)
 
 ### Bug fixes
@@ -23,8 +33,8 @@
 ### Enhancements
 
   * [migrations] Allow generating migrations from within umbrella app
-  * [psql] Add `:format` option to PostgreSQL explain
-  * [psql] Support `:socket_dir` connection option when using `mix ecto.load` or `mix ecto.dump`
+  * [postgres] Add `:format` option to PostgreSQL explain
+  * [postgres] Support `:socket_dir` connection option when using `mix ecto.load` or `mix ecto.dump`
   * [sandbox] Support locally registered processes in `allow/3`
   * [storage] Do not fail `storage_up` if the user has access to an already-created database
   * [tds] Support for `:inner_lateral` and `:left_lateral`
@@ -34,7 +44,7 @@
 ### Enhancements
 
   * [mysql] Support defaults for JSON columns
-  * [psql] Allow Postgrex v1.0
+  * [postgres] Allow Postgrex v1.0
 
 ## v3.5.3 (2020-10-27)
 

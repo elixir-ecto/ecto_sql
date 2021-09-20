@@ -359,7 +359,7 @@ defmodule Ecto.Adapters.SQL do
   @doc """
   Same as `query/4` but raises on invalid queries.
   """
-  @spec query!(Ecto.Repo.t | Ecto.Adapter.adapter_meta, String.t, [term], Keyword.t) ::
+  @spec query!(Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
                %{:rows => nil | [[term] | binary],
                  :num_rows => non_neg_integer,
                  optional(atom) => any}
@@ -398,7 +398,7 @@ defmodule Ecto.Adapters.SQL do
       {:ok, %{rows: [[42]], num_rows: 1}}
 
   """
-  @spec query(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, String.t, [term], Keyword.t) ::
+  @spec query(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
               {:ok, %{:rows => nil | [[term] | binary],
                       :num_rows => non_neg_integer,
                       optional(atom) => any}}
@@ -454,7 +454,7 @@ defmodule Ecto.Adapters.SQL do
   #     | My Post Title |       1 | NULL   |
   #     +---------------+---------+--------+
   @doc false
-  @spec format_table(%{columns: [String.t] | nil, rows: [term()] | nil}) :: String.t
+  @spec format_table(%{:columns => [String.t] | nil, :rows => [term()] | nil, optional(atom) => any()}) :: String.t
   def format_table(result)
 
   def format_table(nil), do: ""

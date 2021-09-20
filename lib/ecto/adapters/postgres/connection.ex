@@ -845,9 +845,9 @@ if Code.ensure_loaded?(Postgrex) do
         comments_for_columns(table_name, columns)
     end
 
-    def execute_ddl({command, %Table{} = table}) when command in @drops do
+    def execute_ddl({command, %Table{} = table, mode}) when command in @drops do
       [["DROP TABLE ", if_do(command == :drop_if_exists, "IF EXISTS "),
-        quote_table(table.prefix, table.name)]]
+        quote_table(table.prefix, table.name), drop_mode(mode)]]
     end
 
     def execute_ddl({:alter, %Table{} = table, changes}) do
@@ -880,11 +880,12 @@ if Code.ensure_loaded?(Postgrex) do
       queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)
     end
 
-    def execute_ddl({command, %Index{} = index}) when command in @drops do
+    def execute_ddl({command, %Index{} = index, mode}) when command in @drops do
       [["DROP INDEX ",
         if_do(index.concurrently, "CONCURRENTLY "),
         if_do(command == :drop_if_exists, "IF EXISTS "),
-        quote_table(index.prefix, index.name)]]
+        quote_table(index.prefix, index.name),
+        drop_mode(mode)]]
     end
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
@@ -905,14 +906,12 @@ if Code.ensure_loaded?(Postgrex) do
       queries ++ comments_on("CONSTRAINT", constraint.name, constraint.comment, table_name)
     end
 
-    def execute_ddl({:drop, %Constraint{} = constraint}) do
-      [["ALTER TABLE ", quote_table(constraint.prefix, constraint.table),
-        " DROP CONSTRAINT ", quote_name(constraint.name)]]
-    end
+    def execute_ddl({command, %Constraint{}, :cascade}) when command in @drops,
+      do: error!(nil, "PostgreSQL does not support `CASCADE` in DROP CONSTRAINT commands")
 
-    def execute_ddl({:drop_if_exists, %Constraint{} = constraint}) do
+    def execute_ddl({command, %Constraint{} = constraint, :restrict}) when command in @drops do
       [["ALTER TABLE ", quote_table(constraint.prefix, constraint.table),
-        " DROP CONSTRAINT IF EXISTS ", quote_name(constraint.name)]]
+        " DROP CONSTRAINT ", if_do(command == :drop_if_exists, "IF EXISTS "), quote_name(constraint.name)]]
     end
 
     def execute_ddl(string) when is_binary(string), do: [string]
@@ -935,6 +934,9 @@ if Code.ensure_loaded?(Postgrex) do
     def table_exists_query(table) do
       {"SELECT true FROM information_schema.tables WHERE table_name = $1 AND table_schema = current_schema() LIMIT 1", [table]}
     end
+
+    defp drop_mode(:cascade), do: " CASCADE"
+    defp drop_mode(:restrict), do: []
 
     # From https://www.postgresql.org/docs/current/protocol-error-fields.html.
     defp ddl_log_level("DEBUG"), do: :debug

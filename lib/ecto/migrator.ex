@@ -212,6 +212,7 @@ defmodule Ecto.Migrator do
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
     * `:strict_version_order` - abort when applying a migration with old timestamp
+      (otherwise it emits a warning)
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
@@ -384,14 +385,13 @@ defmodule Ecto.Migrator do
   ## Options
 
     * `:all` - runs all available if `true`
-    * `:step` - runs the specific number of migrations
-    * `:to` - runs all until the supplied version is reached
-    * `:log` - the level to use for logging. Defaults to `:info`.
-      Can be any of `Logger.level/0` values or a boolean.
-    * `:prefix` - the prefix to run the migrations on
-    * `:dynamic_repo` - the name of the Repo supervisor process.
-      See `c:Ecto.Repo.put_dynamic_repo/1`.
 
+    * `:step` - runs the specific number of migrations
+
+    * `:to` - runs all until the supplied version is reached
+      (including the version given in `:to`)
+
+  Plus all other options described in `up/4`.
   """
   @spec run(Ecto.Repo.t, String.t | [String.t] | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
