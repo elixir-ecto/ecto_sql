@@ -70,7 +70,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
     * `--log-sql` - log the underlying sql statements for migrations
 
     * `--log-sql-mode` - how much sql to log. `"commands"` logs only the sql
-      from commands in the migrations. `"all"` will log the all sql (default to
+      from commands in the migrations. `"all"` will log all sql (default to
       `"commands"`).
 
     * `--migrations-path` - the path to load the migrations from, defaults to
