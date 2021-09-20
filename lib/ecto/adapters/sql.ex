@@ -872,6 +872,15 @@ defmodule Ecto.Adapters.SQL do
 
   ## Log
 
+  @doc false
+  def log_options(opts) do
+    if opts[:log_sql] && opts[:log_all] do
+      [log: opts[:log_sql]]
+    else
+      [log: false]
+    end
+  end
+
   defp with_log(telemetry, params, opts) do
     [log: &log(telemetry, params, &1, opts)] ++ opts
   end

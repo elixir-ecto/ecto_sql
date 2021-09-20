@@ -109,12 +109,9 @@ defmodule Mix.Tasks.Ecto.Rollback do
         do: opts,
         else: Keyword.put(opts, :step, 1)
 
-    opts =
-      if opts[:quiet],
-        do: Keyword.merge(opts, [log: false, log_sql: false]),
-        else: opts
+    Mix.Tasks.Ecto.Migrate.validate_log_sql_mode!(opts)
 
-    Mix.Tasks.Ecto.Migrate.validate_log_sql_mode!(opts[:log_sql_mode])
+    opts = Mix.Tasks.Ecto.Migrate.conform_log_options(opts)
 
     # Start ecto_sql explicitly before as we don't need
     # to restart those apps if migrated.

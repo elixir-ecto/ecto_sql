@@ -16,51 +16,92 @@ defmodule Ecto.Integration.MigrationsTest do
   end
 
   describe "Migrator" do
-    test ~s(logs GET_LOCK RELEASE_LOCK and transaction commands when log mode is set to "all") do
+    @get_lock_command ~s(sp_getapplock @Resource = 'ecto_Ecto.Integration.PoolRepo', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1)
+    @create_table_sql ~s(CREATE TABLE [log_mode_table])
+    @create_table_log "create table if not exists log_mode_table"
+    @drop_table_sql ~s(DROP TABLE [log_mode_table])
+    @drop_table_log "drop table if exists log_mode_table"
+    @version_insert ~s(INSERT INTO [schema_migrations])
+    @version_delete ~s(DELETE s0 FROM [schema_migrations])
+
+    test "logs locking and transaction commands when log_all: true" do
       num = @base_migration + System.unique_integer([:positive])
       up_log =
         capture_log(fn ->
-          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log_sql_mode: "all")
+          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log_all: true, log_sql: :info, log: :info)
         end)
 
-      assert up_log =~ ~s(sp_getapplock @Resource = 'ecto_Ecto.Integration.PoolRepo', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1)
-      assert up_log =~ ~s(INSERT INTO [schema_migrations])
       assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 2
+      assert up_log =~ @get_lock_command
+      assert up_log =~ @create_table_sql
+      assert up_log =~ @create_table_log
+      assert up_log =~ @version_insert
       assert Regex.scan(~r/(commit \[\])/, up_log) |> length() == 2
 
       down_log =
         capture_log(fn ->
-          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log_sql_mode: "all")
+          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log_all: true, log_sql: :info, log: :info)
         end)
 
-      assert down_log =~ ~s(sp_getapplock @Resource = 'ecto_Ecto.Integration.PoolRepo', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1)
-      assert down_log =~ ~s(DELETE s0 FROM [schema_migrations])
-      assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 2
-      assert Regex.scan(~r/(commit \[\])/, down_log) |> length() == 2
+      assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 2
+      assert down_log =~ @get_lock_command
+      assert down_log =~ @drop_table_sql
+      assert down_log =~ @drop_table_log
+      assert down_log =~ @version_delete
+      assert Regex.scan(~r/(commit \[\])/, up_log) |> length() == 2
     end
 
-    test ~s(does not log GET_LOCK RELEASE_LOCK and transaction commands when log mode is set to "commands") do
+    test "does not log locking and transaction commands when log_sql is true" do
       num = @base_migration + System.unique_integer([:positive])
       up_log =
         capture_log(fn ->
-          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log_sql_mode: "commands")
+          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log_sql: :info, log: :info)
         end)
 
-      refute up_log =~ "begin"
-      refute up_log =~ ~s[sp_getapplock]
-      refute up_log =~ ~s[SELECT GET_LOCK(ecto_PoolRepo)]
-      refute up_log =~ ~s[SELECT RELEASE_LOCK(ecto_PoolRepo)]
+      refute up_log =~ "begin []"
+      refute up_log =~ @get_lock_command
+      assert up_log =~ @create_table_sql
+      assert up_log =~ @create_table_log
+      refute up_log =~ @version_insert
       refute up_log =~ "commit []"
 
       down_log =
         capture_log(fn ->
-          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log_sql_mode: "commands")
+          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log_sql: :info, log: :info)
         end)
 
-      refute down_log =~ "begin"
-      refute down_log =~ ~s[sp_getapplock]
-      refute down_log =~ ~s[SELECT RELEASE_LOCK(ecto_PoolRepo)]
-      refute down_log =~ ~s[DELETE FROM "schema_migrations"]
+      refute down_log =~ "begin []"
+      refute down_log =~ @get_lock_command
+      assert down_log =~ @drop_table_sql
+      assert down_log =~ @drop_table_log
+      refute down_log =~ @version_delete
+      refute down_log =~ "commit []"
+    end
+
+    test ~s(does not log sql when log is default) do
+      num = @base_migration + System.unique_integer([:positive])
+      up_log =
+        capture_log(fn ->
+          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log: :info)
+        end)
+
+      refute up_log =~ "begin []"
+      refute up_log =~ @get_lock_command
+      refute up_log =~ @create_table_sql
+      assert up_log =~ @create_table_log
+      refute up_log =~ @version_insert
+      refute up_log =~ "commit []"
+
+      down_log =
+        capture_log(fn ->
+          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log: :info)
+        end)
+
+      refute down_log =~ "begin []"
+      refute down_log =~ @get_lock_command
+      refute down_log =~ @drop_table_sql
+      assert down_log =~ @drop_table_log
+      refute down_log =~ @version_delete
       refute down_log =~ "commit []"
     end
   end

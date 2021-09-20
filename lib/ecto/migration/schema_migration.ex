@@ -27,7 +27,6 @@ defmodule Ecto.Migration.SchemaMigration do
       {:add, :inserted_at, :naive_datetime, []}
     ]
 
-    # DDL queries do not log, so we do not need to pass log: false here.
     repo.__adapter__().execute_ddl(meta, {:create_if_not_exists, table, commands}, @default_opts)
   end
 
@@ -38,19 +37,17 @@ defmodule Ecto.Migration.SchemaMigration do
 
   def up(repo, config, version, opts) do
     {repo, source} = get_repo_and_source(repo, config)
-    prefix_opts = Keyword.take(opts, [:prefix])
 
     %__MODULE__{version: version}
     |> Ecto.put_meta(source: source)
-    |> repo.insert(log_options(opts) ++ prefix_opts ++ @default_opts)
+    |> repo.insert(default_opts(opts))
   end
 
   def down(repo, config, version, opts) do
     {repo, source} = get_repo_and_source(repo, config)
-    prefix_opts = Keyword.take(opts, [:prefix])
 
     from(m in source, where: m.version == type(^version, :integer))
-    |> repo.delete_all(log_options(opts) ++ prefix_opts ++ @default_opts)
+    |> repo.delete_all(default_opts(opts))
   end
 
   def get_repo_and_source(repo, config) do
@@ -58,10 +55,7 @@ defmodule Ecto.Migration.SchemaMigration do
      Keyword.get(config, :migration_source, "schema_migrations")}
   end
 
-  defp log_options(opts) do
-    case Keyword.get(opts, :log_sql_mode, "commands") do
-      "all" -> [log_sql: Keyword.get(opts, :log_sql, :info), log: Keyword.get(opts, :log, :info)]
-      _ -> []
-    end
+  defp default_opts(opts) do
+    Keyword.merge(@default_opts, [prefix: opts[:prefix]] ++ Ecto.Adapters.SQL.log_options(opts))
   end
 end

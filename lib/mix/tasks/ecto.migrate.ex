@@ -113,12 +113,9 @@ defmodule Mix.Tasks.Ecto.Migrate do
         do: opts,
         else: Keyword.put(opts, :all, true)
 
-    opts =
-      if opts[:quiet],
-        do: Keyword.merge(opts, [log: false, log_sql: false]),
-        else: opts
+    validate_log_sql_mode!(opts)
 
-    validate_log_sql_mode!(opts[:log_sql_mode])
+    opts = conform_log_options(opts)
 
     # Start ecto_sql explicitly before as we don't need
     # to restart those apps if migrated.
@@ -145,13 +142,32 @@ defmodule Mix.Tasks.Ecto.Migrate do
     :ok
   end
 
-  def validate_log_sql_mode!("commands"), do: :ok
-  def validate_log_sql_mode!("all"), do: :ok
-  def validate_log_sql_mode!(nil), do: :ok
-  def validate_log_sql_mode!(any) do
-    Mix.raise("""
-    "#{any}" is not a valid log_sql_mode.
-    Valid options are: "all", "commands"
-    """)
+  def validate_log_sql_mode!(opts) do
+    case Keyword.get(opts, :log_sql_mode) do
+      nil -> :ok
+      "commands" -> :ok
+      "all" -> :ok
+      mode ->
+        Mix.raise("""
+        #{inspect(mode)} is not a valid log_sql_mode.
+        Valid options are: "all", "commands"
+        """)
+    end
+  end
+
+  def conform_log_options(opts) do
+    opts =
+      if opts[:log_sql_mode] == "all",
+        do: Keyword.merge(opts, [log_sql: true, log: true, log_all: true]),
+        else: opts
+
+    opts =
+      if opts[:log_sql_mode] == "commands",
+        do: Keyword.merge(opts, [log_sql: true, log: true, log_all: false]),
+        else: opts
+
+    if opts[:quiet],
+      do: Keyword.merge(opts, [log: false, log_sql: false, log_all: false]),
+      else: opts
   end
 end

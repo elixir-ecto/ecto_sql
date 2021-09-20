@@ -231,7 +231,7 @@ defmodule Ecto.Adapters.MyXQL do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
 
-    opts = opts ++ log_options(opts) ++ [timeout: :infinity]
+    opts = Ecto.Adapters.SQL.log_options(opts) ++ [timeout: :infinity]
 
     {:ok, result} =
       transaction(meta, opts, fn ->
@@ -246,13 +246,6 @@ defmodule Ecto.Adapters.MyXQL do
       end)
 
     result
-  end
-
-  defp log_options(opts) do
-    case Keyword.get(opts, :log_sql_mode, "commands") do
-      "all" -> [log_sql: Keyword.get(opts, :log_sql, :info), log: Keyword.get(opts, :log, :info)]
-      _ -> [log: false]
-    end
   end
 
   @impl true
