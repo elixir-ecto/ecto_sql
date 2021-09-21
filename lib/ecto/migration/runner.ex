@@ -343,14 +343,16 @@ defmodule Ecto.Migration.Runner do
     {:ok, logs} = repo.__adapter__().execute_ddl(meta, command, timeout: :infinity, log: sql)
 
     Enum.each(logs, fn {level, message, metadata} ->
-      Logger.log(level, message, metadata)
+      log(level, message, metadata)
     end)
 
     :ok
   end
 
-  defp log(false, _msg), do: :ok
-  defp log(level, msg),  do: Logger.log(level, msg)
+  defp log(level, msg, metadata \\ [])
+  defp log(false, _msg, _metadata), do: :ok
+  defp log(true, msg, metadata), do: Logger.log(:info, msg, metadata)
+  defp log(level, msg, metadata),  do: Logger.log(level, msg, metadata)
 
   defp command(ddl) when is_binary(ddl) or is_list(ddl),
     do: "execute #{inspect ddl}"
