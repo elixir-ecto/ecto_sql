@@ -252,7 +252,7 @@ defmodule Ecto.Adapters.PostgresTest do
       |> select([:id, :parent_id])
 
     cte_query = initial_query |> union_all(^iteration_query)
-    
+
     breadcrumbs_query =
       "tree"
       |> recursive_ctes(true)

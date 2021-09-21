@@ -90,6 +90,13 @@ defmodule Mix.Tasks.Ecto.RollbackTest do
     assert !Process.get(:started)
   end
 
+  test "raises when invalid log_sql_mode is given" do
+    assert_raise Mix.Error, fn ->
+      run ["--log-sql-mode", "invalid"], fn _, _, _, _ -> [] end
+    end
+    assert !Process.get(:started)
+  end
+
   test "uses custom paths" do
     path1 = Path.join([unquote(tmp_path()), inspect(Ecto.Migrate), "migrations_1"])
     path2 = Path.join([unquote(tmp_path()), inspect(Ecto.Migrate), "migrations_2"])

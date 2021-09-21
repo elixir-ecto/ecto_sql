@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
     prefix: :string,
     pool_size: :integer,
     log_sql: :boolean,
+    log_sql_mode: :string,
     repo: [:keep, :string],
     no_compile: :boolean,
     no_deps_check: :boolean,
@@ -68,6 +69,9 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     * `--log-sql` - log the underlying sql statements for migrations
 
+    * `--log-sql-mode` - how much SQL to log. `"commands"` logs only the SQL
+      from commands in the migrations. `"all"` will log all SQL. Defaults to `"commands"`.
+
     * `--migrations-path` - the path to load the migrations from, defaults to
       `"priv/repo/migrations"`. This option may be given multiple times in which
       case the migrations are loaded from all the given directories and sorted
@@ -105,10 +109,9 @@ defmodule Mix.Tasks.Ecto.Rollback do
         do: opts,
         else: Keyword.put(opts, :step, 1)
 
-    opts =
-      if opts[:quiet],
-        do: Keyword.merge(opts, [log: false, log_sql: false]),
-        else: opts
+    Mix.Tasks.Ecto.Migrate.validate_log_sql_mode!(opts)
+
+    opts = Mix.Tasks.Ecto.Migrate.conform_log_options(opts)
 
     # Start ecto_sql explicitly before as we don't need
     # to restart those apps if migrated.

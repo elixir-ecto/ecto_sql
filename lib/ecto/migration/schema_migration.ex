@@ -14,7 +14,7 @@ defmodule Ecto.Migration.SchemaMigration do
 
   # The migration flag is used to signal to the repository
   # we are in a migration operation.
-  @opts [timeout: :infinity, log: false, schema_migration: true]
+  @default_opts [timeout: :infinity, log: false, schema_migration: true]
 
   def ensure_schema_migrations_table!(repo, config, opts) do
     {repo, source} = get_repo_and_source(repo, config)
@@ -27,32 +27,35 @@ defmodule Ecto.Migration.SchemaMigration do
       {:add, :inserted_at, :naive_datetime, []}
     ]
 
-    # DDL queries do not log, so we do not need to pass log: false here.
-    repo.__adapter__().execute_ddl(meta, {:create_if_not_exists, table, commands}, @opts)
+    repo.__adapter__().execute_ddl(meta, {:create_if_not_exists, table, commands}, @default_opts)
   end
 
   def versions(repo, config, prefix) do
     {repo, source} = get_repo_and_source(repo, config)
-    {repo, from(m in source, select: type(m.version, :integer)), [prefix: prefix] ++ @opts}
+    {repo, from(m in source, select: type(m.version, :integer)), [prefix: prefix] ++ @default_opts}
   end
 
-  def up(repo, config, version, prefix) do
+  def up(repo, config, version, opts) do
     {repo, source} = get_repo_and_source(repo, config)
 
     %__MODULE__{version: version}
     |> Ecto.put_meta(source: source)
-    |> repo.insert([prefix: prefix] ++ @opts)
+    |> repo.insert(default_opts(opts))
   end
 
-  def down(repo, config, version, prefix) do
+  def down(repo, config, version, opts) do
     {repo, source} = get_repo_and_source(repo, config)
 
     from(m in source, where: m.version == type(^version, :integer))
-    |> repo.delete_all([prefix: prefix] ++ @opts)
+    |> repo.delete_all(default_opts(opts))
   end
 
   def get_repo_and_source(repo, config) do
     {Keyword.get(config, :migration_repo, repo),
      Keyword.get(config, :migration_source, "schema_migrations")}
+  end
+
+  defp default_opts(opts) do
+    Keyword.merge(@default_opts, [prefix: opts[:prefix]] ++ Ecto.Adapters.SQL.log_options(opts))
   end
 end

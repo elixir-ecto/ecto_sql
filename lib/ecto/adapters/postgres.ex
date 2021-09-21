@@ -209,7 +209,7 @@ defmodule Ecto.Adapters.Postgres do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
 
-    opts = opts ++ [log: false, timeout: :infinity]
+    opts = Ecto.Adapters.SQL.log_options(opts) ++ [timeout: :infinity]
 
     {:ok, result} =
       transaction(meta, opts, fn ->

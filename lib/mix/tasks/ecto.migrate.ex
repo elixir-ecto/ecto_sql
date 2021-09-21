@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
     prefix: :string,
     pool_size: :integer,
     log_sql: :boolean,
+    log_sql_mode: :string,
     strict_version_order: :boolean,
     repo: [:keep, :string],
     no_compile: :boolean,
@@ -72,6 +73,9 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     * `--log-sql` - log the underlying sql statements for migrations
 
+    * `--log-sql-mode` - how much SQL to log. `"commands"` logs only the SQL
+      from commands in the migrations. `"all"` will log all SQL. Defaults to `"commands"`.
+
     * `--migrations-path` - the path to load the migrations from, defaults to
       `"priv/repo/migrations"`. This option may be given multiple times in which
       case the migrations are loaded from all the given directories and sorted
@@ -109,10 +113,9 @@ defmodule Mix.Tasks.Ecto.Migrate do
         do: opts,
         else: Keyword.put(opts, :all, true)
 
-    opts =
-      if opts[:quiet],
-        do: Keyword.merge(opts, [log: false, log_sql: false]),
-        else: opts
+    validate_log_sql_mode!(opts)
+
+    opts = conform_log_options(opts)
 
     # Start ecto_sql explicitly before as we don't need
     # to restart those apps if migrated.
@@ -137,5 +140,34 @@ defmodule Mix.Tasks.Ecto.Migrate do
     end
 
     :ok
+  end
+
+  def validate_log_sql_mode!(opts) do
+    case Keyword.get(opts, :log_sql_mode) do
+      nil -> :ok
+      "commands" -> :ok
+      "all" -> :ok
+      mode ->
+        Mix.raise("""
+        #{inspect(mode)} is not a valid log_sql_mode.
+        Valid options are: "all", "commands"
+        """)
+    end
+  end
+
+  def conform_log_options(opts) do
+    opts =
+      if opts[:log_sql_mode] == "all",
+        do: Keyword.merge(opts, [log_sql: :info, log: :info, log_all: true]),
+        else: opts
+
+    opts =
+      if opts[:log_sql_mode] == "commands",
+        do: Keyword.merge(opts, [log_sql: :info, log: :info, log_all: false]),
+        else: opts
+
+    if opts[:quiet],
+      do: Keyword.merge(opts, [log: false, log_sql: false, log_all: false]),
+      else: opts
   end
 end

@@ -294,16 +294,16 @@ defmodule Ecto.Migrator do
 
     fun_with_status = fn ->
       result = fun.()
-      apply(SchemaMigration, direction, [repo, config, version, opts[:prefix]])
+      apply(SchemaMigration, direction, [repo, config, version, opts])
       result
     end
 
-    fn -> run_maybe_in_transaction(repo, dynamic_repo, module, fun_with_status) end
+    fn -> run_maybe_in_transaction(repo, dynamic_repo, module, fun_with_status, opts) end
     |> Task.async()
     |> Task.await(:infinity)
   end
 
-  defp run_maybe_in_transaction(repo, dynamic_repo, module, fun) do
+  defp run_maybe_in_transaction(repo, dynamic_repo, module, fun, opts) do
     repo.put_dynamic_repo(dynamic_repo)
 
     if module.__migration__[:disable_ddl_transaction] ||
@@ -311,7 +311,7 @@ defmodule Ecto.Migrator do
       fun.()
     else
       {:ok, result} =
-        repo.transaction(fun, log: false, timeout: :infinity)
+        repo.transaction(fun, Ecto.Adapters.SQL.log_options(opts) ++ [timeout: :infinity])
 
       result
     end
