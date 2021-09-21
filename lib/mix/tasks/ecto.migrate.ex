@@ -73,8 +73,9 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     * `--log-sql` - log the underlying sql statements for migrations
 
-    * `--log-sql-mode` - how much SQL to log. `"commands"` logs only the SQL
-      from commands in the migrations. `"all"` will log all SQL. Defaults to `"commands"`.
+    * `--log-sql-mode` - how much SQL to log. `"migrations"` logs only the SQL
+      from commands in the migrations. `"all"` also includes transactions, table
+      locks, and so on. Defaults to `"migrations"`.
 
     * `--migrations-path` - the path to load the migrations from, defaults to
       `"priv/repo/migrations"`. This option may be given multiple times in which
@@ -114,7 +115,6 @@ defmodule Mix.Tasks.Ecto.Migrate do
         else: Keyword.put(opts, :all, true)
 
     validate_log_sql_mode!(opts)
-
     opts = conform_log_options(opts)
 
     # Start ecto_sql explicitly before as we don't need
@@ -142,32 +142,34 @@ defmodule Mix.Tasks.Ecto.Migrate do
     :ok
   end
 
+  @doc false
   def validate_log_sql_mode!(opts) do
     case Keyword.get(opts, :log_sql_mode) do
       nil -> :ok
-      "commands" -> :ok
+      "migrations" -> :ok
       "all" -> :ok
       mode ->
         Mix.raise("""
         #{inspect(mode)} is not a valid log_sql_mode.
-        Valid options are: "all", "commands"
+        Valid options are: "all", "migrations"
         """)
     end
   end
 
+  @doc false
   def conform_log_options(opts) do
     opts =
       if opts[:log_sql_mode] == "all",
-        do: Keyword.merge(opts, [log_sql: :info, log: :info, log_all: true]),
+        do: Keyword.merge(opts, [log_migrations_sql: :info, log_migrator_sql: :info, log: :info]),
         else: opts
 
     opts =
-      if opts[:log_sql_mode] == "commands",
-        do: Keyword.merge(opts, [log_sql: :info, log: :info, log_all: false]),
+      if opts[:log_sql_mode] == "migrations",
+        do: Keyword.merge(opts, [log_migrations_sql: :info, log: :info]),
         else: opts
 
     if opts[:quiet],
-      do: Keyword.merge(opts, [log: false, log_sql: false, log_all: false]),
+      do: Keyword.merge(opts, [log: false]),
       else: opts
   end
 end

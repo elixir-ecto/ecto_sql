@@ -14,7 +14,7 @@ defmodule Ecto.Migration.Runner do
   """
   def run(repo, config, version, module, direction, operation, migrator_direction, opts) do
     level = Keyword.get(opts, :log, :info)
-    sql = Keyword.get(opts, :log_sql, false)
+    sql = Keyword.get(opts, :log_migrations_sql, false)
     log = %{level: level, sql: sql}
     args  = {self(), repo, config, module, direction, migrator_direction, log}
 

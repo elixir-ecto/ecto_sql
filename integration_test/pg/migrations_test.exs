@@ -43,11 +43,11 @@ defmodule Ecto.Integration.MigrationsTest do
     @version_insert ~s(INSERT INTO "schema_migrations")
     @version_delete ~s(DELETE FROM "schema_migrations")
 
-    test "logs locking and transaction commands when log_all: true" do
+    test "logs locking and transaction commands" do
       num = @base_migration + System.unique_integer([:positive])
       up_log =
         capture_log(fn ->
-          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log_all: true, log_sql: :info, log: :info)
+          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
         end)
 
       assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 2
@@ -59,7 +59,7 @@ defmodule Ecto.Integration.MigrationsTest do
 
       down_log =
         capture_log(fn ->
-          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log_all: true, log_sql: :info, log: :info)
+          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
         end)
 
       assert down_log =~ "begin []"
@@ -70,34 +70,7 @@ defmodule Ecto.Integration.MigrationsTest do
       assert down_log =~ "commit []"
     end
 
-    test "does not log locking and transaction commands when log_sql is true" do
-      num = @base_migration + System.unique_integer([:positive])
-      up_log =
-        capture_log(fn ->
-          Ecto.Migrator.up(PoolRepo, num, NormalMigration, log_sql: :info, log: :info)
-        end)
-
-      refute up_log =~ "begin []"
-      refute up_log =~ @get_lock_command
-      assert up_log =~ @create_table_sql
-      assert up_log =~ @create_table_log
-      refute up_log =~ @version_insert
-      refute up_log =~ "commit []"
-
-      down_log =
-        capture_log(fn ->
-          Ecto.Migrator.down(PoolRepo, num, NormalMigration, log_sql: :info, log: :info)
-        end)
-
-      refute down_log =~ "begin []"
-      refute down_log =~ @get_lock_command
-      assert down_log =~ @drop_table_sql
-      assert down_log =~ @drop_table_log
-      refute down_log =~ @version_delete
-      refute down_log =~ "commit []"
-    end
-
-    test ~s(does not log sql when log is default) do
+    test "does not log sql when log is default" do
       num = @base_migration + System.unique_integer([:positive])
       up_log =
         capture_log(fn ->
