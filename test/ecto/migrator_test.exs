@@ -273,7 +273,7 @@ defmodule Ecto.MigratorTest do
     assert [{11, :custom} | _] = MigrationsAgent.get()
 
     capture_log(fn ->
-      :already_up = up(TestRepo, 11, ChangeMigration, prefix: :custom)
+      :already_up = up(TestRepo, 11, ChangeMigration, prefix: :custom, log: true)
     end)
 
     assert [{11, :custom} | _] = MigrationsAgent.get()

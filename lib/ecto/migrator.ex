@@ -334,7 +334,7 @@ defmodule Ecto.Migrator do
       fun.()
     else
       {:ok, result} =
-        repo.transaction(fun, Ecto.Adapters.SQL.migrator_log_options(opts) ++ [timeout: :infinity])
+        repo.transaction(fun, log: migrator_log(opts), timeout: :infinity)
 
       result
     end
@@ -512,7 +512,9 @@ defmodule Ecto.Migrator do
         Keyword.get(opts, :migration_lock, Keyword.get(config, :migration_lock, true))
 
       opts =
-        Keyword.put(opts, :migration_source, config[:migration_source] || "schema_migrations")
+        opts
+        |> Keyword.put(:migration_source, config[:migration_source] || "schema_migrations")
+        |> Keyword.put(:log, migrator_log(opts))
 
       result =
         if lock_or_migration_number && migration_lock? do
@@ -702,7 +704,12 @@ defmodule Ecto.Migrator do
   end
 
   defp log(false, _msg), do: :ok
+  defp log(true, msg), do: Logger.info(msg)
   defp log(level, msg),  do: Logger.log(level, msg)
+
+  defp migrator_log(opts) do
+    Keyword.get(opts, :log_migrator_sql, false)
+  end
 
   defp ensure_repo_started(repo, pool_size) do
     case repo.start_link(pool_size: pool_size) do

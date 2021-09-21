@@ -872,11 +872,6 @@ defmodule Ecto.Adapters.SQL do
 
   ## Log
 
-  @doc false
-  def migrator_log_options(opts) do
-    [log: Keyword.get(opts, :log_migrator_sql, false)]
-  end
-
   defp with_log(telemetry, params, opts) do
     [log: &log(telemetry, params, &1, opts)] ++ opts
   end
