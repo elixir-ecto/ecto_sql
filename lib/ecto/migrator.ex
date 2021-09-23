@@ -43,7 +43,7 @@ defmodule Ecto.Migrator do
   directory that consists of your application code, all of its dependencies,
   plus the whole Erlang Virtual Machine (VM) and runtime.
 
-  When a release is assembled, Mix is not longer available inside a release
+  When a release is assembled, Mix is no longer available inside a release
   and therefore none of the Mix tasks. Users may still need a mechanism to
   migrate their databases. This can be achieved with using the `Ecto.Migrator`
   module:
