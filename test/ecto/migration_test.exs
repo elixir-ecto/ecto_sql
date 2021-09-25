@@ -550,7 +550,7 @@ defmodule Ecto.MigrationTest do
   @tag prefix: :bar
   test "forward: raise error when prefixes don't match" do
     assert_raise Ecto.MigrationError,
-                 "the :prefix option `foo` does match the migrator prefix `bar`", fn ->
+                 "the :prefix option `foo` does not match the migrator prefix `bar`", fn ->
       create(table(:posts, prefix: "foo"))
       flush()
     end

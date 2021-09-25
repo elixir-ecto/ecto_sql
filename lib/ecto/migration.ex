@@ -1297,7 +1297,7 @@ defmodule Ecto.Migration do
         index_or_table
       true ->
         raise Ecto.MigrationError,  message:
-          "the :prefix option `#{prefix}` does match the migrator prefix `#{runner_prefix}`"
+          "the :prefix option `#{prefix}` does not match the migrator prefix `#{runner_prefix}`"
     end
   end
 
