@@ -256,7 +256,11 @@ defmodule Ecto.Adapters.MyXQL do
     key = primary_key!(schema_meta, returning)
     {fields, values} = :lists.unzip(params)
     sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [], [])
-    opts = [{:cache_statement, "ecto_insert_#{source}"} | opts]
+    opts = if is_nil(Keyword.get(opts, :cache_statement)) do
+      [{:cache_statement, "ecto_insert_#{source}_#{length(fields)}"} | opts]
+    else
+      opts
+    end
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 1, last_insert_id: last_insert_id}} ->

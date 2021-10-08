@@ -656,7 +656,11 @@ defmodule Ecto.Adapters.SQL do
 
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders)
 
-    opts = [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
+    opts = if is_nil(Keyword.get(opts, :cache_statement)) do
+      [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
+    else
+      opts
+    end
 
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
     %{num_rows: num, rows: rows} =
@@ -789,9 +793,13 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def struct(adapter_meta, conn, sql, operation, source, params, values, on_conflict, returning, opts) do
-    cache_statement = "ecto_#{operation}_#{source}"
+    opts = if is_nil(Keyword.get(opts, :cache_statement)) do
+      [{:cache_statement, "ecto_#{operation}_#{source}_#{length(params)}"} | opts]
+    else
+      opts
+    end
 
-    case query(adapter_meta, sql, values, [cache_statement: cache_statement] ++ opts) do
+    case query(adapter_meta, sql, values, opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->
         {:ok, []}
 
