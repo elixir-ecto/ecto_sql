@@ -1,5 +1,19 @@
 # Changelog for v3.x
 
+## v3.7.1 (2021-10-12)
+
+### Enhancements
+
+  * [migrations] Add `:cascade` option to `drop`
+  * [migrations] Support `--prefix` in `mix ecto.migrations`
+  * [migrations] Add `--log-migrator-sql` and `--log-migrations-sql`
+  * [mysql] Cache more insert/update queries and allow `:cache_statement` to be set
+  * [mssql] Support more recent tds versions
+
+### Bug fixes
+
+  * [migrations] Consider the database prefix when locking tables
+
 ## v3.7.0 (2021-08-19)
 
 ### Enhancements
