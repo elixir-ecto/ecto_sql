@@ -101,7 +101,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("TDS_PATH") do
       {:tds, path: path}
     else
-      {:tds, "~> 2.1.1", optional: true}
+      {:tds, "~> 2.1.1 or ~> 2.2", optional: true}
     end
   end
 
