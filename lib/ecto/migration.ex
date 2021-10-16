@@ -1028,6 +1028,12 @@ defmodule Ecto.Migration do
 
   See `add/3` for more information on supported types.
 
+  If you want to modify a column without changing its type
+  (e.g., to add/drop a null constraint), and you are working with Postgres,
+  consider using `execute/2` with the appropriate column alterations.
+  Doing so will allow you to avoid a redundant type update (not all databases
+  support this).
+
   ## Examples
 
       alter table("posts") do
