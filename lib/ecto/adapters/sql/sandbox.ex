@@ -8,7 +8,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   other pool.
 
   The `mode/2` function can be used to change the pool mode from
-  automatic to either manual or shared. In the later two modes,
+  automatic to either manual or shared. In the latter two modes,
   the connection must be explicitly checked out before use.
   When explicit checkouts are made, the sandbox will wrap the
   connection in a transaction by default and control who has
