@@ -25,7 +25,7 @@ defmodule Ecto.Integration.MigrationsTest do
     @version_insert ~s[INSERT INTO `schema_migrations`]
     @version_delete ~s[DELETE s0.* FROM `schema_migrations`]
 
-    test "logs locking commands" do
+    test "logs locking" do
       num = @base_migration + System.unique_integer([:positive])
 
       up_log =
@@ -37,11 +37,13 @@ defmodule Ecto.Integration.MigrationsTest do
           )
         end)
 
+      refute up_log =~ "begin []"
       assert up_log =~ @get_lock_command
       assert up_log =~ @create_table_sql
       assert up_log =~ @create_table_log
       assert up_log =~ @release_lock_command
       assert up_log =~ @version_insert
+      refute up_log =~ "commit []"
 
       down_log =
         capture_log(fn ->
@@ -52,11 +54,13 @@ defmodule Ecto.Integration.MigrationsTest do
           )
         end)
 
+      refute down_log =~ "begin []"
       assert down_log =~ @get_lock_command
       assert down_log =~ @drop_table_sql
       assert down_log =~ @drop_table_log
       assert down_log =~ @release_lock_command
       assert down_log =~ @version_delete
+      refute down_log =~ "commit []"
     end
 
     test "does not log sql when log is default" do
@@ -67,22 +71,26 @@ defmodule Ecto.Integration.MigrationsTest do
           Ecto.Migrator.up(PoolRepo, num, NormalMigration, log: :info)
         end)
 
+      refute up_log =~ "begin []"
       refute up_log =~ @get_lock_command
       refute up_log =~ @create_table_sql
       assert up_log =~ @create_table_log
       refute up_log =~ @release_lock_command
       refute up_log =~ @version_insert
+      refute up_log =~ "commit []"
 
       down_log =
         capture_log(fn ->
           Ecto.Migrator.down(PoolRepo, num, NormalMigration, log: :info)
         end)
 
+      refute down_log =~ "begin []"
       refute down_log =~ @get_lock_command
       refute down_log =~ @drop_table_sql
       assert down_log =~ @drop_table_log
       refute down_log =~ @release_lock_command
       refute down_log =~ @version_delete
+      refute down_log =~ "commit []"
     end
   end
 end
