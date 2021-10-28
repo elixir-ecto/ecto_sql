@@ -233,17 +233,15 @@ defmodule Ecto.Adapters.MyXQL do
 
     opts = Keyword.put(opts, :timeout, :infinity)
 
-    {:ok, result} =
-      transaction(meta, opts, fn ->
-        lock_name = "\"ecto_#{inspect(repo)}\""
+    lock_name = "\"ecto_#{inspect(repo)}\""
 
-        try do
-          {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT GET_LOCK(#{lock_name}, -1)", [], opts)
-          fun.()
-        after
-          {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT RELEASE_LOCK(#{lock_name})", [], opts)
-        end
-      end)
+    result =
+      try do
+        {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT GET_LOCK(#{lock_name}, -1)", [], opts)
+        fun.()
+      after
+        {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT RELEASE_LOCK(#{lock_name})", [], opts)
+      end
 
     result
   end
