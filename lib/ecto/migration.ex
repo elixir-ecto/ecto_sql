@@ -965,7 +965,7 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Renames a column outside of the `alter` statement.
+  Renames a column. Note that this occurs outside of the `alter` statement.
 
   ## Examples
 
