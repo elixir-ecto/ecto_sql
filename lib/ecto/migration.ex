@@ -599,7 +599,7 @@ defmodule Ecto.Migration do
 
       drop_if_exists index("posts", [:name])
       drop_if_exists table("posts")
-      drop_if_exists index("posts, [:name]), mode: :cascade
+      drop_if_exists index("posts", [:name]), mode: :cascade
       drop_if_exists table("posts"), mode: :cascade
 
   ## Options
