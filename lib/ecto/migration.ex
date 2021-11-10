@@ -217,10 +217,16 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_foreign_key: [column: :uuid, type: :binary_id]
 
-    * `:migration_timestamps` - By default, Ecto uses the `:naive_datetime` type, but
-      you can configure it via:
+    * `:migration_timestamps` - By default, Ecto uses the `:naive_datetime` as the type,
+      `:inserted_at` as the name of the column for storing insertion times, `:updated_at` as
+      the name of the column for storing last-updated-at times, but you can configure it
+      via:
 
-          config :app, App.Repo, migration_timestamps: [type: :utc_datetime]
+          config :app, App.Repo, migration_timestamps: [
+            type: :utc_datetime,
+            inserted_at: :created_at,
+            updated_at: :changed_at
+          ]
 
     * `:migration_lock` - By default, Ecto will lock the migration table. This allows
       multiple nodes to attempt to run migrations at the same time but only one will
@@ -996,6 +1002,9 @@ defmodule Ecto.Migration do
 
   Those columns are of `:naive_datetime` type and by default cannot be null. A
   list of `opts` can be given to customize the generated fields.
+
+  Following options will override the repo configuration specified by
+  `:migration_timestamps` option.
 
   ## Options
 
