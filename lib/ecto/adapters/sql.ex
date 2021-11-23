@@ -423,7 +423,7 @@ defmodule Ecto.Adapters.SQL do
 
   defp put_source(opts, %{sources: sources}) when is_binary(elem(elem(sources, 0), 0)) do
     {source, _, _} = elem(sources, 0)
-    Keyword.put(opts, :source, source)
+    [source: source] ++ opts
   end
 
   defp put_source(opts, _) do
