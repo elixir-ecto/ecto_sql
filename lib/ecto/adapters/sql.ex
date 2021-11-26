@@ -581,7 +581,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @pool_opts [:timeout, :pool, :pool_size] ++
-               [:queue_target, :queue_interval, :ownership_timeout]
+               [:queue_target, :queue_interval, :ownership_timeout, :repo]
 
   @doc false
   def init(connection, driver, config) do
