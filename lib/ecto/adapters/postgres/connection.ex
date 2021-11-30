@@ -745,6 +745,10 @@ if Code.ensure_loaded?(Postgrex) do
       [Float.to_string(literal) | "::float"]
     end
 
+    defp expr(expr, _sources, query) do
+      error!(query, "unsupported expression: #{inspect(expr)}")
+    end
+
     defp type_unless_typed(%Ecto.Query.Tagged{}, _type), do: []
     defp type_unless_typed(_, type), do: [?:, ?: | type]
 
