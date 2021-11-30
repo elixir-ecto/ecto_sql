@@ -657,6 +657,10 @@ if Code.ensure_loaded?(MyXQL) do
       ["(0 + ", Float.to_string(literal), ?)]
     end
 
+    defp expr(expr, _sources, query) do
+      error!(query, "unsupported expression: #{inspect(expr)}")
+    end
+
     defp interval(count, "millisecond", sources, query) do
       ["INTERVAL (", expr(count, sources, query) | " * 1000) microsecond"]
     end
