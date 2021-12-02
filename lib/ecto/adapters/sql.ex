@@ -60,6 +60,18 @@ defmodule Ecto.Adapters.SQL do
     * `:driver` (required) - the database driver library.
       For example: `:postgrex`
 
+  ## Log option
+
+  If you want to find a caller location when sql called. You can get it with stacktrace match path option.
+
+  ```
+  Application.put_env(:ecto_sql, :log_stacktrace_match_path, "lib/YOUR_APP_NAME")
+  # in console
+  HH:mm:ss [debug] [] SELECT * FROM "table_name" AS s0
+   db=Nms source="table_name" OK QUERY
+    ↳ [file: 'lib/YOUR_APP_NAME/process.ex', line: 100] # Can get matched stacktrace
+  ```
+
   """
 
   require Logger
@@ -969,7 +981,7 @@ defmodule Ecto.Adapters.SQL do
       source: source
     } = metadata
 
-    [
+    iodata = [
       "QUERY",
       ?\s,
       log_ok_error(result),
@@ -983,6 +995,12 @@ defmodule Ecto.Adapters.SQL do
       ?\s,
       inspect(params, charlists: false)
     ]
+    if stacktrace_match_path = Application.get_env(:ecto_sql, :log_stacktrace_match_path) do
+      current_stacktrace = "  ↳ #{log_current_stacktrace(stacktrace_match_path) |> inspect}"
+      [current_stacktrace | [?\n |iodata]] |> Enum.reverse()
+    else
+      iodata
+    end
   end
 
   defp log_ok_error({:ok, _res}), do: "OK"
@@ -1006,6 +1024,17 @@ defmodule Ecto.Adapters.SQL do
       %{} ->
         []
     end
+  end
+
+  defp log_current_stacktrace(stacktrace_match_path) do
+    get_stacktrace_element = &elem(&1, 3)
+    r_match_path = Regex.compile!(stacktrace_match_path)
+    get_match_pach_stacktrace =
+      &(Enum.at(&1, 0) |> elem(1) |> to_string() |> String.match?(r_match_path))
+    Process.info(self(), :current_stacktrace)
+    |> elem(1)
+    |> Enum.map(get_stacktrace_element)
+    |> Enum.find(get_match_pach_stacktrace)
   end
 
   ## Connection helpers
