@@ -61,38 +61,14 @@ defmodule Ecto.Integration.LoggingTest do
              TestRepo.insert!(%Post{title: "1"}, [log: :error])
            end) =~ "[error]"
 
-    before_log_level = Logger.level()
-
-    try do
-      Logger.configure(level: :debug)
-      assert ExUnit.CaptureLog.capture_log(fn ->
-        TestRepo.insert!(%Post{title: "1"}, [log: true])
-      end) =~ "[debug]"
-
-      refute ExUnit.CaptureLog.capture_log(fn ->
-        TestRepo.insert!(%Post{title: "1"}, [log: true])
-      end) =~ " ↳ "
-    after
-      Logger.configure(level: before_log_level)
-    end
+    # We cannot assert on the result because it depends on the suite log level
+    ExUnit.CaptureLog.capture_log(fn ->
+      TestRepo.insert!(%Post{title: "1"}, [log: true])
+    end)
 
     # But this assertion is always true
     assert ExUnit.CaptureLog.capture_log(fn ->
       TestRepo.insert!(%Post{title: "1"}, [log: false])
     end) == ""
-  end
-
-  test "log entry with log_stacktrace_match_path" do
-    before_log_level = Logger.level()
-    try do
-      Logger.configure(level: :debug)
-      Application.put_env(:ecto_sql, :log_stacktrace_match_path, "lib/ecto_sql")
-      assert ExUnit.CaptureLog.capture_log(fn ->
-        TestRepo.insert!(%Post{title: "1"}, [log: true])
-      end) =~ " ↳ "
-    after
-      Application.delete_env(:ecto_sql, :log_stacktrace_match_path)
-      Logger.configure(level: before_log_level)
-    end
   end
 end
