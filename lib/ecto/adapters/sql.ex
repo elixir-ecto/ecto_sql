@@ -920,7 +920,8 @@ defmodule Ecto.Adapters.SQL do
       params: params,
       query: query_string,
       source: source,
-      options: Keyword.get(opts, :telemetry_options, [])
+      options: Keyword.get(opts, :telemetry_options, []),
+      stacktrace: log_stacktrace(self())
     }
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
@@ -947,6 +948,13 @@ defmodule Ecto.Adapters.SQL do
     end
 
     :ok
+  end
+
+  defp log_stacktrace(pid) do
+    case Process.info(pid, :current_stacktrace) do
+      {:current_stacktrace, stacktrace} -> stacktrace
+      _ -> nil
+    end
   end
 
   defp log_measurements([{_, nil} | rest], total, acc),

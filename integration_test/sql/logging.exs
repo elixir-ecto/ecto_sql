@@ -50,6 +50,18 @@ defmodule Ecto.Integration.LoggingTest do
     refute_received :logged
   end
 
+  test "log entry is sent to telemetry with stacktrace" do
+    log = fn event_name, _measurements, metadata ->
+      assert Enum.at(event_name, -1) == :query
+      assert [{Process, :info, 2, [file: 'lib/process.ex', line: _]} | _] = metadata.stacktrace
+      send(self(), :logged)
+    end
+
+    Process.put(:telemetry, log)
+    _ = PoolRepo.all(Post, telemetry_options: [:custom_metadata])
+    assert_received :logged
+  end
+
   test "log entry when some measurements are nil" do
     assert ExUnit.CaptureLog.capture_log(fn ->
              TestRepo.query("BEG", [], log: :error)
