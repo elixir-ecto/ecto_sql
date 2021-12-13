@@ -920,7 +920,8 @@ defmodule Ecto.Adapters.SQL do
       params: params,
       query: query_string,
       source: source,
-      options: Keyword.get(opts, :telemetry_options, [])
+      options: Keyword.get(opts, :telemetry_options, []),
+      stacktrace: Keyword.get(opts, :stacktrace)
     }
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
@@ -981,7 +982,26 @@ defmodule Ecto.Adapters.SQL do
       ?\n,
       query,
       ?\s,
-      inspect(params, charlists: false)
+      inspect(params, charlists: false),
+      log_stacktrace(metadata.stacktrace)
+    ]
+  end
+
+  defp log_stacktrace(nil), do: ""
+
+  defp log_stacktrace(stacktrace) do 
+    {module, function, arity, metadata} = Enum.at(stacktrace, 2)
+
+    [
+      ?\n,
+      "↳ ",
+      inspect(module),
+      ?.,
+      Atom.to_string(function),
+      ?/,
+      inspect(arity),
+      ", at: ",
+      inspect(metadata)
     ]
   end
 
