@@ -67,7 +67,23 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def prepare_execute(conn, name, sql, params, opts) do
-      Postgrex.prepare_execute(conn, name, sql, params, opts)
+      case Postgrex.prepare_execute(conn, name, sql, params, opts) do
+        {:error, %Postgrex.Error{postgres: %{pg_code: "22P02", message: message}} = error} ->
+          context = """
+          . If you are trying to query a JSON field, the parameter must be interpolated. Instead of
+
+              p.json["field"] == "value"
+
+          do
+
+              p.json["field"] == ^"value"
+          """
+
+          {:error, put_in(error.postgres.message, message <> context)}
+        other ->
+          other
+        end
+
     end
 
     @impl true
