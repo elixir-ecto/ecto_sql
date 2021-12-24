@@ -727,6 +727,7 @@ if Code.ensure_loaded?(MyXQL) do
         if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
         quote_table(table.prefix, table.name),
         table_structure,
+        comment_expr(table.comment, true),
         engine_expr(table.engine), options_expr(table.options)]]
     end
 
@@ -739,6 +740,10 @@ if Code.ensure_loaded?(MyXQL) do
     def execute_ddl({:alter, %Table{} = table, changes}) do
       [["ALTER TABLE ", quote_table(table.prefix, table.name), ?\s,
         column_changes(table, changes), pk_definitions(changes, ", ADD ")]]
+      ++
+      if_do(table.comment,
+        [["ALTER TABLE ", quote_table(table.prefix, table.name), comment_expr(table.comment)]]
+      )
     end
 
     def execute_ddl({:create, %Index{} = index}) do
@@ -883,9 +888,15 @@ if Code.ensure_loaded?(MyXQL) do
       default = Keyword.fetch(opts, :default)
       null    = Keyword.get(opts, :null)
       after_column = Keyword.get(opts, :after)
+      comment = Keyword.get(opts, :comment)
 
-      [default_expr(default), null_expr(null), after_expr(after_column)]
+      [default_expr(default), null_expr(null), after_expr(after_column), comment_expr(comment)]
     end
+
+    defp comment_expr(comment, create_table? \\ false)
+    defp comment_expr(comment, true) when is_binary(comment), do: " COMMENT = '#{escape_string(comment)}'"
+    defp comment_expr(comment, false) when is_binary(comment), do: " COMMENT '#{escape_string(comment)}'"
+    defp comment_expr(_, _), do: []
 
     defp after_expr(nil), do: []
     defp after_expr(column) when is_atom(column) or is_binary(column), do: " AFTER `#{column}`"
