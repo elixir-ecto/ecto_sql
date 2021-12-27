@@ -242,7 +242,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> select([:id, :parent_id])
 
     cte_query = initial_query |> union_all(^iteration_query)
-    
+
     breadcrumbs_query =
       "tree"
       |> recursive_ctes(true)
@@ -1101,6 +1101,20 @@ defmodule Ecto.Adapters.MyXQLTest do
     """ |> remove_newlines]
   end
 
+  test "create table with comment on columns and table" do
+    create = {:create, table(:posts, comment: "comment", prefix: :foo),
+              [
+                {:add, :category_0, %Reference{table: :categories}, [comment: "column comment"]},
+                {:add, :created_at, :datetime, []},
+                {:add, :updated_at, :datetime, [comment: "column comment 2"]}
+              ]}
+    assert execute_ddl(create) == ["""
+    CREATE TABLE `foo`.`posts` (`category_0` BIGINT UNSIGNED COMMENT 'column comment',
+    CONSTRAINT `posts_category_0_fkey` FOREIGN KEY (`category_0`) REFERENCES `foo`.`categories`(`id`),
+    `created_at` datetime, `updated_at` datetime COMMENT 'column comment 2') COMMENT = 'comment' ENGINE = INNODB
+    """ |> remove_newlines]
+  end
+
   test "create table with engine" do
     create = {:create, table(:posts, engine: :myisam),
                [{:add, :id, :serial, [primary_key: true]}]}
@@ -1333,6 +1347,24 @@ defmodule Ecto.Adapters.MyXQLTest do
     DROP FOREIGN KEY IF EXISTS `posts_space_id_fkey`,
     DROP IF EXISTS `space_id`
     """ |> remove_newlines]
+  end
+
+  test "alter table with comments on table and columns" do
+    alter = {:alter, table(:posts, comment: "table comment"),
+             [{:add, :title, :string, [default: "Untitled", size: 100, null: false, comment: "column comment"]},
+              {:modify, :price, :numeric, [precision: 8, scale: 2, null: true]},
+              {:modify, :permalink_id, %Reference{table: :permalinks}, [null: false, comment: "column comment 2"]},
+              {:remove, :summary}]}
+
+    assert execute_ddl(alter) == ["""
+    ALTER TABLE `posts`
+    ADD `title` varchar(100) DEFAULT 'Untitled' NOT NULL COMMENT 'column comment',
+    MODIFY `price` numeric(8,2) NULL,
+    MODIFY `permalink_id` BIGINT UNSIGNED NOT NULL COMMENT 'column comment 2',
+    ADD CONSTRAINT `posts_permalink_id_fkey` FOREIGN KEY (`permalink_id`) REFERENCES `permalinks`(`id`),
+    DROP `summary`
+    """ |> remove_newlines,
+    ~s|ALTER TABLE `posts` COMMENT 'table comment'|]
   end
 
   test "alter table with prefix" do
