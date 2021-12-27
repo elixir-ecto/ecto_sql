@@ -840,6 +840,24 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{INNER JOIN [schema2] AS s1 ON s0.[x] = s1.[z] WHERE (s0.[x] = 123)}
   end
 
+  test "update all with subquery" do
+    sub = from(p in Schema, where: p.x > ^10)
+
+    query =
+      Schema
+      |> join(:inner, [p], p2 in subquery(sub), on: p.id == p2.id)
+      |> update([_], set: [x: ^100])
+
+    {planned_query, params} = Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.Tds, query)
+
+    assert update_all(planned_query) ==
+      ~s{UPDATE s0 SET s0.[x] = @2 FROM [schema] AS s0 INNER JOIN } <>
+      ~S{(SELECT ss0.[id] AS [id], ss0.[x] AS [x], ss0.[y] AS [y], ss0.[z] AS [z], ss0.[w] AS [w] FROM [schema] AS ss0 WHERE (ss0.[x] > @1)) } <>
+      ~S{AS s1 ON s0.[id] = s1.[id]}
+
+    assert params == [10, 100]
+  end
+
   test "update all with returning" do
     query = from(m in Schema, update: [set: [x: 0]]) |> select([m], m) |> plan(:update_all)
 

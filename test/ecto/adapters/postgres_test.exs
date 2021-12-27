@@ -828,6 +828,25 @@ defmodule Ecto.Adapters.PostgresTest do
            ~s{UPDATE "schema" AS s0 SET "w" = array_remove(s0."w", 0)}
   end
 
+  test "update all with subquery" do
+    sub = from(p in Schema, where: p.x > ^10)
+
+    query =
+      Schema
+      |> join(:inner, [p], p2 in subquery(sub), on: p.id == p2.id)
+      |> update([_], set: [x: ^100])
+
+    {planned_query, params} =
+      Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.Postgres, query)
+
+    assert update_all(planned_query) ==
+      ~s{UPDATE "schema" AS s0 SET "x" = $2 FROM } <>
+      ~s{(SELECT ss0."id" AS "id", ss0."x" AS "x", ss0."y" AS "y", ss0."z" AS "z", ss0."w" AS "w", ss0."meta" AS "meta" FROM "schema" AS ss0 WHERE (ss0."x" > $1)) } <>
+      ~s{AS s1 WHERE (s0."id" = s1."id")}
+
+    assert params == [10, 100]
+  end
+
   test "update all with prefix" do
     query = from(m in Schema, update: [set: [x: 0]]) |> Map.put(:prefix, "prefix") |> plan(:update_all)
     assert update_all(query) ==

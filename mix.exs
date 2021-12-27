@@ -2,14 +2,14 @@ defmodule EctoSQL.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/elixir-ecto/ecto_sql"
-  @version "3.7.1"
+  @version "3.8.0-dev"
   @adapters ~w(pg myxql tds)
 
   def project do
     [
       app: :ecto_sql,
       version: @version,
-      elixir: "~> 1.8",
+      elixir: "~> 1.9",
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       xref: [
@@ -77,7 +77,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, "~> 3.7.0"}
+      {:ecto, "~> 3.8.0-dev", github: "elixir-ecto/ecto"}
     end
   end
 

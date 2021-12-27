@@ -7,7 +7,7 @@ defmodule Ecto.Integration.SandboxTest do
 
   import ExUnit.CaptureLog
 
-  Application.put_env(:ecto_sql, __MODULE__.DynamicRepo, Application.get_env(:ecto_sql, TestRepo))
+  Application.put_env(:ecto_sql, __MODULE__.DynamicRepo, Application.compile_env(:ecto_sql, TestRepo))
 
   defmodule DynamicRepo do
     use Ecto.Repo, otp_app: :ecto_sql, adapter: TestRepo.__adapter__()
