@@ -99,4 +99,15 @@ defmodule Mix.Tasks.Ecto.RollbackTest do
     run ["-r", to_string(Repo), "--migrations-path", path1, "--migrations-path", path2],
         fn Repo, [^path1, ^path2], _, _ -> [] end
   end
+
+  test "runs the migrator with --to_exclusive" do
+    run ["-r", to_string(Repo), "--to-exclusive", "12345"], fn repo, [path], direction, opts ->
+      assert repo == Repo
+      refute path =~ ~r/_build/
+      assert direction == :down
+      assert opts == [repo: "Elixir.Mix.Tasks.Ecto.RollbackTest.Repo", to_exclusive: 12345]
+      []
+    end
+    assert Process.get(:started)
+  end
 end

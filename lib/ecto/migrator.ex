@@ -376,7 +376,7 @@ defmodule Ecto.Migrator do
 
       Ecto.Migrator.run(Repo, [{0, MyApp.Migration1}, {1, MyApp.Migration2}, ...], :up, opts)
 
-  A strategy (which is one of `:all`, `:step` or `:to`) must be given as
+  A strategy (which is one of `:all`, `:step`, `:to`, or `:to_exclusive`) must be given as
   an option.
 
   ## Execution model
@@ -401,6 +401,9 @@ defmodule Ecto.Migrator do
     * `:to` - runs all until the supplied version is reached
       (including the version given in `:to`)
 
+    * `:to_exclusive` - runs all until the supplied version is reached
+      (excluding the version given in `:to_exclusive`)
+
   Plus all other options described in `up/4`.
   """
   @spec run(Ecto.Repo.t, String.t | [String.t] | [{integer, module}], atom, Keyword.t) :: [integer]
@@ -422,10 +425,12 @@ defmodule Ecto.Migrator do
             pending_all(versions, migration_source, direction)
           to = opts[:to] ->
             pending_to(versions, migration_source, direction, to)
+          to_exclusive = opts[:to_exclusive] ->
+            pending_to_exclusive(versions, migration_source, direction, to_exclusive)
           step = opts[:step] ->
             pending_step(versions, migration_source, direction, step)
           true ->
-            {:error, ArgumentError.exception("expected one of :all, :to, or :step strategies")}
+            {:error, ArgumentError.exception("expected one of :all, :to, :to_exclusive, or :step strategies")}
         end
       end
 
@@ -556,6 +561,18 @@ defmodule Ecto.Migrator do
         version <= target
       {version, _, _}, target, :down ->
         version >= target
+    end
+
+    pending_in_direction(versions, migration_source, direction)
+    |> Enum.take_while(&(within_target_version?.(&1, target, direction)))
+  end
+
+  defp pending_to_exclusive(versions, migration_source, direction, target) do
+    within_target_version? = fn
+      {version, _, _}, target, :up ->
+        version < target
+      {version, _, _}, target, :down ->
+        version > target
     end
 
     pending_in_direction(versions, migration_source, direction)

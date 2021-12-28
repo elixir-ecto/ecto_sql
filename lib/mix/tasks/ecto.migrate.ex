@@ -14,6 +14,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
     all: :boolean,
     step: :integer,
     to: :integer,
+    to_exclusive: :integer,
     quiet: :boolean,
     prefix: :string,
     pool_size: :integer,
@@ -102,6 +103,8 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     * `--to` - run all migrations up to and including version
 
+    * `--to-exclusive` - revert all migrations down to and excluding version
+
   """
 
   @impl true
@@ -110,7 +113,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
 
     opts =
-      if opts[:to] || opts[:step] || opts[:all],
+      if opts[:to] || opts[:to_exclusive] || opts[:step] || opts[:all],
         do: opts,
         else: Keyword.put(opts, :all, true)
 
