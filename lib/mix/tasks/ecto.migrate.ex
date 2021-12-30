@@ -103,7 +103,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     * `--to` - run all migrations up to and including version
 
-    * `--to-exclusive` - revert all migrations down to and excluding version
+    * `--to-exclusive` - run all migrations up to and excluding version
 
   """
 
