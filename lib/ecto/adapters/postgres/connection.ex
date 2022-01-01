@@ -67,6 +67,8 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def prepare_execute(conn, name, sql, params, opts) do
+      name = prepared_name(name, opts[:prepare])
+
       case Postgrex.prepare_execute(conn, name, sql, params, opts) do
         {:error, %Postgrex.Error{postgres: %{pg_code: "22P02", message: message}} = error} ->
           context = """
@@ -85,6 +87,9 @@ if Code.ensure_loaded?(Postgrex) do
         end
 
     end
+
+    defp prepared_name(_, :unnamed), do: ""
+    defp prepared_name(name, _), do: name
 
     @impl true
     def query(conn, sql, params, opts) do
