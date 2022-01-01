@@ -67,9 +67,9 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def prepare_execute(conn, name, sql, params, opts) do
-      name = prepared_name(name, opts[:prepare])
+      {prepare, opts} = Keyword.pop(opts, :prepare)
 
-      case Postgrex.prepare_execute(conn, name, sql, params, opts) do
+      case Postgrex.prepare_execute(conn, prepare_name(name, prepare), sql, params, opts) do
         {:error, %Postgrex.Error{postgres: %{pg_code: "22P02", message: message}} = error} ->
           context = """
           . If you are trying to query a JSON field, the parameter must be interpolated. Instead of
@@ -88,8 +88,8 @@ if Code.ensure_loaded?(Postgrex) do
 
     end
 
-    defp prepared_name(_, :unnamed), do: ""
-    defp prepared_name(name, _), do: name
+    defp prepare_name(_, :unnamed), do: ""
+    defp prepare_name(name, _), do: name
 
     @impl true
     def query(conn, sql, params, opts) do
