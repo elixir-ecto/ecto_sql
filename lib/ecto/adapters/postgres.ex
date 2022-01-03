@@ -130,15 +130,14 @@ defmodule Ecto.Adapters.Postgres do
 
   @impl Ecto.Adapter.Queryable
   def execute(adapter_meta, query_meta, query, params, opts) do
-    opts = Keyword.put_new(opts, :prepare, @default_prepare_opt)
-    prepare = opts[:prepare]
+    prepare = Keyword.get(opts, :prepare, @default_prepare_opt)
 
     unless valid_prepare?(prepare) do
       raise ArgumentError,
         "expected option `:prepare` to be either `:named` or `:unnamed`, got: #{inspect(prepare)}"
     end
 
-    Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, opts)
+    Ecto.Adapters.SQL.execute(prepare, adapter_meta, query_meta, query, params, opts)
   end
 
   defp valid_prepare?(prepare) when prepare in [:named, :unnamed], do: true

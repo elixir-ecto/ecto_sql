@@ -129,7 +129,7 @@ defmodule Ecto.Adapters.SQL do
 
       @impl true
       def execute(adapter_meta, query_meta, query, params, opts) do
-        Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, opts)
+        Ecto.Adapters.SQL.execute(:named, adapter_meta, query_meta, query, params, opts)
       end
 
       @impl true
@@ -689,9 +689,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
-  def execute(adapter_meta, query_meta, prepared, params, opts) do
-    prepare = Keyword.get(opts, :prepare, :named)
-
+  def execute(prepare, adapter_meta, query_meta, prepared, params, opts) do
     %{num_rows: num, rows: rows} =
       execute!(prepare, adapter_meta, prepared, params, put_source(opts, query_meta))
 
