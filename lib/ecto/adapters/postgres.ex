@@ -106,6 +106,7 @@ defmodule Ecto.Adapters.Postgres do
   @behaviour Ecto.Adapter.Structure
 
   @default_maintenance_database "postgres"
+  @default_prepare_opt :named
 
   @doc """
   All Ecto extensions for Postgrex.
@@ -120,6 +121,26 @@ defmodule Ecto.Adapters.Postgres do
   def dumpers({:in, sub}, {:in, sub}), do: [{:array, sub}]
   def dumpers(:binary_id, type),       do: [type, Ecto.UUID]
   def dumpers(_, type),                do: [type]
+
+  ## Query API
+
+  @impl Ecto.Adapter.Queryable
+  def execute(adapter_meta, query_meta, query, params, opts) do
+    prepare = Keyword.get(opts, :prepare, @default_prepare_opt)
+
+    unless valid_prepare?(prepare) do
+      raise ArgumentError,
+        "expected option `:prepare` to be either `:named` or `:unnamed`, got: #{inspect(prepare)}"
+    end
+
+    Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, put_use_cache(opts, prepare))
+  end
+
+  defp valid_prepare?(prepare) when prepare in [:named, :unnamed], do: true
+  defp valid_prepare?(_), do: false
+
+  defp put_use_cache(opts, :named), do: Keyword.put(opts, :use_cache, true)
+  defp put_use_cache(opts, :unnamed), do: Keyword.put(opts, :use_cache, false)
 
   ## Storage API
 
