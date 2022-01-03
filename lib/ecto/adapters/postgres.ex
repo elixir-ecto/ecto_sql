@@ -21,6 +21,10 @@ defmodule Ecto.Adapters.Postgres do
       config :your_app, YourApp.Repo,
         ...
 
+  The `:prepare` option may be specified per operation:
+
+      YourApp.Repo.all(Queryable, prepare: :unnamed)
+
   ### Connection options
 
     * `:hostname` - Server hostname
@@ -126,21 +130,19 @@ defmodule Ecto.Adapters.Postgres do
 
   @impl Ecto.Adapter.Queryable
   def execute(adapter_meta, query_meta, query, params, opts) do
-    prepare = Keyword.get(opts, :prepare, @default_prepare_opt)
+    opts = Keyword.put_new(opts, :prepare, @default_prepare_opt)
+    prepare = opts[:prepare]
 
     unless valid_prepare?(prepare) do
       raise ArgumentError,
         "expected option `:prepare` to be either `:named` or `:unnamed`, got: #{inspect(prepare)}"
     end
 
-    Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, put_use_cache(opts, prepare))
+    Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, opts)
   end
 
   defp valid_prepare?(prepare) when prepare in [:named, :unnamed], do: true
   defp valid_prepare?(_), do: false
-
-  defp put_use_cache(opts, :named), do: Keyword.put(opts, :use_cache, true)
-  defp put_use_cache(opts, :unnamed), do: Keyword.put(opts, :use_cache, false)
 
   ## Storage API
 
