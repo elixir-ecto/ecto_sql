@@ -129,7 +129,6 @@ defmodule Ecto.Adapters.SQL do
 
       @impl true
       def execute(adapter_meta, query_meta, query, params, opts) do
-        opts = Keyword.put(opts, :use_cache, true)
         Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, opts)
       end
 
@@ -691,7 +690,7 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def execute(adapter_meta, query_meta, prepared, params, opts) do
-    {use_cache?, opts} = Keyword.pop(opts, :use_cache)
+    use_cache? = Keyword.get(opts, :use_cache, true)
 
     %{num_rows: num, rows: rows} =
       execute!(use_cache?, adapter_meta, prepared, params, put_source(opts, query_meta))
@@ -700,7 +699,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp execute!(use_cache?, adapter_meta, {:cache, update, {id, prepared}}, params, opts) do
-    name = prepare_name(use_cache?, id)
+    name = prepare_name(id)
 
     case sql_call(adapter_meta, :prepare_execute, [name, prepared], params, opts) do
       {:ok, query, result} ->
@@ -711,8 +710,8 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp execute!(false = use_cache?, adapter_meta, {:cached, _update, _reset, {id, cached}}, params, opts) do
-    name = prepare_name(use_cache?, id)
+  defp execute!(false = _use_cache?, adapter_meta, {:cached, _update, _reset, {id, cached}}, params, opts) do
+    name = prepare_name(id)
     prepared = String.Chars.to_string(cached)
 
     case sql_call(adapter_meta, :prepare_execute, [name, prepared], params, opts) do
@@ -745,8 +744,7 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp prepare_name(true = _use_cache?, id), do: "ecto_" <> Integer.to_string(id)
-  defp prepare_name(false = _use_cache?, _id), do: ""
+  defp prepare_name(id), do: "ecto_" <> Integer.to_string(id)
 
   defp maybe_update_cache(true = _use_cache?, update, value), do: update.(value)
   defp maybe_update_cache(false = _use_cache?, _update, _value), do: :noop
