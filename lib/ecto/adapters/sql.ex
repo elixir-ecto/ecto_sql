@@ -129,7 +129,7 @@ defmodule Ecto.Adapters.SQL do
 
       @impl true
       def execute(adapter_meta, query_meta, query, params, opts) do
-        Ecto.Adapters.SQL.execute(adapter_meta, query_meta, query, params, opts)
+        Ecto.Adapters.SQL.execute(:named, adapter_meta, query_meta, query, params, opts)
       end
 
       @impl true
@@ -689,26 +689,38 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
-  def execute(adapter_meta, query_meta, prepared, params, opts) do
+  def execute(prepare, adapter_meta, query_meta, prepared, params, opts) do
     %{num_rows: num, rows: rows} =
-      execute!(adapter_meta, prepared, params, put_source(opts, query_meta))
+      execute!(prepare, adapter_meta, prepared, params, put_source(opts, query_meta))
 
     {num, rows}
   end
 
-  defp execute!(adapter_meta, {:cache, update, {id, prepared}}, params, opts) do
-    name = "ecto_" <> Integer.to_string(id)
+  defp execute!(prepare, adapter_meta, {:cache, update, {id, prepared}}, params, opts) do
+    name = prepare_name(prepare, id)
 
     case sql_call(adapter_meta, :prepare_execute, [name, prepared], params, opts) do
       {:ok, query, result} ->
-        update.({id, query})
+        maybe_update_cache(prepare, update, {id, query})
         result
       {:error, err} ->
         raise_sql_call_error err
     end
   end
 
-  defp execute!(adapter_meta, {:cached, update, reset, {id, cached}}, params, opts) do
+  defp execute!(:unnamed = prepare, adapter_meta, {:cached, _update, _reset, {id, cached}}, params, opts) do
+    name = prepare_name(prepare, id)
+    prepared = String.Chars.to_string(cached)
+
+    case sql_call(adapter_meta, :prepare_execute, [name, prepared], params, opts) do
+      {:ok, _query, result} ->
+        result
+      {:error, err} ->
+        raise_sql_call_error err
+    end
+  end
+
+  defp execute!(:named = _prepare, adapter_meta, {:cached, update, reset, {id, cached}}, params, opts) do
     case sql_call(adapter_meta, :execute, [cached], params, opts) do
       {:ok, query, result} ->
         update.({id, query})
@@ -723,12 +735,18 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp execute!(adapter_meta, {:nocache, {_id, prepared}}, params, opts) do
+  defp execute!(_prepare, adapter_meta, {:nocache, {_id, prepared}}, params, opts) do
     case sql_call(adapter_meta, :query, [prepared], params, opts) do
       {:ok, res} -> res
       {:error, err} -> raise_sql_call_error err
     end
   end
+
+  defp prepare_name(:named, id), do: "ecto_" <> Integer.to_string(id)
+  defp prepare_name(:unnamed, _id), do: ""
+
+  defp maybe_update_cache(:named = _prepare, update, value), do: update.(value)
+  defp maybe_update_cache(:unnamed = _prepare, _update, _value), do: :noop
 
   @doc false
   def stream(adapter_meta, query_meta, prepared, params, opts) do
