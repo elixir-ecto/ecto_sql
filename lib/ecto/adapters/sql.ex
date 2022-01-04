@@ -697,7 +697,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp execute!(prepare, adapter_meta, {:cache, update, {id, prepared}}, params, opts) do
-    name = prepare_name(id)
+    name = prepare_name(prepare, id)
 
     case sql_call(adapter_meta, :prepare_execute, [name, prepared], params, opts) do
       {:ok, query, result} ->
@@ -708,8 +708,8 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp execute!(:unnamed = _prepare, adapter_meta, {:cached, _update, _reset, {id, cached}}, params, opts) do
-    name = prepare_name(id)
+  defp execute!(:unnamed = prepare, adapter_meta, {:cached, _update, _reset, {id, cached}}, params, opts) do
+    name = prepare_name(prepare, id)
     prepared = String.Chars.to_string(cached)
 
     case sql_call(adapter_meta, :prepare_execute, [name, prepared], params, opts) do
@@ -742,7 +742,8 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp prepare_name(id), do: "ecto_" <> Integer.to_string(id)
+  defp prepare_name(:named, id), do: "ecto_" <> Integer.to_string(id)
+  defp prepare_name(:unnamed, _id), do: ""
 
   defp maybe_update_cache(:named = _prepare, update, value), do: update.(value)
   defp maybe_update_cache(:unnamed = _prepare, _update, _value), do: :noop
