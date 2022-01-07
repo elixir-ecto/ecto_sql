@@ -313,7 +313,7 @@ defmodule Ecto.Adapters.SQL do
      |> Ecto.Multi.run(:rollback, fn _, _ ->
        {:error, :forced_rollback}
      end)
-     |> repo.transaction()
+     |> repo.transaction(opts)
      |> case do
        {:error, :rollback, :forced_rollback, %{explain: result}} -> result
        {:error, :explain, error, _} -> raise error
