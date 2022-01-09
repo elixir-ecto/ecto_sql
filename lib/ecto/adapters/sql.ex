@@ -991,19 +991,40 @@ defmodule Ecto.Adapters.SQL do
   defp log_stacktrace(nil), do: ""
 
   defp log_stacktrace(stacktrace) do 
-    {module, function, arity, metadata} = Enum.at(stacktrace, 2)
+    case first_non_ecto(stacktrace) do
+      {module, function, arity, metadata} ->
+        [
+          ?\n,
+          "↳ ",
+          inspect(module),
+          ?.,
+          Atom.to_string(function),
+          ?/,
+          inspect(arity),
+          ", at: ",
+          inspect(metadata)
+        ]
+      nil ->
+        ""
+    end
+  end
 
-    [
-      ?\n,
-      "↳ ",
-      inspect(module),
-      ?.,
-      Atom.to_string(function),
-      ?/,
-      inspect(arity),
-      ", at: ",
-      inspect(metadata)
-    ]
+  defp first_non_ecto(stacktrace) do
+    reversed = Enum.reverse(stacktrace)
+
+    reversed
+    |> Enum.find_index(fn {module, _function, _arity, _metadata} ->
+      module
+      |> Atom.to_string()
+      |> String.starts_with?(["Elixir.Ecto."])
+    end)
+    |> case do
+      0 ->
+        # actual call is out of backtrace
+        nil
+      first_idx ->
+        Enum.at(reversed, first_idx - 1)
+    end
   end
 
   defp log_ok_error({:ok, _res}), do: "OK"
