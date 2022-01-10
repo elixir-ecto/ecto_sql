@@ -600,13 +600,13 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
-    get_stacktrace? = Keyword.get(config, :get_stacktrace?, false)
+    stacktrace = Keyword.get(config, :stacktrace, false)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
 
     config = adapter_config(config)
     opts = Keyword.take(config, @pool_opts)
-    meta = %{telemetry: telemetry, sql: connection, get_stacktrace?: get_stacktrace?, opts: opts}
+    meta = %{telemetry: telemetry, sql: connection, stacktrace: stacktrace, opts: opts}
     {:ok, connection.child_spec(config), meta}
   end
 
