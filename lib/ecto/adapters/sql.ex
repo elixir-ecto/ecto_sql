@@ -996,11 +996,7 @@ defmodule Ecto.Adapters.SQL do
         [
           ?\n,
           "↳ ",
-          inspect(module),
-          ?.,
-          Atom.to_string(function),
-          ?/,
-          inspect(arity),
+          Exception.format_mfa(module, function, arity),
           ", at: ",
           inspect(metadata)
         ]
