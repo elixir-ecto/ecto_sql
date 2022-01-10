@@ -648,6 +648,7 @@ defmodule Ecto.Migration do
     * `:prefix` - the prefix for the table. This prefix will automatically be used
       for all constraints and references defined for this table unless explicitly
       overridden in said constraints/references.
+    * `:comment` - adds a comment to the table.
     * `:options` - provide custom options that will be appended after the generated
       statement. For example, "WITH", "INHERITS", or "ON COMMIT" clauses.
 
@@ -682,6 +683,7 @@ defmodule Ecto.Migration do
     * `:include` - specify fields for a covering index. This is not supported
       by all databases. For more information on PostgreSQL support, please
       [read the official docs](https://www.postgresql.org/docs/current/indexes-index-only-scans.html).
+    * `:comment` - adds a comment to the index.
 
   ## Adding/dropping indexes concurrently
 
@@ -926,6 +928,7 @@ defmodule Ecto.Migration do
     * `:precision` - the precision for a numeric type. Required when `:scale` is
       specified.
     * `:scale` - the scale of a numeric type. Defaults to `0`.
+    * `:comment` - adds a comment to the added column.
     * `:after` - positions field after the specified one. Only supported on MySQL,
       it is ignored by other databases.
 
@@ -1061,6 +1064,7 @@ defmodule Ecto.Migration do
     * `:precision` - the precision for a numeric type. Required when `:scale` is
       specified.
     * `:scale` - the scale of a numeric type. Defaults to `0`.
+    * `:comment` - adds a comment to the modified column.
   """
   def modify(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
     validate_precision_opts!(opts, column)
@@ -1215,6 +1219,7 @@ defmodule Ecto.Migration do
     * `:validate` - Whether or not to validate the constraint on creation (true by default). Only
        available in PostgreSQL, and should be followed by a command to validate the new constraint in
        a following migration if false.
+    * `:comment` - adds a comment to the constraint.
 
   """
   def constraint(table, name, opts \\ [])
