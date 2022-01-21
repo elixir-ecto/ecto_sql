@@ -56,7 +56,7 @@ defmodule EctoSQL.MixProject do
       {:telemetry, "~> 0.4.0 or ~> 1.0"},
 
       # Drivers
-      {:db_connection, "~> 2.2"},
+      {:db_connection, "~> 2.5 or ~> 2.4.1"},
       postgrex_dep(),
       myxql_dep(),
       tds_dep(),

@@ -1,6 +1,7 @@
 defmodule Ecto.Integration.SQLTest do
   use Ecto.Integration.Case, async: true
 
+  alias Ecto.Integration.PoolRepo
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Barebone
   alias Ecto.Integration.Post
@@ -40,6 +41,10 @@ defmodule Ecto.Integration.SQLTest do
   test "query!/4 with iodata" do
     result = TestRepo.query!(["SELECT", ?\s, ?1])
     assert result.rows == [[1]]
+  end
+
+  test "disconnect_all/2" do
+    assert :ok = PoolRepo.disconnect_all(0)
   end
 
   test "to_sql/3" do
