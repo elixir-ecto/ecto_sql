@@ -322,6 +322,38 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc """
+  Forces all connections in the repo pool to disconnect within the given interval.
+
+  Once this function is called, the pool will disconnect all of its connections
+  as they are checked in or as they are pinged. Checked in connections will be
+  randomly disconnected within the given time interval. Pinged connections are
+  immediately disconnected - as they are idle (according to `:idle_interval`).
+
+  If the connection has a backoff configured (which is the case by default),
+  disconnecting means an attempt at a new connection will be done immediately
+  after, without starting a new process for each connection. However, if backoff
+  has been disabled, the connection process will terminate. In such cases,
+  disconnecting all connections may cause the pool supervisor to restart
+  depending on the max_restarts/max_seconds configuration of the pool,
+  so you will want to set those carefully.
+
+  For convenience, this function is also available in the repository:
+
+      iex> MyRepo.disconnect_all(60_000)
+      :ok
+  """
+  @spec disconnect_all(pid | Ecto.Repo.t | Ecto.Adapter.adapter_meta, non_neg_integer, opts :: Keyword.t()) :: :ok
+  def disconnect_all(repo, interval, opts \\ [])
+
+  def disconnect_all(repo, interval, opts) when is_atom(repo) or is_pid(repo) do
+    disconnect_all(Ecto.Adapter.lookup_meta(repo), interval, opts)
+  end
+
+  def disconnect_all(%{pid: pid} = _adapter_meta, interval, opts) do
+    DBConnection.disconnect_all(pid, interval, opts)
+  end
+
+  @doc """
   Returns a stream that runs a custom SQL query on given repo when reduced.
 
   In case of success it is a enumerable containing maps with at least two keys:
@@ -574,14 +606,13 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @doc """
-      A convenience function for DBConnection based repositories that forces all connections in the
+      A convenience function for SQL-based repositories that forces all connections in the
       pool to disconnect within the given interval.
 
-      See `DBConnection.disconnect_all/3` for more information.
+      See `Ecto.Adapters.SQL.disconnect_all/3` for more information.
       """
       def disconnect_all(interval, opts \\ []) do
-        %{pid: pid} = Ecto.Adapter.lookup_meta(get_dynamic_repo())
-        DBConnection.disconnect_all(pid, interval, opts)
+        Ecto.Adapters.SQL.disconnect_all(get_dynamic_repo(), interval, opts)
       end
     end
   end
