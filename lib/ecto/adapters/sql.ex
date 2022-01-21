@@ -572,6 +572,17 @@ defmodule Ecto.Adapters.SQL do
       def explain(operation, queryable, opts \\ []) do
         Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
       end
+
+      @doc """
+      A convenience function for DBConnection based repositories that forces all connections in the
+      pool to disconnect within the given interval.
+
+      See `DBConnection.disconnect_all/3` for more information.
+      """
+      def disconnect_all(interval, opts \\ []) do
+        %{pid: pid} = Ecto.Adapter.lookup_meta(get_dynamic_repo())
+        DBConnection.disconnect_all(pid, interval, opts)
+      end
     end
   end
 
