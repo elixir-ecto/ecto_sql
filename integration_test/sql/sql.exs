@@ -152,3 +152,13 @@ defmodule Ecto.Integration.SQLTest do
     assert Ecto.Adapters.SQL.format_table(%{columns: ["test"], rows: nil}) == "+------+\n| test |\n+------+\n+------+"
   end
 end
+
+defmodule Ecto.Integration.SQLSyncTest do
+  use Ecto.Integration.Case, async: false
+
+  alias Ecto.Integration.PoolRepo
+
+  test "disconnect_all/2" do
+    assert :ok = PoolRepo.disconnect_all(0)
+  end
+end
