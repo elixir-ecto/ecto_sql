@@ -1,5 +1,5 @@
 defmodule Ecto.Adapters.SQL do
-  @moduledoc """
+  @moduledoc ~S"""
   This application provides functionality for working with
   SQL databases in `Ecto`.
 
@@ -11,9 +11,34 @@ defmodule Ecto.Adapters.SQL do
     * `Ecto.Adapters.MyXQL` for MySQL
     * `Ecto.Adapters.Tds` for SQLServer
 
+  ## Additional functions
+
+  If your `Ecto.Repo` is backed by any of the SQL adapters above,
+  this module will inject additional functions into your repository.
+  These functions can be used by calling the repository or
+  by calling `Ecto.Adapters.SQL` directly. They are listed below:
+
+    * `disconnect_all(interval, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.disconnect_all/3`
+
+    * `explain(type, query, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.explain/4`
+
+    * `query(sql, params, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.query/4`
+
+    * `query!(sql, params, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.query!/4`
+
+    * `stream!(sql, params, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.stream/4`
+
+    * `to_sql(type, query, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.to_sql/4`
+
   ## Migrations
 
-  Ecto supports database migrations. You can generate a migration
+  `ecto_sql` supports database migrations. You can generate a migration
   with:
 
       $ mix ecto.gen.migration create_posts
@@ -280,17 +305,21 @@ defmodule Ecto.Adapters.SQL do
   Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`
   MyXQL            | None
 
-  _Postgrex_: Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html) for version compatibility.
+  _Postgrex_: Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html)
+  for version compatibility.
 
-  _MyXQL_: `EXTENDED` and `PARTITIONS` opts were [deprecated](https://dev.mysql.com/doc/refman/5.7/en/explain.html) and are enabled by default.
+  _MyXQL_: `EXTENDED` and `PARTITIONS` opts were [deprecated](https://dev.mysql.com/doc/refman/5.7/en/explain.html)
+  and are enabled by default.
 
   Also note that:
 
     * Currently `:map`, `:yaml`, and `:text` format options are supported
       for PostgreSQL. `:map` is the deserialized JSON encoding. The last two
-      options return the result as a string.
+      options return the result as a string;
+
     * Any other value passed to `opts` will be forwarded to the underlying
       adapter query function, including Repo shared options such as `:timeout`;
+
     * Non built-in adapters may have specific behavior and you should consult
       their own documentation.
 
@@ -516,7 +545,6 @@ defmodule Ecto.Adapters.SQL do
     |> IO.iodata_to_binary()
   end
 
-
   defp binary_length(nil), do: 4 # NULL
   defp binary_length(binary) when is_binary(binary), do: String.length(binary)
   defp binary_length(other), do: other |> inspect() |> String.length()
@@ -575,6 +603,15 @@ defmodule Ecto.Adapters.SQL do
       """
       def query(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query(get_dynamic_repo(), sql, params, opts)
+      end
+
+      @doc """
+      A convenience function for SQL-based repositories that streams the given query.
+
+      See `Ecto.Adapters.SQL.stream/4` for more information.
+      """
+      def stream(sql, params \\ [], opts \\ []) do
+        Ecto.Adapters.SQL.stream(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
