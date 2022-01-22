@@ -30,9 +30,6 @@ defmodule Ecto.Adapters.SQL do
     * `query!(sql, params, options \\ [])` -
        shortcut for `Ecto.Adapters.SQL.query!/4`
 
-    * `stream!(sql, params, options \\ [])` -
-       shortcut for `Ecto.Adapters.SQL.stream/4`
-
     * `to_sql(type, query, options \\ [])` -
        shortcut for `Ecto.Adapters.SQL.to_sql/4`
 
@@ -603,15 +600,6 @@ defmodule Ecto.Adapters.SQL do
       """
       def query(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query(get_dynamic_repo(), sql, params, opts)
-      end
-
-      @doc """
-      A convenience function for SQL-based repositories that streams the given query.
-
-      See `Ecto.Adapters.SQL.stream/4` for more information.
-      """
-      def stream(sql, params \\ [], opts \\ []) do
-        Ecto.Adapters.SQL.stream(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
