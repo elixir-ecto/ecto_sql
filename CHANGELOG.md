@@ -13,6 +13,12 @@
 
   * [sql] Ensure `:timeout` option is respected in `Ecto.Adapters.SQL.explain/3`
 
+## v3.7.2 (2022-01-23)
+
+### Enhancements
+
+  * [adapters] Support latest `myxql` and `postgrex`
+
 ## v3.7.1 (2021-10-12)
 
 ### Enhancements
