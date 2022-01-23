@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.7.2 (2022-01-23)
+
+### Enhancements
+
+  * [adapters] Support latest `myxql` and `postgrex`
+
 ## v3.7.1 (2021-10-12)
 
 ### Enhancements
