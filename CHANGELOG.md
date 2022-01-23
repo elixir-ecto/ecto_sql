@@ -1,5 +1,18 @@
 # Changelog for v3.x
 
+## v3.8.0-dev
+
+### Enhancements
+
+  * [telemetry] Include `:repo` option in telemetry events
+  * [migrations] Support `--to-exclusive` in `mix ecto.migrate` and `mix ecto.rollback`
+  * [mysql] Add `:comment` support on MySQL migrations
+  * [postgres] Support `:prepare` option per operation
+
+### Bug fixes
+
+  * [sql] Ensure `:timeout` option is respected in `Ecto.Adapters.SQL.explain/3`
+
 ## v3.7.1 (2021-10-12)
 
 ### Enhancements
