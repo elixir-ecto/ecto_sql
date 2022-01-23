@@ -26,6 +26,12 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     @impl true
+    def query_many(conn, sql, params, opts) do
+      opts = Keyword.put_new(opts, :query_type, :text)
+      MyXQL.query_many(conn, sql, params, opts)
+    end
+
+    @impl true
     def execute(conn, query, params, opts) do
       case MyXQL.execute(conn, query, params, opts) do
         {:ok, _, result} -> {:ok, result}

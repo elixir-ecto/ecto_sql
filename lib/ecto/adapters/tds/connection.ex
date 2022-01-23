@@ -57,13 +57,18 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def stream(_conn, _sql, _params, _opts) do
-      error!(nil, "Repo.stream is not supported in Tds adapter")
+      error!(nil, "Repo.stream is not supported in the Tds adapter")
     end
 
     @impl true
     def query(conn, sql, params, opts) do
       params = prepare_params(params)
       Tds.query(conn, sql, params, opts)
+    end
+
+    @impl true
+    def query_many(_conn, _sql, _params, _opts) do
+      error!(nil, "query_many is not supported in the Tds adapter")
     end
 
     @impl true
