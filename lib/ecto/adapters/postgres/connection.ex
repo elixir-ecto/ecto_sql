@@ -92,6 +92,11 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
+    def query_many(_conn, _sql, _params, _opts) do
+      raise RuntimeError, "query_many is not supported in the Postgrex adapter"
+    end
+
+    @impl true
     def execute(conn, %{ref: ref} = query, params, opts) do
       case Postgrex.execute(conn, query, params, opts) do
         {:ok, %{ref: ^ref}, result} ->

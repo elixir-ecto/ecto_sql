@@ -118,6 +118,19 @@ defmodule Ecto.Adapters.MyXQL do
 
   If your version of MySQL supports microsecond precision, you
   will be able to utilize Ecto's usec types.
+
+  ## Multiple Result Support
+
+  MyXQL supports the execution of queries that return multiple
+  results, such as text queries with multiple statements separated
+  by semicolons or stored procedures. These can be executed with
+  `Ecto.Adapters.SQL.query_many/4` or the `YourRepo.query_many/3`
+  shortcut.
+
+  Be default, these queries will be executed with the `:query_type`
+  option set to `:text`. To take advantage of prepared statements
+  when executing a stored procedure, set the `:query_type` option
+  to `:binary`.
   """
 
   # Inherit all behaviour from Ecto.Adapters.SQL

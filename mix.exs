@@ -93,7 +93,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("MYXQL_PATH") do
       {:myxql, path: path}
     else
-      {:myxql, "~> 0.4.0 or ~> 0.5.0 or ~> 0.6.0", optional: true}
+      {:myxql, "~> 0.6.0", optional: true}
     end
   end
 

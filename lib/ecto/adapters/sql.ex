@@ -30,6 +30,12 @@ defmodule Ecto.Adapters.SQL do
     * `query!(sql, params, options \\ [])` -
        shortcut for `Ecto.Adapters.SQL.query!/4`
 
+    * `query_many(sql, params, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.query_many/4`
+
+    * `query_many!(sql, params, options \\ [])` -
+       shortcut for `Ecto.Adapters.SQL.query_many!/4`
+
     * `to_sql(type, query, options \\ [])` -
        shortcut for `Ecto.Adapters.SQL.to_sql/4`
 
@@ -429,7 +435,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc """
-  Runs custom SQL query on given repo.
+  Runs a custom SQL query on the given repo.
 
   In case of success, it must return an `:ok` tuple containing
   a map with at least two keys:
@@ -469,6 +475,63 @@ defmodule Ecto.Adapters.SQL do
 
   def query(adapter_meta, sql, params, opts) do
     sql_call(adapter_meta, :query, [sql], params, opts)
+  end
+
+  @doc """
+  Same as `query_many/4` but raises on invalid queries.
+  """
+  @spec query_many!(Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
+               [%{:rows => nil | [[term] | binary],
+                 :num_rows => non_neg_integer,
+                 optional(atom) => any}]
+  def query_many!(repo, sql, params \\ [], opts \\ []) do
+    case query_many(repo, sql, params, opts) do
+      {:ok, result} -> result
+      {:error, err} -> raise_sql_call_error err
+    end
+  end
+
+  @doc """
+  Runs a custom SQL query that returns multiple results on the given repo.
+
+  In case of success, it must return an `:ok` tuple containing
+  a list of maps with at least two keys:
+
+    * `:num_rows` - the number of rows affected
+
+    * `:rows` - the result set as a list. `nil` may be returned
+      instead of the list if the command does not yield any row
+      as result (but still yields the number of affected rows,
+      like a `delete` command without returning would)
+
+  ## Options
+
+    * `:log` - When false, does not log the query
+
+  ## Examples
+
+      iex> Ecto.Adapters.SQL.query_many(MyRepo, "SELECT $1; SELECT $2;", [40, 2])
+      {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
+
+  For convenience, this function is also available under the repository:
+
+      iex> MyRepo.query_many(SELECT $1; SELECT $2;", [40, 2])
+      {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
+
+  """
+  @spec query_many(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
+              {:ok, [%{:rows => nil | [[term] | binary],
+                      :num_rows => non_neg_integer,
+                      optional(atom) => any}]}
+              | {:error, Exception.t}
+  def query_many(repo, sql, params \\ [], opts \\ [])
+
+  def query_many(repo, sql, params, opts) when is_atom(repo) or is_pid(repo) do
+    query_many(Ecto.Adapter.lookup_meta(repo), sql, params, opts)
+  end
+
+  def query_many(adapter_meta, sql, params, opts) do
+    sql_call(adapter_meta, :query_many, [sql], params, opts)
   end
 
   defp sql_call(adapter_meta, callback, args, params, opts) do
@@ -609,6 +672,24 @@ defmodule Ecto.Adapters.SQL do
       """
       def query!(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query!(get_dynamic_repo(), sql, params, opts)
+      end
+
+      @doc """
+      A convenience function for SQL-based repositories that executes the given multi-result query.
+
+      See `Ecto.Adapters.SQL.query_many/4` for more information.
+      """
+      def query_many(sql, params \\ [], opts \\ []) do
+        Ecto.Adapters.SQL.query_many(get_dynamic_repo(), sql, params, opts)
+      end
+
+      @doc """
+      A convenience function for SQL-based repositories that executes the given multi-result query.
+
+      See `Ecto.Adapters.SQL.query_many!/4` for more information.
+      """
+      def query_many!(sql, params \\ [], opts \\ []) do
+        Ecto.Adapters.SQL.query_many!(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """

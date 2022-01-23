@@ -34,9 +34,15 @@ defmodule Ecto.Adapters.SQL.Connection do
               {:ok, cached, term} | {:ok, term} | {:error | :reset, Exception.t}
 
   @doc """
-  Runs the given statement as query.
+  Runs the given statement as a query.
   """
   @callback query(connection, statement, params, options :: Keyword.t) ::
+              {:ok, term} | {:error, Exception.t}
+
+  @doc """
+  Runs the given statement as a multi-result query.
+  """
+  @callback query_many(connection, statement, params, options :: Keyword.t) ::
               {:ok, term} | {:error, Exception.t}
 
   @doc """
