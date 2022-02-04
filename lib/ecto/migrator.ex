@@ -459,7 +459,8 @@ defmodule Ecto.Migrator do
   Returns an array of tuples as the migration status of the given repo,
   without actually running any migrations.
   """
-  @spec migrations(Ecto.Repo.t, [String.t], Keyword.t) :: [{:up | :down, id :: integer(), name :: String.t}]
+  @spec migrations(Ecto.Repo.t, String.t |
+     [String.t], Keyword.t) :: [{:up | :down, id :: integer(), name :: String.t}]
   def migrations(repo, directories, opts \\ []) do
     directories = List.wrap(directories)
 
