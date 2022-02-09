@@ -605,6 +605,20 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"\\"a"}') FROM "schema" AS s0|
   end
 
+  test "optimized json_extract_path" do
+    query = Schema |> where([s], s.meta["id"] == 123) |> select(true) |> plan()
+    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE ((s0."meta"@>'{"id": 123}'))|
+
+    query = Schema |> where([s], s.meta["id"] == "123") |> select(true) |> plan()
+    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE ((s0."meta"@>'{"id": "123"}'))|
+
+    query = Schema |> where([s], s.meta["tags"][0]["name"] == "123") |> select(true) |> plan()
+    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE (((s0."meta"#>'{"tags",0}')@>'{"name": "123"}'))|
+
+    query = Schema |> where([s], s.meta[0] == "123") |> select(true) |> plan()
+    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE ((s0.\"meta\"#>'{0}') = '123')|
+  end
+
   test "nested expressions" do
     z = 123
     query = from(r in Schema, []) |> select([r], r.x > 0 and (r.y > ^(-z)) or true) |> plan()

@@ -70,7 +70,8 @@ if Code.ensure_loaded?(Postgrex) do
       case Postgrex.prepare_execute(conn, name, sql, params, opts) do
         {:error, %Postgrex.Error{postgres: %{pg_code: "22P02", message: message}} = error} ->
           context = """
-          . If you are trying to query a JSON field, the parameter must be interpolated. Instead of
+          . If you are trying to query a JSON field, the parameter may need to be interpolated. \
+          Instead of
 
               p.json["field"] == "value"
 
@@ -684,16 +685,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({:json_extract_path, _, [expr, path]}, sources, query) do
-      path =
-        intersperse_map(path, ?,, fn
-          binary when is_binary(binary) ->
-            [?", escape_json_key(binary), ?"]
-
-          integer when is_integer(integer) ->
-            Integer.to_string(integer)
-        end)
-
-      [?(, expr(expr, sources, query), "#>'{", path, "}')"]
+      json_extract_path(expr, path, sources, query)
     end
 
     defp expr({:filter, _, [agg, filter]}, sources, query) do
@@ -716,6 +708,18 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
+
+    defp expr({:==, _, [{:json_extract_path, _, [expr, path]} = left, right]}, sources, query)
+         when is_binary(right) or is_integer(right) do
+      case Enum.split(path, -1) do
+        {path, [last]} when is_binary(last) ->
+          extracted = json_extract_path(expr, path, sources, query)
+          [?(, extracted, "@>'{", escape_json(last), ": ", escape_json(right) | "}')"]
+
+        _ ->
+          [maybe_paren(left, sources, query), " = " | maybe_paren(right, sources, query)]
+      end
+    end
 
     defp expr({fun, _, args}, sources, query) when is_atom(fun) and is_list(args) do
       {modifier, args} =
@@ -768,6 +772,15 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp expr(expr, _sources, query) do
       error!(query, "unsupported expression: #{inspect(expr)}")
+    end
+
+    defp json_extract_path(expr, [], sources, query) do
+      expr(expr, sources, query)
+    end
+
+    defp json_extract_path(expr, path, sources, query) do
+      path = intersperse_map(path, ?,, &escape_json/1)
+      [?(, expr(expr, sources, query), "#>'{", path, "}')"]
     end
 
     defp type_unless_typed(%Ecto.Query.Tagged{}, _type), do: []
@@ -1328,10 +1341,17 @@ if Code.ensure_loaded?(Postgrex) do
       :binary.replace(value, "'", "''", [:global])
     end
 
-    defp escape_json_key(value) when is_binary(value) do
-      value
-      |> escape_string()
-      |> :binary.replace("\"", "\\\"", [:global])
+    defp escape_json(value) when is_binary(value) do
+      escaped =
+        value
+        |> escape_string()
+        |> :binary.replace("\"", "\\\"", [:global])
+
+      [?", escaped, ?"]
+    end
+
+    defp escape_json(value) when is_integer(value) do
+      Integer.to_string(value)
     end
 
     defp ecto_to_db({:array, t}),          do: [ecto_to_db(t), ?[, ?]]
