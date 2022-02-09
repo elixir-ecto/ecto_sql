@@ -73,11 +73,11 @@ if Code.ensure_loaded?(Postgrex) do
           . If you are trying to query a JSON field, the parameter may need to be interpolated. \
           Instead of
 
-              p.json["field"] == "value"
+              p.json["field"] != "value"
 
           do
 
-              p.json["field"] == ^"value"
+              p.json["field"] != ^"value"
           """
 
           {:error, put_in(error.postgres.message, message <> context)}

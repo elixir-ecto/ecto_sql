@@ -7,7 +7,7 @@ defmodule Ecto.Integration.ExceptionsTest do
 
   test "on bad JSON interpolation" do
     assert_raise Postgrex.Error,
-                 ~r/If you are trying to query a JSON field, the parameter must be interpolated/,
-                 fn -> TestRepo.all(from p in Post, where: p.meta["field"] == "example") end
+                 ~r/If you are trying to query a JSON field, the parameter may need to be interpolated/,
+                 fn -> TestRepo.all(from p in Post, where: p.meta["field"] != "example") end
   end
 end
