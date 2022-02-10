@@ -988,7 +988,7 @@ defmodule Ecto.Adapters.SQL do
     ]
   end
 
-  defp log_stacktrace(nil), do: ""
+  defp log_stacktrace(false), do: ""
 
   defp log_stacktrace(stacktrace) do 
     case first_non_ecto(stacktrace) do
@@ -1005,22 +1005,28 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp first_non_ecto(stacktrace) do
-    reversed = Enum.reverse(stacktrace)
+  defp first_non_ecto(nil), do: nil
 
-    reversed
-    |> Enum.find_index(fn {module, _function, _arity, _metadata} ->
-      module
-      |> Atom.to_string()
-      |> String.starts_with?(["Elixir.Ecto."])
-    end)
-    |> case do
-      0 ->
-        # actual call is out of backtrace
-        nil
-      first_idx ->
-        Enum.at(reversed, first_idx - 1)
+  defp first_non_ecto(stacktrace) do
+    first_non_ecto(IO.inspect(stacktrace), nil)
+  end
+
+  defp first_non_ecto([last_item], first_non_ecto) do
+    if is_ecto?(last_item), do: nil, else: first_non_ecto
+  end
+
+  defp first_non_ecto([head | tail], first_non_ecto) do
+    if is_ecto?(head) do
+      first_non_ecto(tail, nil)
+    else
+      first_non_ecto(tail, first_non_ecto || head)
     end
+  end
+
+  defp is_ecto?({module, _f, _a, _m}) do
+    module
+    |> Atom.to_string()
+    |> String.starts_with?("Elixir.Ecto.")
   end
 
   defp log_ok_error({:ok, _res}), do: "OK"
