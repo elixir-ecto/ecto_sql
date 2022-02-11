@@ -1035,10 +1035,11 @@ defmodule Ecto.Migration do
   Modifies the type of a column when altering a table.
 
   This command is not reversible unless the `:from` option is provided.
-  If the `:from` value is a `%Reference{}`, the adapter will try to drop
+  When the `:from` option is set, the adapter will try to drop
   the corresponding foreign key constraints before modifying the type.
-  Note `:from` cannot be used to modify primary keys, as those are
-  generally trickier to make reversible.
+  Note `:from` cannot be used with other options unless you also set
+  their rollback value. It can neither be used to modify primary keys,
+  as those are generally trickier to make reversible.
 
   See `add/3` for more information on supported types.
 
@@ -1054,11 +1055,21 @@ defmodule Ecto.Migration do
         modify :title, :text
       end
 
+      # Self rollback when using the :from option
+      alter table("posts") do
+        modify :title, :text, from: :string
+      end
+
+      # Modify column with rollback options
+      alter table("posts") do
+        modify :title, :text, null: false, from: [:string, null: true]
+      end
+
   ## Options
 
     * `:null` - determines whether the column accepts null values.
     * `:default` - changes the default value of the column.
-    * `:from` - specifies the current type of the column.
+    * `:from` - specifies the current type and options of the column.
     * `:size` - specifies the size of the type (for example, the number of characters).
       The default is no size.
     * `:precision` - the precision for a numeric type. Required when `:scale` is
