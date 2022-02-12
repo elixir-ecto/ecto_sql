@@ -1062,7 +1062,7 @@ defmodule Ecto.Migration do
 
       # Modify column with rollback options
       alter table("posts") do
-        modify :title, :text, null: false, from: [:string, null: true]
+        modify :title, :text, null: false, from: {:string, null: true}
       end
 
   ## Options

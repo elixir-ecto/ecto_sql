@@ -1595,7 +1595,7 @@ defmodule Ecto.Adapters.PostgresTest do
              {:modify, :status, :string, from: :integer},
              {:modify, :user_id, :integer, from: %Reference{table: :users}},
              {:modify, :group_id, %Reference{table: :groups, column: :gid}, from: %Reference{table: :groups}},
-             {:modify, :status, :string, [null: false, size: 100, from: [:integer, null: true, size: 50]]},
+             {:modify, :status, :string, [null: false, size: 100, from: {:integer, null: true, size: 50}]},
              {:remove, :summary},
              {:remove, :body, :text, []},
              {:remove, :space_id, %Reference{table: :author}, []},

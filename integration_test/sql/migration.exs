@@ -86,7 +86,7 @@ defmodule Ecto.Integration.MigrationTest do
 
       alter table(:modify_from_products) do
         modify :value, :bigint, from: :integer
-        modify :nullable, :bigint, null: true, from: [:integer, null: false]
+        modify :nullable, :bigint, null: true, from: {:integer, null: false}
       end
     end
   end
