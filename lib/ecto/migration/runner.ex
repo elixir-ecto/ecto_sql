@@ -415,7 +415,7 @@ defmodule Ecto.Migration.Runner do
 
     case opts[:from] do
       [_from_type | from_opts] -> opts_keys == from_opts |> Keyword.keys() |> Enum.sort()
-      from_type when is_atom(from_type) and not is_nil(from_type) -> true
+      from_type when is_atom(from_type) and not is_nil(from_type) -> opts_keys == []
       _ -> false
     end
   end
