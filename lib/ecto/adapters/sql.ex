@@ -1063,7 +1063,9 @@ defmodule Ecto.Adapters.SQL do
     } = entry
 
     source = Keyword.get(opts, :source)
-    query_string = String.Chars.to_string(query)
+    query = String.Chars.to_string(query)
+    result = with {:ok, _query, res} <- result, do: {:ok, res}
+    stacktrace = Keyword.get(opts, :stacktrace)
 
     params =
       Enum.map(params, fn
@@ -1084,12 +1086,12 @@ defmodule Ecto.Adapters.SQL do
     metadata = %{
       type: :ecto_sql_query,
       repo: repo,
-      result: log_result(result),
+      result: result,
       params: params,
-      query: query_string,
+      query: query,
       source: source,
-      options: Keyword.get(opts, :telemetry_options, []),
-      stacktrace: Keyword.get(opts, :stacktrace)
+      stacktrace: stacktrace,
+      options: Keyword.get(opts, :telemetry_options, [])
     }
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
@@ -1100,8 +1102,8 @@ defmodule Ecto.Adapters.SQL do
       true ->
         Logger.log(
           log,
-          fn -> log_iodata(measurements, metadata) end,
-          ansi_color: sql_color(query_string)
+          fn -> log_iodata(measurements, repo, source, query, params, result, stacktrace) end,
+          ansi_color: sql_color(query)
         )
 
       false ->
@@ -1110,8 +1112,8 @@ defmodule Ecto.Adapters.SQL do
       level ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, metadata) end,
-          ansi_color: sql_color(query_string)
+          fn -> log_iodata(measurements, repo, source, query, params, result, stacktrace) end,
+          ansi_color: sql_color(query)
         )
     end
 
@@ -1127,17 +1129,7 @@ defmodule Ecto.Adapters.SQL do
   defp log_measurements([], total, acc),
     do: Map.new([total_time: total] ++ acc)
 
-  defp log_result({:ok, _query, res}), do: {:ok, res}
-  defp log_result(other), do: other
-
-  defp log_iodata(measurements, metadata) do
-    %{
-      params: params,
-      query: query,
-      result: result,
-      source: source
-    } = metadata
-
+  defp log_iodata(measurements, repo, source, query, params, result, stacktrace) do
     [
       "QUERY",
       ?\s,
@@ -1151,41 +1143,8 @@ defmodule Ecto.Adapters.SQL do
       query,
       ?\s,
       inspect(params, charlists: false),
-      log_stacktrace(metadata.stacktrace)
+      log_stacktrace(stacktrace, repo)
     ]
-  end
-
-  defp log_stacktrace(stacktrace) do 
-    with [_ | _] <- stacktrace,
-         {module, function, arity, metadata} <- first_non_ecto(stacktrace, nil) do
-      [
-        ?\n,
-        "↳ ",
-        Exception.format_mfa(module, function, arity),
-        ", at: ",
-        inspect(metadata)
-      ]
-    else
-      _ -> []
-    end
-  end
-
-  defp first_non_ecto([last_item], first_non_ecto) do
-    if is_ecto?(last_item), do: nil, else: first_non_ecto
-  end
-
-  defp first_non_ecto([head | tail], first_non_ecto) do
-    if is_ecto?(head) do
-      first_non_ecto(tail, nil)
-    else
-      first_non_ecto(tail, first_non_ecto || head)
-    end
-  end
-
-  defp is_ecto?({module, _f, _a, _m}) do
-    module
-    |> Atom.to_string()
-    |> String.starts_with?("Elixir.Ecto.")
   end
 
   defp log_ok_error({:ok, _res}), do: "OK"
@@ -1210,6 +1169,40 @@ defmodule Ecto.Adapters.SQL do
         []
     end
   end
+
+  defp log_stacktrace(stacktrace, repo) do
+    with [_ | _] <- stacktrace,
+         {module, function, arity, info} <- last_non_ecto(Enum.reverse(stacktrace), repo, nil) do
+      [
+        ?\n,
+        "↳ ",
+        Exception.format_mfa(module, function, arity),
+        log_stacktrace_info(info)
+      ]
+    else
+      _ -> []
+    end
+  end
+
+  defp log_stacktrace_info([file: file, line: line] ++ _) do
+    [", at: ", file, ?#, Integer.to_string(line)]
+  end
+
+  defp log_stacktrace_info(_) do
+    []
+  end
+
+  @repo_modules [Ecto.Repo.Queryable, Ecto.Repo.Schema, Ecto.Repo.Transaction]
+
+  defp last_non_ecto([{mod, _, _, _} | _stacktrace], repo, last)
+       when mod == repo or mod in @repo_modules,
+       do: last
+
+  defp last_non_ecto([last | stacktrace], repo, _last),
+    do: last_non_ecto(stacktrace, repo, last)
+
+  defp last_non_ecto([], _repo, last),
+    do: last
 
   ## Connection helpers
 
