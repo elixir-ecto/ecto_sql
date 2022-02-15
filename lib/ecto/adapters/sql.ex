@@ -748,12 +748,13 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
+    stacktrace = Keyword.get(config, :stacktrace, nil)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
 
     config = adapter_config(config)
     opts = Keyword.take(config, @pool_opts)
-    meta = %{telemetry: telemetry, sql: connection, opts: opts}
+    meta = %{telemetry: telemetry, sql: connection, stacktrace: stacktrace, opts: opts}
     {:ok, connection.child_spec(config), meta}
   end
 
@@ -1087,7 +1088,8 @@ defmodule Ecto.Adapters.SQL do
       params: params,
       query: query_string,
       source: source,
-      options: Keyword.get(opts, :telemetry_options, [])
+      options: Keyword.get(opts, :telemetry_options, []),
+      stacktrace: Keyword.get(opts, :stacktrace)
     }
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
@@ -1148,8 +1150,42 @@ defmodule Ecto.Adapters.SQL do
       ?\n,
       query,
       ?\s,
-      inspect(params, charlists: false)
+      inspect(params, charlists: false),
+      log_stacktrace(metadata.stacktrace)
     ]
+  end
+
+  defp log_stacktrace(stacktrace) do 
+    with [_ | _] <- stacktrace,
+         {module, function, arity, metadata} <- first_non_ecto(stacktrace, nil) do
+      [
+        ?\n,
+        "↳ ",
+        Exception.format_mfa(module, function, arity),
+        ", at: ",
+        inspect(metadata)
+      ]
+    else
+      _ -> []
+    end
+  end
+
+  defp first_non_ecto([last_item], first_non_ecto) do
+    if is_ecto?(last_item), do: nil, else: first_non_ecto
+  end
+
+  defp first_non_ecto([head | tail], first_non_ecto) do
+    if is_ecto?(head) do
+      first_non_ecto(tail, nil)
+    else
+      first_non_ecto(tail, first_non_ecto || head)
+    end
+  end
+
+  defp is_ecto?({module, _f, _a, _m}) do
+    module
+    |> Atom.to_string()
+    |> String.starts_with?("Elixir.Ecto.")
   end
 
   defp log_ok_error({:ok, _res}), do: "OK"
