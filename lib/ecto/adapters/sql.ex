@@ -1048,7 +1048,6 @@ defmodule Ecto.Adapters.SQL do
 
   defp checkout_or_transaction(fun, adapter_meta, opts, callback) do
     %{pid: pool, telemetry: telemetry, opts: default_opts} = adapter_meta
-
     opts = with_log(telemetry, [], opts ++ default_opts)
 
     callback = fn conn ->
