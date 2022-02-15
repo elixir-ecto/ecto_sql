@@ -600,7 +600,7 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
-    stacktrace = Keyword.get(config, :stacktrace, false)
+    stacktrace = Keyword.get(config, :stacktrace, nil)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
 
@@ -988,27 +988,19 @@ defmodule Ecto.Adapters.SQL do
     ]
   end
 
-  defp log_stacktrace(false), do: ""
-
   defp log_stacktrace(stacktrace) do 
-    case first_non_ecto(stacktrace) do
-      {module, function, arity, metadata} ->
-        [
-          ?\n,
-          "↳ ",
-          Exception.format_mfa(module, function, arity),
-          ", at: ",
-          inspect(metadata)
-        ]
-      nil ->
-        ""
+    with [_ | _] <- stacktrace,
+         {module, function, arity, metadata} <- first_non_ecto(stacktrace, nil) do
+      [
+        ?\n,
+        "↳ ",
+        Exception.format_mfa(module, function, arity),
+        ", at: ",
+        inspect(metadata)
+      ]
+    else
+      _ -> []
     end
-  end
-
-  defp first_non_ecto(nil), do: nil
-
-  defp first_non_ecto(stacktrace) do
-    first_non_ecto(IO.inspect(stacktrace), nil)
   end
 
   defp first_non_ecto([last_item], first_non_ecto) do
