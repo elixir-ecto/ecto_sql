@@ -260,10 +260,6 @@ defmodule Ecto.Migration.Runner do
         reverse_opts = Keyword.put(from_opts, :from, reverse_from)
         table_reverse(t, [{:modify, name, reverse_type, reverse_opts} | acc])
 
-      {reverse_type} ->
-        reverse_opts = Keyword.put(opts, :from, {type})
-        table_reverse(t, [{:modify, name, reverse_type, reverse_opts} | acc])
-
       reverse_type ->
         reverse_opts = Keyword.put(opts, :from, type)
         table_reverse(t, [{:modify, name, reverse_type, reverse_opts} | acc])
@@ -419,7 +415,6 @@ defmodule Ecto.Migration.Runner do
 
     case opts[:from] do
       {_from_type, from_opts} -> opts_keys == from_opts |> Keyword.keys() |> Enum.sort()
-      {from_type} when not is_nil(from_type) -> opts_keys == []
       from_type when not is_nil(from_type) -> opts_keys == []
       _ -> false
     end
