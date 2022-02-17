@@ -1152,7 +1152,7 @@ defmodule Ecto.Migration do
 
     * `:name` - The name of the underlying reference, which defaults to
       "#{table}_#{column}_fkey".
-    * `:column` - The foreign key column name, which defaults to `:id`.
+    * `:column` - The column name in the referenced table, which defaults to `:id`.
     * `:prefix` - The prefix for the reference. Defaults to the prefix
       defined by the block's `table/2` struct (the "products" table in
       the example above), or `nil`.
