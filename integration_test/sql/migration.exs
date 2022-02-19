@@ -76,15 +76,17 @@ defmodule Ecto.Integration.MigrationTest do
     def change do
       create table(:modify_from_products) do
         add :value, :integer
+        add :nullable, :integer, null: false
       end
 
       if direction() == :up do
         flush()
-        PoolRepo.insert_all "modify_from_products", [[value: 1]]
+        PoolRepo.insert_all "modify_from_products", [[value: 1, nullable: 1]]
       end
 
       alter table(:modify_from_products) do
         modify :value, :bigint, from: :integer
+        modify :nullable, :bigint, null: true, from: {:integer, null: false}
       end
     end
   end
