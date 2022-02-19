@@ -252,8 +252,9 @@ defmodule Ecto.Migration.Runner do
     table_reverse(t, [{:add, name, type, opts} | acc])
   end
   defp table_reverse([{:modify, name, type, opts} | t], acc) do
-    case reversible_modify?(opts) && opts[:from] do
-      false -> false
+    case opts[:from] do
+      nil ->
+        false
 
       {reverse_type, from_opts} when is_list(from_opts) ->
         reverse_from = {type, Keyword.delete(opts, :from)}
@@ -409,14 +410,4 @@ defmodule Ecto.Migration.Runner do
   defp quote_name(prefix, name), do: quote_name(prefix) <> "." <> quote_name(name)
   defp quote_name(name) when is_atom(name), do: quote_name(Atom.to_string(name))
   defp quote_name(name), do: name
-
-  defp reversible_modify?(opts) do
-    opts_keys = opts |> Keyword.delete(:from) |> Keyword.keys() |> Enum.sort()
-
-    case opts[:from] do
-      {_from_type, from_opts} -> opts_keys == from_opts |> Keyword.keys() |> Enum.sort()
-      from_type when not is_nil(from_type) -> true
-      _ -> false
-    end
-  end
 end
