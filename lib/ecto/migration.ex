@@ -1037,9 +1037,10 @@ defmodule Ecto.Migration do
   This command is not reversible unless the `:from` option is provided.
   When the `:from` option is set, the adapter will try to drop
   the corresponding foreign key constraints before modifying the type.
-  Note `:from` cannot be used with other options unless you also set
-  their rollback value. It can neither be used to modify primary keys,
-  as those are generally trickier to make reversible.
+  Generally speaking, you want to pass the type and each option
+  you are modifying to `:from`, so the column can be rolled back properly.
+  However, note that `:from` cannot be be used to modify primary keys,
+  as those are generally trickier to revert.
 
   See `add/3` for more information on supported types.
 

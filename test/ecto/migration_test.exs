@@ -746,14 +746,6 @@ defmodule Ecto.MigrationTest do
       end
       flush()
     end
-
-    assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
-      alter table(:posts) do
-        add :summary, :text
-        modify :coauthor, :string, from: {:text, null: true}
-      end
-      flush()
-    end
   end
 
   test "backward: removing a column (remove/3 called)" do
