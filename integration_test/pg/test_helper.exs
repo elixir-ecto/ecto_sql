@@ -44,10 +44,30 @@ Application.put_env(:ecto_sql, PoolRepo,
   url: Application.get_env(:ecto_sql, :pg_test_url) <> "/ecto_test",
   pool_size: 10,
   max_restarts: 20,
-  max_seconds: 10)
+  max_seconds: 10,
+  after_connect:
+    {Postgrex, :query!,
+     [
+       "SET application_name TO default_test_connection",
+       []
+     ]})
 
 defmodule Ecto.Integration.PoolRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
+
+  def with_dynamic_repo(credentials, callback) do
+    default_dynamic_repo = get_dynamic_repo()
+    start_opts = [name: nil, pool_size: 1] ++ credentials
+    {:ok, repo} = __MODULE__.start_link(start_opts)
+
+    try do
+      __MODULE__.put_dynamic_repo(repo)
+      callback.()
+    after
+      __MODULE__.put_dynamic_repo(default_dynamic_repo)
+      Supervisor.stop(repo)
+    end
+  end
 end
 
 # Load support files

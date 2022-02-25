@@ -4,6 +4,7 @@ defmodule Ecto.Integration.PGTransactionTest do
   alias Ecto.Integration.PoolRepo
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Post
+  alias Ecto.Multi
 
   require Logger
   @timeout 500
@@ -56,6 +57,24 @@ defmodule Ecto.Integration.PGTransactionTest do
 
       tx2_result = Task.await(tx2_task)
       assert Enum.sort([tx1_result, tx2_result]) == [{:error, :deadlocked}, {:ok, :acquired}]
+    end
+  end
+
+  describe "dynamic repo" do
+    test "transactions work with a dynamic repo" do
+      conn_settings = Application.get_env(:ecto_sql, TestRepo)
+      conn_settings = Keyword.put(conn_settings, :after_connect, {Postgrex, :query!, [ "SET application_name TO dynamic_test_connection", [] ]})
+
+      {:ok, %Postgrex.Result{ rows: [[app_name]] }} = PoolRepo.query("show application_name")
+      assert app_name == "default_test_connection", "the default connection pool should be used"
+
+      PoolRepo.with_dynamic_repo(conn_settings, fn ->
+        {:ok, %Postgrex.Result{ rows: [[app_name]] }} = PoolRepo.query("show application_name")
+        assert app_name == "dynamic_test_connection", "the dynamic pool should be used for a non transaction query"
+
+        {:ok, %{for_tenant: %Postgrex.Result{rows: [[app_name]]}}} = Multi.new |> Multi.run(:for_tenant, query("show application_name")) |> PoolRepo.transaction()
+        assert app_name == "dynamic_test_connection", "the dynamic pool should be used for a transaction query"
+      end)
     end
   end
 
@@ -112,4 +131,6 @@ defmodule Ecto.Integration.PGTransactionTest do
     %{rows: [[:void]]} =
       PoolRepo.query!("SELECT pg_advisory_xact_lock($1);", [key])
   end
+
+  defp query(query), do: fn repo, _changes -> Ecto.Adapters.SQL.query(repo, query) end
 end
