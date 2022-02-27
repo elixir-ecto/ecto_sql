@@ -29,8 +29,12 @@ defmodule Ecto.Integration.SQLTest do
   end
 
   test "query!/4 with dynamic repo" do
-    TestRepo.put_dynamic_repo(:unknown)
-    assert_raise RuntimeError, ~r/:unknown/, fn -> TestRepo.query!("SELECT 1") end
+    pid = spawn(fn -> :ok end)
+    TestRepo.put_dynamic_repo(pid)
+    assert_raise ArgumentError, fn -> TestRepo.query!("SELECT 1") end
+
+    TestRepo.put_dynamic_repo(pid)
+    assert_raise ArgumentError, fn -> Ecto.Adapters.SQL.query!(TestRepo, "SELECT 1") end
   end
 
   test "query!/4" do
