@@ -537,7 +537,7 @@ defmodule Ecto.Adapters.SQL do
   defp sql_call(adapter_meta, callback, args, params, opts) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
     conn = get_conn_or_pool(pool)
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    opts = with_log(telemetry, params, Keyword.merge(default_opts, opts))
     args = args ++ [params, opts]
     apply(sql, callback, [conn | args])
   end
