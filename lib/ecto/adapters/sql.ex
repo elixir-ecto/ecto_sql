@@ -1172,11 +1172,12 @@ defmodule Ecto.Adapters.SQL do
     with [_ | _] <- stacktrace,
          {module, function, arity, info} <- last_non_ecto(Enum.reverse(stacktrace), repo, nil) do
       [
-        IO.ANSI.light_black(),
         ?\n,
+        IO.ANSI.light_black(),
         "↳ ",
         Exception.format_mfa(module, function, arity),
-        log_stacktrace_info(info)
+        log_stacktrace_info(info),
+        IO.ANSI.reset(),
       ]
     else
       _ -> []

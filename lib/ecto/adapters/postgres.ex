@@ -25,6 +25,22 @@ defmodule Ecto.Adapters.Postgres do
 
       YourApp.Repo.all(Queryable, prepare: :unnamed)
 
+  ### Migration options
+
+    * `:migration_lock` - prevent multiple nodes from running migrations at the same
+      time by obtaining a lock. The value `true` will lock migrations by wrapping
+      the entire migration inside a database transaction, including inserting the
+      migration version into the migration source (by default, "schema_migrations").
+      You may alternatively select `:pg_advisory_lock` which has the benefit
+      of allowing concurrent operations such as creating indexes. (default: true)
+
+  When using the `:pg_advisory_lock` migration lock strategy and Ecto cannot obtain
+  the lock due to another instance occupying the lock, Ecto will wait for 5 seconds
+  and then retry up to 100 times. If the retries are exhausted, the migration will
+  fail. This is configurable on the repo with keys
+  `:migration_advisory_lock_retry_interval_ms` and
+  `:migration_advisory_lock_max_tries`.
+
   ### Connection options
 
     * `:hostname` - Server hostname
@@ -104,6 +120,8 @@ defmodule Ecto.Adapters.Postgres do
 
   # Inherit all behaviour from Ecto.Adapters.SQL
   use Ecto.Adapters.SQL, driver: :postgrex
+
+  require Logger
 
   # And provide a custom storage implementation
   @behaviour Ecto.Adapter.Storage
@@ -225,26 +243,85 @@ defmodule Ecto.Adapters.Postgres do
 
   @impl true
   def lock_for_migrations(meta, opts, fun) do
-    %{opts: adapter_opts} = meta
+    %{opts: adapter_opts, repo: repo} = meta
 
     if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
 
     opts = Keyword.merge(opts, [timeout: :infinity, telemetry_options: [schema_migration: true]])
-
-    {:ok, result} =
-      transaction(meta, opts, fn ->
-        # SHARE UPDATE EXCLUSIVE MODE is the first lock that locks
-        # itself but still allows updates to happen, see
-        # # https://www.postgresql.org/docs/9.4/explicit-locking.html
-        source = Keyword.get(opts, :migration_source, "schema_migrations")
-        table = if prefix = opts[:prefix], do: ~s|"#{prefix}"."#{source}"|, else: ~s|"#{source}"|
-        {:ok, _} = Ecto.Adapters.SQL.query(meta, "LOCK TABLE #{table} IN SHARE UPDATE EXCLUSIVE MODE", [], opts)
-        fun.()
-      end)
+    lock_strategy = Keyword.get(repo.config(), :migration_lock)
+    {:ok, result} = do_lock_for_migrations(lock_strategy, meta, opts, fun)
 
     result
+  end
+
+  defp do_lock_for_migrations(:pg_advisory_lock, meta, opts, fun) do
+    lock = :erlang.phash2("ecto_#{inspect(meta.repo)}")
+    config = meta.repo.config()
+
+    opts =
+      opts
+      |> Keyword.put_new(:migration_advisory_lock_retry_interval_ms, config[:migration_advisory_lock_retry_interval_ms] || 5000)
+      |> Keyword.put_new(:migration_advisory_lock_max_tries, config[:migration_advisory_lock_max_tries] || 100)
+      |> Keyword.put(:migration_advisory_lock_tries, 0)
+
+    advisory_lock(meta, opts, lock, fn ->
+      {:ok, fun.()}
+    end)
+  end
+
+  defp do_lock_for_migrations(_lock_strategy, meta, opts, fun) do
+    transaction(meta, opts, fn ->
+      # SHARE UPDATE EXCLUSIVE MODE is the first lock that locks
+      # itself but still allows updates to happen, see
+      # # https://www.postgresql.org/docs/9.4/explicit-locking.html
+      source = Keyword.get(opts, :migration_source, "schema_migrations")
+      table = if prefix = opts[:prefix], do: ~s|"#{prefix}"."#{source}"|, else: ~s|"#{source}"|
+      {:ok, _} = Ecto.Adapters.SQL.query(meta, "LOCK TABLE #{table} IN SHARE UPDATE EXCLUSIVE MODE", [], opts)
+      fun.()
+    end)
+  end
+
+  defp advisory_lock(meta, opts, lock, callback) do
+    result = checkout(meta, opts, fn ->
+      case Ecto.Adapters.SQL.query(meta, "SELECT pg_try_advisory_lock(#{lock})", [], opts) do
+        {:ok, %{rows: [[true]]}} ->
+          try do
+            {:ok, callback.()}
+          after
+            {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT pg_advisory_unlock(#{lock})", [], opts)
+          end
+        _ ->
+          :no_advisory_lock
+      end
+    end)
+
+    case result do
+      {:ok, callback_result} ->
+        callback_result
+
+      :no_advisory_lock ->
+        maybe_retry_advisory_lock(meta, opts, lock, callback)
+    end
+  end
+
+  defp maybe_retry_advisory_lock(meta, opts, lock, callback) do
+    interval = opts[:migration_advisory_lock_retry_interval_ms]
+    max_tries = opts[:migration_advisory_lock_max_tries]
+    tries = opts[:migration_advisory_lock_tries]
+
+    if max_tries <= tries do
+      {:error, "Failed to obtain advisory lock. Tried #{max_tries} times waiting #{interval}ms between tries"}
+    else
+      if Keyword.get(opts, :log_migrator_sql, false) do
+        Logger.debug("Migration lock occupied for #{inspect(meta.repo)}. Retry #{tries + 1}/#{max_tries} at #{interval}ms intervals.")
+      end
+
+      Process.sleep(interval)
+      opts = Keyword.update(opts, :migration_advisory_lock_tries, 1, &(&1 + 1))
+      advisory_lock(meta, opts, lock, callback)
+    end
   end
 
   @impl true
