@@ -540,13 +540,19 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Creates an index or a table with only `:id` field if one does not yet exist.
+  Creates one of the following:
+
+    * an index
+    * a constraint
+    * a table with only `:id` field if one does not yet exist.
 
   ## Examples
 
       create_if_not_exists index("posts", [:name])
 
       create_if_not_exists table("version")
+
+      create_if_not_exists constraints(:posts, :price_is_positive, check: "price > 0")
 
   """
   def create_if_not_exists(%Index{} = index) do
