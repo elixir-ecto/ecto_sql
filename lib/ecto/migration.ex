@@ -553,6 +553,10 @@ defmodule Ecto.Migration do
     Runner.execute {:create_if_not_exists, __prefix__(index)}
   end
 
+  def create_if_not_exists(%Constraint{} = constraint) do
+    Runner.execute {:create_if_not_exists, __prefix__(constraint)}
+  end
+
   def create_if_not_exists(%Table{} = table) do
     do_create table, :create_if_not_exists
   end

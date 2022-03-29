@@ -804,6 +804,12 @@ defmodule Ecto.MigrationTest do
     assert {:create, %Index{}} = last_command()
   end
 
+  test "backward: creates a constraint if not exists" do
+    create_if_not_exists constraint(:posts, :price_is_positive, check: "price > 0")
+    flush()
+    assert {:drop_if_exists, %Constraint{}, _} = last_command()
+  end
+
   test "backward: drops a constraint" do
     assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
       drop_if_exists constraint(:posts, :price)
