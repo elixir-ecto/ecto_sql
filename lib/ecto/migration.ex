@@ -904,6 +904,15 @@ defmodule Ecto.Migration do
   Custom Ecto types like `Ecto.UUID` are not supported because
   they are application-level concerns and may not always map to the database.
 
+  Note: It may be necessary to quote case-sensitive, user-defined type names.
+  For example, PostgreSQL normalizes all identifiers to lower case unless
+  they are wrapped in double quotes. To ensure a case-sensitive type name
+  is sent properly, it must be defined `:'"LikeThis"'` or `:"\"LikeThis\""`.
+  This is not necessary for column names because Ecto quotes them automatically.
+  Type names are not automatically quoted because they may be expressions such
+  as `varchar(255)`.
+
+
   ## Examples
 
       create table("posts") do
@@ -911,8 +920,9 @@ defmodule Ecto.Migration do
       end
 
       alter table("posts") do
-        add :summary, :text # Database type
-        add :object,  :map  # Elixir type which is handled by the database
+        add :summary, :text               # Database type
+        add :object,  :map                # Elixir type which is handled by the database
+        add :custom, :'"UserDefinedType"' # A case-sensitive, user-defined type name
       end
 
   ## Options
