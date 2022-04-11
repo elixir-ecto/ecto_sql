@@ -912,7 +912,6 @@ defmodule Ecto.Migration do
   Type names are not automatically quoted because they may be expressions such
   as `varchar(255)`.
 
-
   ## Examples
 
       create table("posts") do
