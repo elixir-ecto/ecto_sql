@@ -1,5 +1,5 @@
 defmodule Ecto.Integration.SQLTest do
-  use Ecto.Integration.Case, async: true
+  use Ecto.Integration.Case, async: Application.compile_env(:ecto, :async_integration_tests, true)
 
   alias Ecto.Integration.PoolRepo
   alias Ecto.Integration.TestRepo
