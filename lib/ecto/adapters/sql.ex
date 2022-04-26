@@ -36,8 +36,8 @@ defmodule Ecto.Adapters.SQL do
     * `query_many!(sql, params, options \\ [])` -
        shortcut for `Ecto.Adapters.SQL.query_many!/4`
 
-    * `to_sql(type, query, options \\ [])` -
-       shortcut for `Ecto.Adapters.SQL.to_sql/4`
+    * `to_sql(type, query)` -
+       shortcut for `Ecto.Adapters.SQL.to_sql/3`
 
   ## Migrations
 
