@@ -1,13 +1,15 @@
 # Changelog for v3.x
 
-## v3.8.0-dev
+## v3.8.0 (2022-04-26)
 
 ### Enhancements
 
-  * [telemetry] Include `:repo` option in telemetry events
   * [migrations] Support `--to-exclusive` in `mix ecto.migrate` and `mix ecto.rollback`
   * [mysql] Add `:comment` support on MySQL migrations
   * [postgres] Support `:prepare` option per operation
+  * [postgres] Optimize `json_extract_path` comparisons in PostgreSQL
+  * [sql] Optionally log last known call, publish stacktrace in telemetry
+  * [telemetry] Include `:repo` option in telemetry events
 
 ### Bug fixes
 
