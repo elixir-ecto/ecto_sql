@@ -205,11 +205,8 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan(:update_all)
 
     assert update_all(query) ==
-      ~s{WITH `target_rows` AS } <>
-      ~s{(SELECT ss0.`id` AS `id` FROM `schema` AS ss0 ORDER BY ss0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
-      ~s{UPDATE `schema` AS s0, `target_rows` AS t1 } <>
-      ~s{SET s0.`x` = 123 } <>
-      ~s{WHERE (t1.`id` = s0.`id`)}
+      ~s{WITH `target_rows` AS (SELECT ss0.`id` AS `id` FROM `schema` AS ss0 ORDER BY ss0.`id` LIMIT 10 FOR UPDATE SKIP LOCKED) } <>
+      ~s{UPDATE `schema` AS s0, (SELECT * FROM `target_rows` WHERE t1.`id` = s0.`id`) AS t1 SET s0.`x` = 123}
   end
 
   test "CTE delete_all" do
@@ -697,13 +694,22 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = Schema |> join(:inner, [p], q in Schema2, on: p.x == q.z)
                   |> update([_], set: [x: 0]) |> plan(:update_all)
     assert update_all(query) ==
-           ~s{UPDATE `schema` AS s0, `schema2` AS s1 SET s0.`x` = 0 WHERE (s0.`x` = s1.`z`)}
+           ~s{UPDATE `schema` AS s0, (SELECT * FROM `schema2` WHERE s0.`x` = s1.`z`) AS s1 SET s0.`x` = 0}
 
     query = from(e in Schema, where: e.x == 123, update: [set: [x: 0]],
                              join: q in Schema2, on: e.x == q.z) |> plan(:update_all)
     assert update_all(query) ==
-           ~s{UPDATE `schema` AS s0, `schema2` AS s1 } <>
-           ~s{SET s0.`x` = 0 WHERE (s0.`x` = s1.`z`) AND (s0.`x` = 123)}
+           ~s{UPDATE `schema` AS s0, (SELECT * FROM `schema2` WHERE s0.`x` = s1.`z`) AS s1 SET s0.`x` = 0 WHERE (s0.`x` = 123)}
+
+    query = from(e in Schema, where: e.x == ^1, update: [set: [x: ^2]],
+                             join: q in Schema2, on: q.z == ^3)
+
+    {query, params} = Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.MyXQL, query)
+
+    assert update_all(query) ==
+           ~s{UPDATE `schema` AS s0, (SELECT * FROM `schema2` WHERE s1.`z` = ?) AS s1 SET s0.`x` = ? WHERE (s0.`x` = ?)}
+
+    assert params == [3, 2, 1]
 
     assert_raise ArgumentError, ":select is not supported in update_all by MySQL", fn ->
       query = from(e in Schema, where: e.x == 123, select: e.x)
@@ -723,8 +729,8 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert update_all(planned_query) ==
       ~s{UPDATE `schema` AS s0, } <>
-      ~s{(SELECT ss0.`id` AS `id`, ss0.`x` AS `x`, ss0.`y` AS `y`, ss0.`z` AS `z`, ss0.`meta` AS `meta` FROM `schema` AS ss0 WHERE (ss0.`x` > ?)) AS s1 } <>
-      ~s{SET s0.`x` = ? WHERE (s0.`id` = s1.`id`)}
+      ~s{(SELECT * FROM (SELECT ss0.`id` AS `id`, ss0.`x` AS `x`, ss0.`y` AS `y`, ss0.`z` AS `z`, ss0.`meta` AS `meta` FROM `schema` AS ss0 WHERE (ss0.`x` > ?)) WHERE s0.`id` = s1.`id`) AS s1 } <>
+      ~s{SET s0.`x` = ?}
 
     assert params == [10, 100]
   end
