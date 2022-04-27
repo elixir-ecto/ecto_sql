@@ -343,9 +343,13 @@ if Code.ensure_loaded?(MyXQL) do
     defp using_join(%{joins: joins} = query, kind, sources) do
       froms =
         intersperse_map(joins, ", ", fn
+          %JoinExpr{source: %Ecto.SubQuery{params: [_ | _]}} ->
+            error!(query, "MySQL adapter does not support subqueries with parameters in update_all/delete_all joins")
+
           %JoinExpr{qual: :inner, ix: ix, source: source} ->
             {join, name} = get_source(query, sources, ix, source)
             [join, " AS " | name]
+
           %JoinExpr{qual: qual} ->
             error!(query, "MySQL adapter supports only inner joins on #{kind}, got: `#{qual}`")
         end)

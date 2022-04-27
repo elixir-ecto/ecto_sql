@@ -712,21 +712,18 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "update all with subquery" do
-    sub = from(p in Schema, where: p.x > ^10)
+    sub = from(p in Schema, where: p.x > 10)
 
     query =
       Schema
       |> join(:inner, [p], p2 in subquery(sub), on: p.id == p2.id)
       |> update([_], set: [x: ^100])
+      |> plan(:update_all)
 
-    {planned_query, params} = Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.MyXQL, query)
-
-    assert update_all(planned_query) ==
+    assert update_all(query) ==
       ~s{UPDATE `schema` AS s0, } <>
-      ~s{(SELECT ss0.`id` AS `id`, ss0.`x` AS `x`, ss0.`y` AS `y`, ss0.`z` AS `z`, ss0.`meta` AS `meta` FROM `schema` AS ss0 WHERE (ss0.`x` > ?)) AS s1 } <>
+      ~s{(SELECT ss0.`id` AS `id`, ss0.`x` AS `x`, ss0.`y` AS `y`, ss0.`z` AS `z`, ss0.`meta` AS `meta` FROM `schema` AS ss0 WHERE (ss0.`x` > 10)) AS s1 } <>
       ~s{SET s0.`x` = ? WHERE (s0.`id` = s1.`id`)}
-
-    assert params == [10, 100]
   end
 
   test "update all with prefix" do
