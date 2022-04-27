@@ -121,9 +121,11 @@ if Code.ensure_loaded?(MyXQL) do
         update_fields(:update, query, sources)
       end
 
-      join = subquery_join(query, :update_all, sources)
+      {join, wheres} = using_join(query, :update_all, sources)
       prefix = prefix || ["UPDATE ", from, " AS ", name, join, " SET "]
-      [cte, prefix, fields | where(query, sources)]
+      where  = where(%{query | wheres: wheres ++ query.wheres}, sources)
+
+      [cte, prefix, fields | where]
     end
 
     @impl true
@@ -337,24 +339,23 @@ if Code.ensure_loaded?(MyXQL) do
       error!(query, "Unknown update operation #{inspect command} for MySQL")
     end
 
-    defp subquery_join(%{joins: []}, _kind, _sources), do: []
-    defp subquery_join(%{joins: joins} = query, kind, sources) do
-      joins =
+    defp using_join(%{joins: []}, _kind, _sources), do: {[], []}
+    defp using_join(%{joins: joins} = query, kind, sources) do
+      froms =
         intersperse_map(joins, ", ", fn
-          %JoinExpr{on: %QueryExpr{expr: true}, qual: :inner, ix: ix, source: source} ->
+          %JoinExpr{qual: :inner, ix: ix, source: source} ->
             {join, name} = get_source(query, sources, ix, source)
             [join, " AS " | name]
-
-          %JoinExpr{on: %QueryExpr{expr: expr}, qual: :inner, ix: ix, source: source} ->
-            {join, name} = get_source(query, sources, ix, source)
-            on = expr(expr, sources, query)
-            ["(SELECT * FROM ", join, " WHERE ", on, ") AS " | name]
-
           %JoinExpr{qual: qual} ->
             error!(query, "MySQL adapter supports only inner joins on #{kind}, got: `#{qual}`")
         end)
 
-      [?,, ?\s | joins]
+      wheres =
+        for %JoinExpr{on: %QueryExpr{expr: value} = expr} <- joins,
+            value != true,
+            do: expr |> Map.put(:__struct__, BooleanExpr) |> Map.put(:op, :and)
+
+      {[?,, ?\s | froms], wheres}
     end
 
     defp join(%{joins: []}, _sources), do: []
