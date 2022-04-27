@@ -851,11 +851,11 @@ defmodule Ecto.Adapters.TdsTest do
     {planned_query, params} = Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.Tds, query)
 
     assert update_all(planned_query) ==
-      ~s{UPDATE s0 SET s0.[x] = @2 FROM [schema] AS s0 INNER JOIN } <>
-      ~S{(SELECT ss0.[id] AS [id], ss0.[x] AS [x], ss0.[y] AS [y], ss0.[z] AS [z], ss0.[w] AS [w] FROM [schema] AS ss0 WHERE (ss0.[x] > @1)) } <>
+      ~s{UPDATE s0 SET s0.[x] = @1 FROM [schema] AS s0 INNER JOIN } <>
+      ~S{(SELECT ss0.[id] AS [id], ss0.[x] AS [x], ss0.[y] AS [y], ss0.[z] AS [z], ss0.[w] AS [w] FROM [schema] AS ss0 WHERE (ss0.[x] > @2)) } <>
       ~S{AS s1 ON s0.[id] = s1.[id]}
 
-    assert params == [10, 100]
+    assert params == [100, 10]
   end
 
   test "update all with returning" do

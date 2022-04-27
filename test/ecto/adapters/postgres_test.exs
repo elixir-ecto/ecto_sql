@@ -854,11 +854,11 @@ defmodule Ecto.Adapters.PostgresTest do
       Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.Postgres, query)
 
     assert update_all(planned_query) ==
-      ~s{UPDATE "schema" AS s0 SET "x" = $2 FROM } <>
-      ~s{(SELECT ss0."id" AS "id", ss0."x" AS "x", ss0."y" AS "y", ss0."z" AS "z", ss0."w" AS "w", ss0."meta" AS "meta" FROM "schema" AS ss0 WHERE (ss0."x" > $1)) } <>
+      ~s{UPDATE "schema" AS s0 SET "x" = $1 FROM } <>
+      ~s{(SELECT ss0."id" AS "id", ss0."x" AS "x", ss0."y" AS "y", ss0."z" AS "z", ss0."w" AS "w", ss0."meta" AS "meta" FROM "schema" AS ss0 WHERE (ss0."x" > $2)) } <>
       ~s{AS s1 WHERE (s0."id" = s1."id")}
 
-    assert params == [10, 100]
+    assert params == [100, 10]
   end
 
   test "update all with prefix" do
