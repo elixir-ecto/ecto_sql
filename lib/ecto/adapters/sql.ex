@@ -14,9 +14,7 @@ defmodule Ecto.Adapters.SQL do
   ## Additional functions
 
   If your `Ecto.Repo` is backed by any of the SQL adapters above,
-  this module will inject additional functions into your repository.
-  These functions can be used by calling the repository or
-  by calling `Ecto.Adapters.SQL` directly. They are listed below:
+  this module will inject additional functions into your repository:
 
     * `disconnect_all(interval, options \\ [])` -
        shortcut for `Ecto.Adapters.SQL.disconnect_all/3`
@@ -38,6 +36,12 @@ defmodule Ecto.Adapters.SQL do
 
     * `to_sql(type, query)` -
        shortcut for `Ecto.Adapters.SQL.to_sql/3`
+
+  Generally speaking, you must invoke those functions directly from
+  your repository, for example: `MyApp.Repo.query("SELECT true")`.
+  You can also invoke them direcltly from `Ecto.Adapters.SQL`, but
+  keep in mind that in such cases features such as "dynamic repositories"
+  won't be available.
 
   ## Migrations
 
@@ -333,7 +337,7 @@ defmodule Ecto.Adapters.SQL do
   def explain(repo, operation, queryable, opts \\ [])
 
   def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
-    explain(lookup_meta(repo), operation, queryable, opts)
+    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, opts)
   end
 
   def explain(%{repo: repo} = adapter_meta, operation, queryable, opts) do
@@ -378,7 +382,7 @@ defmodule Ecto.Adapters.SQL do
   def disconnect_all(repo, interval, opts \\ [])
 
   def disconnect_all(repo, interval, opts) when is_atom(repo) or is_pid(repo) do
-    disconnect_all(lookup_meta(repo), interval, opts)
+    disconnect_all(Ecto.Adapter.lookup_meta(repo), interval, opts)
   end
 
   def disconnect_all(%{pid: pid} = _adapter_meta, interval, opts) do
@@ -416,7 +420,7 @@ defmodule Ecto.Adapters.SQL do
   @spec stream(Ecto.Repo.t, String.t, [term], Keyword.t) :: Enum.t
   def stream(repo, sql, params \\ [], opts \\ []) do
     repo
-    |> lookup_meta()
+    |> Ecto.Adapter.lookup_meta()
     |> Ecto.Adapters.SQL.Stream.build(sql, params, opts)
   end
 
@@ -470,7 +474,7 @@ defmodule Ecto.Adapters.SQL do
   def query(repo, sql, params \\ [], opts \\ [])
 
   def query(repo, sql, params, opts) when is_atom(repo) or is_pid(repo) do
-    query(lookup_meta(repo), sql, params, opts)
+    query(Ecto.Adapter.lookup_meta(repo), sql, params, opts)
   end
 
   def query(adapter_meta, sql, params, opts) do
@@ -527,7 +531,7 @@ defmodule Ecto.Adapters.SQL do
   def query_many(repo, sql, params \\ [], opts \\ [])
 
   def query_many(repo, sql, params, opts) when is_atom(repo) or is_pid(repo) do
-    query_many(lookup_meta(repo), sql, params, opts)
+    query_many(Ecto.Adapter.lookup_meta(repo), sql, params, opts)
   end
 
   def query_many(adapter_meta, sql, params, opts) do
@@ -559,7 +563,7 @@ defmodule Ecto.Adapters.SQL do
   """
   @spec table_exists?(Ecto.Repo.t, table :: String.t) :: boolean
   def table_exists?(repo, table) when is_atom(repo) do
-    %{sql: sql} = adapter_meta = lookup_meta(repo)
+    %{sql: sql} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
     {query, params} = sql.table_exists_query(table)
     query!(adapter_meta, query, params, []).num_rows != 0
   end
@@ -1007,16 +1011,6 @@ defmodule Ecto.Adapters.SQL do
       %DBConnection{conn_mode: :transaction} = conn -> DBConnection.rollback(conn, value)
       _ -> raise "cannot call rollback outside of transaction"
     end
-  end
-
-  ## Meta
-
-  defp lookup_meta(repo) when is_atom(repo) do
-    Ecto.Adapter.lookup_meta(repo.get_dynamic_repo())
-  end
-
-  defp lookup_meta(pid) when is_pid(pid) do
-    Ecto.Adapter.lookup_meta(pid)
   end
 
   ## Migrations
