@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.8.1 (2022-04-29)
+
+### Bug fixes
+
+  * [mysql] Raise on a subquery with parameter on MySQL join
+  * [sql] Do not invoke dynamic repositories in direct `Ecto.Adapters.SQL` operations
+
 ## v3.8.0 (2022-04-26)
 
 ### Enhancements
