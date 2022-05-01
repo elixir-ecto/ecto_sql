@@ -190,6 +190,7 @@ defmodule Ecto.Migrator do
       insufficient permissions to create the table.  Note that migrations
       commands may fail if this is set to true. Defaults to `false`.  Accepts a
       boolean.
+    * `:telemetry_options` - extra options to attach to telemetry events. 
   """
   @spec migrated_versions(Ecto.Repo.t, Keyword.t) :: [integer]
   def migrated_versions(repo, opts \\ []) do
@@ -213,6 +214,7 @@ defmodule Ecto.Migrator do
       See `c:Ecto.Repo.put_dynamic_repo/1`.
     * `:strict_version_order` - abort when applying a migration with old timestamp
       (otherwise it emits a warning)
+    * `:telemetry_options` - extra options to attach to telemetry events.
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
@@ -282,7 +284,7 @@ defmodule Ecto.Migrator do
     * `:prefix` - the prefix to run the migrations on
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
-
+    * `:telemetry_options` - extra options to attach to telemetry events.
   """
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
   def down(repo, version, module, opts \\ []) do
@@ -448,16 +450,39 @@ defmodule Ecto.Migrator do
   Equivalent to:
 
       Ecto.Migrator.migrations(repo, [Ecto.Migrator.migrations_path(repo)])
+      
+  ## Options
 
+    * `:prefix` - the prefix to run the migrations on
+    * `:dynamic_repo` - the name of the Repo supervisor process.
+      See `c:Ecto.Repo.put_dynamic_repo/1`.
+    * `:skip_table_creation` - skips any attempt to create the migration table
+      Useful for situations where user needs to check migrations but has
+      insufficient permissions to create the table.  Note that migrations
+      commands may fail if this is set to true. Defaults to `false`.  Accepts a
+      boolean.
+    * `:telemetry_options` - extra options to attach to telemetry events.
   """
   @spec migrations(Ecto.Repo.t) :: [{:up | :down, id :: integer(), name :: String.t}]
-  def migrations(repo) do
-    migrations(repo, [migrations_path(repo)])
+  def migrations(repo, opts \\ []) do
+    migrations(repo, [migrations_path(repo)], opts)
   end
 
   @doc """
   Returns an array of tuples as the migration status of the given repo,
   without actually running any migrations.
+  
+  ## Options
+
+    * `:prefix` - the prefix to run the migrations on
+    * `:dynamic_repo` - the name of the Repo supervisor process.
+      See `c:Ecto.Repo.put_dynamic_repo/1`.
+    * `:skip_table_creation` - skips any attempt to create the migration table
+      Useful for situations where user needs to check migrations but has
+      insufficient permissions to create the table.  Note that migrations
+      commands may fail if this is set to true. Defaults to `false`.  Accepts a
+      boolean.
+    * `:telemetry_options` - extra options to attach to telemetry events.
   """
   @spec migrations(Ecto.Repo.t, String.t | [String.t], Keyword.t) ::
           [{:up | :down, id :: integer(), name :: String.t}]
