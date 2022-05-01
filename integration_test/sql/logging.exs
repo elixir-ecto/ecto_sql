@@ -76,7 +76,7 @@ defmodule Ecto.Integration.LoggingTest do
 
     defp stacktrace_entry(line) do
       "↳ anonymous fn/0 in Ecto.Integration.LoggingTest.\"test logs includes stacktraces\"/1, " <>
-        "at: integration_test/sql/logging.exs##{line - 3}"
+        "at: integration_test/sql/logging.exs:#{line - 3}"
     end
 
     test "when some measurements are nil" do
