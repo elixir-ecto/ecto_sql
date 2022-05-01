@@ -1178,6 +1178,7 @@ defmodule Ecto.Adapters.SQL do
     with [_ | _] <- stacktrace,
          {module, function, arity, info} <- last_non_ecto(Enum.reverse(stacktrace), repo, nil) do
       [
+        IO.ANSI.light_black(),
         ?\n,
         "↳ ",
         Exception.format_mfa(module, function, arity),
@@ -1189,7 +1190,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp log_stacktrace_info([file: file, line: line] ++ _) do
-    [", at: ", file, ?#, Integer.to_string(line)]
+    [", at: ", file, ?:, Integer.to_string(line)]
   end
 
   defp log_stacktrace_info(_) do
