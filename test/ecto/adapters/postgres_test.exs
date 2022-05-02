@@ -607,17 +607,28 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "optimized json_extract_path" do
     query = Schema |> where([s], s.meta["id"] == 123) |> select(true) |> plan()
-    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE ((s0."meta"@>'{"id": 123}'))|
+    assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0."meta"@>'{"id": 123}'))|
 
     query = Schema |> where([s], s.meta["id"] == "123") |> select(true) |> plan()
-    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE ((s0."meta"@>'{"id": "123"}'))|
+    assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0."meta"@>'{"id": "123"}'))|
 
     query = Schema |> where([s], s.meta["tags"][0]["name"] == "123") |> select(true) |> plan()
-    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE (((s0."meta"#>'{"tags",0}')@>'{"name": "123"}'))|
+    assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE (((s0."meta"#>'{"tags",0}')@>'{"name": "123"}'))|
 
     query = Schema |> where([s], s.meta[0] == "123") |> select(true) |> plan()
-    assert all(query) == ~s|SELECT TRUE FROM \"schema\" AS s0 WHERE ((s0.\"meta\"#>'{0}') = '123')|
+    assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0.\"meta\"#>'{0}') = '123')|
   end
+
+   test "json_extract_path for boolean values" do
+     query = Schema |> where([s], s.meta["enabled"] == "true") |> select(true) |> plan()
+     assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0."meta"#>'{"enabled"}') = 'TRUE')|
+
+     query = Schema |> where([s], s.meta["enabled"] == true) |> select(true) |> plan()
+     assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0."meta"#>'{"enabled"}') = 'TRUE')|
+
+     query = Schema |> where([s], s.meta["audit"]["enabled"] == "true") |> select(true) |> plan()
+     assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0."meta"#>'{"audit","enabled"}') = 'TRUE')|
+   end
 
   test "nested expressions" do
     z = 123
