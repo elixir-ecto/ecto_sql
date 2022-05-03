@@ -710,7 +710,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
 
     defp expr({:==, _, [{:json_extract_path, _, [expr, path]} = left, right]}, sources, query)
-         when is_binary(right) or is_integer(right) do
+         when is_binary(right) or is_integer(right) or is_boolean(right) do
       case Enum.split(path, -1) do
         {path, [last]} when is_binary(last) ->
           extracted = json_extract_path(expr, path, sources, query)
@@ -1353,6 +1353,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp escape_json(value) when is_integer(value) do
       Integer.to_string(value)
     end
+
+    defp escape_json(true), do: ["true"]
+    defp escape_json(false), do: ["false"]
 
     defp ecto_to_db({:array, t}),          do: [ecto_to_db(t), ?[, ?]]
     defp ecto_to_db(:id),                  do: "integer"
