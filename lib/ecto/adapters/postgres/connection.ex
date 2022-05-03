@@ -710,13 +710,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
 
     defp expr({:==, _, [{:json_extract_path, _, [expr, path]} = left, right]}, sources, query)
-         when is_boolean(right) or right in ["TRUE", "true", "FALSE", "false"] do
-      right = quote_boolean(right)
-      [maybe_paren(left, sources, query), " = " | maybe_paren(right, sources, query)]
-    end
-
-    defp expr({:==, _, [{:json_extract_path, _, [expr, path]} = left, right]}, sources, query)
-         when is_binary(right) or is_integer(right) do
+         when is_binary(right) or is_integer(right) or is_boolean(right) do
       case Enum.split(path, -1) do
         {path, [last]} when is_binary(last) ->
           extracted = json_extract_path(expr, path, sources, query)
@@ -1310,9 +1304,7 @@ if Code.ensure_loaded?(Postgrex) do
     # TRUE, ON, or 1 to enable the option, and FALSE, OFF, or 0 to disable it
     defp quote_boolean(nil), do: nil
     defp quote_boolean(true), do: "TRUE"
-    defp quote_boolean(value) when value in ["TRUE", "true"], do: "TRUE"
     defp quote_boolean(false), do: "FALSE"
-    defp quote_boolean(value) when value in ["FALSE", "false"], do: "FALSE"
     defp quote_boolean(value), do: error!(nil, "bad boolean value #{value}")
 
     defp format_to_sql(:text), do: "FORMAT TEXT"
@@ -1361,6 +1353,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp escape_json(value) when is_integer(value) do
       Integer.to_string(value)
     end
+
+    defp escape_json(true), do: ["true"]
+    defp escape_json(false), do: ["false"]
 
     defp ecto_to_db({:array, t}),          do: [ecto_to_db(t), ?[, ?]]
     defp ecto_to_db(:id),                  do: "integer"
