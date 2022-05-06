@@ -109,6 +109,19 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT s0."x", s0."z" FROM (SELECT ss0."x" AS "x", ss0."z" AS "z" FROM (SELECT ssp0."x" AS "x", ssp0."y" AS "z" FROM "posts" AS ssp0) AS ss0) AS s0}
   end
 
+  test "select cast to named column type" do
+    named_typed_column = from(Schema, as: :s) |> select([s: s], type(s.x, s.x)) |> plan()
+    assert all(named_typed_column) == ~s{SELECT s0."x"::bigint FROM "schema" AS s0}
+
+    named_typed_column_joined =
+      from(Schema2, as: :s2)
+      |> join(:inner, [s2: s2], assoc(s2, :post), as: :s)
+      |> select([s: s], type(s.x, s.x))
+      |> plan()
+
+    assert all(named_typed_column_joined) =~ ~s{SELECT s1."x"::bigint}
+  end
+
   test "CTE" do
     initial_query =
       "categories"

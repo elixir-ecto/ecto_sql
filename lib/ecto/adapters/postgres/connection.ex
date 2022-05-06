@@ -750,6 +750,17 @@ if Code.ensure_loaded?(Postgrex) do
       ["'\\x", Base.encode16(binary, case: :lower) | "'::bytea"]
     end
 
+    defp expr(
+           %Ecto.Query.Tagged{
+             value: {{:., [type: type], [_, field]}, [], []} = other,
+             type: {{{:., _, [_, :count_alias!]}, _, _}, field}
+           },
+           sources,
+           query
+         ) do
+      [maybe_paren(other, sources, query), ?:, ?: | tagged_to_db(type)]
+    end
+
     defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
       [maybe_paren(other, sources, query), ?:, ?: | tagged_to_db(type)]
     end
