@@ -306,7 +306,7 @@ defmodule Ecto.Migration do
             use Ecto.Migration
 
             def after_begin() do
-              repo().query! "SET lock_timeout TO '5s'", "SET lock_timeout TO '10s'"
+              repo().query! "SET lock_timeout TO '5s'"
             end
           end
         end
