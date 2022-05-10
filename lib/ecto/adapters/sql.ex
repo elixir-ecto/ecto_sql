@@ -1089,6 +1089,7 @@ defmodule Ecto.Adapters.SQL do
       query: query,
       source: source,
       stacktrace: stacktrace,
+      schema_migration: opts[:schema_migration],
       options: Keyword.get(opts, :telemetry_options, [])
     }
 
