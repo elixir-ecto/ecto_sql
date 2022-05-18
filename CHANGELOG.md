@@ -1,5 +1,12 @@
 # Changelog for v3.x
 
+## v3.8.2 (2022-05-18)
+
+### Bug fixes
+
+  * [postgres] Fix possible breaking change on `json_extract_path` for boolean values introduced in v3.8.0
+  * [sql] Colorize stacktrace and use `:` before printing line number 
+
 ## v3.8.1 (2022-04-29)
 
 ### Bug fixes
