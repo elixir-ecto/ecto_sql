@@ -255,9 +255,10 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   with MySQL prohibited.
 
   However, even on databases like PostgreSQL, performance degradations or
-  deadlocks may still occur. For example, imagine multiple tests are
-  trying to insert the same user to the database. They will attempt to
-  retrieve the same database lock, causing only one test to succeed and
+  deadlocks may still occur. For example, imagine a "users" table with a
+  unique index on the "email" column. Now consider multiple tests are
+  trying to insert the same user email to the database. They will attempt
+  to retrieve the same database lock, causing only one test to succeed and
   run while all other tests wait for the lock.
 
   In other situations, two different tests may proceed in a way that
@@ -284,23 +285,23 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   For example, instead of:
 
       def insert_user do
-        Repo.insert! %User{email: "sample@example.com"}
+        Repo.insert!(%User{email: "sample@example.com"})
       end
 
   prefer:
 
       def insert_user do
-        Repo.insert! %User{email: "sample-#{counter()}@example.com"}
+        Repo.insert!(%User{email: "sample-#{counter()}@example.com"})
       end
 
       defp counter do
-        System.unique_integer [:positive]
+        System.unique_integer([:positive])
       end
 
   In fact, avoiding unique emails like above can also have a positive
   impact on the test suite performance, as it reduces contention and
   wait between concurrent tests. We have heard reports where using
-  dynamic values for uniquely indexed columns, as we did for e-mail
+  dynamic values for uniquely indexed columns, as we did for email
   above, made a test suite run between 2x to 3x faster.
 
   Deadlocks may happen in other circumstances. If you believe you
