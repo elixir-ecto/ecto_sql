@@ -239,6 +239,18 @@ if Code.ensure_loaded?(MyXQL) do
       |> IO.iodata_to_binary()
     end
 
+    @impl true
+    def quote_name(name) when is_atom(name),
+      do: quote_name(Atom.to_string(name))
+
+    def quote_name(name) do
+      if String.contains?(name, "`") do
+        error!(nil, "bad field name #{inspect name}")
+      end
+
+      [?`, name, ?`]
+    end
+
     ## Query generation
 
     binary_ops =
@@ -1037,17 +1049,6 @@ if Code.ensure_loaded?(MyXQL) do
         {%{aliases: %{^as => ix}}, sources} -> {ix, sources}
         {%{} = parent, _sources} -> get_parent_sources_ix(parent, as)
       end
-    end
-
-    defp quote_name(name) when is_atom(name),
-      do: quote_name(Atom.to_string(name))
-
-    defp quote_name(name) do
-      if String.contains?(name, "`") do
-        error!(nil, "bad field name #{inspect name}")
-      end
-
-      [?`, name, ?`]
     end
 
     defp quote_names(names), do: intersperse_map(names, ?,, &quote_name/1)

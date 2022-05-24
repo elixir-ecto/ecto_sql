@@ -169,6 +169,11 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.stream(adapter_meta, query_meta, query, params, opts)
       end
 
+      @imple true
+      def quote_name(name) do
+        Ecto.Adapters.SQL.quote_name(name)
+      end
+
       ## Schema
 
       @impl true
@@ -229,7 +234,7 @@ defmodule Ecto.Adapters.SQL do
       end
 
       defoverridable [prepare: 2, execute: 5, insert: 6, update: 6, delete: 4, insert_all: 8,
-                      execute_ddl: 3, loaders: 2, dumpers: 2, autogenerate: 1,
+                      quote_name: 1, execute_ddl: 3, loaders: 2, dumpers: 2, autogenerate: 1,
                       ensure_all_started: 2, __before_compile__: 1]
     end
   end
@@ -991,6 +996,17 @@ defmodule Ecto.Adapters.SQL do
           constraints -> {:invalid, constraints}
         end
     end
+  end
+
+  @doc false
+  def quote_name(name) when is_atom(name) do
+    quote_name(Atom.to_string(name))
+  end
+  def quote_name(name) do
+    if String.contains?(name, "\"") do
+      raise "bad field name to quote #{inspect name}"
+    end
+    [?", name, ?"]
   end
 
   ## Transactions

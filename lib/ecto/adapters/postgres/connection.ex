@@ -187,6 +187,17 @@ if Code.ensure_loaded?(Postgrex) do
        values, on_conflict(on_conflict, header) | returning(returning)]
     end
 
+    @impl true
+    def quote_name(name) when is_atom(name) do
+      quote_name(Atom.to_string(name))
+    end
+    def quote_name(name) do
+      if String.contains?(name, "\"") do
+        error!(nil, "bad field name #{inspect name}")
+      end
+      [?", name, ?"]
+    end
+
     defp insert_as({%{sources: sources}, _, _}) do
       {_expr, name, _schema} = create_name(sources, 0, [])
       [" AS " | name]
@@ -1277,16 +1288,6 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp quote_names(names) do
       intersperse_map(names, ?,, &quote_name/1)
-    end
-
-    defp quote_name(name) when is_atom(name) do
-      quote_name(Atom.to_string(name))
-    end
-    defp quote_name(name) do
-      if String.contains?(name, "\"") do
-        error!(nil, "bad field name #{inspect name}")
-      end
-      [?", name, ?"]
     end
 
     defp quote_table(nil, name),    do: quote_table(name)
