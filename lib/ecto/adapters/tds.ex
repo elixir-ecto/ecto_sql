@@ -295,4 +295,8 @@ defmodule Ecto.Adapters.Tds do
 
     result
   end
+
+  def quote_name(name) do
+    Ecto.Adapters.Tds.Connection.quote_name(name)
+  end
 end

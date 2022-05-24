@@ -133,10 +133,4 @@ defmodule Ecto.Adapters.SQL.Connection do
   """
   @callback table_exists_query(table :: String.t) :: {iodata, [term]}
 
-  @doc """
-  Returns a safe quoted name that can be used as an
-  identifier (table name, column name, collation name, ..)
-  """
-  @callback quote_name(name :: String.t) :: String.t
-
 end

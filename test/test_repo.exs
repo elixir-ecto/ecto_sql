@@ -72,6 +72,10 @@ defmodule EctoSQL.TestAdapter do
     {:ok, []}
   end
 
+  def quote_name(name) do
+    [?<, name, ?>]
+  end
+
   def in_transaction?(_), do: Process.get(:in_transaction?) || false
 
   def transaction(mod, _opts, fun) do

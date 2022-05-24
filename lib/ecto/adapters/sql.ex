@@ -169,7 +169,7 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.stream(adapter_meta, query_meta, query, params, opts)
       end
 
-      @imple true
+      @impl true
       def quote_name(name) do
         Ecto.Adapters.SQL.quote_name(name)
       end
@@ -1006,7 +1006,7 @@ defmodule Ecto.Adapters.SQL do
     if String.contains?(name, "\"") do
       raise "bad field name to quote #{inspect name}"
     end
-    [?", name, ?"]
+    [?<, name, ?>]
   end
 
   ## Transactions

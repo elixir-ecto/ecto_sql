@@ -239,7 +239,7 @@ if Code.ensure_loaded?(MyXQL) do
       |> IO.iodata_to_binary()
     end
 
-    @impl true
+    @doc false
     def quote_name(name) when is_atom(name),
       do: quote_name(Atom.to_string(name))
 

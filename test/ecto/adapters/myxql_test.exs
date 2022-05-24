@@ -671,6 +671,18 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == String.trim(result)
   end
 
+  test "fragment with escaped parameter" do
+    query =
+      plan from(e in "schema",
+        select: true,
+        order_by: fragment("? COLLATE ?", e.binary, escape!("en-x-icu")))
+
+    result =
+      "SELECT TRUE FROM `schema` AS s0 ORDER BY s0.`binary` COLLATE `en-x-icu`"
+
+    assert all(query) == String.trim(result)
+  end
+
   test "build_explain_query" do
     assert SQL.build_explain_query("SELECT 1") == "EXPLAIN SELECT 1"
   end

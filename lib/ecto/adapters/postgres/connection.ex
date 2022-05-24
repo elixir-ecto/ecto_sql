@@ -187,7 +187,7 @@ if Code.ensure_loaded?(Postgrex) do
        values, on_conflict(on_conflict, header) | returning(returning)]
     end
 
-    @impl true
+    @doc false
     def quote_name(name) when is_atom(name) do
       quote_name(Atom.to_string(name))
     end

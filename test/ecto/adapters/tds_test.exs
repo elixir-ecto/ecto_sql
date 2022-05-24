@@ -322,7 +322,7 @@ defmodule Ecto.Adapters.TdsTest do
       |> select([:id, :parent_id])
 
     cte_query = initial_query |> union_all(^iteration_query)
-    
+
     breadcrumbs_query =
       "tree"
       |> recursive_ctes(true)
@@ -799,6 +799,18 @@ defmodule Ecto.Adapters.TdsTest do
     result =
       "SELECT CAST(1 as bit) FROM [schema] AS s0 " <>
         "WHERE (s0.[start_time] = \"query?\")"
+
+    assert all(query) == String.trim(result)
+  end
+
+  test "fragment with escaped parameter" do
+    query =
+      plan from(e in "schema",
+        select: true,
+        order_by: fragment("? COLLATE ?", e.binary, escape!("en-x-icu")))
+
+    result =
+      "SELECT CAST(1 as bit) FROM [schema] AS s0 ORDER BY s0.[binary] COLLATE [en-x-icu]"
 
     assert all(query) == String.trim(result)
   end

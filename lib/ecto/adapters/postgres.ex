@@ -301,6 +301,11 @@ defmodule Ecto.Adapters.Postgres do
     end
   end
 
+  @impl true
+  def quote_name(name) do
+    Ecto.Adapters.Postgres.Connection.quote_name(name)
+  end
+
   ## Helpers
 
   defp run_query(sql, opts) do

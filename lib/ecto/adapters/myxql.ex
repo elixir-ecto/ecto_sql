@@ -355,6 +355,11 @@ defmodule Ecto.Adapters.MyXQL do
     end
   end
 
+  @impl true
+  def quote_name(name) do
+    Ecto.Adapters.MyXQL.Connection.quote_name(name)
+  end
+
   ## Helpers
 
   defp run_query(sql, opts) do
