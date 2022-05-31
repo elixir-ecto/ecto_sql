@@ -568,6 +568,10 @@ if Code.ensure_loaded?(MyXQL) do
       |> parens_for_select
     end
 
+    defp expr({:literal, _, [literal]}, _sources, _query) do
+      quote_name(literal)
+    end
+
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
       ["date_add(", expr(datetime, sources, query), ", ",
        interval(count, interval, sources, query) | ")"]
@@ -1039,12 +1043,13 @@ if Code.ensure_loaded?(MyXQL) do
       end
     end
 
-    defp quote_name(name) when is_atom(name),
-      do: quote_name(Atom.to_string(name))
+    defp quote_name(name) when is_atom(name) do
+      quote_name(Atom.to_string(name))
+    end
 
-    defp quote_name(name) do
+    defp quote_name(name) when is_binary(name) do
       if String.contains?(name, "`") do
-        error!(nil, "bad field name #{inspect name}")
+        error!(nil, "bad literal/field/table name #{inspect name} (` is not permitted)")
       end
 
       [?`, name, ?`]

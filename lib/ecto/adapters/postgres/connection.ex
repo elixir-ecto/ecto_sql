@@ -674,6 +674,10 @@ if Code.ensure_loaded?(Postgrex) do
       |> parens_for_select
     end
 
+    defp expr({:literal, _, [literal]}, _sources, _query) do
+      quote_name(literal)
+    end
+
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
       [expr(datetime, sources, query), type_unless_typed(datetime, "timestamp"), " + ",
        interval(count, interval, sources, query)]
@@ -1282,10 +1286,12 @@ if Code.ensure_loaded?(Postgrex) do
     defp quote_name(name) when is_atom(name) do
       quote_name(Atom.to_string(name))
     end
-    defp quote_name(name) do
+
+    defp quote_name(name) when is_binary(name) do
       if String.contains?(name, "\"") do
-        error!(nil, "bad field name #{inspect name}")
+        error!(nil, "bad literal/field/table name #{inspect name} (\" is not permitted)")
       end
+
       [?", name, ?"]
     end
 

@@ -600,12 +600,11 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "fragments" do
-    query =
-      Schema
-      |> select([r], fragment("lower(?)", r.x))
-      |> plan()
-
+    query = Schema |> select([r], fragment("lower(?)", r.x)) |> plan()
     assert all(query) == ~s{SELECT lower(s0.[x]) FROM [schema] AS s0}
+
+    query = Schema |> select([r], fragment("? COLLATE ?", r.x, literal(^"es_ES"))) |> plan()
+    assert all(query) == ~s{SELECT s0.[x] COLLATE [es_ES] FROM [schema] AS s0}
 
     value = 13
     query = Schema |> select([r], fragment("lower(?)", ^value)) |> plan()
