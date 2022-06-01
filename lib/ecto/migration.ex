@@ -1062,7 +1062,9 @@ defmodule Ecto.Migration do
   such as adding or dropping a null constraints, consider using
   the `execute/2` command with the relevant SQL command instead
   of `modify/3`, if supported by your database. This may avoid
-  redundant type updates and be more efficient.
+  redundant type updates and be more efficient, as an unnecessary
+  type update can lock the table, even if the type actually
+  doesn't change.
 
   ## Examples
 
