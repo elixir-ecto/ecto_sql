@@ -237,38 +237,38 @@ defmodule Ecto.Integration.SandboxTest do
       Sandbox.checkin(TestRepo)
     end
 
-    test "new process inside a transaction" do
+    test "process does not check out a connection inside a transaction" do
       Sandbox.checkout(TestRepo)
       Sandbox.mode(TestRepo, {:shared, self()})
 
       TestRepo.transaction(fn ->
-        Task.async(fn -> TestRepo.query!("SELECT 1") end)
+        Task.async(fn ->
+          assert_raise DBConnection.ConnectionError, ~r/could not checkout the connection/, fn -> TestRepo.query!("SELECT 1") end
+        end)
         |> Task.await()
       end)
     end
 
-    test "existing process inside a transaction" do
-      {:ok, agent} = Agent.start_link(fn -> %{} end)
+    test "process joins a transaction in progress" do
       Sandbox.checkout(TestRepo)
       Sandbox.mode(TestRepo, {:shared, self()})
 
-      TestRepo.transaction(fn ->
-        Agent.update(agent, fn _ ->
-          TestRepo.query!("SELECT 1")
-        end)
-      end)
-    end
+      get_connection = fn ->
+        Process.get()
+        |> Enum.find(&match?({{Ecto.Adapters.SQL, pid}, %DBConnection{conn_mode: :transaction}} when is_pid(pid), &1))
+      end
 
-    test "existing process inside a transaction (explicit allow)" do
-      {:ok, agent} = Agent.start_link(fn -> %{} end)
-      Sandbox.checkout(TestRepo)
-      Sandbox.mode(TestRepo, {:shared, self()})
-      Sandbox.allow(TestRepo, self(), agent)
+      join_transaction = fn {id, conn} -> Process.put(id, conn) end
 
       TestRepo.transaction(fn ->
-        Agent.update(agent, fn _ ->
-          TestRepo.query!("SELECT 1")
+        assert TestRepo.insert(%Post{})
+        conn = get_connection.()
+
+        Task.async(fn ->
+          join_transaction.(conn)
+          assert TestRepo.all(Post) != []
         end)
+        |> Task.await()
       end)
     end
   end
