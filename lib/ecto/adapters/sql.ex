@@ -221,6 +221,14 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.rollback(meta, value)
       end
 
+      def connection do
+        Ecto.Adapters.SQL.connection()
+      end
+
+      def join_transaction(conn) do
+        Ecto.Adapters.SQL.join_transaction(conn)
+      end
+
       ## Migration
 
       @impl true
@@ -1011,6 +1019,17 @@ defmodule Ecto.Adapters.SQL do
       %DBConnection{conn_mode: :transaction} = conn -> DBConnection.rollback(conn, value)
       _ -> raise "cannot call rollback outside of transaction"
     end
+  end
+
+  @doc false
+  def connection do
+    Process.get()
+    |> Enum.find(&match?({{__MODULE__, pid}, %DBConnection{conn_mode: :transaction}} when is_pid(pid), &1))
+  end
+
+  @doc false
+  def join_transaction({id, conn}) do
+    Process.put(id, conn)
   end
 
   ## Migrations

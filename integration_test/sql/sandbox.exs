@@ -253,19 +253,12 @@ defmodule Ecto.Integration.SandboxTest do
       Sandbox.checkout(TestRepo)
       Sandbox.mode(TestRepo, {:shared, self()})
 
-      get_connection = fn ->
-        Process.get()
-        |> Enum.find(&match?({{Ecto.Adapters.SQL, pid}, %DBConnection{conn_mode: :transaction}} when is_pid(pid), &1))
-      end
-
-      join_transaction = fn {id, conn} -> Process.put(id, conn) end
-
       TestRepo.transaction(fn ->
         assert TestRepo.insert(%Post{})
-        conn = get_connection.()
+        conn = TestRepo.__adapter__.connection()
 
         Task.async(fn ->
-          join_transaction.(conn)
+          TestRepo.__adapter__.join_transaction(conn)
           assert TestRepo.all(Post) != []
         end)
         |> Task.await()
