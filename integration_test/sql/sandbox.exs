@@ -236,6 +236,41 @@ defmodule Ecto.Integration.SandboxTest do
 
       Sandbox.checkin(TestRepo)
     end
+
+    test "new process inside a transaction" do
+      Sandbox.checkout(TestRepo)
+      Sandbox.mode(TestRepo, {:shared, self()})
+
+      TestRepo.transaction(fn ->
+        Task.async(fn -> TestRepo.query!("SELECT 1") end)
+        |> Task.await()
+      end)
+    end
+
+    test "existing process inside a transaction" do
+      {:ok, agent} = Agent.start_link(fn -> %{} end)
+      Sandbox.checkout(TestRepo)
+      Sandbox.mode(TestRepo, {:shared, self()})
+
+      TestRepo.transaction(fn ->
+        Agent.update(agent, fn _ ->
+          TestRepo.query!("SELECT 1")
+        end)
+      end)
+    end
+
+    test "existing process inside a transaction (explicit allow)" do
+      {:ok, agent} = Agent.start_link(fn -> %{} end)
+      Sandbox.checkout(TestRepo)
+      Sandbox.mode(TestRepo, {:shared, self()})
+      Sandbox.allow(TestRepo, self(), agent)
+
+      TestRepo.transaction(fn ->
+        Agent.update(agent, fn _ ->
+          TestRepo.query!("SELECT 1")
+        end)
+      end)
+    end
   end
 
   describe "checkouts" do
