@@ -427,7 +427,7 @@ defmodule Ecto.Adapters.SQL do
   @doc """
   Same as `query/4` but raises on invalid queries.
   """
-  @spec query!(Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
+  @spec query!(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
                %{:rows => nil | [[term] | binary],
                  :num_rows => non_neg_integer,
                  optional(atom) => any}
