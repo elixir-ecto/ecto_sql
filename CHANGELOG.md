@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.8.3 (2022-06-04)
+
+### Enhancements
+
+  * [sql] Implement `literal/1` support in fragments
+
 ## v3.8.2 (2022-05-18)
 
 ### Bug fixes
