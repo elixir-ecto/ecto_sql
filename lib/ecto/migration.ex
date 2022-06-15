@@ -314,6 +314,11 @@ defmodule Ecto.Migration do
 
   Then in your migrations you can `use MyApp.Migration` to share this behavior
   among all your migrations.
+
+  ## Additional resources
+
+    * The [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/)
+
   """
 
   @doc """
