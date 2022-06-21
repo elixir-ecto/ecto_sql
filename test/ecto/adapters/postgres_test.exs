@@ -1881,6 +1881,27 @@ defmodule Ecto.Adapters.PostgresTest do
     assert SQL.ddl_logs(result) == [{:error, ~s(table "foo" exists, skipping), []}]
   end
 
+  defmodule ValuesSchema do
+    use Ecto.Schema
+
+    @primary_key false
+    embedded_schema do
+      field :foo, :integer
+      field :bar, :string
+    end
+  end
+
+  test "generates VALUES list from values/1 sources" do
+
+    table = [
+      %{foo: 1, bar: "ABC"},
+      %{foo: 2, bar: "DEF"}
+    ]
+
+    query = from v in values(table, __MODULE__.ValuesSchema), select: v.bar, order_by: [desc: v.foo]
+    assert all(plan(query)) == ~s{SELECT v0."bar" FROM (VALUES ($1, $2), ($3, $4)) AS v0(foo, bar) ORDER BY v0."foo" DESC}
+  end
+
   defp make_result(level) do
     %Postgrex.Result{
       messages: [

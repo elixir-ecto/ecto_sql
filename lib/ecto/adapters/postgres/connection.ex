@@ -672,6 +672,21 @@ if Code.ensure_loaded?(Postgrex) do
       |> parens_for_select
     end
 
+    defp expr(%Ecto.ValuesList{values: values, schema: schema}, sources, parent_query) do
+      fields = length(schema.__schema__(:fields))
+      {list_of_rows, _} = Enum.map_reduce(1..length(values), 1, fn _, idx ->
+        row =
+          idx..(idx + fields - 1)
+          |> Enum.map(&[?$, to_string(&1)])
+          |> Enum.intersperse(", ")
+
+        {[?(, row, ?)], idx + fields}
+      end)
+
+      rows = Enum.intersperse(list_of_rows, ", ")
+      ["(VALUES ", rows, ")"]
+    end
+
     defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
     end
@@ -854,6 +869,9 @@ if Code.ensure_loaded?(Postgrex) do
 
         %Ecto.SubQuery{} ->
           {nil, as_prefix ++ [?s | Integer.to_string(pos)], nil}
+
+        %Ecto.ValuesList{} ->
+          {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
       end
     end
 
@@ -1262,6 +1280,19 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp get_source(query, sources, ix, source) do
       {expr, name, _schema} = elem(sources, ix)
+
+      name = case source do
+        %Ecto.ValuesList{schema: schema} ->
+          fields =
+            schema.__schema__(:fields)
+            |> Enum.map(&to_string/1)
+            |> Enum.intersperse(", ")
+
+          [name, ?(, fields, ?)]
+        _ ->
+          name
+      end
+
       {expr || expr(source, sources, query), name}
     end
 
