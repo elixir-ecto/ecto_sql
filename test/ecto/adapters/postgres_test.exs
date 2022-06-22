@@ -1892,14 +1892,13 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "generates VALUES list from values/1 sources" do
-
     table = [
       %{foo: 1, bar: "ABC"},
       %{foo: 2, bar: "DEF"}
     ]
 
     query = from v in values(table, __MODULE__.ValuesSchema), select: v.bar, order_by: [desc: v.foo]
-    assert all(plan(query)) == ~s{SELECT v0."bar" FROM (VALUES ($1, $2), ($3, $4)) AS v0(foo, bar) ORDER BY v0."foo" DESC}
+    assert query |> plan() |> all() == ~s{SELECT v0."bar" FROM (VALUES ($1::integer, $2::varchar), ($3::integer, $4::varchar)) AS v0(foo, bar) ORDER BY v0."foo" DESC}
   end
 
   defp make_result(level) do
