@@ -303,41 +303,49 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl true
   def structure_dump(default, config) do
-    table = config[:migration_source] || "schema_migrations"
-    path  = config[:dump_path] || Path.join(default, "structure.sql")
+    migration_table = config[:migration_source] || "schema_migrations"
+    data_migration_tables = config[:migration_dump_additional_data_tables] || []
 
-    with {:ok, versions} <- select_versions(table, config),
-         {:ok, contents} <- mysql_dump(config),
-         {:ok, contents} <- append_versions(table, versions, contents) do
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, contents)
-      {:ok, path}
-    end
+    path = config[:dump_path] || Path.join(default, "structure.sql")
+    File.mkdir_p!(Path.dirname(path))
+    output_stream = File.stream!(path)
+
+    with {:ok, output_stream} <- dump_structure(config, output_stream),
+        {:ok, has_versions?} <- has_versions(migration_table, config),
+        data_migration_tables =
+          if(has_versions?,
+            do: [migration_table | data_migration_tables],
+            else: data_migration_tables
+          ),
+        {:ok, _output_stream} <- dump_migration_data(config, data_migration_tables, output_stream),
+        do: {:ok, path}
   end
 
-  defp select_versions(table, config) do
-    case run_query(~s[SELECT version FROM `#{table}` ORDER BY version], config) do
-      {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, &hd/1)}
-      {:error, %{mysql: %{name: :ER_NO_SUCH_TABLE}}} -> {:ok, []}
+  defp has_versions(table, config) do
+    case run_query(~s[SELECT COUNT(version) > 0 FROM `#{table}`], config) do
+      {:ok, %{rows: [has_versions?]}} -> {:ok, has_versions?}
+      {:error, %{mysql: %{name: :ER_NO_SUCH_TABLE}}} -> {:ok, false}
       {:error, _} = error -> error
       {:exit, exit} -> {:error, exit_to_exception(exit)}
     end
   end
 
-  defp mysql_dump(config) do
-    case run_with_cmd("mysqldump", config, ["--no-data", "--routines", config[:database]]) do
+  defp dump_structure(config, into) do
+    mysql_dump(config, into, ["--no-data", "--routines", config[:database]])
+  end
+
+  defp dump_migration_data(config, tables, into)
+  defp dump_migration_data(_config, [], into), do: {:ok, into}
+
+  defp dump_migration_data(config, tables, into) do
+    mysql_dump(config, into, ["--no-create-info", config[:database] | tables])
+  end
+
+  defp mysql_dump(config, into, arguments) do
+    case run_with_cmd("mysqldump", config, arguments, into) do
       {output, 0} -> {:ok, output}
       {output, _} -> {:error, output}
     end
-  end
-
-  defp append_versions(_table, [], contents) do
-    {:ok, contents}
-  end
-  defp append_versions(table, versions, contents) do
-    {:ok,
-      contents <>
-      Enum.map_join(versions, &~s[INSERT INTO `#{table}` (version) VALUES (#{&1});\n])}
   end
 
   @impl true
@@ -395,7 +403,7 @@ defmodule Ecto.Adapters.MyXQL do
 
   defp exit_to_exception(reason), do: RuntimeError.exception(Exception.format_exit(reason))
 
-  defp run_with_cmd(cmd, opts, opt_args) do
+  defp run_with_cmd(cmd, opts, opt_args, into \\ "") do
     unless System.find_executable(cmd) do
       raise "could not find executable `#{cmd}` in path, " <>
             "please guarantee it is available before running ecto commands"
@@ -426,6 +434,6 @@ defmodule Ecto.Adapters.MyXQL do
         "--protocol", protocol
       ] ++ user_args ++ opt_args
 
-    System.cmd(cmd, args, env: env, stderr_to_stdout: true)
+    System.cmd(cmd, args, env: env, stderr_to_stdout: true, into: into)
   end
 end

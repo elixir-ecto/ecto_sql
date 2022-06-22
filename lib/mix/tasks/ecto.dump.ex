@@ -9,7 +9,8 @@ defmodule Mix.Tasks.Ecto.Dump do
   @aliases [
     d: :dump_path,
     q: :quiet,
-    r: :repo
+    r: :repo,
+    t: :additional_data_tables
   ]
 
   @switches [
@@ -17,7 +18,8 @@ defmodule Mix.Tasks.Ecto.Dump do
     quiet: :boolean,
     repo: [:string, :keep],
     no_compile: :boolean,
-    no_deps_check: :boolean
+    no_deps_check: :boolean,
+    additional_data_tables: [:string, :keep]
   ]
 
   @moduledoc """
@@ -46,12 +48,22 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-q`, `--quiet` - run the command quietly
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
+    * `--additional-data-tables` - add specified table data to dump.
+      Can be supplied multiple times.
   """
 
   @impl true
   def run(args) do
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
-    opts = Keyword.merge(@default_opts, opts)
+
+    opts =
+      @default_opts
+      |> Keyword.merge(opts)
+      |> Keyword.put(
+        :migration_dump_additional_data_tables,
+        Keyword.get_values(opts, :additional_data_tables)
+      )
+      |> Keyword.drop([:additional_data_tables])
 
     Enum.each parse_repo(args), fn repo ->
       ensure_repo(repo, args)

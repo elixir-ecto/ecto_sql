@@ -150,7 +150,32 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
     {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), TestRepo.config())
     contents = File.read!(path)
-    assert contents =~ "INSERT INTO `schema_migrations` (version) VALUES ("
+    assert contents =~ "INSERT INTO `schema_migrations` VALUES ("
+  end
+
+  defmodule MigrationWithData do
+    use Ecto.Migration
+
+    def change do
+      create table(:test) do
+        add :name, :string
+      end
+
+      execute("INSERT INTO test (name) VALUES ('foo')")
+    end
+  end
+
+  test "structure dump and load with additional tables" do
+    num = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, num, MigrationWithData, log: false)
+
+    {:ok, path} =
+      Ecto.Adapters.MyXQL.structure_dump(tmp_path(), [
+        {:migration_dump_additional_data_tables, ["test"]} | TestRepo.config()
+      ])
+
+    contents = File.read!(path)
+    assert contents =~ ~s[INSERT INTO `test` VALUES (]
   end
 
   defp strip_timestamp(dump) do

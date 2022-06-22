@@ -245,6 +245,10 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_repo: App.MigrationRepo
 
+    " `:migration_dump_additional_data_tables` - Specifies tables for which the
+      `ecto.dump` mix task will export table contents. By default only the
+      `:migration_source` table is exported.
+
     * `:priv` - the priv directory for the repo with the location of important assets,
       such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to
       "priv/foo_repo" and migrations should be placed at "priv/foo_repo/migrations"

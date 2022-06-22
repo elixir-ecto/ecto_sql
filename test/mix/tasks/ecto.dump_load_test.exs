@@ -21,8 +21,19 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
       {:ok, child_spec, %{}}
     end
 
-    def structure_dump(_, _), do: Process.get(:structure_dump) || raise "no structure_dump"
-    def structure_load(_, _), do: Process.get(:structure_load) || raise "no structure_load"
+    def structure_dump(default, opts) do
+      if opts[:test_pid],
+        do: send(opts[:test_pid], {:structure_dump_call, {default, Map.new(opts)}})
+
+      Process.get(:structure_dump) || raise "no structure_dump"
+    end
+
+    def structure_load(default, opts) do
+      if opts[:test_pid],
+        do: send(opts[:test_pid], {:structure_load_call, {default, Map.new(opts)}})
+
+      Process.get(:structure_load) || raise "no structure_load"
+    end
   end
 
   defmodule NoStructureAdapter do
@@ -51,7 +62,7 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
   end
 
   setup do
-    Application.put_env(:ecto_sql, __MODULE__.Repo, [])
+    Application.put_env(:ecto_sql, __MODULE__.Repo, [test_pid: self()])
     Application.put_env(:ecto_sql, __MODULE__.NoStructureRepo, [])
   end
 
@@ -79,6 +90,16 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
   test "runs the adapter structure_dump with --quiet" do
     Process.put(:structure_dump, {:ok, "foo"})
     Dump.run ["-r", to_string(Repo), "--quiet"]
+    refute_received {:mix_shell, :info, [_]}
+  end
+
+  test "passes tables to dump" do
+    Process.put(:structure_dump, {:ok, "foo"})
+    Dump.run(["-r", to_string(Repo), "--quiet", "-t", "foo", "--additional-data-tables", "bar"])
+
+    assert_receive {:structure_dump_call,
+                    {_default, %{migration_dump_additional_data_tables: ["foo", "bar"]}}}
+
     refute_received {:mix_shell, :info, [_]}
   end
 

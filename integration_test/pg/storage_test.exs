@@ -144,7 +144,32 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
     {:ok, path} = Postgres.structure_dump(tmp_path(), TestRepo.config())
     contents = File.read!(path)
-    assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES]
+    assert contents =~ ~s[COPY public.schema_migrations (version, inserted_at) FROM stdin]
+  end
+
+  defmodule MigrationWithData do
+    use Ecto.Migration
+
+    def change do
+      create table(:test) do
+        add :name, :string
+      end
+
+      execute("INSERT INTO test (name) VALUES ('foo')")
+    end
+  end
+
+  test "structure dump and load with additional tables" do
+    num = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, num, MigrationWithData, log: false)
+
+    {:ok, path} =
+      Postgres.structure_dump(tmp_path(), [
+        {:migration_dump_additional_data_tables, ["test"]} | TestRepo.config()
+      ])
+
+    contents = File.read!(path)
+    assert contents =~ ~s[COPY public.test (id, name) FROM stdin]
   end
 
   test "storage status is up when database is created" do
