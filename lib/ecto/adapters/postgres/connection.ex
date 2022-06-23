@@ -672,17 +672,21 @@ if Code.ensure_loaded?(Postgrex) do
       |> parens_for_select
     end
 
-    defp expr(%Ecto.ValuesList{values: values, schema: schema}, sources, parent_query) do
-      fields = schema.__schema__(:fields)
+    defp expr(%Ecto.ValuesList{values: values, schema: fields}, sources, parent_query) do
       num_fields = length(fields)
-      {list_of_rows, _} = Enum.map_reduce(1..length(values), 1, fn _, idx ->
+      index_offset = 1
+
+      {list_of_rows, _} = Enum.map_reduce(index_offset..length(values), 1, fn _, idx ->
         row =
           idx..(idx + num_fields - 1)
           |> Enum.map(fn param_index ->
             field_index = rem(param_index - 1, num_fields)
-            field = Enum.at(fields, field_index)
-            type = schema.__schema__(:type, field) |> Ecto.Type.type()
-            [?$, to_string(param_index), "::", ecto_to_db(type)]
+            {field, type} = Enum.at(fields, field_index)
+            typecast = case Ecto.Type.type(type) do
+              :any -> ""
+              type -> ["::", ecto_to_db(type)]
+            end
+            [?$, to_string(param_index), typecast]
           end)
           |> Enum.intersperse(", ")
 
@@ -1290,7 +1294,8 @@ if Code.ensure_loaded?(Postgrex) do
       name = case source do
         %Ecto.ValuesList{schema: schema} ->
           fields =
-            schema.__schema__(:fields)
+            schema
+            |> Keyword.keys()
             |> Enum.map(&[?", to_string(&1), ?"])
             |> Enum.intersperse(", ")
 
