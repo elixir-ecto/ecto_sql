@@ -1888,10 +1888,18 @@ defmodule Ecto.Adapters.PostgresTest do
         %{foo: 2, bar: "DEF"}
       ]
 
+      table_2 = [
+        %{foo: 1, bar: "XYZ"}
+      ]
+
       schema = [foo: :integer, bar: :string]
 
-      query = from v in values(type(table, schema)), select: v.bar, order_by: [desc: v.foo]
-      assert query |> plan() |> all() == ~s{SELECT v0."bar" FROM (VALUES ($1::integer, $2::varchar), ($3::integer, $4::varchar)) AS v0("foo", "bar") ORDER BY v0."foo" DESC}
+      query = from v in values(type(table, schema)),
+        join: v2 in values(table_2), on: v.foo == v2.foo,
+        select: v.bar,
+        order_by: [desc: v.foo]
+      assert query |> plan() |> all() ==
+        ~s{SELECT v0."bar" FROM (VALUES ($1::integer, $2::varchar), ($3::integer, $4::varchar)) AS v0("foo", "bar") INNER JOIN (VALUES ($5, $6)) AS v1("bar", "foo") ON v0."foo" = v1."foo" ORDER BY v0."foo" DESC}
     end
   end
 

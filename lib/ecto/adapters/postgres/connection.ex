@@ -672,11 +672,10 @@ if Code.ensure_loaded?(Postgrex) do
       |> parens_for_select
     end
 
-    defp expr(%Ecto.ValuesList{values: values, schema: fields}, sources, parent_query) do
+    defp expr(%Ecto.ValuesList{values: values, schema: fields, param_offset: param_offset}, sources, parent_query) do
       num_fields = length(fields)
-      index_offset = 1
 
-      {list_of_rows, _} = Enum.map_reduce(index_offset..length(values), 1, fn _, idx ->
+      {list_of_rows, _} = Enum.map_reduce(1..length(values), param_offset + 1, fn _, idx ->
         row =
           idx..(idx + num_fields - 1)
           |> Enum.map(fn param_index ->
