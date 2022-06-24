@@ -192,14 +192,14 @@ defmodule Ecto.Adapters.SQL do
       @impl true
       def update(adapter_meta, %{source: source, prefix: prefix}, fields, params, returning, opts) do
         {fields, field_values} = :lists.unzip(fields)
-        filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
+        filter_values = Keyword.values(params)
         sql = @conn.update(prefix, source, fields, params, returning)
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :update, source, params, field_values ++ filter_values, :raise, returning, opts)
       end
 
       @impl true
       def delete(adapter_meta, %{source: source, prefix: prefix}, params, opts) do
-        filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
+        filter_values = Keyword.values(params)
         sql = @conn.delete(prefix, source, params, [])
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :delete, source, params, filter_values, :raise, [], opts)
       end
@@ -541,7 +541,8 @@ defmodule Ecto.Adapters.SQL do
   defp sql_call(adapter_meta, callback, args, params, opts) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
     conn = get_conn_or_pool(pool)
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    log_params = opts[:cast_params] || params
+    opts = with_log(telemetry, log_params, opts ++ default_opts)
     args = args ++ [params, opts]
     apply(sql, callback, [conn | args])
   end
@@ -934,7 +935,8 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def reduce(adapter_meta, statement, params, opts, acc, fun) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    log_params = opts[:cast_params] || params
+    opts = with_log(telemetry, log_params, opts ++ default_opts)
 
     case get_conn(pool) do
       %DBConnection{conn_mode: :transaction} = conn ->

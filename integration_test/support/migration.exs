@@ -100,6 +100,11 @@ defmodule Ecto.Integration.Migration do
         add :uuids, {:array, :uuid}, default: []
         add :items, {:array, :map}
       end
+
+      create table(:array_loggings) do
+        add :uuids, {:array, :uuid}, default: []
+        timestamps()
+      end
     end
 
     create table(:composite_pk, primary_key: false) do
@@ -127,6 +132,13 @@ defmodule Ecto.Integration.Migration do
 
     create table(:bits) do
       add :bit, :bit
+    end
+
+    create table(:loggings, primary_key: false) do
+      add :bid, :binary_id, primary_key: true
+      add :int, :integer
+      add :uuid, :uuid
+      timestamps()
     end
   end
 end
