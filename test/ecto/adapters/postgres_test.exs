@@ -1901,6 +1901,20 @@ defmodule Ecto.Adapters.PostgresTest do
       assert query |> plan() |> all() ==
         ~s{SELECT v0."bar" FROM (VALUES ($1::integer, $2::varchar), ($3::integer, $4::varchar)) AS v0("foo", "bar") INNER JOIN (VALUES ($5, $6)) AS v1("bar", "foo") ON v0."foo" = v1."foo" ORDER BY v0."foo" DESC}
     end
+
+    test "properly uses values in from clause when using in update_all" do
+      table = [
+        %{id: 1, x: 37},
+        %{id: 2, x: 40}
+      ]
+      schema = [id: :integer, x: :integer]
+      query = from s in Schema, join: v in values(type(table, schema)), on: v.id == s.id,
+        update: [set: [x: v.x]
+      ]
+
+      assert query |> plan(:update_all) |> update_all() ==
+        ~s{UPDATE "schema" AS s0 SET "x" = v1."x" FROM (VALUES ($1::integer, $2::integer), ($3::integer, $4::integer)) AS v1("id", "x") WHERE (v1."id" = s0."id")}
+    end
   end
 
   defp make_result(level) do
