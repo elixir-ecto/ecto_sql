@@ -252,12 +252,13 @@ defmodule Ecto.Integration.LoggingTest do
       # all
       log =
         capture_log(fn ->
-          TestRepo.all(from(l in Logging, where: l.int == ^int and l.uuid == ^uuid), log: :info)
+          TestRepo.all(from(l in Logging, select: type(^"1", :integer), where: l.int == ^int and l.uuid == ^uuid), log: :info)
         end)
 
-      param_regex = ~r/\[(?<int>.+), \"(?<uuid>.+)\"\]/
+      param_regex = ~r/\[(?<tagged_int>.+), (?<int>.+), \"(?<uuid>.+)\"\]/
       param_logs = Regex.named_captures(param_regex, log)
 
+      assert param_logs["tagged_int"] == Integer.to_string(int)
       assert param_logs["int"] == Integer.to_string(int)
       assert param_logs["uuid"] == uuid
 

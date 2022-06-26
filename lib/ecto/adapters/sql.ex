@@ -541,8 +541,7 @@ defmodule Ecto.Adapters.SQL do
   defp sql_call(adapter_meta, callback, args, params, opts) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
     conn = get_conn_or_pool(pool)
-    log_params = opts[:cast_params] || params
-    opts = with_log(telemetry, log_params, opts ++ default_opts)
+    opts = with_log(telemetry, params, opts ++ default_opts)
     args = args ++ [params, opts]
     apply(sql, callback, [conn | args])
   end
@@ -935,8 +934,7 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def reduce(adapter_meta, statement, params, opts, acc, fun) do
     %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
-    log_params = opts[:cast_params] || params
-    opts = with_log(telemetry, log_params, opts ++ default_opts)
+    opts = with_log(telemetry, params, opts ++ default_opts)
 
     case get_conn(pool) do
       %DBConnection{conn_mode: :transaction} = conn ->
@@ -1073,12 +1071,6 @@ defmodule Ecto.Adapters.SQL do
     result = with {:ok, _query, res} <- result, do: {:ok, res}
     stacktrace = Keyword.get(opts, :stacktrace)
 
-    params =
-      Enum.map(params, fn
-        %Ecto.Query.Tagged{value: value} -> value
-        value -> value
-      end)
-
     acc =
       if idle_time, do: [idle_time: idle_time], else: []
 
@@ -1108,7 +1100,7 @@ defmodule Ecto.Adapters.SQL do
       true ->
         Logger.log(
           log,
-          fn -> log_iodata(measurements, repo, source, query, params, result, stacktrace) end,
+          fn -> log_iodata(measurements, repo, source, query, opts[:cast_params] || params, result, stacktrace) end,
           ansi_color: sql_color(query)
         )
 
@@ -1118,7 +1110,7 @@ defmodule Ecto.Adapters.SQL do
       level ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, repo, source, query, params, result, stacktrace) end,
+          fn -> log_iodata(measurements, repo, source, query, opts[:cast_params] || params, result, stacktrace) end,
           ansi_color: sql_color(query)
         )
     end
