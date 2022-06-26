@@ -192,14 +192,14 @@ defmodule Ecto.Adapters.SQL do
       @impl true
       def update(adapter_meta, %{source: source, prefix: prefix}, fields, params, returning, opts) do
         {fields, field_values} = :lists.unzip(fields)
-        filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
+        filter_values = Keyword.values(params)
         sql = @conn.update(prefix, source, fields, params, returning)
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :update, source, params, field_values ++ filter_values, :raise, returning, opts)
       end
 
       @impl true
       def delete(adapter_meta, %{source: source, prefix: prefix}, params, opts) do
-        filter_values = params |> Keyword.values() |> Enum.reject(&is_nil(&1))
+        filter_values = Keyword.values(params)
         sql = @conn.delete(prefix, source, params, [])
         Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :delete, source, params, filter_values, :raise, [], opts)
       end
@@ -1071,12 +1071,6 @@ defmodule Ecto.Adapters.SQL do
     result = with {:ok, _query, res} <- result, do: {:ok, res}
     stacktrace = Keyword.get(opts, :stacktrace)
 
-    params =
-      Enum.map(params, fn
-        %Ecto.Query.Tagged{value: value} -> value
-        value -> value
-      end)
-
     acc =
       if idle_time, do: [idle_time: idle_time], else: []
 
@@ -1106,7 +1100,7 @@ defmodule Ecto.Adapters.SQL do
       true ->
         Logger.log(
           log,
-          fn -> log_iodata(measurements, repo, source, query, params, result, stacktrace) end,
+          fn -> log_iodata(measurements, repo, source, query, opts[:cast_params] || params, result, stacktrace) end,
           ansi_color: sql_color(query)
         )
 
@@ -1116,7 +1110,7 @@ defmodule Ecto.Adapters.SQL do
       level ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, repo, source, query, params, result, stacktrace) end,
+          fn -> log_iodata(measurements, repo, source, query, opts[:cast_params] || params, result, stacktrace) end,
           ansi_color: sql_color(query)
         )
     end
