@@ -14,7 +14,12 @@ defmodule Ecto.Migration.SchemaMigration do
 
   # The migration flag is used to signal to the repository
   # we are in a migration operation.
-  @default_opts [timeout: :infinity, log: false, schema_migration: true]
+  @default_opts [
+    timeout: :infinity,
+    log: false,
+    schema_migration: true,
+    telemetry_options: [schema_migration: true]
+  ]
 
   def ensure_schema_migrations_table!(repo, config, opts) do
     {repo, source} = get_repo_and_source(repo, config)
