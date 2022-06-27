@@ -1089,7 +1089,7 @@ defmodule Ecto.Adapters.SQL do
       query: query,
       source: source,
       stacktrace: stacktrace,
-      options: Keyword.get(opts, :telemetry_options, [])
+      options: telemetry_options(opts[:telemetry_options] || [], opts[:schema_migration])
     }
 
     if event_name = Keyword.get(opts, :telemetry_event, event_name) do
@@ -1117,6 +1117,12 @@ defmodule Ecto.Adapters.SQL do
 
     :ok
   end
+
+  defp telemetry_options(options, nil), do: options
+
+  defp telemetry_options(options, schema_migration),
+    do: Keyword.merge(options, schema_migration: schema_migration)
+
 
   defp log_measurements([{_, nil} | rest], total, acc),
     do: log_measurements(rest, total, acc)
