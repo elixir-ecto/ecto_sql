@@ -89,6 +89,22 @@ defmodule Ecto.Integration.MigratorTest do
     assert down(PoolRepo, 33, AnotherSchemaMigration, log: false) == :ok
   end
 
+  test "ecto-generated migration queries pass schema_migration in telemetry options" do
+    handler = fn _event_name, _measurements, metadata ->
+      send(self(), metadata)
+    end
+
+    # migration table creation
+    Process.put(:telemetry, handler)
+    migrated_versions(PoolRepo, log: false)
+    assert_received %{options: [schema_migration: true]}
+
+    # retrieving the migration versions
+    Process.put(:telemetry, handler)
+    migrated_versions(PoolRepo, migration_lock: false, skip_table_creation: true, log: false)
+    assert_received %{options: [schema_migration: true]}
+  end
+
   test "bad execute migration" do
     assert catch_error(up(PoolRepo, 31, BadMigration, log: false))
   end
