@@ -99,6 +99,11 @@ defmodule Ecto.Integration.MigratorTest do
     migrated_versions(PoolRepo, log: false)
     assert_received %{options: [schema_migration: true]}
 
+    # transaction begin statement
+    Process.put(:telemetry, handler)
+    migrated_versions(PoolRepo, skip_table_creation: true, log: false)
+    assert_received %{options: [schema_migration: true]}
+
     # retrieving the migration versions
     Process.put(:telemetry, handler)
     migrated_versions(PoolRepo, migration_lock: false, skip_table_creation: true, log: false)
