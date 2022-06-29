@@ -1362,25 +1362,23 @@ defmodule Ecto.Migration do
 
   @doc false
   def __primary_key__(table) do
-    opts = case table.primary_key do
+    case table.primary_key do
       false -> false
 
       true ->
         case Runner.repo_config(:migration_primary_key, []) do
           false -> false
-          opts when is_list(opts) -> opts
+          opts when is_list(opts) -> pk_opts_to_tuple(opts)
         end
 
-      opts when is_list(opts) -> opts
+      opts when is_list(opts) -> pk_opts_to_tuple(opts)
     end
-    
-    case opts do
-      false -> false
-      opts when is_list(opts) ->
-        opts = Keyword.put(opts, :primary_key, true)
-        {name, opts} = Keyword.pop(opts, :name, :id)
-        {type, opts} = Keyword.pop(opts, :type, :bigserial)
-        {name, type, opts}
-    end
+  end
+  
+  defp pk_opts_to_tuple(opts) do
+    opts = Keyword.put(opts, :primary_key, true)
+    {name, opts} = Keyword.pop(opts, :name, :id)
+    {type, opts} = Keyword.pop(opts, :type, :bigserial)
+    {name, type, opts}
   end
 end
