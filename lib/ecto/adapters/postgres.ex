@@ -267,8 +267,7 @@ defmodule Ecto.Adapters.Postgres do
     path = config[:dump_path] || Path.join(default, "structure.sql")
     File.mkdir_p!(Path.dirname(path))
 
-    case run_with_cmd("pg_dump", config, ["--file", path, "--schema-only", "--no-acl",
-                                          "--no-owner", config[:database]]) do
+    case run_with_cmd("pg_dump", config, ["--file", path, "--schema-only", "--no-acl", "--no-owner"]) do
       {_output, 0} ->
         {:ok, path}
       {output, _} ->
@@ -293,13 +292,16 @@ defmodule Ecto.Adapters.Postgres do
   @impl true
   def structure_load(default, config) do
     path = config[:dump_path] || Path.join(default, "structure.sql")
-    args = ["--quiet", "--file", path, "-vON_ERROR_STOP=1",
-            "--single-transaction", config[:database]]
+    args = ["--quiet", "--file", path, "-vON_ERROR_STOP=1", "--single-transaction"]
     case run_with_cmd("psql", config, args) do
       {_output, 0} -> {:ok, path}
       {output, _}  -> {:error, output}
     end
   end
+
+  @impl true
+  def dump_cmd(args, opts \\ [], config) when is_list(config) and is_list(args),
+    do: run_with_cmd("pg_dump", config, args, opts)
 
   ## Helpers
 
@@ -338,7 +340,7 @@ defmodule Ecto.Adapters.Postgres do
     end
   end
 
-  defp run_with_cmd(cmd, opts, opt_args) do
+  defp run_with_cmd(cmd, opts, opt_args, cmd_opts \\ []) do
     unless System.find_executable(cmd) do
       raise "could not find executable `#{cmd}` in path, " <>
             "please guarantee it is available before running ecto commands"
@@ -356,9 +358,11 @@ defmodule Ecto.Adapters.Postgres do
     args =
       []
     args =
-      if username = opts[:username], do: ["-U", username|args], else: args
+      if username = opts[:username], do: ["--username", username | args], else: args
     args =
-      if port = opts[:port], do: ["-p", to_string(port)|args], else: args
+      if port = opts[:port], do: ["--port", to_string(port) | args], else: args
+    args =
+      if database = opts[:database], do: ["--dbname", database | args], else: args
 
     host = opts[:socket_dir] || opts[:hostname] || System.get_env("PGHOST") || "localhost"
 
@@ -369,8 +373,14 @@ defmodule Ecto.Adapters.Postgres do
       )
     end
 
-    args = ["--host", host|args]
+    args = ["--host", host | args]
     args = args ++ opt_args
-    System.cmd(cmd, args, env: env, stderr_to_stdout: true)
+
+    cmd_opts =
+      cmd_opts
+      |> Keyword.put_new(:stderr_to_stdout, true)
+      |> Keyword.update(:env, env, &Enum.concat(env, &1))
+
+    System.cmd(cmd, args, cmd_opts)
   end
 end

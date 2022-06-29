@@ -38,4 +38,25 @@ defmodule Ecto.Adapter.Structure do
   """
   @callback structure_load(default :: String.t, config :: Keyword.t) ::
             {:ok, String.t} | {:error, term}
+
+  @doc """
+  Runs the dump command for the given repo / config.
+
+  Calling this function will setup authentication and run the dump cli
+  command with your provided `args`.
+
+  The options in `opts` are passed directly to `System.cmd/3`.
+
+  Returns `{output, exit_status}` where `output` is a string of the stdout
+  (as long as no option `into` is provided, see `System.cmd/3`) and `exit_status`
+  is the exit status of the invoation. (`0` for success)
+
+  ## Examples
+
+      iex> dump_cmd(["--data-only", "--table", "table_name"], [stdout_to_stderr: true], Acme.Repo.config())
+      "--\n-- PostgreSQL database dump\n--\n" <> _rest
+
+  """
+  @callback dump_cmd(args :: [String.t()], opts :: Keyword.t(), config :: Keyword.t()) ::
+              {output :: Collectable.t(), exit_status :: non_neg_integer()}
 end

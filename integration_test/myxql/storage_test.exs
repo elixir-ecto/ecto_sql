@@ -159,4 +159,18 @@ defmodule Ecto.Integration.StorageTest do
     |> Enum.reject(&String.contains?(&1, "completed on"))
     |> Enum.join("\n")
   end
+
+  test "structure dump_cmd" do
+    num = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
+
+    assert {output, 0} =
+             Ecto.Adapters.MyXQL.dump_cmd(
+               ["--no-create-info", "--tables", "schema_migrations"],
+               [],
+               PoolRepo.config()
+             )
+
+    assert output =~ "INSERT INTO `schema_migrations` VALUES ("
+  end
 end

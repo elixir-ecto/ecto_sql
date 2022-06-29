@@ -23,6 +23,7 @@ defmodule Mix.Tasks.Ecto.DumpLoadTest do
 
     def structure_dump(_, _), do: Process.get(:structure_dump) || raise "no structure_dump"
     def structure_load(_, _), do: Process.get(:structure_load) || raise "no structure_load"
+    def dump_cmd(_, _, _), do: Process.get(:dump_cmd) || raise "no dump_cmd"
   end
 
   defmodule NoStructureAdapter do
