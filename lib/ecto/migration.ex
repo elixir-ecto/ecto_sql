@@ -647,9 +647,10 @@ defmodule Ecto.Migration do
   ## Options
 
     * `:primary_key` - when `false`, a primary key field is not generated on table
-      creation. Alternatively, a keyword list can be supplied to control the
-      generation of the primary key field. The keyword list must include `:name`
-      and `:type`. See `add/3` for further options.
+      creation. Alternatively, a keyword list in the same style of the
+      `:migration_primary_key` repository configuration can be supplied
+      to control the generation of the primary key field. The keyword list
+      must include `:name` and `:type`. See `add/3` for further options.
     * `:engine` - customizes the table storage for supported databases. For MySQL,
       the default is InnoDB.
     * `:prefix` - the prefix for the table. This prefix will automatically be used
