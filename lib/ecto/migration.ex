@@ -378,7 +378,7 @@ defmodule Ecto.Migration do
     To define a table in a migration, see `Ecto.Migration.table/2`.
     """
     defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil
-    @type t :: %__MODULE__{name: String.t, prefix: atom | nil, comment: String.t | nil, primary_key: boolean,
+    @type t :: %__MODULE__{name: String.t, prefix: atom | nil, comment: String.t | nil, primary_key: boolean | keyword(),
                            engine: atom, options: String.t}
   end
 
@@ -478,8 +478,8 @@ defmodule Ecto.Migration do
     quote do
       table = %Table{} = unquote(object)
       Runner.start_command({unquote(command), Ecto.Migration.__prefix__(table)})
-
-      if primary_key = table.primary_key && Ecto.Migration.__primary_key__() do
+      
+      if primary_key = Ecto.Migration.__primary_key__(table) do
         {name, type, opts} = primary_key
         add(name, type, opts)
       end
@@ -564,7 +564,7 @@ defmodule Ecto.Migration do
 
   defp do_create(table, command) do
     columns =
-      if primary_key = table.primary_key && Ecto.Migration.__primary_key__() do
+      if primary_key = Ecto.Migration.__primary_key__(table) do
         {name, type, opts} = primary_key
         [{:add, name, type, opts}]
       else
@@ -647,7 +647,9 @@ defmodule Ecto.Migration do
   ## Options
 
     * `:primary_key` - when `false`, a primary key field is not generated on table
-      creation.
+      creation. Alternatively, a keyword list can be supplied to control the
+      generation of the primary key field. The keyword list must include `:name`
+      and `:type`. See `add/3` for further options.
     * `:engine` - customizes the table storage for supported databases. For MySQL,
       the default is InnoDB.
     * `:prefix` - the prefix for the table. This prefix will automatically be used
@@ -1358,11 +1360,21 @@ defmodule Ecto.Migration do
   end
 
   @doc false
-  def __primary_key__() do
-    case Runner.repo_config(:migration_primary_key, []) do
-      false ->
-        false
+  def __primary_key__(table) do
+    opts = case table.primary_key do
+      false -> false
 
+      true ->
+        case Runner.repo_config(:migration_primary_key, []) do
+          false -> false
+          opts when is_list(opts) -> opts
+        end
+
+      opts when is_list(opts) -> opts
+    end
+    
+    case opts do
+      false -> false
       opts when is_list(opts) ->
         opts = Keyword.put(opts, :primary_key, true)
         {name, opts} = Keyword.pop(opts, :name, :id)
