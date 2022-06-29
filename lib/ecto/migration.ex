@@ -478,7 +478,6 @@ defmodule Ecto.Migration do
     quote do
       table = %Table{} = unquote(object)
       Runner.start_command({unquote(command), Ecto.Migration.__prefix__(table)})
-      
       if primary_key = Ecto.Migration.__primary_key__(table) do
         {name, type, opts} = primary_key
         add(name, type, opts)
