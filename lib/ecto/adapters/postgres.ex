@@ -231,7 +231,7 @@ defmodule Ecto.Adapters.Postgres do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
 
-    opts = Keyword.put(opts, :timeout, :infinity)
+    opts = Keyword.merge(opts, [timeout: :infinity, telemetry_options: [schema_migration: true]])
 
     {:ok, result} =
       transaction(meta, opts, fn ->
