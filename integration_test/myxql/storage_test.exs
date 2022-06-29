@@ -150,7 +150,7 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
     {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), TestRepo.config())
     contents = File.read!(path)
-    assert contents =~ "INSERT INTO `schema_migrations` (version) VALUES ("
+    assert contents =~ "INSERT INTO `schema_migrations` VALUES ("
   end
 
   defp strip_timestamp(dump) do

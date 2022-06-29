@@ -250,44 +250,42 @@ defmodule Ecto.Adapters.Postgres do
   @impl true
   def structure_dump(default, config) do
     table = config[:migration_source] || "schema_migrations"
-    with {:ok, versions} <- select_versions(table, config),
-         {:ok, path} <- pg_dump(default, config),
-         do: append_versions(table, versions, path)
+    path = config[:dump_path] || Path.join(default, "structure.sql")
+    File.mkdir_p!(Path.dirname(path))
+    output_stream = File.stream!(path)
+
+    with {:ok, output_stream} <- pg_dump(config, output_stream, ["--schema-only"]),
+        {:ok, has_versions?} <- has_versions(table, config),
+        {:ok, _output_stream} <- dump_versions(config, has_versions?, table, output_stream),
+        do: {:ok, path}
   end
 
-  defp select_versions(table, config) do
-    case run_query(~s[SELECT version FROM public."#{table}" ORDER BY version], config) do
-      {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, &hd/1)}
-      {:error, %{postgres: %{code: :undefined_table}}} -> {:ok, []}
+  defp has_versions(table, config) do
+    case run_query(~s[SELECT COUNT(version) > 0 FROM public."#{table}"], config) do
+      {:ok, %{rows: [[has_versions?]]}} -> {:ok, has_versions?}
+      {:error, %{postgres: %{code: :undefined_table}}} -> {:ok, false}
       {:error, _} = error -> error
     end
   end
 
-  defp pg_dump(default, config) do
-    path = config[:dump_path] || Path.join(default, "structure.sql")
-    File.mkdir_p!(Path.dirname(path))
+  defp dump_versions(config, has_versions?, migration_table, into)
+  defp dump_versions(_config, false, _migration_table, into), do: {:ok, into}
 
-    case run_with_cmd("pg_dump", config, ["--file", path, "--schema-only", "--no-acl",
-                                          "--no-owner", config[:database]]) do
-      {_output, 0} ->
-        {:ok, path}
-      {output, _} ->
-        {:error, output}
+  defp dump_versions(config, true, migration_table, into),
+    do: pg_dump(config, into, ["--data-only", "--table", migration_table])
+
+  defp pg_dump(config, into, arguments) do
+    arguments =
+      List.flatten([
+        ["--no-acl", "--no-owner"],
+        arguments,
+        [config[:database]]
+      ])
+
+    case run_with_cmd("pg_dump", config, arguments, into: into) do
+      {output, 0} -> {:ok, output}
+      {output, _} -> {:error, output}
     end
-  end
-
-  defp append_versions(_table, [], path) do
-    {:ok, path}
-  end
-
-  defp append_versions(table, versions, path) do
-    sql = Enum.map_join(versions, &~s[INSERT INTO public."#{table}" (version) VALUES (#{&1});\n])
-
-    File.open!(path, [:append], fn file ->
-      IO.write(file, sql)
-    end)
-
-    {:ok, path}
   end
 
   @impl true
@@ -338,7 +336,7 @@ defmodule Ecto.Adapters.Postgres do
     end
   end
 
-  defp run_with_cmd(cmd, opts, opt_args) do
+  defp run_with_cmd(cmd, opts, opt_args, cmd_opts \\ []) do
     unless System.find_executable(cmd) do
       raise "could not find executable `#{cmd}` in path, " <>
             "please guarantee it is available before running ecto commands"
@@ -371,6 +369,6 @@ defmodule Ecto.Adapters.Postgres do
 
     args = ["--host", host|args]
     args = args ++ opt_args
-    System.cmd(cmd, args, env: env, stderr_to_stdout: true)
+    System.cmd(cmd, args, cmd_opts ++ [env: env, stderr_to_stdout: true])
   end
 end
