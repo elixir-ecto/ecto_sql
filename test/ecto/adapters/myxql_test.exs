@@ -44,7 +44,7 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   defp plan(query, operation \\ :all) do
-    {query, _params} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.MyXQL, query)
+    {query, _cast_params, _dump_params} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.MyXQL, query)
     query
   end
 
