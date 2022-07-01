@@ -46,7 +46,7 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   defp plan(query, operation \\ :all) do
-    {query, _params} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.Postgres, query)
+    {query, _cast_params, _dump_params} = Ecto.Adapter.Queryable.plan_query(operation, Ecto.Adapters.Postgres, query)
     query
   end
 
@@ -859,7 +859,7 @@ defmodule Ecto.Adapters.PostgresTest do
       |> join(:inner, [p], p2 in subquery(sub), on: p.id == p2.id)
       |> update([_], set: [x: ^100])
 
-    {planned_query, params} =
+    {planned_query, cast_params, dump_params} =
       Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.Postgres, query)
 
     assert update_all(planned_query) ==
@@ -867,7 +867,8 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{(SELECT ss0."id" AS "id", ss0."x" AS "x", ss0."y" AS "y", ss0."z" AS "z", ss0."w" AS "w", ss0."meta" AS "meta" FROM "schema" AS ss0 WHERE (ss0."x" > $2)) } <>
       ~s{AS s1 WHERE (s0."id" = s1."id")}
 
-    assert params == [100, 10]
+    assert cast_params == [100, 10]
+    assert dump_params == [100, 10]
   end
 
   test "update all with prefix" do
