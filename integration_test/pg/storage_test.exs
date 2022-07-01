@@ -165,4 +165,16 @@ defmodule Ecto.Integration.StorageTest do
              assert {:error, _} = Postgres.storage_status(wrong_params())
            end) =~ ~r"FATAL (28000|28P01)"
   end
+
+  test "structure dump_cmd" do
+    num = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
+
+    assert {"--\n-- PostgreSQL database dump\n--\n\n--" <> _rest, 0} =
+             Postgres.dump_cmd(
+               ["--data-only", "--table", "schema_migrations"],
+               [],
+               PoolRepo.config()
+             )
+  end
 end
