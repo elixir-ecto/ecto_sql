@@ -164,6 +164,7 @@ defmodule Ecto.Integration.LoggingTest do
       assert param_logs["uuid"] == uuid
     end
 
+    @tag :insert_select
     test "for insert_all with entries" do
       # Row 1
       int = 1
@@ -219,6 +220,7 @@ defmodule Ecto.Integration.LoggingTest do
       assert param_logs["uuid2"] == uuid2
     end
 
+    @tag :insert_select
     @tag :placeholders
     test "for insert_all with entries and placeholders" do
       # Placeholders
@@ -321,6 +323,7 @@ defmodule Ecto.Integration.LoggingTest do
       assert param_logs["conflict_uuid"] == conflict_uuid
     end
 
+    @tag :insert_select
     @tag :with_conflict_target
     test "for insert_all with entries conflict query" do
       # Row 1
@@ -394,6 +397,7 @@ defmodule Ecto.Integration.LoggingTest do
       assert param_logs["conflict_uuid"] == conflict_uuid
     end
 
+    @tag :insert_select
     @tag :placeholders
     @tag :with_conflict_target
     test "for insert_all with entries, placeholders and conflict query" do
