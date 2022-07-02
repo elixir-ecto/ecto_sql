@@ -1374,7 +1374,7 @@ defmodule Ecto.Migration do
       opts when is_list(opts) -> pk_opts_to_tuple(opts)
 
       _ ->
-        raise ArgumentError, "primary_key must be either a boolean or a keyword list of options"
+        raise ArgumentError, ":primary_key option must be either a boolean or a keyword list of options"
     end
   end
 

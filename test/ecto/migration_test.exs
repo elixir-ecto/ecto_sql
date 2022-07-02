@@ -244,7 +244,7 @@ defmodule Ecto.MigrationTest do
   end
 
   test "forward: passing a value other than a bool to :primary_key on table/2 raises" do
-    assert_raise ArgumentError, "primary_key must be either a boolean or a keyword list of options", fn ->
+    assert_raise ArgumentError, ":primary_key option must be either a boolean or a keyword list of options", fn ->
       create(table(:posts, primary_key: "not a valid value")) do
       end
       flush()
