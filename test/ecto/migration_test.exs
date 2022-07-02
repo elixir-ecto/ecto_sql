@@ -243,6 +243,14 @@ defmodule Ecto.MigrationTest do
            {:create, table, [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
   end
 
+  test "forward: passing a value other than a bool to :primary_key on table/2 raises" do
+    assert_raise ArgumentError, "primary_key must be either a boolean or a keyword list of options", fn ->
+      create(table(:posts, primary_key: "not a valid value")) do
+      end
+      flush()
+    end
+  end
+
   @tag repo_config: [migration_primary_key: false]
   test "forward: create a table without a primary key by default via repo config" do
     create(table = table(:posts))

@@ -1372,9 +1372,12 @@ defmodule Ecto.Migration do
         end
 
       opts when is_list(opts) -> pk_opts_to_tuple(opts)
+
+      _ ->
+        raise ArgumentError, "primary_key must be either a boolean or a keyword list of options"
     end
   end
-  
+
   defp pk_opts_to_tuple(opts) do
     opts = Keyword.put(opts, :primary_key, true)
     {name, opts} = Keyword.pop(opts, :name, :id)
