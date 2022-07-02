@@ -378,7 +378,7 @@ defmodule Ecto.Migration do
     To define a table in a migration, see `Ecto.Migration.table/2`.
     """
     defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil
-    @type t :: %__MODULE__{name: String.t, prefix: atom | nil, comment: String.t | nil, primary_key: boolean,
+    @type t :: %__MODULE__{name: String.t, prefix: atom | nil, comment: String.t | nil, primary_key: boolean | keyword(),
                            engine: atom, options: String.t}
   end
 
@@ -479,7 +479,7 @@ defmodule Ecto.Migration do
       table = %Table{} = unquote(object)
       Runner.start_command({unquote(command), Ecto.Migration.__prefix__(table)})
 
-      if primary_key = table.primary_key && Ecto.Migration.__primary_key__() do
+      if primary_key = Ecto.Migration.__primary_key__(table) do
         {name, type, opts} = primary_key
         add(name, type, opts)
       end
@@ -564,7 +564,7 @@ defmodule Ecto.Migration do
 
   defp do_create(table, command) do
     columns =
-      if primary_key = table.primary_key && Ecto.Migration.__primary_key__() do
+      if primary_key = Ecto.Migration.__primary_key__(table) do
         {name, type, opts} = primary_key
         [{:add, name, type, opts}]
       else
@@ -647,7 +647,10 @@ defmodule Ecto.Migration do
   ## Options
 
     * `:primary_key` - when `false`, a primary key field is not generated on table
-      creation.
+      creation. Alternatively, a keyword list in the same style of the
+      `:migration_primary_key` repository configuration can be supplied
+      to control the generation of the primary key field. The keyword list
+      must include `:name` and `:type`. See `add/3` for further options.
     * `:engine` - customizes the table storage for supported databases. For MySQL,
       the default is InnoDB.
     * `:prefix` - the prefix for the table. This prefix will automatically be used
@@ -1358,16 +1361,27 @@ defmodule Ecto.Migration do
   end
 
   @doc false
-  def __primary_key__() do
-    case Runner.repo_config(:migration_primary_key, []) do
-      false ->
-        false
+  def __primary_key__(table) do
+    case table.primary_key do
+      false -> false
 
-      opts when is_list(opts) ->
-        opts = Keyword.put(opts, :primary_key, true)
-        {name, opts} = Keyword.pop(opts, :name, :id)
-        {type, opts} = Keyword.pop(opts, :type, :bigserial)
-        {name, type, opts}
+      true ->
+        case Runner.repo_config(:migration_primary_key, []) do
+          false -> false
+          opts when is_list(opts) -> pk_opts_to_tuple(opts)
+        end
+
+      opts when is_list(opts) -> pk_opts_to_tuple(opts)
+
+      _ ->
+        raise ArgumentError, ":primary_key option must be either a boolean or a keyword list of options"
     end
+  end
+
+  defp pk_opts_to_tuple(opts) do
+    opts = Keyword.put(opts, :primary_key, true)
+    {name, opts} = Keyword.pop(opts, :name, :id)
+    {type, opts} = Keyword.pop(opts, :type, :bigserial)
+    {name, type, opts}
   end
 end
