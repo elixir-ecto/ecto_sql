@@ -444,7 +444,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
     * `{:shared, pid}` - after checking out a connection in manual mode,
       you can change the mode to `{:shared, pid}`, where pid is the process
       that owns the connection, most often `{:shared, self()}`. This makes it
-      so all processes can use the same connection as the one owner by the
+      so all processes can use the same connection as the one owned by the
       current process. This is the mode you will run your sync tests in
 
   Whenever you change the mode to `:manual` or `:auto`, all existing
