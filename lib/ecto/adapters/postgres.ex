@@ -257,7 +257,7 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp do_lock_for_migrations(:pg_advisory_lock, meta, opts, fun) do
-    lock = :erlang.phash2("ecto_#{inspect(meta.repo)}")
+    lock = :erlang.phash2({:ecto, meta.repo})
     config = meta.repo.config()
 
     opts =
