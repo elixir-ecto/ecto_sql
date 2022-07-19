@@ -266,21 +266,22 @@ defmodule Ecto.Adapters.Postgres do
       |> Keyword.put_new(:migration_advisory_lock_max_tries, config[:migration_advisory_lock_max_tries] || 100)
       |> Keyword.put(:migration_advisory_lock_tries, 0)
 
-    advisory_lock(meta, opts, lock, fn ->
-      {:ok, fun.()}
-    end)
+    advisory_lock(meta, opts, lock, fun)
   end
 
   defp do_lock_for_migrations(_lock_strategy, meta, opts, fun) do
-    transaction(meta, opts, fn ->
-      # SHARE UPDATE EXCLUSIVE MODE is the first lock that locks
-      # itself but still allows updates to happen, see
-      # # https://www.postgresql.org/docs/9.4/explicit-locking.html
-      source = Keyword.get(opts, :migration_source, "schema_migrations")
-      table = if prefix = opts[:prefix], do: ~s|"#{prefix}"."#{source}"|, else: ~s|"#{source}"|
-      {:ok, _} = Ecto.Adapters.SQL.query(meta, "LOCK TABLE #{table} IN SHARE UPDATE EXCLUSIVE MODE", [], opts)
-      fun.()
-    end)
+    {:ok, res} =
+      transaction(meta, opts, fn ->
+        # SHARE UPDATE EXCLUSIVE MODE is the first lock that locks
+        # itself but still allows updates to happen, see
+        # # https://www.postgresql.org/docs/9.4/explicit-locking.html
+        source = Keyword.get(opts, :migration_source, "schema_migrations")
+        table = if prefix = opts[:prefix], do: ~s|"#{prefix}"."#{source}"|, else: ~s|"#{source}"|
+        {:ok, _} = Ecto.Adapters.SQL.query(meta, "LOCK TABLE #{table} IN SHARE UPDATE EXCLUSIVE MODE", [], opts)
+        fun.()
+      end)
+    
+    res
   end
 
   defp advisory_lock(meta, opts, lock, callback) do
