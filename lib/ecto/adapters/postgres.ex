@@ -36,7 +36,7 @@ defmodule Ecto.Adapters.Postgres do
 
   When using the `:pg_advisory_lock` migration lock strategy and Ecto cannot obtain
   the lock due to another instance occupying the lock, Ecto will wait for 5 seconds
-  and then retry up to 100 times. If the retries are exhausted, the migration will
+  and then retry infinity times. If the retries are exhausted, the migration will
   fail. This is configurable on the repo with keys
   `:migration_advisory_lock_retry_interval_ms` and
   `:migration_advisory_lock_max_tries`.
@@ -260,7 +260,7 @@ defmodule Ecto.Adapters.Postgres do
 
     retry_state = %{
       retry_interval_ms: config[:migration_advisory_lock_retry_interval_ms] || 5000,
-      max_tries: config[:migration_advisory_lock_max_tries] || 100,
+      max_tries: config[:migration_advisory_lock_max_tries] || :infinity,
       tries: 0
     }
 
@@ -282,12 +282,12 @@ defmodule Ecto.Adapters.Postgres do
     res
   end
 
-  defp advisory_lock(meta, opts, lock, retry_state, callback) do
+  defp advisory_lock(meta, opts, lock, retry_state, fun) do
     result = checkout(meta, opts, fn ->
       case Ecto.Adapters.SQL.query(meta, "SELECT pg_try_advisory_lock(#{lock})", [], opts) do
         {:ok, %{rows: [[true]]}} ->
           try do
-            {:ok, callback.()}
+            {:ok, fun.()}
           after
             {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT pg_advisory_unlock(#{lock})", [], opts)
           end
@@ -297,29 +297,29 @@ defmodule Ecto.Adapters.Postgres do
     end)
 
     case result do
-      {:ok, callback_result} ->
-        callback_result
+      {:ok, fun_result} ->
+        fun_result
 
       :no_advisory_lock ->
-        maybe_retry_advisory_lock(meta, opts, lock, retry_state, callback)
+        maybe_retry_advisory_lock(meta, opts, lock, retry_state, fun)
     end
   end
 
-  defp maybe_retry_advisory_lock(meta, opts, lock, retry_state, callback) do
+  defp maybe_retry_advisory_lock(meta, opts, lock, retry_state, fun) do
     interval = retry_state[:retry_interval_ms]
     max_tries = retry_state[:max_tries]
     tries = retry_state[:tries]
 
-    if max_tries <= tries do
+    if max_tries != :infinity && max_tries <= tries do
       raise "Failed to obtain advisory lock. Tried #{max_tries} times waiting #{interval}ms between tries"
     else
       if Keyword.get(opts, :log_migrator_sql, false) do
-        Logger.debug("Migration lock occupied for #{inspect(meta.repo)}. Retry #{tries + 1}/#{max_tries} at #{interval}ms intervals.")
+        Logger.info("Migration lock occupied for #{inspect(meta.repo)}. Retry #{tries + 1}/#{max_tries} at #{interval}ms intervals.")
       end
 
       Process.sleep(interval)
       retry_state = %{retry_state | tries: retry_state[:tries] + 1}
-      advisory_lock(meta, opts, lock, retry_state, callback)
+      advisory_lock(meta, opts, lock, retry_state, fun)
     end
   end
 
