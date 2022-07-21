@@ -708,6 +708,7 @@ defmodule Ecto.Migration do
   You can address this with two changes:
 
     1. Change your repository to use PG advisory locks as the migration lock.
+       Note this may not be supported by Postgres-like databases and proxies.
 
     2. Disable DDL transactions. Doing this removes the guarantee that all of
       the changes in the migration will happen at once, so you will want to
