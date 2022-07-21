@@ -700,13 +700,21 @@ defmodule Ecto.Migration do
 
   PostgreSQL supports adding/dropping indexes concurrently (see the
   [docs](http://www.postgresql.org/docs/current/static/sql-createindex.html)).
+  However, this feature does not work well with the transactions used by
+  Ecto to guarantee integrity during migrations.
+
+  You can address this with two changes:
+
+    1. Change your repository to use PG advisory locks as the migration lock.
+
+    2. Disable DDL transactions. Doing this removes the guarantee that all of
+      the changes in the migration will happen at once, so you will want to
+      keep it short.
 
   If the database adapter supports several migration lock strategies, such as
   Postgrex, then review those strategies and consider using a strategy that
   utilizes advisory locks to faciliate running migrations one at a time even
-  across multiple nodes.
-
-  For example:
+  across multiple nodes. For example:
 
       # Config the Repo (PostgreSQL example)
       config MyApp.Repo, migration_lock: :pg_advisory_lock
@@ -720,35 +728,6 @@ defmodule Ecto.Migration do
           create index("posts", [:slug], concurrently: true)
         end
       end
-
-  If your database does not support advisory locks, then Postgres concurrent
-  operations does not work well with the transactions used by Ecto to
-  guarantee integrity during migrations.
-
-  Therefore, to migrate indexes concurrently, you need to set
-  both `@disable_ddl_transaction` and `@disable_migration_lock` to true:
-
-      defmodule MyRepo.Migrations.CreateIndexes do
-        use Ecto.Migration
-        @disable_ddl_transaction true
-        @disable_migration_lock true
-
-        def change do
-          create index("posts", [:slug], concurrently: true)
-        end
-      end
-
-  Disabling DDL transactions removes the guarantee that all of the changes
-  in the migration will happen at once.
-
-  Disabling the migration lock removes the guarantee only a single node will
-  run a given migration if multiple nodes are attempting to migrate at the
-  same time.
-
-  Since running migrations outside a transaction and without locks can be
-  dangerous, consider performing very few operations in migrations that add
-  concurrent indexes. We recommend to run migrations with concurrent indexes
-  in isolation and disable those features only temporarily.
 
   ## Index types
 
