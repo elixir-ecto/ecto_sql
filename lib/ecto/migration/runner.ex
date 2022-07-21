@@ -374,7 +374,7 @@ defmodule Ecto.Migration.Runner do
         Alternatively, consider using advisory locks during migrations in the \
         repo configuration:
 
-            config #{repo |> Module.split() |> Enum.join(".")}, migration_lock: :pg_advisory_lock
+            config #{inspect(repo)}, migration_lock: :pg_advisory_lock
         """, []
 
       {false, _adapter, _migration_lock} ->

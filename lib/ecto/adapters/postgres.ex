@@ -36,10 +36,9 @@ defmodule Ecto.Adapters.Postgres do
 
   When using the `:pg_advisory_lock` migration lock strategy and Ecto cannot obtain
   the lock due to another instance occupying the lock, Ecto will wait for 5 seconds
-  and then retry infinity times. If the retries are exhausted, the migration will
-  fail. This is configurable on the repo with keys
-  `:migration_advisory_lock_retry_interval_ms` and
-  `:migration_advisory_lock_max_tries`.
+  and then retry infinity times. This is configurable on the repo with keys
+  `:migration_advisory_lock_retry_interval_ms` and `:migration_advisory_lock_max_tries`.
+  If the retries are exhausted, the migration will fail.
 
   ### Connection options
 
@@ -289,7 +288,7 @@ defmodule Ecto.Adapters.Postgres do
           try do
             {:ok, fun.()}
           after
-            {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT pg_advisory_unlock(#{lock})", [], opts)
+            release_advisory_lock(meta, opts, lock)
           end
         _ ->
           :no_advisory_lock
@@ -305,20 +304,27 @@ defmodule Ecto.Adapters.Postgres do
     end
   end
 
+  defp release_advisory_lock(meta, opts, lock) do
+    case Ecto.Adapters.SQL.query(meta, "SELECT pg_advisory_unlock(#{lock})", [], opts) do
+      {:ok, %{rows: [[true]]}} ->
+        :ok
+      _ ->
+        raise "failed to release advisory lock"
+    end
+  end
+
   defp maybe_retry_advisory_lock(meta, opts, lock, retry_state, fun) do
-    interval = retry_state[:retry_interval_ms]
-    max_tries = retry_state[:max_tries]
-    tries = retry_state[:tries]
+    %{retry_interval_ms: interval, max_tries: max_tries, tries: tries} = retry_state
 
     if max_tries != :infinity && max_tries <= tries do
-      raise "Failed to obtain advisory lock. Tried #{max_tries} times waiting #{interval}ms between tries"
+      raise "failed to obtain advisory lock. Tried #{max_tries} times waiting #{interval}ms between tries"
     else
       if Keyword.get(opts, :log_migrator_sql, false) do
         Logger.info("Migration lock occupied for #{inspect(meta.repo)}. Retry #{tries + 1}/#{max_tries} at #{interval}ms intervals.")
       end
 
       Process.sleep(interval)
-      retry_state = %{retry_state | tries: retry_state[:tries] + 1}
+      retry_state = %{retry_state | tries: tries + 1}
       advisory_lock(meta, opts, lock, retry_state, fun)
     end
   end
