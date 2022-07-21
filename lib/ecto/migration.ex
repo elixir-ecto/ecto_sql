@@ -228,11 +228,16 @@ defmodule Ecto.Migration do
             updated_at: :changed_at
           ]
 
-    * `:migration_lock` - By default, Ecto will lock the migration table. This allows
-      multiple nodes to attempt to run migrations at the same time but only one will
-      succeed. You can disable the `migration_lock` by setting it to `false`
+    * `:migration_lock` - By default, Ecto will lock the migration source to throttle
+      multiple nodes to run migrations one at a time. You can disable the `migration_lock`
+      by setting it to `false`. You may also select a different locking strategy if
+      supported by the adapter. See the adapter docs for more information.
 
           config :app, App.Repo, migration_lock: false
+          # Or use a different locking strategy. For example, Postgres can use advisory
+          # locks but be aware that your database configuration might not make this a good
+          # fit. See the Ecto.Adapters.Postgres for more information:
+          config :app, App.Repo, migration_lock: :pg_advisory_lock
 
     * `:migration_default_prefix` - Ecto defaults to `nil` for the database prefix for
       migrations, but you can configure it via:
@@ -700,28 +705,32 @@ defmodule Ecto.Migration do
   However, this feature does not work well with the transactions used by
   Ecto to guarantee integrity during migrations.
 
-  Therefore, to migrate indexes concurrently, you need to set
-  both `@disable_ddl_transaction` and `@disable_migration_lock` to true:
+  You can address this with two changes:
 
+    1. Change your repository to use PG advisory locks as the migration lock.
+       Note this may not be supported by Postgres-like databases and proxies.
+
+    2. Disable DDL transactions. Doing this removes the guarantee that all of
+      the changes in the migration will happen at once, so you will want to
+      keep it short.
+
+  If the database adapter supports several migration lock strategies, such as
+  Postgrex, then review those strategies and consider using a strategy that
+  utilizes advisory locks to faciliate running migrations one at a time even
+  across multiple nodes. For example:
+
+      # Config the Repo (PostgreSQL example)
+      config MyApp.Repo, migration_lock: :pg_advisory_lock
+
+      # Migrate with your concurrent operation
       defmodule MyRepo.Migrations.CreateIndexes do
         use Ecto.Migration
         @disable_ddl_transaction true
-        @disable_migration_lock true
 
         def change do
           create index("posts", [:slug], concurrently: true)
         end
       end
-
-  Disabling DDL transactions removes the guarantee that all of the changes
-  in the migration will happen at once. Disabling the migration lock removes
-  the guarantee only a single node will run a given migration if multiple
-  nodes are attempting to migrate at the same time.
-
-  Since running migrations outside a transaction and without locks can be
-  dangerous, consider performing very few operations in migrations that add
-  concurrent indexes. We recommend to run migrations with concurrent indexes
-  in isolation and disable those features only temporarily.
 
   ## Index types
 
