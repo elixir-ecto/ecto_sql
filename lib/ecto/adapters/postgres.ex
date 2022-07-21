@@ -40,6 +40,12 @@ defmodule Ecto.Adapters.Postgres do
   `:migration_advisory_lock_retry_interval_ms` and `:migration_advisory_lock_max_tries`.
   If the retries are exhausted, the migration will fail.
 
+  Some downsides to using advisory locks is that some Postgres-compatible systems or plugins
+  may not support session level locks well and therefore result in inconsistent behavior.
+  For example, PgBouncer when using pool_modes other than session won't work well with
+  advisory locks. CockroachDB is another system that is designed in a way that advisory
+  locks don't make sense for their distributed database.
+
   ### Connection options
 
     * `:hostname` - Server hostname

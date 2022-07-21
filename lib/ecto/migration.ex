@@ -234,7 +234,9 @@ defmodule Ecto.Migration do
       supported by the adapter. See the adapter docs for more information.
 
           config :app, App.Repo, migration_lock: false
-          # Or to use the alternate Postgres lock strategy using advisory locks:
+          # Or use a different locking strategy. For example, Postgres can use advisory
+          # locks but be aware that your database configuration might not make this a good
+          # fit. See the Ecto.Adapters.Postgres for more information:
           config :app, App.Repo, migration_lock: :pg_advisory_lock
 
     * `:migration_default_prefix` - Ecto defaults to `nil` for the database prefix for
