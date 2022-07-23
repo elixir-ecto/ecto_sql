@@ -261,7 +261,7 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp do_lock_for_migrations(:pg_advisory_lock, meta, opts, config, fun) do
-    lock = :erlang.phash2({:ecto, meta.repo})
+    lock = :erlang.phash2({:ecto, opts[:prefix], meta.repo})
 
     retry_state = %{
       retry_interval_ms: config[:migration_advisory_lock_retry_interval_ms] || 5000,
