@@ -5,8 +5,8 @@ all:
 
 test-all:
     BUILD \
-        --build-arg ELIXIR_BASE=1.11.0-erlang-23.1.1-alpine-3.13.1 \
-        --build-arg ELIXIR_BASE=1.11.0-erlang-21.3.8.21-alpine-3.13.1 \
+        --build-arg ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.16.0  \
+        --build-arg ELIXIR_BASE=1.13.4-erlang-22.3.4.20-alpine-3.14.0 \
         +test
 
 
@@ -22,7 +22,7 @@ test:
 
 
 integration-test-all:
-    ARG ELIXIR_BASE=1.11.0-erlang-23.1.1-alpine-3.13.1
+    ARG ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.16.0
     BUILD \
         --build-arg POSTGRES=11.11 \
         --build-arg POSTGRES=9.6 \
@@ -141,7 +141,7 @@ integration-test-mssql:
 
 
 setup-base:
-    ARG ELIXIR_BASE=1.11.0-erlang-23.1.1-alpine-3.13.1
+    ARG ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.16.0
     FROM hexpm/elixir:$ELIXIR_BASE
     RUN apk add --no-progress --update git build-base
     ENV ELIXIR_ASSERT_TIMEOUT=10000
