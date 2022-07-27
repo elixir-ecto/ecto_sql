@@ -1,5 +1,15 @@
 # Changelog for v3.x
 
+## v3.9.0-dev (unreleased)
+
+### Enhancements
+
+  * [migrations] Support `primary_key` configuration options in `table`
+  * [postgres] Support the use of advisory locks for migrations
+  * [sql] Add `dump_cmd` to `postgrex` and `myxql` adapters
+  * [sql] Log human-readable UUIDs by using pre-dumped query parameters
+  * [telemetry] Emit `schema_migration: true` under `telemetry_options`
+
 ## v3.8.3 (2022-06-04)
 
 ### Enhancements
