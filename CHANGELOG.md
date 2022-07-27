@@ -10,9 +10,6 @@
   * [sql] Log human-readable UUIDs by using pre-dumped query parameters
   * [telemetry] Emit `schema_migration: true` under `telemetry_options`
 
-### Bug fix
-
-
 ## v3.8.3 (2022-06-04)
 
 ### Enhancements
