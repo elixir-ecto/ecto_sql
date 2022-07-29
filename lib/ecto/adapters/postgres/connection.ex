@@ -676,6 +676,11 @@ if Code.ensure_loaded?(Postgrex) do
       quote_name(literal)
     end
 
+    defp expr({:alias, _, [column_expr, name]}, sources, query) do
+      column_expr = expr(column_expr, sources, query)
+      [column_expr, " AS ", name]
+    end
+
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
       [expr(datetime, sources, query), type_unless_typed(datetime, "timestamp"), " + ",
        interval(count, interval, sources, query)]

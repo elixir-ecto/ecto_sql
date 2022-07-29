@@ -575,6 +575,14 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 WHERE (s0."foo" = 123.0::float)}
   end
 
+  test "select value aliases" do
+    query = "schema" |> select([s], alias(s.x, "integer")) |> plan()
+    assert all(query) == ~s{SELECT s0."x" AS integer FROM "schema" AS s0}
+
+    query = "schema" |> select([s], s.x |> coalesce(0) |> sum() |> alias("integer")) |> plan()
+    assert all(query) == ~s{SELECT sum(coalesce(s0."x", 0)) AS integer FROM "schema" AS s0}
+  end
+
   test "datetime_add" do
     query = "schema" |> where([s], datetime_add(s.foo, 1, "month") > s.bar) |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 WHERE (s0."foo"::timestamp + interval '1 month' > s0."bar")}

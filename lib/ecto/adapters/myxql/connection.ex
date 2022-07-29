@@ -572,6 +572,11 @@ if Code.ensure_loaded?(MyXQL) do
       quote_name(literal)
     end
 
+    defp expr({:alias, _, [column_expr, name]}, sources, query) do
+      column_expr = expr(column_expr, sources, query)
+      [column_expr, " AS ", name]
+    end
+
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
       ["date_add(", expr(datetime, sources, query), ", ",
        interval(count, interval, sources, query) | ")"]

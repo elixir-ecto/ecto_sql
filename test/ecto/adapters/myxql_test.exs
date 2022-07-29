@@ -527,6 +527,14 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT TRUE FROM `schema` AS s0 WHERE (s0.`foo` = (0 + 123.0))}
   end
 
+  test "select value aliases" do
+    query = "schema" |> select([s], alias(s.x, "integer")) |> plan()
+    assert all(query) == ~s{SELECT s0.`x` AS integer FROM `schema` AS s0}
+
+    query = "schema" |> select([s], s.x |> coalesce(0) |> sum() |> alias("integer")) |> plan()
+    assert all(query) == ~s{SELECT sum(coalesce(s0.`x`, 0)) AS integer FROM `schema` AS s0}
+  end
+
   test "tagged type" do
     query = Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
     assert all(query) == ~s{SELECT CAST(? AS binary(16)) FROM `schema` AS s0}
