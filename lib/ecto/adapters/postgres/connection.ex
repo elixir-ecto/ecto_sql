@@ -374,6 +374,8 @@ if Code.ensure_loaded?(Postgrex) do
           end
         {key, value} ->
           [expr(value, sources, query), " AS " | quote_name(key)]
+        {:alias, _, [field_expr, name]} ->
+          [expr(field_expr, sources, query), " AS ", Atom.to_string(name)]
         value ->
           expr(value, sources, query)
       end)
@@ -676,9 +678,15 @@ if Code.ensure_loaded?(Postgrex) do
       quote_name(literal)
     end
 
-    defp expr({:alias, _, [column_expr, name]}, sources, query) do
-      column_expr = expr(column_expr, sources, query)
-      [column_expr, " AS ", name]
+    defp expr({:alias, _, [name]}, _sources, _query) do
+      [Atom.to_string(name)]
+    end
+
+    defp expr({:alias, _, [_field_expr, _name]}, _sources, _query) do
+      raise ArgumentError,
+          "`alias/2` can only be used in the outer most `select` expression. " <>
+            "If you are attempting to alias a field from a subquery, it is not allowed " <>
+              "because subquery fields are automatically aliased by the corresponding map/struct key."
     end
 
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
