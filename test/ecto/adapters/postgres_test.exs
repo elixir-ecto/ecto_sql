@@ -575,33 +575,33 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 WHERE (s0."foo" = 123.0::float)}
   end
 
-  test "aliasing a selected value with alias/2" do
-    query = "schema" |> select([s], alias(s.x, :integer)) |> plan()
+  test "aliasing a selected value with selected_as/2" do
+    query = "schema" |> select([s], selected_as(s.x, :integer)) |> plan()
     assert all(query) == ~s{SELECT s0."x" AS integer FROM "schema" AS s0}
 
-    query = "schema" |> select([s], s.x |> coalesce(0) |> sum() |> alias(:integer)) |> plan()
+    query = "schema" |> select([s], s.x |> coalesce(0) |> sum() |> selected_as(:integer)) |> plan()
     assert all(query) == ~s{SELECT sum(coalesce(s0."x", 0)) AS integer FROM "schema" AS s0}
   end
 
-  test "raises if alias/2 is used in a subquery" do
-    message = ~r"`alias/2` can only be used in the outer most `select` expression."
+  test "raises if selected_as/2 is used in a subquery" do
+    message = ~r"`selected_as/2` can only be used in the outer most `select` expression."
 
     assert_raise ArgumentError, message, fn ->
-      subquery = "schema" |> select([s], %{x: alias(s.x, :integer)}) |> subquery() |> plan()
+      subquery = "schema" |> select([s], %{x: selected_as(s.x, :integer)}) |> subquery() |> plan()
       all(subquery)
     end
   end
 
-  test "group_by can reference the alias of a selected value with alias/1" do
-    query = "schema" |> select([s], alias(s.x, :integer)) |> group_by(alias(:integer)) |> plan()
+  test "group_by can reference the alias of a selected value with selected_as/1" do
+    query = "schema" |> select([s], selected_as(s.x, :integer)) |> group_by(selected_as(:integer)) |> plan()
     assert all(query) == ~s{SELECT s0."x" AS integer FROM "schema" AS s0 GROUP BY integer}
   end
 
-  test "order_by can reference the alias of a selected value with alias/1" do
-    query = "schema" |> select([s], alias(s.x, :integer)) |> order_by(alias(:integer)) |> plan()
+  test "order_by can reference the alias of a selected value with selected_as/1" do
+    query = "schema" |> select([s], selected_as(s.x, :integer)) |> order_by(selected_as(:integer)) |> plan()
     assert all(query) == ~s{SELECT s0."x" AS integer FROM "schema" AS s0 ORDER BY integer}
 
-    query = "schema" |> select([s], alias(s.x, :integer)) |> order_by([desc: alias(:integer)]) |> plan()
+    query = "schema" |> select([s], selected_as(s.x, :integer)) |> order_by([desc: selected_as(:integer)]) |> plan()
     assert all(query) == ~s{SELECT s0."x" AS integer FROM "schema" AS s0 ORDER BY integer DESC}
   end
 

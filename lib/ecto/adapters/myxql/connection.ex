@@ -279,7 +279,7 @@ if Code.ensure_loaded?(MyXQL) do
           end
         {key, value} ->
           [expr(value, sources, query), " AS ", quote_name(key)]
-        {:alias, _, [field_expr, name]} ->
+        {:selected_as, _, [field_expr, name]} ->
           [expr(field_expr, sources, query), " AS ", Atom.to_string(name)]
         value ->
           expr(value, sources, query)
@@ -574,13 +574,13 @@ if Code.ensure_loaded?(MyXQL) do
       quote_name(literal)
     end
 
-    defp expr({:alias, _, [name]}, _sources, _query) do
+    defp expr({:selected_as, _, [name]}, _sources, _query) do
       [Atom.to_string(name)]
     end
 
-    defp expr({:alias, _, [_field_expr, _name]}, _sources, _query) do
+    defp expr({:selected_as, _, [_field_expr, _name]}, _sources, _query) do
       raise ArgumentError,
-          "`alias/2` can only be used in the outer most `select` expression. " <>
+          "`selected_as/2` can only be used in the outer most `select` expression. " <>
             "If you are attempting to alias a field from a subquery, it is not allowed " <>
               "because subquery fields are automatically aliased by the corresponding map/struct key."
     end
