@@ -48,7 +48,9 @@ ExUnit.start(
     # MSSQL does not support streaming
     :stream,
     # MSSQL fails the regex matching because it uses square brackets outside of the parameter list
-    :parameter_logging
+    :parameter_logging,
+    # MSSQL can't reference aliased columns in GROUP BY
+    :selected_as_with_group_by
   ]
 )
 
