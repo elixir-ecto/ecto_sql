@@ -557,6 +557,17 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT s0.`x` AS integer FROM `schema` AS s0 ORDER BY integer DESC}
   end
 
+  test "having can reference the alias of a selected value with selected_as/1" do
+    query =
+      "schema"
+      |> select([s], selected_as(s.x, :integer))
+      |> group_by(selected_as(:integer))
+      |> having(selected_as(:integer) > 0)
+      |> plan()
+
+    assert all(query) == ~s{SELECT s0.`x` AS integer FROM `schema` AS s0 GROUP BY integer HAVING (integer > 0)}
+  end
+
   test "tagged type" do
     query = Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
     assert all(query) == ~s{SELECT CAST(? AS binary(16)) FROM `schema` AS s0}

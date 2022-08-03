@@ -96,13 +96,14 @@ version =
     _other -> version
   end
 
+excludes = [:selected_as_with_having, :selected_as_with_order_by_expression]
 excludes_above_9_5 = [:without_conflict_target]
 excludes_below_9_6 = [:add_column_if_not_exists, :no_error_on_conditional_column_migration]
 
 if Version.match?(version, "< 9.6.0") do
-  ExUnit.configure(exclude: excludes_above_9_5 ++ excludes_below_9_6)
+  ExUnit.configure(exclude: excludes ++ excludes_above_9_5 ++ excludes_below_9_6)
 else
-  ExUnit.configure(exclude: excludes_above_9_5)
+  ExUnit.configure(exclude: excludes ++ excludes_above_9_5)
 end
 
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)

@@ -51,6 +51,8 @@ ExUnit.start(
     :parameter_logging,
     # MSSQL can't reference aliased columns in GROUP BY
     :selected_as_with_group_by
+    # MSSQL can't reference aliased columns in HAVING
+    :selected_as_with_having
   ]
 )
 
