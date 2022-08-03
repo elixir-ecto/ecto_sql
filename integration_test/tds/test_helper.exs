@@ -52,7 +52,9 @@ ExUnit.start(
     # MSSQL can't reference aliased columns in GROUP BY
     :selected_as_with_group_by,
     # MSSQL can't reference aliased columns in HAVING
-    :selected_as_with_having
+    :selected_as_with_having,
+    # MSSQL can't reference aliased columns in ORDER BY expressions
+    :selected_as_with_order_by_expression
   ]
 )
 
