@@ -565,7 +565,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> having(selected_as(:integer) > 0)
       |> plan()
 
-    assert all(query) == ~s{SELECT s0.`x` AS integer FROM `schema` AS s0 GROUP BY integer HAVING (integer > 0)}
+    assert all(query) == ~s{SELECT s0.`x` AS integer FROM `schema` AS s0 GROUP BY integer HAVING (`integer` > 0)}
   end
 
   test "tagged type" do
