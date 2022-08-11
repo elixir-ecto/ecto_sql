@@ -8,6 +8,7 @@
   * [postgres] Support the use of advisory locks for migrations
   * [sql] Add `dump_cmd` to `postgrex` and `myxql` adapters
   * [sql] Log human-readable UUIDs by using pre-dumped query parameters
+  * [sql] Support select aliases from `selected_as/1` and `selected_as/2`
   * [telemetry] Emit `schema_migration: true` under `telemetry_options`
 
 ## v3.8.3 (2022-06-04)
