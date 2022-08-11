@@ -643,27 +643,18 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "aliasing a selected value with selected_as/2" do
     query = "schema" |> select([s], selected_as(s.x, :integer)) |> plan()
-    assert all(query) == ~s{SELECT s0.[x] AS integer FROM [schema] AS s0}
+    assert all(query) == ~s{SELECT s0.[x] AS [integer] FROM [schema] AS s0}
 
     query = "schema" |> select([s], s.x |> coalesce(0) |> sum() |> selected_as(:integer)) |> plan()
-    assert all(query) == ~s{SELECT sum(coalesce(s0.[x], 0)) AS integer FROM [schema] AS s0}
-  end
-
-  test "raises if selected_as/2 is used in a subquery" do
-    message = ~r"`selected_as/2` can only be used in the outer most `select` expression."
-
-    assert_raise ArgumentError, message, fn ->
-      subquery = "schema" |> select([s], %{x: selected_as(s.x, :integer)}) |> subquery() |> plan()
-      all(subquery)
-    end
+    assert all(query) == ~s{SELECT sum(coalesce(s0.[x], 0)) AS [integer] FROM [schema] AS s0}
   end
 
   test "order_by can reference the alias of a selected value with selected_as/1s" do
     query = "schema" |> select([s], selected_as(s.x, :integer)) |> order_by(selected_as(:integer)) |> plan()
-    assert all(query) == ~s{SELECT s0.[x] AS integer FROM [schema] AS s0 ORDER BY integer}
+    assert all(query) == ~s{SELECT s0.[x] AS [integer] FROM [schema] AS s0 ORDER BY [integer]}
 
     query = "schema" |> select([s], selected_as(s.x, :integer)) |> order_by([desc: selected_as(:integer)]) |> plan()
-    assert all(query) == ~s{SELECT s0.[x] AS integer FROM [schema] AS s0 ORDER BY integer DESC}
+    assert all(query) == ~s{SELECT s0.[x] AS [integer] FROM [schema] AS s0 ORDER BY [integer] DESC}
   end
 
   test "tagged type" do
