@@ -576,7 +576,7 @@ if Code.ensure_loaded?(MyXQL) do
       [quote_name(name)]
     end
 
-    defp expr({:selected_as, _, [_expr, _name]}, _sources, _query) do
+    defp expr({:selected_as, _, [_field_expr, _name]}, _sources, _query) do
       raise ArgumentError,
           "`selected_as/2` can only be used in the outer most `select` expression. " <>
             "If you are attempting to alias a field from a subquery, it is not allowed " <>
