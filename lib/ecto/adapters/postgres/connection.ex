@@ -680,13 +680,6 @@ if Code.ensure_loaded?(Postgrex) do
       [quote_name(name)]
     end
 
-    defp expr({:selected_as, _, [_field_expr, _name]}, _sources, _query) do
-      raise ArgumentError,
-          "`selected_as/2` can only be used in the outer most `select` expression. " <>
-            "If you are attempting to alias a field from a subquery, it is not allowed " <>
-              "because subquery fields are automatically aliased by the corresponding map/struct key."
-    end
-
     defp expr({:datetime_add, _, [datetime, count, interval]}, sources, query) do
       [expr(datetime, sources, query), type_unless_typed(datetime, "timestamp"), " + ",
        interval(count, interval, sources, query)]
