@@ -228,6 +228,10 @@ defmodule Ecto.Migration do
             updated_at: :changed_at
           ]
 
+      You can also enforce explicit configure of `timestamps/1` via:
+
+          config :app, App.Repo, migration_timestamps: explicitly_defined
+
     * `:migration_lock` - By default, Ecto will lock the migration source to throttle
       multiple nodes to run migrations one at a time. You can disable the `migration_lock`
       by setting it to `false`. You may also select a different locking strategy if
@@ -1051,7 +1055,7 @@ defmodule Ecto.Migration do
 
   """
   def timestamps(opts \\ []) when is_list(opts) do
-    opts = Keyword.merge(Runner.repo_config(:migration_timestamps, []), opts)
+    opts = maybe_merge_timestamps_opts!(Runner.repo_config(:migration_timestamps, []), opts)
     opts = Keyword.put_new(opts, :null, false)
 
     {type, opts} = Keyword.pop(opts, :type, :naive_datetime)
@@ -1060,6 +1064,20 @@ defmodule Ecto.Migration do
 
     if inserted_at != false, do: add(inserted_at, type, opts)
     if updated_at != false, do: add(updated_at, type, opts)
+  end
+
+  defp maybe_merge_timestamps_opts!(:explicitly_defined, opts) do
+    for opt <- [:inserted_at, :updated_at, :type, :default] do
+      unless Keyword.has_key?(opts, opt) do
+        raise ArgumentError, "timestamps is missing explicit :#{opt} option"
+      end
+    end
+
+    opts
+  end
+
+  defp maybe_merge_timestamps_opts!(migration_timestamps, opts) do
+    Keyword.merge(migration_timestamps, opts)
   end
 
   @doc """

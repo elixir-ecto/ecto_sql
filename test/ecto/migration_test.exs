@@ -282,6 +282,46 @@ defmodule Ecto.MigrationTest do
               {:add, :updated_at, :utc_datetime, [null: true]}]}
   end
 
+  @tag repo_config: [migration_timestamps: :explicitly_defined]
+  test "forward: enforces the timestamps :inserted_at option to be explicitly defined" do
+    assert_raise ArgumentError, "timestamps is missing explicit :inserted_at option", fn ->
+      create(table(:posts)) do
+        timestamps()
+      end
+      flush()
+    end
+  end
+
+  @tag repo_config: [migration_timestamps: :explicitly_defined]
+  test "forward: enforces the timestamps :updated_at option to be explicitly defined" do
+    assert_raise ArgumentError, "timestamps is missing explicit :updated_at option", fn ->
+      create(table(:posts)) do
+        timestamps(inserted_at: :inserted_at)
+      end
+      flush()
+    end
+  end
+
+  @tag repo_config: [migration_timestamps: :explicitly_defined]
+  test "forward: enforces the timestamps :type option to be explicitly defined" do
+    assert_raise ArgumentError, "timestamps is missing explicit :type option", fn ->
+      create(table(:posts)) do
+        timestamps(inserted_at: :inserted_at, updated_at: :updated_at)
+      end
+      flush()
+    end
+  end
+
+  @tag repo_config: [migration_timestamps: :explicitly_defined]
+  test "forward: enforces the timestamps :default option to be explicitly defined" do
+    assert_raise ArgumentError, "timestamps is missing explicit :default option", fn ->
+      create(table(:posts)) do
+        timestamps(inserted_at: :inserted_at, updated_at: :updated_at, type: :utc_datetime)
+      end
+      flush()
+    end
+  end
+
   test "forward: creates a table without precision option for numeric type" do
     assert_raise ArgumentError, "column cost is missing precision option", fn ->
       create(table(:posts)) do
