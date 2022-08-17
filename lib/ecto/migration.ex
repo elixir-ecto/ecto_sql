@@ -180,24 +180,11 @@ defmodule Ecto.Migration do
   To avoid that we recommend to use `execute/2` with anonymous functions instead.
   For more information and example usage please take a look at `execute/2` function.
 
-  ## Comments
-
-  Migrations where you create or alter a table support specifying table
-  and column comments. The same can be done when creating constraints
-  and indexes. Not all databases support this feature.
-
-      def up do
-        create index("posts", [:name], comment: "Index Comment")
-        create constraint("products", "price_must_be_positive", check: "price > 0", comment: "Constraint Comment")
-        create table("weather", prefix: "north_america", comment: "Table Comment") do
-          add :city, :string, size: 40, comment: "Column Comment"
-          timestamps()
-        end
-      end
-
   ## Repo configuration
 
-  The following migration configuration options are available for a given repository:
+  ### Migrator configuration
+
+  These options configure how the underlying migration engine works:
 
     * `:migration_source` - Version numbers of migrations will be saved in a
       table named `schema_migrations` by default. You can configure the name of
@@ -205,44 +192,17 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_source: "my_migrations"
 
-    * `:migration_primary_key` - By default, Ecto uses the `:id` column with type
-      `:bigserial`, but you can configure it via:
-
-          config :app, App.Repo, migration_primary_key: [name: :uuid, type: :binary_id]
-
-          config :app, App.Repo, migration_primary_key: false
-
-    * `:migration_foreign_key` - By default, Ecto uses the migration_primary_key type
-      for foreign keys when references/2 is used, but you can configure it via:
-
-          config :app, App.Repo, migration_foreign_key: [column: :uuid, type: :binary_id]
-
-    * `:migration_timestamps` - By default, Ecto uses the `:naive_datetime` as the type,
-      `:inserted_at` as the name of the column for storing insertion times, `:updated_at` as
-      the name of the column for storing last-updated-at times, but you can configure it
-      via:
-
-          config :app, App.Repo, migration_timestamps: [
-            type: :utc_datetime,
-            inserted_at: :created_at,
-            updated_at: :changed_at
-          ]
-
     * `:migration_lock` - By default, Ecto will lock the migration source to throttle
       multiple nodes to run migrations one at a time. You can disable the `migration_lock`
       by setting it to `false`. You may also select a different locking strategy if
       supported by the adapter. See the adapter docs for more information.
 
           config :app, App.Repo, migration_lock: false
+
           # Or use a different locking strategy. For example, Postgres can use advisory
           # locks but be aware that your database configuration might not make this a good
           # fit. See the Ecto.Adapters.Postgres for more information:
           config :app, App.Repo, migration_lock: :pg_advisory_lock
-
-    * `:migration_default_prefix` - Ecto defaults to `nil` for the database prefix for
-      migrations, but you can configure it via:
-
-          config :app, App.Repo, migration_default_prefix: "my_prefix"
 
     * `:migration_repo` - The migration repository is where the table managing the
       migrations will be stored (`migration_source` defines the table name). It defaults
@@ -258,6 +218,55 @@ defmodule Ecto.Migration do
       running migrations. Used by `Ecto.Migrator.with_repo/3` and the migration tasks:
 
           config :app, App.Repo, start_apps_before_migration: [:ssl, :some_custom_logger]
+
+  ### Migrations configuration
+
+  These options configure how each migration works. **It is generally discouraged
+  to change any of those configurations after your database is deployed to production,
+  as changing these options will retroactively change how all migrations work**.
+
+    * `:migration_primary_key` - By default, Ecto uses the `:id` column with type
+      `:bigserial`, but you can configure it via:
+
+          config :app, App.Repo, migration_primary_key: [name: :uuid, type: :binary_id]
+
+          config :app, App.Repo, migration_primary_key: false
+
+    * `:migration_foreign_key` - By default, Ecto uses the `primary_key` type
+      for foreign keys when `references/2` is used, but you can configure it via:
+
+          config :app, App.Repo, migration_foreign_key: [column: :uuid, type: :binary_id]
+
+    * `:migration_timestamps` - By default, Ecto uses the `:naive_datetime` as the type,
+      `:inserted_at` as the name of the column for storing insertion times, `:updated_at` as
+      the name of the column for storing last-updated-at times, but you can configure it
+      via:
+
+          config :app, App.Repo, migration_timestamps: [
+            type: :utc_datetime,
+            inserted_at: :created_at,
+            updated_at: :changed_at
+          ]
+
+    * `:migration_default_prefix` - Ecto defaults to `nil` for the database prefix for
+      migrations, but you can configure it via:
+
+          config :app, App.Repo, migration_default_prefix: "my_prefix"
+
+  ## Comments
+
+  Migrations where you create or alter a table support specifying table
+  and column comments. The same can be done when creating constraints
+  and indexes. Not all databases support this feature.
+
+      def up do
+        create index("posts", [:name], comment: "Index Comment")
+        create constraint("products", "price_must_be_positive", check: "price > 0", comment: "Constraint Comment")
+        create table("weather", prefix: "north_america", comment: "Table Comment") do
+          add :city, :string, size: 40, comment: "Column Comment"
+          timestamps()
+        end
+      end
 
   ## Prefixes
 
