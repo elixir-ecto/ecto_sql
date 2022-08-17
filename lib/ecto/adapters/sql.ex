@@ -315,9 +315,6 @@ defmodule Ecto.Adapters.SQL do
   _Postgrex_: Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html)
   for version compatibility.
 
-  _MyXQL_: `EXTENDED` and `PARTITIONS` opts were [deprecated](https://dev.mysql.com/doc/refman/5.7/en/explain.html)
-  and are enabled by default.
-
   Also note that:
 
     * Currently `:map`, `:yaml`, and `:text` format options are supported
@@ -635,30 +632,6 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def __before_compile__(driver, _env) do
-    case Application.get_env(:ecto, :json_library) do
-      nil ->
-        :ok
-
-      Jason ->
-        IO.warn """
-        Jason is the default :json_library in Ecto 3.0.
-        You no longer need to configure it explicitly,
-        please remove this line from your config files:
-
-            config :ecto, :json_library, Jason
-
-        """
-
-      value ->
-        IO.warn """
-        The :json_library configuration for the :ecto application is deprecated.
-        Please configure the :json_library in the driver instead:
-
-            config #{inspect driver}, :json_library, #{inspect value}
-
-        """
-    end
-
     quote do
       @doc """
       A convenience function for SQL-based repositories that executes the given query.

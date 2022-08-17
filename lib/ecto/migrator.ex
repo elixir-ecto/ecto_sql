@@ -216,14 +216,6 @@ defmodule Ecto.Migrator do
   """
   @spec up(Ecto.Repo.t, integer, module, Keyword.t) :: :ok | :already_up
   def up(repo, version, module, opts \\ []) do
-    opts =
-      if log_sql = opts[:log_sql] do
-        IO.warn(":log_sql is deprecated, please use log_migrations_sql instead")
-        Keyword.put(opts, :log_migrations_sql, log_sql)
-      else
-        opts
-      end
-
     conditional_lock_for_migrations module, version, repo, opts, fn config, versions ->
       if version in versions do
         :already_up
@@ -286,14 +278,6 @@ defmodule Ecto.Migrator do
   """
   @spec down(Ecto.Repo.t, integer, module) :: :ok | :already_down
   def down(repo, version, module, opts \\ []) do
-    opts =
-      if log_sql = opts[:log_sql] do
-        IO.warn(":log_sql is deprecated, please use log_migrations_sql instead")
-        Keyword.put(opts, :log_migrations_sql, log_sql)
-      else
-        opts
-      end
-
     conditional_lock_for_migrations module, version, repo, opts, fn config, versions ->
       if version in versions do
         do_down(repo, config, version, module, opts)
@@ -408,14 +392,6 @@ defmodule Ecto.Migrator do
   """
   @spec run(Ecto.Repo.t, String.t | [String.t] | [{integer, module}], atom, Keyword.t) :: [integer]
   def run(repo, migration_source, direction, opts) do
-    opts =
-      if log_sql = opts[:log_sql] do
-        IO.warn(":log_sql is deprecated, please use log_migrations_sql instead")
-        Keyword.put(opts, :log_migrations_sql, log_sql)
-      else
-        opts
-      end
-
     migration_source = List.wrap(migration_source)
 
     pending =
