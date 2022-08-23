@@ -39,7 +39,7 @@ defmodule Ecto.Adapters.SQL do
 
   Generally speaking, you must invoke those functions directly from
   your repository, for example: `MyApp.Repo.query("SELECT true")`.
-  You can also invoke them direcltly from `Ecto.Adapters.SQL`, but
+  You can also invoke them directly from `Ecto.Adapters.SQL`, but
   keep in mind that in such cases features such as "dynamic repositories"
   won't be available.
 
