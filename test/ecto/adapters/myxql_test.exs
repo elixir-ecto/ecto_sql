@@ -88,7 +88,7 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = "0posts" |> select([:x]) |> plan()
     assert all(query) == ~s{SELECT t0.`x` FROM `0posts` AS t0}
 
-    assert_raise Ecto.QueryError, ~r"MySQL does not support selecting all fields from `posts` without a schema", fn ->
+    assert_raise Ecto.QueryError, ~r"MySQL adapter does not support selecting all fields from `posts` without a schema", fn ->
       all from(p in "posts", select: p) |> plan()
     end
   end
@@ -102,6 +102,15 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = subquery(subquery("posts" |> select([r], %{x: r.x, z: r.y})) |> select([r], r)) |> select([r], r) |> plan()
     assert all(query) == ~s{SELECT s0.`x`, s0.`z` FROM (SELECT ss0.`x` AS `x`, ss0.`z` AS `z` FROM (SELECT ssp0.`x` AS `x`, ssp0.`y` AS `z` FROM `posts` AS ssp0) AS ss0) AS s0}
+  end
+
+  test "from with fragment" do
+    query = from(f in fragment("select ? as x", ^"abc"), select: f.x) |> plan()
+    assert all(query) == ~s{SELECT f0.`x` FROM (select ? as x) AS f0}
+
+    assert_raise Ecto.QueryError, ~r"MySQL adapter does not support selecting all fields from fragment", fn ->
+      all from(f in fragment("select ? as x", ^"abc"), select: f) |> plan()
+    end
   end
 
   test "CTE" do

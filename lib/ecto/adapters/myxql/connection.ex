@@ -271,8 +271,11 @@ if Code.ensure_loaded?(MyXQL) do
       intersperse_map(fields, ", ", fn
         {:&, _, [idx]} ->
           case elem(sources, idx) do
+            {nil, source, nil} ->
+              error!(query, "MySQL adapter does not support selecting all fields from fragment #{source}. " <>
+                            "Please specify exactly which fields you want to select")
             {source, _, nil} ->
-              error!(query, "MySQL does not support selecting all fields from #{source} without a schema. " <>
+              error!(query, "MySQL adapter does not support selecting all fields from #{source} without a schema. " <>
                             "Please specify a schema or specify exactly which fields you want to select")
             {_, source, _} ->
               source
