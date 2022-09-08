@@ -108,6 +108,9 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = from(f in fragment("select ? as x", ^"abc"), select: f.x) |> plan()
     assert all(query) == ~s{SELECT f0.`x` FROM (select ? as x) AS f0}
 
+    query = from(fragment("select ? as x", ^"abc"), select: fragment("x")) |> plan()
+    assert all(query) == ~s{SELECT x FROM (select ? as x) AS f0}
+
     assert_raise Ecto.QueryError, ~r"MySQL adapter does not support selecting all fields from fragment", fn ->
       all from(f in fragment("select ? as x", ^"abc"), select: f) |> plan()
     end

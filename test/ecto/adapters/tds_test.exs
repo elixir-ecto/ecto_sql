@@ -146,6 +146,9 @@ defmodule Ecto.Adapters.TdsTest do
     query = from(f in fragment("select ? as x", ^"abc"), select: f.x) |> plan()
     assert all(query) == ~s{SELECT f0.[x] FROM (select @1 as x) AS f0}
 
+    query = from(fragment("select ? as x", ^"abc"), select: fragment("x")) |> plan()
+    assert all(query) == ~s{SELECT x FROM (select @1 as x) AS f0}
+
     assert_raise Ecto.QueryError, ~r"Tds adapter does not support selecting all fields from fragment", fn ->
       all from(f in fragment("select ? as x", ^"abc"), select: f) |> plan()
     end
