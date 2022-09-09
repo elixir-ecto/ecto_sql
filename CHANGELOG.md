@@ -5,6 +5,7 @@
 ### Enhancements
 
   * [migrations] Support `primary_key` configuration options in `table`
+  * [migrations] Add `:nulls_distinct` option for unique indexes
   * [postgres] Support the use of advisory locks for migrations
   * [sql] Add `dump_cmd` to `postgrex` and `myxql` adapters
   * [sql] Log human-readable UUIDs by using pre-dumped query parameters
@@ -22,7 +23,7 @@
 ### Bug fixes
 
   * [postgres] Fix possible breaking change on `json_extract_path` for boolean values introduced in v3.8.0
-  * [sql] Colorize stacktrace and use `:` before printing line number 
+  * [sql] Colorize stacktrace and use `:` before printing line number
 
 ## v3.8.1 (2022-04-29)
 
