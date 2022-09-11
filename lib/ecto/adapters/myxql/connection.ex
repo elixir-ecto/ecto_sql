@@ -773,7 +773,7 @@ if Code.ensure_loaded?(MyXQL) do
         error!(nil, "MySQL adapter does not support where in indexes")
       end
 
-      if index.nulls_distinct do
+      if index.nulls_distinct != nil do
         error!(nil, "MySQL adapter does not support nulls_distinct in indexes")
       end
 
