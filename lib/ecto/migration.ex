@@ -1374,6 +1374,10 @@ defmodule Ecto.Migration do
   end
 
   defp validate_index_opts!(opts) when is_list(opts) do
+    if opts[:nulls_distinct] != nil and opts[:unique] != true do
+      raise ArgumentError, "the `nulls_distinct` option can only be used with unique indexes"
+    end
+
     case Keyword.get_values(opts, :where) do
       [_, _ | _] ->
         raise ArgumentError,

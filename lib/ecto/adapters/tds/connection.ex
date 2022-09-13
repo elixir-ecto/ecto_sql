@@ -1069,8 +1069,8 @@ if Code.ensure_loaded?(Tds) do
         error!(nil, "MSSQL does not support `using` in indexes")
       end
 
-      if index.nulls_distinct != nil do
-        error!(nil, "MSSQL does not support nulls_distinct in indexes")
+      if index.nulls_distinct == true do
+        error!(nil, "MSSQL does not support nulls_distinct set to true in indexes")
       end
 
       with_options =

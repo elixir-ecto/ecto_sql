@@ -773,8 +773,8 @@ if Code.ensure_loaded?(MyXQL) do
         error!(nil, "MySQL adapter does not support where in indexes")
       end
 
-      if index.nulls_distinct != nil do
-        error!(nil, "MySQL adapter does not support nulls_distinct in indexes")
+      if index.nulls_distinct == false do
+        error!(nil, "MySQL adapter does not support nulls_distinct set to false in indexes")
       end
 
       [["CREATE", if_do(index.unique, " UNIQUE"), " INDEX ",

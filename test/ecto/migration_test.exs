@@ -70,6 +70,15 @@ defmodule Ecto.MigrationTest do
            %Index{table: "table_one__table_two", unique: true, name: :table_one__table_two_title_index, columns: [:title]}
   end
 
+  test "raises if nulls_distinct is set for a non-unique index" do
+    assert_raise ArgumentError, fn ->
+      index(:posts, [:title], unique: false, nulls_distinct: false)
+    end
+    assert_raise ArgumentError, fn ->
+      index(:posts, [:title], unique: false, nulls_distinct: true)
+    end
+  end
+
   test "raises if given multiple 'where' clauses for an index" do
     assert_raise ArgumentError, fn ->
       index(:posts, [:title], where: "status = 'published'", where: "deleted = 'false'")
