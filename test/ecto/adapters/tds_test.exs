@@ -142,6 +142,18 @@ defmodule Ecto.Adapters.TdsTest do
              ~s{SELECT s0.[x], s0.[z] FROM (SELECT ss0.[x] AS [x], ss0.[z] AS [z] FROM (SELECT ssp0.[x] AS [x], ssp0.[y] AS [z] FROM [posts] AS ssp0) AS ss0) AS s0}
   end
 
+  test "from with fragment" do
+    query = from(f in fragment("select ? as x", ^"abc"), select: f.x) |> plan()
+    assert all(query) == ~s{SELECT f0.[x] FROM (select @1 as x) AS f0}
+
+    query = from(fragment("select ? as x", ^"abc"), select: fragment("x")) |> plan()
+    assert all(query) == ~s{SELECT x FROM (select @1 as x) AS f0}
+
+    assert_raise Ecto.QueryError, ~r"Tds adapter does not support selecting all fields from fragment", fn ->
+      all from(f in fragment("select ? as x", ^"abc"), select: f) |> plan()
+    end
+  end
+
   test "join with subquery" do
     posts = subquery("posts" |> where(title: ^"hello") |> select([r], %{x: r.x, y: r.y}))
 
