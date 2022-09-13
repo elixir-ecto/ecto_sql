@@ -908,6 +908,13 @@ if Code.ensure_loaded?(Postgrex) do
       fields = intersperse_map(index.columns, ", ", &index_expr/1)
       include_fields = intersperse_map(index.include, ", ", &index_expr/1)
 
+      maybe_nulls_distinct =
+        case index.nulls_distinct do
+          nil -> []
+          true -> " NULLS DISTINCT"
+          false -> " NULLS NOT DISTINCT"
+        end
+
       queries = [["CREATE ",
                   if_do(index.unique, "UNIQUE "),
                   "INDEX ",
@@ -919,6 +926,7 @@ if Code.ensure_loaded?(Postgrex) do
                   if_do(index.using, [" USING " , to_string(index.using)]),
                   ?\s, ?(, fields, ?),
                   if_do(include_fields != [], [" INCLUDE ", ?(, include_fields, ?)]),
+                  maybe_nulls_distinct,
                   if_do(index.where, [" WHERE ", to_string(index.where)])]]
 
       queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)

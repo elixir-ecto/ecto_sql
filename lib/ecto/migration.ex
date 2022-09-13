@@ -366,6 +366,7 @@ defmodule Ecto.Migration do
               concurrently: false,
               using: nil,
               include: [],
+              nulls_distinct: nil,
               where: nil,
               comment: nil,
               options: nil
@@ -379,6 +380,7 @@ defmodule Ecto.Migration do
       concurrently: boolean,
       using: atom | String.t,
       include: [atom | String.t],
+      nulls_distinct: boolean | nil,
       where: atom | String.t,
       comment: String.t | nil,
       options: String.t
@@ -705,6 +707,12 @@ defmodule Ecto.Migration do
     * `:include` - specify fields for a covering index. This is not supported
       by all databases. For more information on PostgreSQL support, please
       [read the official docs](https://www.postgresql.org/docs/current/indexes-index-only-scans.html).
+    * `:nulls_distinct` - specify whether null values should be considered
+      distinct for a unique index. Defaults to `nil`, which will not add the
+      parameter to the generated SQL and thus use the database default.
+      This option is currently only supported by PostgreSQL 15+.
+      For MySQL, it is always false. For MSSQL, it is always true.
+      See the dedicated section on this option for more information.
     * `:comment` - adds a comment to the index.
 
   ## Adding/dropping indexes concurrently
@@ -762,6 +770,29 @@ defmodule Ecto.Migration do
 
   More information on partial indexes can be found in the [PostgreSQL
   docs](http://www.postgresql.org/docs/current/indexes-partial.html).
+
+  ## The `:nulls_distinct` option
+
+  A unique index does not prevent multiple null values by default in most databases.
+
+  For example, imagine we have a "products" table and need to guarantee that
+  sku's are unique within their category, but the category is optional.
+  Creating a regular unique index over the sku and category_id fields with:
+
+      create index("products", [:sku, :category_id], unique: true)
+
+  will allow products with the same sku to be inserted if their category_id is `nil`.
+  The `:nulls_distinct` option can be used to change this behavior by considering
+  null values as equal, i.e. not distinct:
+
+      create index("products", [:sku, :category_id], unique: true, nulls_distinct: false)
+
+  This option is currently only supported by PostgreSQL 15+.
+  As a workaround for older PostgreSQL versions and other databases, an
+  additional partial unique index for the sku can be created:
+
+      create index("products", [:sku, :category_id], unique: true)
+      create index("products", [:sku], unique: true, where: "category_id IS NULL")
 
   ## Examples
 
@@ -1343,6 +1374,10 @@ defmodule Ecto.Migration do
   end
 
   defp validate_index_opts!(opts) when is_list(opts) do
+    if opts[:nulls_distinct] != nil and opts[:unique] != true do
+      raise ArgumentError, "the `nulls_distinct` option can only be used with unique indexes"
+    end
+
     case Keyword.get_values(opts, :where) do
       [_, _ | _] ->
         raise ArgumentError,
