@@ -711,6 +711,7 @@ defmodule Ecto.Migration do
       distinct for a unique index. Defaults to `nil`, which will not add the
       parameter to the generated SQL and thus use the database default.
       This option is currently only supported by PostgreSQL 15+.
+      For MySQL, it is always false. For MSSQL, it is always true.
       See the dedicated section on this option for more information.
     * `:comment` - adds a comment to the index.
 
