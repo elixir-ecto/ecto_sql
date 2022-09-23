@@ -631,7 +631,7 @@ defmodule Ecto.Adapters.SQL do
   ## Callbacks
 
   @doc false
-  def __before_compile__(driver, _env) do
+  def __before_compile__(_driver, _env) do
     quote do
       @doc """
       A convenience function for SQL-based repositories that executes the given query.
