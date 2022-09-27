@@ -421,9 +421,9 @@ defmodule Ecto.Migration.Runner do
     do: "rename column #{current_column} to #{new_column} on table #{quote_name(table.prefix, table.name)}"
 
   defp command({:create, %Constraint{check: nil, exclude: nil}}),
-    do: raise ArgumentError, "a constraint must have either a check or exclude option"
+    do: raise(ArgumentError, "a constraint must have either a check or exclude option")
   defp command({:create, %Constraint{check: check, exclude: exclude}}) when is_binary(check) and is_binary(exclude),
-    do: raise ArgumentError, "a constraint must not have both check and exclude options"
+    do: raise(ArgumentError, "a constraint must not have both check and exclude options")
   defp command({:create, %Constraint{check: check} = constraint}) when is_binary(check),
     do: "create check constraint #{constraint.name} on table #{quote_name(constraint.prefix, constraint.table)}"
   defp command({:create, %Constraint{exclude: exclude} = constraint}) when is_binary(exclude),
