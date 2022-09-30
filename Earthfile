@@ -99,7 +99,7 @@ integration-test-mysql:
         --pull "mysql:$MYSQL"
         RUN set -e; \
             timeout=$(expr $(date +%s) + 30); \
-            docker run --name mysql --network=host -d -e MYSQL_ROOT_PASSWORD=root "mysql:$MYSQL"; \
+            docker run --name mysql --network=host -d -e MYSQL_ROOT_PASSWORD=root "mysql:$MYSQL" --sql_mode="ANSI_QUOTES"; \
             # wait for mysql to start
             while ! mysqladmin ping --host=127.0.0.1 --port=3306 --protocol=TCP --silent; do \
                 test "$(date +%s)" -le "$timeout" || (echo "timed out waiting for mysql"; exit 1); \

@@ -16,8 +16,8 @@ defmodule Ecto.Integration.MigrationsTest do
   end
 
   describe "Migrator" do
-    @get_lock_command ~s[SELECT GET_LOCK("ecto_Ecto.Integration.PoolRepo", -1)]
-    @release_lock_command ~s[SELECT RELEASE_LOCK("ecto_Ecto.Integration.PoolRepo")]
+    @get_lock_command ~s[SELECT GET_LOCK('ecto_Ecto.Integration.PoolRepo', -1)]
+    @release_lock_command ~s[SELECT RELEASE_LOCK('ecto_Ecto.Integration.PoolRepo')]
     @create_table_sql ~s[CREATE TABLE IF NOT EXISTS `log_mode_table`]
     @create_table_log "create table if not exists log_mode_table"
     @drop_table_sql ~s[DROP TABLE IF EXISTS `log_mode_table`]
