@@ -248,7 +248,7 @@ defmodule Ecto.Adapters.MyXQL do
 
     {:ok, result} =
       transaction(meta, opts, fn ->
-        lock_name = "\"ecto_#{inspect(repo)}\""
+        lock_name = "\'ecto_#{inspect(repo)}\'"
 
         try do
           {:ok, _} = Ecto.Adapters.SQL.query(meta, "SELECT GET_LOCK(#{lock_name}, -1)", [], opts)

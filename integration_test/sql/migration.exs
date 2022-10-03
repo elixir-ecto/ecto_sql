@@ -515,7 +515,7 @@ defmodule Ecto.Integration.MigrationTest do
     assert [0] ==
            PoolRepo.all from p in "alter_col_migration", select: p.from_no_default_to_default
 
-    query = "INSERT INTO alter_col_migration (from_not_null_to_null) VALUES ('foo')"
+    query = "INSERT INTO `alter_col_migration` (\"from_not_null_to_null\") VALUES ('foo')"
     assert catch_error(PoolRepo.query!(query))
 
     :ok = down(PoolRepo, num, AlterColumnMigration, log: false)
