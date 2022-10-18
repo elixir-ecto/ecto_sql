@@ -210,6 +210,8 @@ defmodule Ecto.Adapters.MyXQL do
         {:error, :already_down}
       {:error, %{mysql: %{name: :ER_BAD_DB_ERROR}}} ->
         {:error, :already_down}
+      {:error, error} ->
+        {:error, Exception.message(error)}
       {:exit, :killed} ->
         {:error, :already_down}
       {:exit, exit} ->
