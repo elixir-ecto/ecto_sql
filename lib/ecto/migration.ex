@@ -659,6 +659,12 @@ defmodule Ecto.Migration do
         add :name, :string
         add :price, :decimal
       end
+      
+      create table("daily_prices", primary_key: false, options: "PARTITION BY RANGE (date)") do
+        add :name, :string, primary_key: true
+        add :date, :date, primary_key: true
+        add :price, :decimal
+      end
 
   ## Options
 
@@ -674,7 +680,8 @@ defmodule Ecto.Migration do
       overridden in said constraints/references.
     * `:comment` - adds a comment to the table.
     * `:options` - provide custom options that will be appended after the generated
-      statement. For example, "WITH", "INHERITS", or "ON COMMIT" clauses.
+      statement. For example, "WITH", "INHERITS", or "ON COMMIT" clauses. "PARTITION BY"
+      can be provided for databases that support table partitioning.
 
   """
   def table(name, opts \\ [])
