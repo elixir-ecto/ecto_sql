@@ -1069,20 +1069,23 @@ defmodule Ecto.Adapters.SQL do
       :telemetry.execute(event_name, measurements, metadata)
     end
 
-    case Keyword.get(opts, :log, log) do
-      true ->
+    case {opts[:log], log} do
+      {false, _level} ->
+        :ok
+
+      {true, false} ->
+        :ok
+
+      {true, level} ->
         Logger.log(
-          log,
+          level,
           fn -> log_iodata(measurements, repo, source, query, opts[:cast_params] || params, result, stacktrace) end,
           ansi_color: sql_color(query)
         )
 
-      false ->
-        :ok
-
-      level ->
+      {opts_level, args_level} ->
         Logger.log(
-          level,
+          opts_level || args_level,
           fn -> log_iodata(measurements, repo, source, query, opts[:cast_params] || params, result, stacktrace) end,
           ansi_color: sql_color(query)
         )
