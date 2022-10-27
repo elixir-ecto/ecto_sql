@@ -208,8 +208,9 @@ defmodule Ecto.Migrator do
       or a boolean. If `false`, logging is disabled. If `true`, uses the configured
       Repo logger level. Defaults to `false`
     * `:log_migrator_sql` - the level to use for logging of SQL commands emitted
-      by the migrator, such as transactions, locks, etc. If `false`, logging is disabled.
-      If `true`, uses the configured Repo logger level. Defaults to `false`
+      by the migrator, such as transactions, locks, etc. Can be any of the `Logger.level/0`
+      values or a boolean. If `false`, logging is disabled. If `true`, uses the configured
+      Repo logger level. Defaults to `false`
     * `:prefix` - the prefix to run the migrations on
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
@@ -272,9 +273,9 @@ defmodule Ecto.Migrator do
       or a boolean. If `false`, logging is disabled. If `true`, uses the configured
       Repo logger level. Defaults to `false`
     * `:log_migrator_sql` - the level to use for logging of SQL commands emitted
-      by the migrator, such as transactions, locks, etc. If `false`, logging is disabled.
-      If `true`, uses the configured Repo logger level. Defaults to `false`
-      Can be any of `Logger.level/0` values or a boolean.
+      by the migrator, such as transactions, locks, etc. Can be any of the `Logger.level/0`
+      values or a boolean. If `false`, logging is disabled. If `true`, uses the configured
+      Repo logger level. Defaults to `false`
     * `:prefix` - the prefix to run the migrations on
     * `:dynamic_repo` - the name of the Repo supervisor process.
       See `c:Ecto.Repo.put_dynamic_repo/1`.
