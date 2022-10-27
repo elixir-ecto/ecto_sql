@@ -133,14 +133,14 @@ defmodule Ecto.Integration.LoggingTest do
     end
 
     test "with a log: true override when logging is disabled" do
-      repo_conf = Application.get_env(:ecto_sql, TestRepo)
-
-      on_exit(fn -> Application.put_env(:ecto_sql, TestRepo, repo_conf) end)
-
-      Application.put_env(:ecto_sql, TestRepo, log: false)
-
       refute capture_log(fn ->
                TestRepo.insert!(%Post{title: "1"}, log: true)
+             end) =~ "an exception was raised logging"
+    end
+
+    test "with unspecified :log option when logging is disabled" do
+      refute capture_log(fn ->
+               TestRepo.insert!(%Post{title: "1"})
              end) =~ "an exception was raised logging"
     end
   end

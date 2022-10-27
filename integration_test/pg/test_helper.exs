@@ -18,7 +18,8 @@ alias Ecto.Integration.TestRepo
 Application.put_env(:ecto_sql, TestRepo,
   url: Application.get_env(:ecto_sql, :pg_test_url) <> "/ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
-  show_sensitive_data_on_connection_error: true
+  show_sensitive_data_on_connection_error: true,
+  log: false
 )
 
 defmodule Ecto.Integration.TestRepo do

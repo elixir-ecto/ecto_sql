@@ -1073,7 +1073,7 @@ defmodule Ecto.Adapters.SQL do
       {false, _level} ->
         :ok
 
-      {true, false} ->
+      {opts_level, false} when opts_level in [nil, true] ->
         :ok
 
       {true, level} ->

@@ -81,7 +81,8 @@ Application.put_env(
   url: Application.get_env(:ecto_sql, :tds_test_url) <> "/ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   set_allow_snapshot_isolation: :on,
-  show_sensitive_data_on_connection_error: true
+  show_sensitive_data_on_connection_error: true,
+  log: false
 )
 
 defmodule Ecto.Integration.TestRepo do
