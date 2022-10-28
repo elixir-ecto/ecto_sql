@@ -366,6 +366,7 @@ defmodule Ecto.Migration do
               concurrently: false,
               using: nil,
               include: [],
+              only: false,
               nulls_distinct: nil,
               where: nil,
               comment: nil,
@@ -379,6 +380,7 @@ defmodule Ecto.Migration do
       unique: boolean,
       concurrently: boolean,
       using: atom | String.t,
+      only: boolean,
       include: [atom | String.t],
       nulls_distinct: boolean | nil,
       where: atom | String.t,
@@ -720,6 +722,8 @@ defmodule Ecto.Migration do
       This option is currently only supported by PostgreSQL 15+.
       For MySQL, it is always false. For MSSQL, it is always true.
       See the dedicated section on this option for more information.
+    * `:only` - Indicates not to recurse creating indexes on partitions, if the table is partitioned.
+      This option is currently only supported by PostgreSQL 11+. Defaults to `false`.
     * `:comment` - adds a comment to the index.
 
   ## Adding/dropping indexes concurrently
