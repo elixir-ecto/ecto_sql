@@ -234,6 +234,8 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
+  @timeout 15_000
+
   @doc """
   Converts the given query to SQL according to its kind and the
   adapter in the given repository.
@@ -451,6 +453,7 @@ defmodule Ecto.Adapters.SQL do
   ## Options
 
     * `:log` - When false, does not log the query
+    * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{@timeout}`);
 
   ## Examples
 
@@ -508,6 +511,7 @@ defmodule Ecto.Adapters.SQL do
   ## Options
 
     * `:log` - When false, does not log the query
+    * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{@timeout}`);
 
   ## Examples
 
