@@ -925,6 +925,7 @@ if Code.ensure_loaded?(Postgrex) do
                   if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
                   quote_name(index.name),
                   " ON ",
+                  if_do(index.only, "ONLY "),
                   quote_table(index.prefix, index.table),
                   if_do(index.using, [" USING " , to_string(index.using)]),
                   ?\s, ?(, fields, ?),

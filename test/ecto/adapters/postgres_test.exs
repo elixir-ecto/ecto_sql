@@ -1828,6 +1828,12 @@ defmodule Ecto.Adapters.PostgresTest do
       [~s|CREATE INDEX "posts_permalink_index" ON "posts" USING hash ("permalink")|]
   end
 
+  test "create an index without recursively creating indexes on partitions" do
+    create = {:create, index(:posts, [:permalink], only: true)}
+    assert execute_ddl(create) ==
+      [~s|CREATE INDEX "posts_permalink_index" ON ONLY "posts" ("permalink")|]
+  end
+
   test "drop index" do
     drop = {:drop, index(:posts, [:id], name: "posts$main"), :restrict}
     assert execute_ddl(drop) == [~s|DROP INDEX "posts$main"|]
