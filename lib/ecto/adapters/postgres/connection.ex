@@ -746,6 +746,20 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
+    defp expr([], _sources, _query) do
+      # We cannot compare in postgres with the empty array
+      # i. e. `where array_column = ARRAY[];`
+      # as that will result in an error:
+      #   ERROR:  cannot determine type of empty array
+      #   HINT:  Explicitly cast to the desired type, for example ARRAY[]::integer[].
+      #
+      # On the other side comparing with '{}' works
+      # because '{}' represents the pseudo-type "unknown"
+      # and thus the type gets inferred based on the column
+      # it is being compared to so `where array_column = '{}';` works.
+      "'{}'"
+    end
+
     defp expr(list, sources, query) when is_list(list) do
       ["ARRAY[", intersperse_map(list, ?,, &expr(&1, sources, query)), ?]]
     end
