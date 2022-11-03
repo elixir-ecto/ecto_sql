@@ -6,6 +6,7 @@ defmodule Ecto.Integration.SQLTest do
   alias Ecto.Integration.Barebone
   alias Ecto.Integration.Post
   alias Ecto.Integration.CorruptedPk
+  alias Ecto.Integration.Tag
   import Ecto.Query, only: [from: 2]
 
   test "fragmented types" do
@@ -26,6 +27,18 @@ defmodule Ecto.Integration.SQLTest do
     text2 = "bar"
     result = TestRepo.query!("SELECT $1::text[]", [[text1, text2]])
     assert result.rows == [[[text1, text2]]]
+  end
+
+  @tag :array_type
+  test "Converts empty array correctly" do
+    result = TestRepo.query!("SELECT array[1,2,3] = $1", [[]])
+    assert result.rows == [[false]]
+
+    result = TestRepo.query!("SELECT array[]::integer[] = $1", [[]])
+    assert result.rows == [[true]]
+
+    query = from t in Tag, where: t.items == []
+    assert [] == TestRepo.all(query)
   end
 
   test "query!/4 with dynamic repo" do

@@ -752,6 +752,9 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = Schema |> select([], fragment("?", ~w(abc def))) |> plan()
     assert all(query) == ~s{SELECT ARRAY['abc','def'] FROM "schema" AS s0}
+
+    query = Schema |> where([s], s.w == []) |> select([s], s.w) |> plan()
+    assert all(query) == ~s{SELECT s0."w" FROM "schema" AS s0 WHERE (s0."w" = '\{\}')}
   end
 
   test "interpolated values" do
