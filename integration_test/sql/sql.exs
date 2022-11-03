@@ -37,8 +37,9 @@ defmodule Ecto.Integration.SQLTest do
     result = TestRepo.query!("SELECT array[]::integer[] = $1", [[]])
     assert result.rows == [[true]]
 
-    query = from t in Tag, where: t.items == []
-    assert [] == TestRepo.all(query)
+    %{id: tag_id} = TestRepo.insert!(%Tag{uuids: []})
+    query = from t in Tag, where: t.uuids == []
+    assert [%{id: ^tag_id}] = TestRepo.all(query)
   end
 
   test "query!/4 with dynamic repo" do
