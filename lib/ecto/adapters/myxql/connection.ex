@@ -222,10 +222,16 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     @impl true
-    # DB explain opts are deprecated, so they aren't used to build the explain query.
+    # DB explain opts, except format, are deprecated.
     # See Notes at https://dev.mysql.com/doc/refman/5.7/en/explain.html
     def explain_query(conn, query, params, opts) do
-      case query(conn, build_explain_query(query), params, opts) do
+      {explain_opts, opts} = Keyword.split(opts, ~w[format]a)
+      json_format? = {:format, :json} in explain_opts
+
+      case query(conn, build_explain_query(query, explain_opts), params, opts) do
+        {:ok, %MyXQL.Result{rows: rows}} when json_format? ->
+          {:ok, List.flatten(rows)}
+
         {:ok, %MyXQL.Result{} = result} ->
           {:ok, SQL.format_table(result)}
 
@@ -234,8 +240,13 @@ if Code.ensure_loaded?(MyXQL) do
       end
     end
 
-    def build_explain_query(query) do
+    def build_explain_query(query, []) do
       ["EXPLAIN ", query]
+      |> IO.iodata_to_binary()
+    end
+
+    def build_explain_query(query, [format: value]) do
+      ["EXPLAIN #{String.upcase("#{format_to_sql(value)}")} ", query]
       |> IO.iodata_to_binary()
     end
 
@@ -1079,6 +1090,9 @@ if Code.ensure_loaded?(MyXQL) do
       end
       [?`, name, ?`]
     end
+
+    defp format_to_sql(:json), do: "FORMAT=JSON"
+    defp format_to_sql(:traditional), do: "FORMAT=TRADITIONAL"
 
     defp intersperse_map(list, separator, mapper, acc \\ [])
     defp intersperse_map([], _separator, _mapper, acc),
