@@ -70,6 +70,19 @@ defmodule Ecto.Integration.LoggingTest do
       _ = TestRepo.all(Post, telemetry_event: nil)
       refute_received :logged
     end
+
+    test "cast params" do
+      uuid = Ecto.UUID.generate()
+
+      log = fn _event_name, _measurements, metadata ->
+        assert [uuid] == metadata.params
+        send(self(), :logged)
+      end
+
+      Process.put(:telemetry, log)
+      TestRepo.all(from l in Logging, where: l.uuid == ^uuid )
+      assert_received :logged
+    end
   end
 
   describe "logs" do
