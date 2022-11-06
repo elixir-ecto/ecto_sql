@@ -230,8 +230,9 @@ if Code.ensure_loaded?(MyXQL) do
 
       case query(conn, build_explain_query(query, explain_opts), params, opts) do
         {:ok, %MyXQL.Result{rows: rows}} when map_format? ->
-          decoded_result = MyXQL.json_library().decode!(rows)
-          {:ok, List.wrap(decoded_result)}
+          json_library = MyXQL.json_library()
+          decoded_result = Enum.map(rows, &json_library.decode!(&1))
+          {:ok, decoded_result}
 
         {:ok, %MyXQL.Result{} = result} ->
           {:ok, SQL.format_table(result)}
