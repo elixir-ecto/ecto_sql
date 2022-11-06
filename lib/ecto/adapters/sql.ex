@@ -311,24 +311,29 @@ defmodule Ecto.Adapters.SQL do
 
   Adapter          | Supported opts
   ---------------- | --------------
-  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`
-  MyXQL            | None
+  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`, `format`
+  MyXQL            | `format`
 
-  _Postgrex_: Check [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html)
-  for version compatibility.
+  All options except `format` are boolean valued and default to `false`.
 
-  Also note that:
+  The allowed `format` values are `:map`, `:yaml`, and `:text`:
+    * `:map` is the deserialized JSON encoding.
+    * `:yaml` and `:text` return the result as a string.
 
-    * Currently `:map`, `:yaml`, and `:text` format options are supported
-      for PostgreSQL. Only `map` and `text` are supported for MyXQL.
-      * `:map` is the deserialized JSON encoding.
-      * `:yaml` and `text` return the result as a string;
+  The built-in adapters support the following formats:
+    * Postgrex: `:map`, `:yaml` and `:text`
+    * MyXQL: `:map` and `:text`
 
-    * Any other value passed to `opts` will be forwarded to the underlying
-      adapter query function, including Repo shared options such as `:timeout`;
+  Any other value passed to `opts` will be forwarded to the underlying adapter query function, including
+  shared options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
+  consult their documentation for more details.
 
-    * Non built-in adapters may have specific behavior and you should consult
-      their own documentation.
+  For version compatiblity, please check your database's documentation:
+
+  _Postgrex_: [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html).
+
+  _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
+
 
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
