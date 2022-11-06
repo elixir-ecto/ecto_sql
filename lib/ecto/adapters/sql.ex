@@ -330,9 +330,8 @@ defmodule Ecto.Adapters.SQL do
 
   For version compatiblity, please check your database's documentation:
 
-  _Postgrex_: [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html).
-
-  _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
+    * _Postgrex_: [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html).
+    * _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
 
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
