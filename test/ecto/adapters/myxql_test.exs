@@ -720,7 +720,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "build_explain_query" do
     assert SQL.build_explain_query("SELECT 1", []) == "EXPLAIN SELECT 1"
-    assert SQL.build_explain_query("SELECT 1", format: :json) == "EXPLAIN FORMAT=JSON SELECT 1"
+    assert SQL.build_explain_query("SELECT 1", format: :map) == "EXPLAIN FORMAT=JSON SELECT 1"
   end
 
   ## *_all

@@ -226,11 +226,12 @@ if Code.ensure_loaded?(MyXQL) do
     # See Notes at https://dev.mysql.com/doc/refman/5.7/en/explain.html
     def explain_query(conn, query, params, opts) do
       {explain_opts, opts} = Keyword.split(opts, ~w[format]a)
-      json_format? = {:format, :json} in explain_opts
+      map_format? = {:format, :map} in explain_opts
 
       case query(conn, build_explain_query(query, explain_opts), params, opts) do
-        {:ok, %MyXQL.Result{rows: rows}} when json_format? ->
-          {:ok, List.flatten(rows)}
+        {:ok, %MyXQL.Result{rows: rows}} when map_format? ->
+          decoded_result = MyXQL.json_library().decode!(rows)
+          {:ok, List.wrap(decoded_result)}
 
         {:ok, %MyXQL.Result{} = result} ->
           {:ok, SQL.format_table(result)}
@@ -1091,7 +1092,7 @@ if Code.ensure_loaded?(MyXQL) do
       [?`, name, ?`]
     end
 
-    defp format_to_sql(:json), do: "FORMAT=JSON"
+    defp format_to_sql(:map), do: "FORMAT=JSON"
     defp format_to_sql(:text), do: "FORMAT=TRADITIONAL"
 
     defp intersperse_map(list, separator, mapper, acc \\ [])
