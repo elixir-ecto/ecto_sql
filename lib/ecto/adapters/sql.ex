@@ -325,7 +325,7 @@ defmodule Ecto.Adapters.SQL do
     * MyXQL: `:map` and `:text`
 
   Any other value passed to `opts` will be forwarded to the underlying adapter query function, including
-  shared options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
+  shared Repo options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
   consult their documentation for more details.
 
   For version compatiblity, please check your database's documentation:
