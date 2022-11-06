@@ -334,7 +334,6 @@ defmodule Ecto.Adapters.SQL do
 
   _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
 
-
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
                 :all | :update_all | :delete_all,
