@@ -1092,7 +1092,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp format_to_sql(:json), do: "FORMAT=JSON"
-    defp format_to_sql(:traditional), do: "FORMAT=TRADITIONAL"
+    defp format_to_sql(:text), do: "FORMAT=TRADITIONAL"
 
     defp intersperse_map(list, separator, mapper, acc \\ [])
     defp intersperse_map([], _separator, _mapper, acc),

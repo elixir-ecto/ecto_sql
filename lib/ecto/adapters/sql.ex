@@ -321,7 +321,7 @@ defmodule Ecto.Adapters.SQL do
 
     * Currently `:map`, `:yaml`, and `:text` format options are supported
       for PostgreSQL. `:map` is the deserialized JSON encoding. The last two
-      options return the result as a string. MyXQL support `:json` or `:traditional`
+      options return the result as a string. MyXQL support `:json` or `:text`
       format options. Both of those return the result as a string;
 
     * Any other value passed to `opts` will be forwarded to the underlying
