@@ -34,5 +34,13 @@ defmodule Ecto.Integration.ExplainTest do
         TestRepo.explain(:all, from(p in "posts", select: p.invalid, where: p.invalid == "title"))
       end)
     end
+
+    test "map format" do
+      [explain] = TestRepo.explain(:all, Post, format: :map)
+      keys = explain["query_block"] |> Map.keys
+      assert Enum.member?(keys, "cost_info")
+      assert Enum.member?(keys, "select_id")
+      assert Enum.member?(keys, "table")
+    end
   end
 end
