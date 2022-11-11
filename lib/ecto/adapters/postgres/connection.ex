@@ -453,6 +453,31 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp using_join(%{joins: []}, _kind, _prefix, _sources), do: {[], []}
+
+    defp using_join(%{joins: joins} = query, :update_all, prefix, sources) do
+      {inner_joins, other_joins} = Enum.split_with(joins, & &1.qual == :inner)
+
+      if inner_joins == [] and other_joins != [] do
+        error!(query, "Need at least one inner join to use other joins with update_all")
+      end
+
+      froms =
+        intersperse_map(inner_joins, ", ", fn
+          %JoinExpr{qual: :inner, ix: ix, source: source} ->
+            {join, name} = get_source(query, sources, ix, source)
+            [join, " AS " | [name]]
+        end)
+
+      join_clauses = join(%{query | joins: other_joins}, sources)
+
+      wheres =
+        for %JoinExpr{on: %QueryExpr{expr: value} = expr} <- inner_joins,
+            value != true,
+            do: expr |> Map.put(:__struct__, BooleanExpr) |> Map.put(:op, :and)
+
+      {[?\s, prefix, ?\s, froms | join_clauses], wheres}
+    end
+
     defp using_join(%{joins: joins} = query, kind, prefix, sources) do
       froms =
         intersperse_map(joins, ", ", fn
