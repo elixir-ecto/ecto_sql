@@ -928,7 +928,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "update all with left join but no inner join" do
     query = from(m in Schema, left_join: p in assoc(m, :permalink), left_join: x in assoc(m, :permalink), update: [set: [w: m.list2]]) |> plan(:update_all)
-    assert_raise Ecto.QueryError, ~r/Need at least one inner join to use other joins with update_all/, fn ->
+    assert_raise Ecto.QueryError, ~r/Need at least one inner join at the beginning to use other joins with update_all/, fn ->
       update_all(query)
     end
   end
