@@ -455,10 +455,10 @@ if Code.ensure_loaded?(Postgrex) do
     defp using_join(%{joins: []}, _kind, _prefix, _sources), do: {[], []}
 
     defp using_join(%{joins: joins} = query, :update_all, prefix, sources) do
-      {inner_joins, other_joins} = Enum.split_with(joins, & &1.qual == :inner)
+      {inner_joins, other_joins} = Enum.split_while(joins, & &1.qual == :inner)
 
       if inner_joins == [] and other_joins != [] do
-        error!(query, "Need at least one inner join to use other joins with update_all")
+        error!(query, "Need at least one inner join at the beginning to use other joins with update_all")
       end
 
       froms =
