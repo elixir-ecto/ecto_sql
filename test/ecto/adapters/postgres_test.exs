@@ -920,6 +920,19 @@ defmodule Ecto.Adapters.PostgresTest do
            ~s{UPDATE "first"."schema" AS s0 SET "x" = 0}
   end
 
+  test "update all with left join" do
+    query = from(m in Schema, join: x in assoc(m, :comments), left_join: p in assoc(m, :permalink), update: [set: [w: m.list2]]) |> plan(:update_all)
+    assert update_all(query) ==
+           ~s{UPDATE "schema" AS s0 SET "w" = s0."list2" FROM "schema2" AS s1 LEFT OUTER JOIN "schema3" AS s2 ON s2."id" = s0."y" WHERE (s1."z" = s0."x")}
+  end
+
+  test "update all with left join but no inner join" do
+    query = from(m in Schema, left_join: p in assoc(m, :permalink), left_join: x in assoc(m, :permalink), update: [set: [w: m.list2]]) |> plan(:update_all)
+    assert_raise Ecto.QueryError, ~r/Need at least one inner join at the beginning to use other joins with update_all/, fn ->
+      update_all(query)
+    end
+  end
+
   test "delete all" do
     query = Schema |> Queryable.to_query |> plan()
     assert delete_all(query) == ~s{DELETE FROM "schema" AS s0}
