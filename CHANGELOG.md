@@ -1,5 +1,20 @@
 # Changelog for v3.x
 
+## v3.9.1 (2022-11-18)
+
+### Enhancements
+
+  * [mysql] Support `:format` option on `explain`
+  * [postgres] Permit outer joins when using `update_all`
+  * [sql] Add support for `ONLY` in index creation
+
+### Bug fixes
+
+  * [mysql] Ensure locks are quoted
+  * [mysql] Do not crash on `mix ecto.drop` when the database is unreachable
+  * [postgres] Fix empty array compare in PostgreSQL
+  * [sql] Allow function sources whose name begins with 'select'
+
 ## v3.9.0 (2022-09-27)
 
 ### Enhancements
