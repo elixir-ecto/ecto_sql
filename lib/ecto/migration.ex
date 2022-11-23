@@ -139,7 +139,7 @@ defmodule Ecto.Migration do
 
   ## Field Types
 
-  The Ecto primitive types are mapped to the appropriate database
+  The [Ecto primitive types](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) are mapped to the appropriate database
   type by the various database adapters. For example, `:string` is
   converted to `:varchar`, `:binary` to `:bytea` or `:blob`, and so on.
 
