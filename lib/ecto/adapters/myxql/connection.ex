@@ -388,6 +388,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp join_on(:cross, true, _sources, _query), do: []
+    defp join_on(:cross_lateral, true, _sources, _query), do: []
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
     defp join_qual(:inner, _), do: " INNER JOIN "
@@ -397,6 +398,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp join_qual(:right, _), do: " RIGHT OUTER JOIN "
     defp join_qual(:full, _),  do: " FULL OUTER JOIN "
     defp join_qual(:cross, _), do: " CROSS JOIN "
+    defp join_qual(:cross_lateral, _), do: " CROSS JOIN LATERAL "
 
     defp where(%{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)

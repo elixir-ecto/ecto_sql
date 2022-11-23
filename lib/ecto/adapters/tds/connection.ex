@@ -526,6 +526,7 @@ if Code.ensure_loaded?(Tds) do
     defp join_qual(:cross), do: "CROSS JOIN "
     defp join_qual(:inner_lateral), do: "CROSS APPLY "
     defp join_qual(:left_lateral), do: "OUTER APPLY "
+    defp join_qual(:cross_lateral), do: error!(nil, "cross lateral joins are not supported in the Tds Adapter")
 
     defp where(%Query{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)

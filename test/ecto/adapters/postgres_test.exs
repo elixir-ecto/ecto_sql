@@ -1162,6 +1162,18 @@ defmodule Ecto.Adapters.PostgresTest do
            ~s{WHERE ((s0."id" > 0) AND (s0."id" < $2))}
   end
 
+  test "cross lateral join with fragment" do
+    query = Schema
+            |> join(:cross_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10))
+            |> select([p, q], {p.id, q.z})
+            |> where([p], p.id > 0 and p.id < ^100)
+            |> plan()
+    assert all(query) ==
+           ~s{SELECT s0."id", f1."z" FROM "schema" AS s0 CROSS JOIN LATERAL } <>
+           ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0."x" AND s2.field = $1) AS f1 } <>
+           ~s{WHERE ((s0."id" > 0) AND (s0."id" < $2))}
+  end
+
   test "cross join" do
     query = from(p in Schema, cross_join: c in Schema2, select: {p.id, c.id}) |> plan()
     assert all(query) ==
