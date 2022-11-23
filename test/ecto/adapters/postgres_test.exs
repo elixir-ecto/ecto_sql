@@ -1170,7 +1170,7 @@ defmodule Ecto.Adapters.PostgresTest do
             |> plan()
     assert all(query) ==
            ~s{SELECT s0."id", f1."z" FROM "schema" AS s0 CROSS JOIN LATERAL } <>
-           ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0."x" AND s2.field = $1) AS f1 ON TRUE } <>
+           ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0."x" AND s2.field = $1) AS f1 } <>
            ~s{WHERE ((s0."id" > 0) AND (s0."id" < $2))}
   end
 
