@@ -537,7 +537,7 @@ defmodule Ecto.Migrator do
     lock_for_migrations(lock, repo, opts, fun)
   end
 
-  defp pending_to(versions, migration_source, direction, target) do
+  defp pending_to(versions, migration_source, direction, target) when is_integer(target) do
     within_target_version? = fn
       {version, _, _}, target, :up ->
         version <= target
@@ -549,7 +549,7 @@ defmodule Ecto.Migrator do
     |> Enum.take_while(&(within_target_version?.(&1, target, direction)))
   end
 
-  defp pending_to_exclusive(versions, migration_source, direction, target) do
+  defp pending_to_exclusive(versions, migration_source, direction, target) when is_integer(target) do
     within_target_version? = fn
       {version, _, _}, target, :up ->
         version < target

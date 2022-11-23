@@ -575,6 +575,20 @@ defmodule Ecto.MigratorTest do
         assert run(TestRepo, paths, :up, to: 12, log: false) == [10, 11, 12]
       end)
     end
+
+    test "raises if target is not integer" do
+      in_tmp fn path ->
+        message_base = "no function clause matching in "
+
+        assert_raise(FunctionClauseError, message_base <> "Ecto.Migrator.pending_to/4", fn ->
+          run(TestRepo, path, :up, to: "123")
+        end)
+
+        assert_raise(FunctionClauseError, message_base <> "Ecto.Migrator.pending_to_exclusive/4", fn ->
+          run(TestRepo, path, :up, to_exclusive: "123")
+        end)
+      end
+    end
   end
 
   describe "migrations" do
