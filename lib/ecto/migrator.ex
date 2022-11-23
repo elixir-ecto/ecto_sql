@@ -561,7 +561,7 @@ defmodule Ecto.Migrator do
     |> Enum.take_while(&(within_target_version?.(&1, target, direction)))
   end
 
-  defp pending_step(versions, migration_source, direction, count) when is_integer(count) do
+  defp pending_step(versions, migration_source, direction, count) do
     pending_in_direction(versions, migration_source, direction)
     |> Enum.take(count)
   end
