@@ -1168,6 +1168,12 @@ defmodule Ecto.Adapters.PostgresTest do
            "SELECT s0.\"id\", s1.\"id\" FROM \"schema\" AS s0 CROSS JOIN \"schema2\" AS s1"
   end
 
+  test "cross lateral join" do
+    query = from(p in Schema, cross_lateral_join: c in Schema2, select: {p.id, c.id}) |> plan()
+    assert all(query) ==
+           "SELECT s0.\"id\", s1.\"id\" FROM \"schema\" AS s0 CROSS JOIN LATERAL \"schema2\" AS s1"
+  end
+
   test "cross join with fragment" do
     query = from(p in Schema, cross_join: fragment("jsonb_each(?)", p.j), select: {p.id}) |> plan()
     assert all(query) ==

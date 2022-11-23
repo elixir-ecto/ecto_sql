@@ -510,6 +510,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp join_on(:cross, true, _sources, _query), do: []
+    defp join_on(:cross_lateral, true, _sources, _query), do: []
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
     defp join_qual(:inner), do: "INNER JOIN "
@@ -519,6 +520,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp join_qual(:right), do: "RIGHT OUTER JOIN "
     defp join_qual(:full),  do: "FULL OUTER JOIN "
     defp join_qual(:cross), do: "CROSS JOIN "
+    defp join_qual(:cross_lateral), do: "CROSS JOIN LATERAL "
 
     defp where(%{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
