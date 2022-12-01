@@ -228,8 +228,8 @@ if Code.ensure_loaded?(Tds) do
     An Tds adapter Ecto Type that wraps erlang string into tuple so TDS driver
     can understand if erlang string should be encoded as NVarChar or Varchar.
 
-    Due some limitations in Ecto and Tds driver, it is not possible to
-    support collations other than the one that is set on connection during login.
+    Due to some limitations in Ecto and Tds driver, it is not possible to
+    support collations other than the one set on connection during login.
     Please be aware of this limitation if you plan to store varchar values in
     your database using Ecto since you will probably lose some codepoints in
     the value during encoding. Instead use `tds_encoding` library and first
@@ -240,7 +240,7 @@ if Code.ensure_loaded?(Tds) do
     use Ecto.Type
 
     @typedoc """
-    A erlang string
+    An erlang string
     """
     @type t :: String.t
 
