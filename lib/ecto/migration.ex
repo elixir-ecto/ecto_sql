@@ -107,7 +107,7 @@ defmodule Ecto.Migration do
 
   Having to write both `up/0` and `down/0` functions for every
   migration is tedious and error prone. For this reason, Ecto allows
-  you to defined a `change/0` callback with all of the code you want
+  you to define a `change/0` callback with all of the code you want
   to execute when migrating and Ecto will automatically figure out
   the `down/0` for you. For example, the migration above can be
   written as:
@@ -661,7 +661,7 @@ defmodule Ecto.Migration do
         add :name, :string
         add :price, :decimal
       end
-      
+
       create table("daily_prices", primary_key: false, options: "PARTITION BY RANGE (date)") do
         add :name, :string, primary_key: true
         add :date, :date, primary_key: true
