@@ -77,7 +77,7 @@ defmodule Ecto.Integration.LoggingTest do
           Tds.Ecto.UUID
         else
           Ecto.UUID
-       end
+        end
 
       uuid = uuid_module.generate()
       dumped_uuid = uuid_module.dump!(uuid)
@@ -89,7 +89,7 @@ defmodule Ecto.Integration.LoggingTest do
       end
 
       Process.put(:telemetry, log)
-      TestRepo.all(from l in Logging, where: l.uuid == ^uuid )
+      TestRepo.all(from l in Logging, where: l.uuid == ^uuid)
       assert_received :logged
     end
   end
