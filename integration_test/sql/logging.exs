@@ -73,9 +73,11 @@ defmodule Ecto.Integration.LoggingTest do
 
     test "cast params" do
       uuid = Ecto.UUID.generate()
+      dumped_uuid = Ecto.UUID.dump!(uuid)
 
       log = fn _event_name, _measurements, metadata ->
-        assert [uuid] == metadata.params
+        assert [dumped_uuid] == metadata.params
+        assert [uuid] == metadata.cast_params
         send(self(), :logged)
       end
 
