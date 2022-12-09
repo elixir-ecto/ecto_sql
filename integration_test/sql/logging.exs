@@ -72,8 +72,15 @@ defmodule Ecto.Integration.LoggingTest do
     end
 
     test "cast params" do
-      uuid = Ecto.UUID.generate()
-      dumped_uuid = Ecto.UUID.dump!(uuid)
+      uuid_module =
+        if TestRepo.__adapter__() == Ecto.Adapters.Tds do
+          Tds.Ecto.UUID
+        else
+          Ecto.UUID
+       end
+
+      uuid = uuid_module.generate()
+      dumped_uuid = uuid_module.dump!(uuid)
 
       log = fn _event_name, _measurements, metadata ->
         assert [dumped_uuid] == metadata.params
