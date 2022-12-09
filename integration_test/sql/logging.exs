@@ -79,7 +79,6 @@ defmodule Ecto.Integration.LoggingTest do
           Ecto.UUID
         end
 
-
       uuid = uuid_module.generate()
       dumped_uuid = uuid_module.dump!(uuid)
 
