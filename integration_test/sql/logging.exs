@@ -72,15 +72,24 @@ defmodule Ecto.Integration.LoggingTest do
     end
 
     test "cast params" do
-      uuid = Ecto.UUID.generate()
+      uuid_module =
+        if TestRepo.__adapter__() == Ecto.Adapters.Tds do
+          Tds.Ecto.UUID
+        else
+          Ecto.UUID
+        end
+
+      uuid = uuid_module.generate()
+      dumped_uuid = uuid_module.dump!(uuid)
 
       log = fn _event_name, _measurements, metadata ->
-        assert [uuid] == metadata.params
+        assert [dumped_uuid] == metadata.params
+        assert [uuid] == metadata.cast_params
         send(self(), :logged)
       end
 
       Process.put(:telemetry, log)
-      TestRepo.all(from l in Logging, where: l.uuid == ^uuid )
+      TestRepo.all(from l in Logging, where: l.uuid == ^uuid)
       assert_received :logged
     end
   end
