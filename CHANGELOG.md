@@ -2,7 +2,7 @@
 
 ## v3.10.0-dev (2022-12-18)
 
-  * [migrator] Raise if target version (`to`/`exclusive_to`) is not an integer
+  * [migrator] Raise if target version in `to`/`exclusive_to` is not an integer
   * [mysql] Add support for cross lateral joins
   * [postgres] Add support for cross lateral joins
   * [telemetry] Send `cast_params` metadata to telemetry events
