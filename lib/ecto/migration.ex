@@ -1262,7 +1262,7 @@ defmodule Ecto.Migration do
        creation or not. Only available in PostgreSQL, and should be followed by
        a command to validate the foreign key in a following migration if false.
     * `:with` - defines additional keys to the foreign key in order to build
-      a composite primary key
+      a composite foreign key
     * `:match` - select if the match is `:simple`, `:partial`, or `:full`. This is
       [supported only by PostgreSQL](https://www.postgresql.org/docs/current/sql-createtable.html)
       at the moment.
