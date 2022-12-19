@@ -2,6 +2,8 @@
 
 ## v3.10.0-dev
 
+### Enhancements
+
   * [migrator] Raise if target version in `to`/`exclusive_to` is not an integer
   * [mysql] Add support for cross lateral joins
   * [postgres] Add support for cross lateral joins
