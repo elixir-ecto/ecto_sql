@@ -314,7 +314,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp cte(%{with_ctes: _}, _), do: []
 
     defp cte_expr({_name, true, _cte}, _sources, _query) do
-      raise(RuntimeError, "Myxql adapter does not support materialized CTE's")
+      error!(query, "MySQL adapter does not support materialized CTEs")
     end
 
     defp cte_expr({name, _materialize, cte}, sources, query) do
