@@ -409,8 +409,9 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp cte(%{with_ctes: _}, _), do: []
 
-    defp cte_expr({name, cte}, sources, query) do
-      [quote_name(name), " AS ", cte_query(cte, sources, query)]
+    defp cte_expr({name, materialize, cte}, sources, query) do
+      materialize_opt = if materialize, do: "MATERIALIZED ", else: ""
+      [quote_name(name), " AS ", materialize_opt, cte_query(cte, sources, query)]
     end
 
     defp cte_query(%Ecto.Query{} = query, sources, parent_query) do

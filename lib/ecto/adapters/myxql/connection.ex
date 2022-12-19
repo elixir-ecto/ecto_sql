@@ -313,7 +313,11 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp cte(%{with_ctes: _}, _), do: []
 
-    defp cte_expr({name, cte}, sources, query) do
+    defp cte_expr({_name, true, _cte}, _sources, _query) do
+      raise(RuntimeError, "Myxql adapter does not support materialized CTE's")
+    end
+
+    defp cte_expr({name, _materialize, cte}, sources, query) do
       [quote_name(name), " AS ", cte_query(cte, sources, query)]
     end
 

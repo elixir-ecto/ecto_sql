@@ -155,6 +155,39 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{FROM "schema" AS s0 } <>
       ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
   end
+@tag :focus
+  test "materialized CTE" do
+    dbg("materialized CTE")
+    initial_query =
+      "categories"
+      |> where([c], is_nil(c.parent_id))
+      |> select([c], %{id: c.id, depth: fragment("1")})
+
+    iteration_query =
+      "categories"
+      |> join(:inner, [c], t in "tree", on: t.id == c.parent_id)
+      |> select([c, t], %{id: c.id, depth: fragment("? + 1", t.depth)})
+
+    cte_query = initial_query |> union_all(^iteration_query)
+
+    query =
+      Schema
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: ^cte_query, materialized: true)
+      |> join(:inner, [r], t in "tree", on: t.id == r.category_id)
+      |> select([r, t], %{x: r.x, category_id: t.id, depth: type(t.depth, :integer)})
+      |> plan()
+
+    assert all(query) ==
+      ~s{WITH RECURSIVE "tree" AS MATERIALIZED} <>
+      ~s{(SELECT sc0."id" AS "id", 1 AS "depth" FROM "categories" AS sc0 WHERE (sc0."parent_id" IS NULL) } <>
+      ~s{UNION ALL } <>
+      ~s{(SELECT c0."id", t1."depth" + 1 FROM "categories" AS c0 } <>
+      ~s{INNER JOIN "tree" AS t1 ON t1."id" = c0."parent_id")) } <>
+      ~s{SELECT s0."x", t1."id", t1."depth"::bigint } <>
+      ~s{FROM "schema" AS s0 } <>
+      ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
+  end
 
   @raw_sql_cte """
   SELECT * FROM categories WHERE c.parent_id IS NULL
