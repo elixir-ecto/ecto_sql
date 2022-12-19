@@ -1,6 +1,6 @@
 # Changelog for v3.x
 
-## v3.9.2
+## v3.9.2 (2022-12-20)
 
 ### Enhancements
 
