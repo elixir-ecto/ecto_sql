@@ -1,6 +1,6 @@
 # Changelog for v3.x
 
-## v3.10.0-dev
+## v3.9.2
 
 ### Enhancements
 
