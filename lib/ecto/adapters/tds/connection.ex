@@ -435,8 +435,9 @@ if Code.ensure_loaded?(Tds) do
     defp cte(%{with_ctes: _}, _), do: []
 
     defp cte_expr({_name, true, _cte}, _sources, _query) do
-      raise(RuntimeError, "Tds adapter does not support materialized CTE's")
+      error!(query, "Tds adapter does not support materialized CTEs")
     end
+
     defp cte_expr({name, _materialize, cte}, sources, query) do
       [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query)]
     end
