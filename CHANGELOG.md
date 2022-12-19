@@ -1,6 +1,6 @@
 # Changelog for v3.x
 
-## v3.10.0-dev (2022-12-18)
+## v3.10.0-dev
 
   * [migrator] Raise if target version in `to`/`exclusive_to` is not an integer
   * [mysql] Add support for cross lateral joins
