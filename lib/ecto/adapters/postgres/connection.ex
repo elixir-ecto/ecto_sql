@@ -417,7 +417,7 @@ if Code.ensure_loaded?(Postgrex) do
           false -> "NOT MATERIALIZED"  
         end
         
-        [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query)]
+      [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query)]
     end
 
     defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
