@@ -409,14 +409,14 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp cte(%{with_ctes: _}, _), do: []
 
-    defp cte_expr({name, materialized, cte}, sources, query) do
+    defp cte_expr({name, opts, cte}, sources, query) do
       materialized_opt =
-        case materialized do
+        case opts[:materialized] do
           nil -> ""
           true -> "MATERIALIZED"
-          false -> "NOT MATERIALIZED"  
+          false -> "NOT MATERIALIZED"
         end
-        
+
       [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query)]
     end
 
