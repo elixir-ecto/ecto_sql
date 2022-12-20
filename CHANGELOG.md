@@ -1,5 +1,14 @@
 # Changelog for v3.x
 
+## v3.9.2 (2022-12-20)
+
+### Enhancements
+
+  * [migrator] Raise if target version in `to`/`exclusive_to` is not an integer
+  * [mysql] Add support for cross lateral joins
+  * [postgres] Add support for cross lateral joins
+  * [telemetry] Send `cast_params` metadata to telemetry events
+
 ## v3.9.1 (2022-11-18)
 
 ### Enhancements
