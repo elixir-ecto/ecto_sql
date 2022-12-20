@@ -7,6 +7,7 @@
   * [migrator] Raise if target version in `to`/`exclusive_to` is not an integer
   * [mysql] Add support for cross lateral joins
   * [postgres] Add support for cross lateral joins
+  * [postgres] Add support for materialized CTEs
   * [telemetry] Send `cast_params` metadata to telemetry events
 
 ## v3.9.1 (2022-11-18)
