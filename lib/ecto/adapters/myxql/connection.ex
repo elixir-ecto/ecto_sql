@@ -317,7 +317,7 @@ if Code.ensure_loaded?(MyXQL) do
       error!(query, "MySQL adapter does not support materialized CTEs")
     end
 
-    defp cte_expr({name, _materialize, cte}, sources, query) do
+    defp cte_expr({name, nil, cte}, sources, query) do
       [quote_name(name), " AS ", cte_query(cte, sources, query)]
     end
 
