@@ -384,16 +384,6 @@ defmodule Ecto.MigrationTest do
     assert {:alter, %Table{name: "posts"}, [{:remove_if_exists, :author_id, %Reference{table: "authors"}}]} = last_command()
   end
 
-  test "forward: execute_file" do
-    in_tmp fn _path ->
-      up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
-      File.write!("up.sql", up_sql)
-      execute_file "up.sql"
-      flush()
-      assert up_sql == last_command()
-    end
-  end
-
   test "forward: alter numeric column without specifying precision" do
     assert_raise ArgumentError, "column cost is missing precision option", fn ->
       alter table(:posts) do
@@ -705,6 +695,16 @@ defmodule Ecto.MigrationTest do
     assert "SELECT 1" = last_command()
   end
 
+  test "forward: executes a command from a file" do
+    in_tmp fn _path ->
+      up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
+      File.write!("up.sql", up_sql)
+      execute_file "up.sql"
+      flush()
+      assert up_sql == last_command()
+    end
+  end
+
   test "fails gracefully with nested create" do
     assert_raise Ecto.MigrationError, "cannot execute nested commands", fn ->
       create table(:posts) do
@@ -866,6 +866,18 @@ defmodule Ecto.MigrationTest do
     execute "SELECT 1", "SELECT 2"
     flush()
     assert "SELECT 2" = last_command()
+  end
+
+  test "backward: reverses a command from a file" do
+    up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
+    File.write!("up.sql", up_sql)
+
+    down_sql = ~s(DROP TABLE IF EXISTS "execute_file_table")
+    File.write!("down.sql", down_sql)
+
+    execute_file "up.sql", "down.sql"
+    flush()
+    assert down_sql == last_command()
   end
 
   defp last_command(), do: Process.get(:last_command)
