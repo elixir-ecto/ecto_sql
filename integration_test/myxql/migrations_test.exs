@@ -3,8 +3,6 @@ defmodule Ecto.Integration.MigrationsTest do
 
   alias Ecto.Integration.PoolRepo
   import ExUnit.CaptureLog
-  import Support.FileHelpers
-  import Ecto.Migrator
 
   @moduletag :capture_log
   @base_migration 3_000_000
