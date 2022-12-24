@@ -42,15 +42,15 @@ defmodule Ecto.Integration.MigrationsTest do
   test "execute_file/1" do
     in_tmp fn _path ->
       table = "execute_file_table"
-      File.write!("up.sql", ~s(CREATE TABLE IF NOT EXISTS #{table} \(i integer\)))
-      File.write!("down.sql", ~s(DROP TABLE IF EXISTS #{table}))
+      File.write!("up.sql", ~s(CREATE TABLE #{table} \(i integer\)))
+      File.write!("down.sql", ~s(DROP TABLE #{table}))
 
       version = System.unique_integer([:positive])
       up(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
 
-      assert_raise MyXQL.Error, ~r/`execute_file_table` doesn't exist/, fn ->
+      assert_raise Tds.Error, ~r/`execute_file_table` doesn't exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end
@@ -59,15 +59,15 @@ defmodule Ecto.Integration.MigrationsTest do
   test "execute_file/2" do
     in_tmp fn _path ->
       table = "execute_file_table"
-      File.write!("up.sql", ~s(CREATE TABLE IF NOT EXISTS #{table} \(i integer\)))
-      File.write!("down.sql", ~s(DROP TABLE IF EXISTS #{table}))
+      File.write!("up.sql", ~s(CREATE TABLE #{table} \(i integer\)))
+      File.write!("down.sql", ~s(DROP TABLE #{table}))
 
       version = System.unique_integer([:positive])
       up(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
 
-      assert_raise MyXQL.Error, ~r/`execute_file_table` doesn't exist/, fn ->
+      assert_raise Tds.Error, ~r/`execute_file_table` doesn't exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end
