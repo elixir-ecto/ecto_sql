@@ -41,11 +41,12 @@ defmodule Ecto.Integration.MigrationsTest do
 
   test "execute_file/1" do
     in_tmp fn _path ->
+      migration_version = System.unique_integer([:positive])
       table = "execute_file_table"
       File.write!("up.sql", ~s(CREATE TABLE #{table} \(i integer\)))
       File.write!("down.sql", ~s(DROP TABLE #{table}))
 
-      version = System.unique_integer([:positive])
+      # non-reversible
       up(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
@@ -53,16 +54,8 @@ defmodule Ecto.Integration.MigrationsTest do
       assert_raise Tds.Error, ~r/Invalid object name '#{table}'/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
-    end
-  end
 
-  test "execute_file/2" do
-    in_tmp fn _path ->
-      table = "execute_file_table"
-      File.write!("up.sql", ~s(CREATE TABLE #{table} \(i integer\)))
-      File.write!("down.sql", ~s(DROP TABLE #{table}))
-
-      version = System.unique_integer([:positive])
+      # reversible
       up(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
