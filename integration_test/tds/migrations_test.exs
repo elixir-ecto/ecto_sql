@@ -39,7 +39,7 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
-  test "execute_file/1" do
+  test "execute_file" do
     in_tmp fn _path ->
       migration_version = System.unique_integer([:positive])
       table = "execute_file_table"
