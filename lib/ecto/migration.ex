@@ -930,9 +930,9 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Executes SQL from a file.
+  Executes a SQL command from a file.
 
-  The argument must be a path to a file containing an SQL command.
+  The argument must be a path to a file containing a SQL command.
 
   Reversible commands can be defined by calling `execute_file/2`.
   """
@@ -944,7 +944,7 @@ defmodule Ecto.Migration do
   @doc """
   Executes reversible SQL commands from files.
 
-  Each argument must be a path to a file containing an SQL command.
+  Each argument must be a path to a file containing a SQL command.
 
   See `execute/2` for more information on executing SQL commands.
   """
