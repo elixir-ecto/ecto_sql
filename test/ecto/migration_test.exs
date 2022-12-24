@@ -3,8 +3,9 @@ defmodule Ecto.MigrationTest do
   # is global state, we can run it async as long as this is
   # the only test case that uses the Runner in async mode.
   use ExUnit.Case, async: true
-
   use Ecto.Migration
+
+  import Support.FileHelpers
 
   alias EctoSQL.TestRepo
   alias Ecto.Migration.{Table, Index, Reference, Constraint}
@@ -381,6 +382,16 @@ defmodule Ecto.MigrationTest do
     end
     flush()
     assert {:alter, %Table{name: "posts"}, [{:remove_if_exists, :author_id, %Reference{table: "authors"}}]} = last_command()
+  end
+
+  test "forward: execute_file" do
+    in_tmp fn _path ->
+      up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
+      File.write!("up.sql", up_sql)
+      execute_file "up.sql"
+      flush()
+      assert up_sql == last_command()
+    end
   end
 
   test "forward: alter numeric column without specifying precision" do

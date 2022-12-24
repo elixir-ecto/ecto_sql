@@ -1,5 +1,3 @@
-Code.require_file "../support/file_helpers.exs", __DIR__
-
 defmodule Ecto.Integration.MigrationsTest do
   use ExUnit.Case, async: true
 
@@ -29,26 +27,6 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
-  defmodule ExecuteFileReversibleMigration do
-    use Ecto.Migration
-
-    def change do
-      execute_file "up.sql", "down.sql"
-    end
-  end
-
-  defmodule ExecuteFileNonReversibleMigration do
-    use Ecto.Migration
-
-    def up do
-      execute_file "up.sql"
-    end
-
-    def down do
-      execute_file "down.sql"
-    end
-  end
-
   defmodule IndexMigration do
     use Ecto.Migration
     @disable_ddl_transaction true
@@ -72,33 +50,6 @@ defmodule Ecto.Integration.MigrationsTest do
       end)
 
     assert log =~ ~s(relation "duplicate_table" already exists, skipping)
-  end
-
-  test "execute_file" do
-    in_tmp fn _path ->
-      migration_version = System.unique_integer([:positive])
-      table = "execute_file_table"
-      File.write!("up.sql", ~s(CREATE TABLE IF NOT EXISTS #{table} \(i integer\)))
-      File.write!("down.sql", ~s(DROP TABLE IF EXISTS #{table}))
-
-      # non-reversible
-      up(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
-      PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
-
-      assert_raise Postgrex.Error, ~r/"#{table}" does not exist/, fn ->
-        PoolRepo.query!("SELECT * FROM #{table}")
-      end
-
-      # reversible
-      up(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
-      PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
-
-      assert_raise Postgrex.Error, ~r/"#{table}" does not exist/, fn ->
-        PoolRepo.query!("SELECT * FROM #{table}")
-      end
-    end
   end
 
   describe "Migrator" do

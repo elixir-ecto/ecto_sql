@@ -1,12 +1,8 @@
-Code.require_file "../support/file_helpers.exs", __DIR__
-
 defmodule Ecto.Integration.MigrationsTest do
   use ExUnit.Case, async: true
 
   alias Ecto.Integration.PoolRepo
   import ExUnit.CaptureLog
-  import Support.FileHelpers
-  import Ecto.Migrator
 
   @moduletag :capture_log
   @base_migration 3_000_000
@@ -16,53 +12,6 @@ defmodule Ecto.Integration.MigrationsTest do
 
     def change do
       create_if_not_exists table(:log_mode_table)
-    end
-  end
-
-  defmodule ExecuteFileReversibleMigration do
-    use Ecto.Migration
-
-    def change do
-      execute_file "up.sql", "down.sql"
-    end
-  end
-
-  defmodule ExecuteFileNonReversibleMigration do
-    use Ecto.Migration
-
-    def up do
-      execute_file "up.sql"
-    end
-
-    def down do
-      execute_file "down.sql"
-    end
-  end
-
-  test "execute_file" do
-    in_tmp fn _path ->
-      migration_version = System.unique_integer([:positive])
-      table = "execute_file_table"
-      File.write!("up.sql", ~s(CREATE TABLE #{table} \(i integer\)))
-      File.write!("down.sql", ~s(DROP TABLE #{table}))
-
-      # non-reversible
-      up(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
-      PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
-
-      assert_raise Tds.Error, ~r/Invalid object name '#{table}'/, fn ->
-        PoolRepo.query!("SELECT * FROM #{table}")
-      end
-
-      # reversible
-      up(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
-      PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
-
-      assert_raise Tds.Error, ~r/Invalid object name '#{table}'/, fn ->
-        PoolRepo.query!("SELECT * FROM #{table}")
-      end
     end
   end
 
