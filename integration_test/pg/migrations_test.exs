@@ -1,9 +1,13 @@
+Code.require_file "../support/file_helpers.exs", __DIR__
+
 defmodule Ecto.Integration.MigrationsTest do
   use ExUnit.Case, async: true
 
   alias Ecto.Integration.PoolRepo
   alias Ecto.Integration.AdvisoryLockPoolRepo
   import ExUnit.CaptureLog
+  import Support.FileHelpers
+  import Ecto.Migrator
 
   @moduletag :capture_log
   @base_migration 3_000_000
@@ -22,6 +26,26 @@ defmodule Ecto.Integration.MigrationsTest do
 
     def change do
       create_if_not_exists table(:log_mode_table)
+    end
+  end
+
+  defmodule ExecuteFileReversibleMigration do
+    use Ecto.Migration
+
+    def change do
+      execute_file "up.sql", "down.sql"
+    end
+  end
+
+  defmodule ExecuteFileNonReversibleMigration do
+    use Ecto.Migration
+
+    def up do
+      execute_file "up.sql"
+    end
+
+    def down do
+      execute_file "down.sql"
     end
   end
 
@@ -48,6 +72,40 @@ defmodule Ecto.Integration.MigrationsTest do
       end)
 
     assert log =~ ~s(relation "duplicate_table" already exists, skipping)
+  end
+
+  test "execute_file/1" do
+    in_tmp fn _path ->
+      table = "execute_file_table"
+      File.write!("up.sql", ~s(CREATE TABLE IF NOT EXISTS #{table} \(i integer\)))
+      File.write!("down.sql", ~s(DROP TABLE IF EXISTS #{table}))
+
+      version = System.unique_integer([:positive])
+      up(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
+      PoolRepo.query!("SELECT * FROM #{table}")
+      down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
+
+      assert_raise Postgrex.Error, ~r/"execute_file_table" does not exist/, fn ->
+        PoolRepo.query!("SELECT * FROM #{table}")
+      end
+    end
+  end
+
+  test "execute_file/2" do
+    in_tmp fn _path ->
+      table = "execute_file_table"
+      File.write!("up.sql", ~s(CREATE TABLE IF NOT EXISTS #{table} \(i integer\)))
+      File.write!("down.sql", ~s(DROP TABLE IF EXISTS #{table}))
+
+      version = System.unique_integer([:positive])
+      up(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
+      PoolRepo.query!("SELECT * FROM #{table}")
+      down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
+
+      assert_raise Postgrex.Error, ~r/"execute_file_table" does not exist/, fn ->
+        PoolRepo.query!("SELECT * FROM #{table}")
+      end
+    end
   end
 
   describe "Migrator" do

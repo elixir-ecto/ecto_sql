@@ -930,6 +930,31 @@ defmodule Ecto.Migration do
   end
 
   @doc """
+  Executes SQL from a file.
+
+  The argument must be a string that points to a file containing an SQL command.
+
+  Reversible commands can be defined by calling `execute_file/2`.
+  """
+  def execute_file(path) when is_binary(path) do
+    command = File.read!(path)
+    Runner.execute command
+  end
+
+  @doc """
+  Executes reversible SQL commands from files.
+
+  The arguments must be strings pointing to files containing an SQL command.
+
+  See `execute/2` for more information on executing SQL commands.
+  """
+  def execute_file(up_path, down_path) when is_binary(up_path) and is_binary(down_path) do
+    up = File.read!(up_path)
+    down = File.read!(down_path)
+    Runner.execute %Command{up: up, down: down}
+  end
+
+  @doc """
   Gets the migrator direction.
   """
   @spec direction :: :up | :down
