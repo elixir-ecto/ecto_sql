@@ -47,18 +47,18 @@ defmodule Ecto.Integration.MigrationsTest do
       File.write!("down.sql", ~s(DROP TABLE #{table}))
 
       # non-reversible
-      up(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
+      up(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
+      down(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
 
       assert_raise Tds.Error, ~r/Invalid object name '#{table}'/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
 
       # reversible
-      up(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
+      up(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
+      down(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
 
       assert_raise Tds.Error, ~r/Invalid object name '#{table}'/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")

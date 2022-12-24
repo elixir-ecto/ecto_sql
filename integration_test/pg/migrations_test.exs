@@ -82,18 +82,18 @@ defmodule Ecto.Integration.MigrationsTest do
       File.write!("down.sql", ~s(DROP TABLE IF EXISTS #{table}))
 
       # non-reversible
-      up(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
+      up(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
+      down(PoolRepo, migration_version, ExecuteFileNonReversibleMigration, log: false)
 
       assert_raise Postgrex.Error, ~r/"#{table}" does not exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
 
       # reversible
-      up(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
+      up(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
       PoolRepo.query!("SELECT * FROM #{table}")
-      down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
+      down(PoolRepo, migration_version, ExecuteFileReversibleMigration, log: false)
 
       assert_raise Postgrex.Error, ~r/"#{table}" does not exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
