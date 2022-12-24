@@ -50,7 +50,7 @@ defmodule Ecto.Integration.MigrationsTest do
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
 
-      assert_raise MyXQL.Error, ~r/'ecto_test.execute_file_table' doesn't exist/, fn ->
+      assert_raise MyXQL.Error, ~r/'ecto_test.#{table}' doesn't exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end
@@ -67,7 +67,7 @@ defmodule Ecto.Integration.MigrationsTest do
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
 
-      assert_raise MyXQL.Error, ~r/'ecto_test.execute_file_table' doesn't exist/, fn ->
+      assert_raise MyXQL.Error, ~r/'ecto_test.#{table}' doesn't exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end

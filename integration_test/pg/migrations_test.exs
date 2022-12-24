@@ -85,7 +85,7 @@ defmodule Ecto.Integration.MigrationsTest do
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
 
-      assert_raise Postgrex.Error, ~r/"execute_file_table" does not exist/, fn ->
+      assert_raise Postgrex.Error, ~r/"#{table}" does not exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end
@@ -102,7 +102,7 @@ defmodule Ecto.Integration.MigrationsTest do
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
 
-      assert_raise Postgrex.Error, ~r/"execute_file_table" does not exist/, fn ->
+      assert_raise Postgrex.Error, ~r/"#{table}" does not exist/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end
