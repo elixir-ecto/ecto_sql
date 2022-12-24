@@ -50,7 +50,7 @@ defmodule Ecto.Integration.MigrationsTest do
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileNonReversibleMigration, log: false)
 
-      assert_raise Tds.Error, ~r/Invalid object name `#{table}`/, fn ->
+      assert_raise Tds.Error, ~r/Invalid object name '#{table}'/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end
@@ -67,7 +67,7 @@ defmodule Ecto.Integration.MigrationsTest do
       PoolRepo.query!("SELECT * FROM #{table}")
       down(PoolRepo, version, ExecuteFileReversibleMigration, log: false)
 
-      assert_raise Tds.Error, ~r/Invalid object name `#{table}`/, fn ->
+      assert_raise Tds.Error, ~r/Invalid object name '#{table}'/, fn ->
         PoolRepo.query!("SELECT * FROM #{table}")
       end
     end
