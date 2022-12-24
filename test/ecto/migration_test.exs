@@ -869,15 +869,17 @@ defmodule Ecto.MigrationTest do
   end
 
   test "backward: reverses a command from a file" do
-    up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
-    File.write!("up.sql", up_sql)
+    in_tmp fn _path ->
+      up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
+      File.write!("up.sql", up_sql)
 
-    down_sql = ~s(DROP TABLE IF EXISTS "execute_file_table")
-    File.write!("down.sql", down_sql)
+      down_sql = ~s(DROP TABLE IF EXISTS "execute_file_table")
+      File.write!("down.sql", down_sql)
 
-    execute_file "up.sql", "down.sql"
-    flush()
-    assert down_sql == last_command()
+      execute_file "up.sql", "down.sql"
+      flush()
+      assert down_sql == last_command()
+    end
   end
 
   defp last_command(), do: Process.get(:last_command)
