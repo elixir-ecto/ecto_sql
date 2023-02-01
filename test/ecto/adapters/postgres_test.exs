@@ -566,7 +566,7 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 ORDER BY s0."x" FETCH FIRST 3 ROWS WITH TIES}
 
     msg = ~r"PostgreSQL adapter requires an `order_by` clause if the `:with_ties` limit option is true"
-    query = Schema |> limit([r], 3, with_ties: 1) |> select([], true) |> plan()
+    query = Schema |> limit([r], 3, with_ties: true) |> select([], true) |> plan()
 
     assert_raise Ecto.QueryError, msg, fn ->
       all(query)
