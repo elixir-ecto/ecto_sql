@@ -594,7 +594,14 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp limit(%{limit: nil}, _sources), do: []
-    defp limit(%{limit: %QueryExpr{expr: expr}} = query, sources) do
+    defp limit(%{limit: %{with_ties: true}, order_bys: []} = query, _sources) do
+      error!(query, "PostgreSQL adapter requires an `order_by` clause if the " <>
+                    "`:with_ties` limit option is true")
+    end
+    defp limit(%{limit: %{expr: expr, with_ties: true}} = query, sources) do
+      [" FETCH FIRST ", expr(expr, sources, query) | " ROWS WITH TIES"]
+    end
+    defp limit(%{limit: %{expr: expr}} = query, sources) do
       [" LIMIT " | expr(expr, sources, query)]
     end
 

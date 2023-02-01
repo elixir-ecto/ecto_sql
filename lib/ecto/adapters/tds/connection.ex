@@ -579,6 +579,10 @@ if Code.ensure_loaded?(Tds) do
 
     defp limit(%Query{limit: nil}, _sources), do: []
 
+    defp limit(%Query{limit: %{with_ties: true}} = query, _sources) do
+      error!(query, "Tds adapter does not support the `:with_ties` limit option")
+    end
+
     defp limit(
            %Query{
              limit: %QueryExpr{
