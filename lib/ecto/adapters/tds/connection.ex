@@ -585,7 +585,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp limit(
            %Query{
-             limit: %QueryExpr{
+             limit: %{
                expr: expr
              }
            } = query,
