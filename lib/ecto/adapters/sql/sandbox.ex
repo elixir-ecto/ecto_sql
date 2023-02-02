@@ -591,6 +591,15 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       {:ok, _, conn_state} ->
         {:ok, Connection, {conn_mod, conn_state, false}}
 
+      {:transaction, _conn_state} ->
+        raise """
+        Ecto SQL sandbox transaction cannot be started because there is already\
+        a transaction running.
+
+        This either means some code is starting a transaction before the sandbox\
+        or a connection was not appropriately rolled back after use.
+        """
+
       {_error_or_disconnect, err, conn_state} ->
         {:disconnect, err, conn_mod, conn_state}
     end
