@@ -67,6 +67,10 @@ integration-test-postgres:
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
         RUN apk add postgresql=9.5.13-r0
     ELSE IF [ "$POSTGRES" = "15.0" ]
+        # for 15.0 we need an upgraded version of pg_dump;
+        # alpine 3.17 does not come with the postgres 15 client by default;
+        # we must first update the public keys for the packages because they 
+        # might have been rotated since our image was built
         RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.17/main -u alpine-keys
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/main' >> /etc/apk/repositories
         RUN apk add postgresql15-client
