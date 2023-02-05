@@ -1501,7 +1501,8 @@ defmodule Ecto.Adapters.PostgresTest do
                {:add, :category_10, %Reference{table: :categories, on_update: :restrict}, []},
                {:add, :category_11, %Reference{table: :categories, prefix: "foo", on_update: :restrict}, []},
                {:add, :category_12, %Reference{table: :categories, with: [here: :there]}, []},
-               {:add, :category_13, %Reference{table: :categories, on_update: :restrict, with: [here: :there], match: :full}, []},]}
+               {:add, :category_13, %Reference{table: :categories, on_update: :restrict, with: [here: :there], match: :full}, []},
+               {:add, :category_14, %Reference{table: :categories, with: [here: :there, here2: :there2], on_delete: {:nilify, [:here, :here2]}}, []},]}
 
     assert execute_ddl(create) == ["""
     CREATE TABLE "posts" ("id" serial,
@@ -1519,6 +1520,7 @@ defmodule Ecto.Adapters.PostgresTest do
     "category_11" bigint, CONSTRAINT "posts_category_11_fkey" FOREIGN KEY ("category_11") REFERENCES "foo"."categories"("id") ON UPDATE RESTRICT,
     "category_12" bigint, CONSTRAINT "posts_category_12_fkey" FOREIGN KEY ("category_12","here") REFERENCES "categories"("id","there"),
     "category_13" bigint, CONSTRAINT "posts_category_13_fkey" FOREIGN KEY ("category_13","here") REFERENCES "categories"("id","there") MATCH FULL ON UPDATE RESTRICT,
+    "category_14" bigint, CONSTRAINT "posts_category_14_fkey" FOREIGN KEY ("category_14","here","here2") REFERENCES "categories"("id","there","there2") ON DELETE SET NULL ("here","here2"),
     PRIMARY KEY ("id"))
     """ |> remove_newlines]
   end

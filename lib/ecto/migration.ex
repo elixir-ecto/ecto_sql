@@ -1280,7 +1280,9 @@ defmodule Ecto.Migration do
       the example above), or `nil`.
     * `:type` - The foreign key type, which defaults to `:bigserial`.
     * `:on_delete` - What to do if the referenced entry is deleted. May be
-      `:nothing` (default), `:delete_all`, `:nilify_all`, or `:restrict`.
+      `:nothing` (default), `:delete_all`, `:nilify_all`, `{:nilify, columns}`,
+      or `:restrict`. `{:nilify, columns}` expects a list of atoms for `columns`
+      and is not supported by all databases.
     * `:on_update` - What to do if the referenced entry is updated. May be
       `:nothing` (default), `:update_all`, `:nilify_all`, or `:restrict`.
     * `:validate` - Whether or not to validate the foreign key constraint on
@@ -1302,14 +1304,8 @@ defmodule Ecto.Migration do
   def references(table, opts) when is_binary(table) and is_list(opts) do
     opts = Keyword.merge(foreign_key_repo_opts(), opts)
     reference = struct(%Reference{table: table}, opts)
-
-    unless reference.on_delete in [:nothing, :delete_all, :nilify_all, :restrict] do
-      raise ArgumentError, "unknown :on_delete value: #{inspect reference.on_delete}"
-    end
-
-    unless reference.on_update in [:nothing, :update_all, :nilify_all, :restrict] do
-      raise ArgumentError, "unknown :on_update value: #{inspect reference.on_update}"
-    end
+    check_on_delete!(reference.on_delete)
+    check_on_update!(reference.on_update)
 
     reference
   end
@@ -1321,6 +1317,31 @@ defmodule Ecto.Migration do
     end
     |> Keyword.take([:type])
     |> Keyword.merge(Runner.repo_config(:migration_foreign_key, []))
+  end
+
+  defp check_on_delete!(on_delete)
+      when on_delete in [:nothing, :delete_all, :nilify_all, :restrict],
+      do: :ok
+
+  defp check_on_delete!({:nilify, columns}) when is_list(columns) do
+    unless Enum.all?(columns, &is_atom/1) do
+      raise ArgumentError,
+            "expected `columns` in `{:nilify, columns}` to be a list of atoms, got: #{inspect columns}"
+    end
+
+    :ok
+  end
+
+  defp check_on_delete!(on_delete) do
+    raise ArgumentError, "unknown :on_delete value: #{inspect(on_delete)}"
+  end
+
+  defp check_on_update!(on_update)
+      when on_update in [:nothing, :update_all, :nilify_all, :restrict],
+      do: :ok
+
+  defp check_on_update!(on_update) do
+    raise ArgumentError, "unknown :on_update value: #{inspect(on_update)}"
   end
 
   @doc ~S"""

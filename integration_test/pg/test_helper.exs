@@ -100,11 +100,19 @@ version =
 excludes = [:selected_as_with_having, :selected_as_with_order_by_expression]
 excludes_above_9_5 = [:without_conflict_target]
 excludes_below_9_6 = [:add_column_if_not_exists, :no_error_on_conditional_column_migration]
+excludes_below_15_0 = [:on_delete_nilify_column_list]
 
-if Version.match?(version, "< 9.6.0") do
-  ExUnit.configure(exclude: excludes ++ excludes_above_9_5 ++ excludes_below_9_6)
-else
-  ExUnit.configure(exclude: excludes ++ excludes_above_9_5)
+exclude_list = excludes ++ excludes_above_9_5
+
+cond do
+  Version.match?(version, "< 9.6.0") ->
+    ExUnit.configure(exclude: exclude_list ++ excludes_below_9_6 ++ excludes_below_15_0)
+
+  Version.match?(version, "< 15.0.0") ->
+    ExUnit.configure(exclude: exclude_list ++ excludes_below_15_0)
+
+  true ->
+    ExUnit.configure(exclude: exclude_list)
 end
 
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)

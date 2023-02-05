@@ -226,6 +226,34 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
+  defmodule OnDeleteNilifyColumnsMigration do
+    use Ecto.Migration
+
+    def up do
+      create table(:parent) do
+        add :col1, :integer
+        add :col2, :integer
+      end
+
+      create unique_index(:parent, [:id, :col1, :col2])
+
+      create table(:ref) do
+        add :col1, :integer
+        add :col2, :integer
+        add :parent_id,
+            references(:parent,
+              with: [col1: :col1, col2: :col2],
+              on_delete: {:nilify, [:parent_id, :col2]}
+            )
+      end
+    end
+
+    def down do
+      drop table(:ref)
+      drop table(:parent)
+    end
+  end
+
   defmodule CompositeForeignKeyMigration do
     use Ecto.Migration
 
@@ -621,5 +649,19 @@ defmodule Ecto.Integration.MigrationTest do
     assert :ok == up(PoolRepo, num, DropColumnIfExistsMigration, log: false)
     assert catch_error(PoolRepo.all from p in "drop_col_if_exists_migration", select: p.to_be_removed)
     :ok = down(PoolRepo, num, DropColumnIfExistsMigration, log: false)
+  end
+
+  @tag :on_delete_nilify_column_list
+  test "nilify list of columns on_delete constraint", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, OnDeleteNilifyColumnsMigration, log: false)
+
+    PoolRepo.insert_all("parent", [%{col1: 1, col2: 2}])
+    assert [{id, col1, col2}] = PoolRepo.all from p in "parent", select: {p.id, p.col1, p.col2}
+
+    PoolRepo.insert_all("ref", [[parent_id: id, col1: col1, col2: col2]])
+    PoolRepo.delete_all("parent")
+    assert [{nil, col1, nil}] == PoolRepo.all from r in "ref", select: {r.parent_id, r.col1, r.col2}
+
+    :ok = down(PoolRepo, num, OnDeleteNilifyColumnsMigration, log: false)
   end
 end
