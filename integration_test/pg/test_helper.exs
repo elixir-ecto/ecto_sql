@@ -55,7 +55,6 @@ end
 pool_repo_config = [
   url: Application.get_env(:ecto_sql, :pg_test_url) <> "/ecto_test",
   pool_size: 10,
-  post: 5431,
   max_restarts: 20,
   max_seconds: 10
 ]
