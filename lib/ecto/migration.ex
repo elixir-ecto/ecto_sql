@@ -1304,14 +1304,8 @@ defmodule Ecto.Migration do
   def references(table, opts) when is_binary(table) and is_list(opts) do
     opts = Keyword.merge(foreign_key_repo_opts(), opts)
     reference = struct(%Reference{table: table}, opts)
-
-    unless valid_on_delete?(reference.on_delete) do
-      raise ArgumentError, "unknown :on_delete value: #{inspect reference.on_delete}"
-    end
-
-    unless reference.on_update in [:nothing, :update_all, :nilify_all, :restrict] do
-      raise ArgumentError, "unknown :on_update value: #{inspect reference.on_update}"
-    end
+    check_on_delete!(reference.on_delete)
+    check_on_update!(reference.on_update)
 
     reference
   end
@@ -1325,15 +1319,30 @@ defmodule Ecto.Migration do
     |> Keyword.merge(Runner.repo_config(:migration_foreign_key, []))
   end
 
-  defp valid_on_delete?(on_delete)
-       when on_delete in [:nothing, :delete_all, :nilify_all, :restrict],
-       do: true
+  defp check_on_delete!(on_delete)
+      when on_delete in [:nothing, :delete_all, :nilify_all, :restrict],
+      do: :ok
 
-  defp valid_on_delete?({:nilify, columns}) when is_list(columns) do
-    Enum.all?(columns, &is_atom/1)
+  defp check_on_delete!({:nilify, columns}) when is_list(columns) do
+    unless Enum.all?(columns, &is_atom/1) do
+      raise ArgumentError,
+            "expected `columns` in `{:nilify, columns}` to be a list of atoms, got: #{inspect columns}"
+    end
+
+    :ok
   end
 
-  defp valid_on_delete?(_), do: false
+  defp check_on_delete!(on_delete) do
+    raise ArgumentError, "unknown :on_delete value: #{inspect(on_delete)}"
+  end
+
+  defp check_on_update!(on_update)
+      when on_update in [:nothing, :update_all, :nilify_all, :restrict],
+      do: :ok
+
+  defp check_on_update!(on_update) do
+    raise ArgumentError, "unknown :on_update value: #{inspect(on_update)}"
+  end
 
   @doc ~S"""
   Defines a constraint (either a check constraint or an exclusion constraint)
