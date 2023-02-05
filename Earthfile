@@ -24,6 +24,7 @@ test:
 integration-test-all:
     ARG ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.16.0
     BUILD \
+        --build-arg POSTGRES=15.0 \
         --build-arg POSTGRES=11.11 \
         --build-arg POSTGRES=9.6 \
         --build-arg POSTGRES=9.5 \

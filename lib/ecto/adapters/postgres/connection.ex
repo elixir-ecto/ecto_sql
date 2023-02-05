@@ -1305,6 +1305,8 @@ if Code.ensure_loaded?(Postgrex) do
     defp reference_column_type(type, opts), do: column_type(type, opts)
 
     defp reference_on_delete(:nilify_all), do: " ON DELETE SET NULL"
+    defp reference_on_delete({:nilify, columns}),
+      do: [" ON DELETE SET NULL (", quote_names(columns), ")"]
     defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
     defp reference_on_delete(:restrict), do: " ON DELETE RESTRICT"
     defp reference_on_delete(_), do: []

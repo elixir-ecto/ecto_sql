@@ -54,7 +54,9 @@ ExUnit.start(
     # MSSQL can't reference aliased columns in HAVING
     :selected_as_with_having,
     # MSSQL can't reference aliased columns in ORDER BY expressions
-    :selected_as_with_order_by_expression
+    :selected_as_with_order_by_expression,
+    # MSSQL doesn't support specifying columns for ON DELETE SET NULL
+    :on_delete_nilify_column_list
   ]
 )
 

@@ -1280,7 +1280,9 @@ defmodule Ecto.Migration do
       the example above), or `nil`.
     * `:type` - The foreign key type, which defaults to `:bigserial`.
     * `:on_delete` - What to do if the referenced entry is deleted. May be
-      `:nothing` (default), `:delete_all`, `:nilify_all`, or `:restrict`.
+      `:nothing` (default), `:delete_all`, `:nilify_all`, `{:nilify, columns}`,
+      or `:restrict`. `{:nilify, columns}` accepts `columns` as a list of atoms.
+      This option may not be supported by your database. Please check its documentation.
     * `:on_update` - What to do if the referenced entry is updated. May be
       `:nothing` (default), `:update_all`, `:nilify_all`, or `:restrict`.
     * `:validate` - Whether or not to validate the foreign key constraint on
@@ -1303,7 +1305,7 @@ defmodule Ecto.Migration do
     opts = Keyword.merge(foreign_key_repo_opts(), opts)
     reference = struct(%Reference{table: table}, opts)
 
-    unless reference.on_delete in [:nothing, :delete_all, :nilify_all, :restrict] do
+    unless valid_on_delete?(reference.on_delete) do
       raise ArgumentError, "unknown :on_delete value: #{inspect reference.on_delete}"
     end
 
@@ -1322,6 +1324,16 @@ defmodule Ecto.Migration do
     |> Keyword.take([:type])
     |> Keyword.merge(Runner.repo_config(:migration_foreign_key, []))
   end
+
+  defp valid_on_delete?(on_delete)
+       when on_delete in [:nothing, :delete_all, :nilify_all, :restrict],
+       do: true
+
+  defp valid_on_delete?({:nilify, columns}) when is_list(columns) do
+    Enum.all?(columns, &is_atom/1)
+  end
+
+  defp valid_on_delete?(_), do: false
 
   @doc ~S"""
   Defines a constraint (either a check constraint or an exclusion constraint)
