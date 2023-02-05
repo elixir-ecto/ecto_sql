@@ -1282,7 +1282,8 @@ defmodule Ecto.Migration do
     * `:on_delete` - What to do if the referenced entry is deleted. May be
       `:nothing` (default), `:delete_all`, `:nilify_all`, `{:nilify, columns}`,
       or `:restrict`. `{:nilify, columns}` accepts `columns` as a list of atoms.
-      This option may not be supported by your database. Please check its documentation.
+      This option is not supported by all databases. Please check your documentation
+      before using.
     * `:on_update` - What to do if the referenced entry is updated. May be
       `:nothing` (default), `:update_all`, `:nilify_all`, or `:restrict`.
     * `:validate` - Whether or not to validate the foreign key constraint on
