@@ -142,7 +142,7 @@ integration-test-mssql:
 
 
 setup-base:
-    ARG ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.16.0
+    ARG ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.17.0
     FROM hexpm/elixir:$ELIXIR_BASE
     RUN apk add --no-progress --update git build-base
     ENV ELIXIR_ASSERT_TIMEOUT=10000
