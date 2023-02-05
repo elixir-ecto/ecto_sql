@@ -1281,7 +1281,8 @@ defmodule Ecto.Migration do
     * `:type` - The foreign key type, which defaults to `:bigserial`.
     * `:on_delete` - What to do if the referenced entry is deleted. May be
       `:nothing` (default), `:delete_all`, `:nilify_all`, `{:nilify, columns}`,
-      or `:restrict`. `{:nilify, columns}` accepts `columns` as a list of atoms.
+      or `:restrict`. `{:nilify, columns}` expects a list of atoms for `columns`
+      and is not supported by all databases.
       This option is not supported by all databases. Please check your documentation
       before using.
     * `:on_update` - What to do if the referenced entry is updated. May be
