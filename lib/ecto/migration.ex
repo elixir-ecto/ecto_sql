@@ -1283,8 +1283,6 @@ defmodule Ecto.Migration do
       `:nothing` (default), `:delete_all`, `:nilify_all`, `{:nilify, columns}`,
       or `:restrict`. `{:nilify, columns}` expects a list of atoms for `columns`
       and is not supported by all databases.
-      This option is not supported by all databases. Please check your documentation
-      before using.
     * `:on_update` - What to do if the referenced entry is updated. May be
       `:nothing` (default), `:update_all`, `:nilify_all`, or `:restrict`.
     * `:validate` - Whether or not to validate the foreign key constraint on
