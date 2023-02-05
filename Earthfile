@@ -67,6 +67,7 @@ integration-test-postgres:
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
         RUN apk add postgresql=9.5.13-r0
     ELSE IF [ "$POSTGRES" = "15.0" ]
+        apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.17/main -u alpine-keys
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/main' >> /etc/apk/repositories
         RUN apk add postgresql15-client
     ELSE
