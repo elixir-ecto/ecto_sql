@@ -66,6 +66,8 @@ integration-test-postgres:
         # and in the 3.4 version, it is not included in postgresql-client but rather in postgresql
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
         RUN apk add postgresql=9.5.13-r0
+    ELSE IF [ "$POSTGRES" = "15.0" ]
+        RUN apk add postgresql15-15.1-r0
     ELSE
         RUN apk add postgresql-client
     END
