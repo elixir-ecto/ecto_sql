@@ -1050,6 +1050,9 @@ if Code.ensure_loaded?(MyXQL) do
     defp reference_column_type(type, opts), do: column_type(type, opts)
 
     defp reference_on_delete(:nilify_all), do: " ON DELETE SET NULL"
+    defp reference_on_delete({:nilify, _columns}) do
+      error!(nil, "MySQL adapter does not support the `{:nilify, columns}` action for `:on_delete`")
+    end
     defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
     defp reference_on_delete(:restrict), do: " ON DELETE RESTRICT"
     defp reference_on_delete(_), do: []

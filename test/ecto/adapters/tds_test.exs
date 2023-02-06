@@ -1280,6 +1280,12 @@ defmodule Ecto.Adapters.TdsTest do
              |> remove_newlines
              |> Kernel.<>(" ")
            ]
+
+    create = {:create, table(:posts),
+              [{:add, :category_1, %Reference{table: :categories, on_delete: {:nilify, [:category_1]}}, []}]}
+
+    msg = "Tds adapter does not support the `{:nilify, columns}` action for `:on_delete`"
+    assert_raise ArgumentError, msg, fn -> execute_ddl(create) end
   end
 
   test "create table with options" do
