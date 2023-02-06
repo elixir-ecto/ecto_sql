@@ -1226,6 +1226,12 @@ defmodule Ecto.Adapters.MyXQLTest do
     CONSTRAINT `posts_category_6_fkey` FOREIGN KEY (`category_6`,`here`) REFERENCES `categories`(`id`,`there`) ON DELETE SET NULL,
     PRIMARY KEY (`id`)) ENGINE = INNODB
     """ |> remove_newlines]
+
+    create = {:create, table(:posts),
+              [{:add, :category_1, %Reference{table: :categories, on_delete: {:nilify, [:category_1]}}, []}]}
+
+    msg = "MySQL adapter does not support the `{:nilify, columns}` action for `:on_delete`"
+    assert_raise ArgumentError, msg, fn -> execute_ddl(create) end
   end
 
   test "create table with options" do
