@@ -278,6 +278,11 @@ defmodule Ecto.Adapters.MyXQL do
     end
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
+      {:ok, %{num_rows: 0}} ->
+        raise "insert operation failed to insert any row in the database. " <>
+                "This may happen if you have trigger or other database conditions rejecting operations. " <>
+                "The emitted SQL was: #{sql}"
+
       {:ok, %{num_rows: 1, last_insert_id: last_insert_id}} ->
         {:ok, last_insert_id(key, last_insert_id)}
 
