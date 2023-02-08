@@ -44,7 +44,7 @@ defmodule Ecto.Integration.MigrationsTest do
     log =
       capture_log(fn ->
         num = @base_migration + System.unique_integer([:positive])
-        Ecto.Migrator.up(PoolRepo, num, DuplicateTableMigration, log: false)
+        Ecto.Migrator.up(PoolRepo, num, DuplicateTableMigration, log: :info)
       end)
 
     assert log =~ ~s(relation "duplicate_table" already exists, skipping)
