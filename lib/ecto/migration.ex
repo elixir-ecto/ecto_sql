@@ -1044,7 +1044,7 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Adds a column if it not exists yet when altering a table.
+  Adds a column if it does not exist yet when altering a table.
 
   If the `type` value is a `%Reference{}`, it is used to add a constraint.
 
