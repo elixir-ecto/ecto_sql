@@ -91,7 +91,7 @@ defmodule EctoSQL.TestAdapter do
 
   def execute_ddl(_, command, _) do
     Process.put(:last_command, command)
-    {:ok, []}
+    {:ok, [{:info, "execute ddl", %{command: command}}]}
   end
 
   def supports_ddl_transaction? do

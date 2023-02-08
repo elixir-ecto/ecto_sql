@@ -240,9 +240,9 @@ defmodule Ecto.MigratorTest do
       lines = String.split(output, "\n")
       assert Enum.at(lines, 1) =~ "== Running #{num} #{inspect(module)}.change/0"
       assert Enum.at(lines, 3) =~ ~s[execute "select 'This is a first part of ecto.#{name}';"]
-      assert Enum.at(lines, 5) =~ "select 'In the middle of ecto.#{name}';"
-      assert Enum.at(lines, 7) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
-      assert Enum.at(lines, 9) =~ ~r"Migrated #{num} in \d.\ds"
+      assert Enum.at(lines, 7) =~ "select 'In the middle of ecto.#{name}';"
+      assert Enum.at(lines, 9) =~ ~s[execute "select 'This is a second part of ecto.#{name}';"]
+      assert Enum.at(lines, 13) =~ ~r"Migrated #{num} in \d.\ds"
     end
   end
 
@@ -331,6 +331,30 @@ defmodule Ecto.MigratorTest do
     assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.down/0 forward"
     assert output =~ "execute \"foo\""
     assert output =~ ~r"== Migrated 12 in \d.\ds"
+  end
+
+  test "logs ddl notices" do
+    output = capture_log fn ->
+      :ok = up(TestRepo, 10, ChangeMigration)
+    end
+    assert output =~ "execute ddl"
+
+    output = capture_log fn ->
+      :ok = down(TestRepo, 10, ChangeMigration)
+    end
+    assert output =~ "execute ddl"
+  end
+
+  test "silences ddl notices when log is set to false" do
+    output = capture_log fn ->
+      :ok = up(TestRepo, 10, ChangeMigration, log: false)
+    end
+    refute output =~ "execute ddl"
+
+    output = capture_log fn ->
+      :ok = down(TestRepo, 10, ChangeMigration, log: false)
+    end
+    refute output =~ "execute ddl"
   end
 
   test "up raises error in strict mode" do

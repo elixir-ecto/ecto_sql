@@ -325,12 +325,15 @@ defmodule Ecto.Migration.Runner do
     meta = Ecto.Adapter.lookup_meta(repo.get_dynamic_repo())
     {:ok, logs} = repo.__adapter__().execute_ddl(meta, command, timeout: :infinity, log: sql)
 
-    Enum.each(logs, fn {_level, message, metadata} ->
-      log(level, message, metadata)
+    Enum.each(logs, fn {ddl_log_level, message, metadata} ->
+      ddl_log(ddl_log_level, level, message, metadata)
     end)
 
     :ok
   end
+
+  defp ddl_log(_level, false, _msg, _metadata), do: :ok
+  defp ddl_log(level, _, msg, metadata), do: log(level, msg, metadata)
 
   defp log(level, msg, metadata \\ [])
   defp log(false, _msg, _metadata), do: :ok
