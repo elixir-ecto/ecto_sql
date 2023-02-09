@@ -15,6 +15,20 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
+  defmodule AlterMigration do
+    use Ecto.Migration
+
+    def change do
+      create table(:alter_table) do
+        add(:column1, :string)
+      end
+
+      alter table(:alter_table) do
+        add(:column2, :string, after: :column1, comment: "second column")
+      end
+    end
+  end
+
   describe "Migrator" do
     @get_lock_command ~s[SELECT GET_LOCK('ecto_Ecto.Integration.PoolRepo', -1)]
     @release_lock_command ~s[SELECT RELEASE_LOCK('ecto_Ecto.Integration.PoolRepo')]
@@ -81,6 +95,17 @@ defmodule Ecto.Integration.MigrationsTest do
       refute down_log =~ @release_lock_command
       refute down_log =~ @version_delete
       refute down_log =~ "commit []"
+    end
+
+    test "add column with after and comment options" do
+      num = @base_migration + System.unique_integer([:positive])
+
+      log =
+        capture_log(fn ->
+          Ecto.Migrator.up(PoolRepo, num, AlterMigration, log_migrations_sql: :info)
+        end)
+
+      assert log =~ "ALTER TABLE `alter_table` ADD `column2` varchar(255) COMMENT 'second column' AFTER `column1`"
     end
   end
 end
