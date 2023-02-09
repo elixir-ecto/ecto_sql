@@ -938,7 +938,7 @@ if Code.ensure_loaded?(MyXQL) do
       after_column = Keyword.get(opts, :after)
       comment = Keyword.get(opts, :comment)
 
-      [default_expr(default), null_expr(null), after_expr(after_column), comment_expr(comment)]
+      [default_expr(default), null_expr(null), comment_expr(comment), after_expr(after_column)]
     end
 
     defp comment_expr(comment, create_table? \\ false)
