@@ -443,7 +443,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "limit `:with_ties` option" do
     msg = ~r"MySQL adapter does not support the `:with_ties` limit option"
-    query = Schema |> limit([r], 3, with_ties: true) |> select([], true) |> plan()
+    query = Schema |> limit([r], 3) |> with_ties(true) |> select([], true) |> plan()
 
     assert_raise Ecto.QueryError, msg, fn ->
       all(query)
