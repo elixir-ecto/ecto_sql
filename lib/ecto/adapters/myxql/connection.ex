@@ -463,7 +463,10 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp limit(%{limit: nil}, _sources), do: []
-    defp limit(%{limit: %QueryExpr{expr: expr}} = query, sources) do
+    defp limit(%{limit: %{with_ties: true}} = query, _sources) do
+      error!(query, "MySQL adapter does not support the `:with_ties` limit option")
+    end
+    defp limit(%{limit: %{expr: expr}} = query, sources) do
       [" LIMIT " | expr(expr, sources, query)]
     end
 
