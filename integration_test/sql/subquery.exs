@@ -107,6 +107,7 @@ defmodule Ecto.Integration.SubQueryTest do
     query = from p in Post, where: p.visits >= ^11 and p.visits <= ^13
     query = from c in Comment,
               join: p in subquery(query),
+              on: true,
               where: p.title == ^"hello",
               select: fragment("? + ?", p.visits, ^1)
     assert [12, 12] = TestRepo.all(query)
