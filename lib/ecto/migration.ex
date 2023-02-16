@@ -1421,8 +1421,7 @@ defmodule Ecto.Migration do
 
       * an atom, such as :string
       * a quoted atom, such as :"integer unsigned"
-      * an Ecto.Type, such as Ecto.UUID
-      * a tuple of the above, such as {:array, :integer} or {:array, Ecto.UUID}
+      * a tuple representing a composite type, such as {:array, :integer} or {:map, :string}
       * a reference, such as references(:users)
 
     All Ecto types are allowed and properly translated.
