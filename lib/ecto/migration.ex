@@ -1395,9 +1395,7 @@ defmodule Ecto.Migration do
   defp validate_type!(type) when is_atom(type) do
     case Atom.to_string(type) do
       "Elixir." <> _ ->
-        raise ArgumentError,
-          "#{inspect type} is not a valid database type, " <>
-          "please use an atom like :string, :text and so on"
+        raise_invalid_migration_type!(type)
       _ ->
         :ok
     end
@@ -1416,17 +1414,23 @@ defmodule Ecto.Migration do
   end
 
   defp validate_type!(type) do
+    raise_invalid_migration_type!(type)
+  end
+
+  defp raise_invalid_migration_type!(type) do
     raise ArgumentError, """
     invalid migration type: #{inspect(type)}. Expected one of:
 
       * an atom, such as :string
       * a quoted atom, such as :"integer unsigned"
-      * an Ecto.Type, such as Ecto.UUID
-      * a tuple of the above, such as {:array, :integer} or {:array, Ecto.UUID}
+      * a tuple representing a composite type, such as {:array, :integer} or {:map, :string}
       * a reference, such as references(:users)
 
-    All Ecto types are allowed and properly translated.
-    All other types are sent to the database as is.
+    Ecto types are automatically translated to database types. All other types
+    are sent to the database as is.
+
+    Types defined through Ecto.Type or Ecto.ParameterizedType aren't allowed,
+    use their underlying types instead.
     """
   end
 

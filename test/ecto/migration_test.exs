@@ -146,7 +146,7 @@ defmodule Ecto.MigrationTest do
   end
 
   test "chokes on alias types" do
-    assert_raise ArgumentError, ~r"Ecto.DateTime is not a valid database type", fn ->
+    assert_raise ArgumentError, ~r"invalid migration type: Ecto.DateTime", fn ->
       add(:hello, Ecto.DateTime)
     end
   end
@@ -413,7 +413,7 @@ defmodule Ecto.MigrationTest do
   end
 
   test "forward: column modifications invoke type validations" do
-    assert_raise ArgumentError, ~r"Ecto.DateTime is not a valid database type", fn ->
+    assert_raise ArgumentError, ~r"invalid migration type: Ecto.DateTime", fn ->
       alter table(:posts) do
         modify(:hello, Ecto.DateTime)
       end
