@@ -3,11 +3,14 @@ defmodule Ecto.Adapter.Migration do
   Specifies the adapter migrations API.
   """
 
+  alias Ecto.Migration.Constraint
   alias Ecto.Migration.Table
   alias Ecto.Migration.Index
   alias Ecto.Migration.Reference
 
   @type adapter_meta :: Ecto.Adapter.adapter_meta()
+
+  @type drop_mode :: :restrict | :cascade
 
   @typedoc "All migration commands"
   @type command ::
@@ -16,12 +19,15 @@ defmodule Ecto.Adapter.Migration do
           | {:create, Table.t(), [table_subcommand]}
           | {:create_if_not_exists, Table.t(), [table_subcommand]}
           | {:alter, Table.t(), [table_subcommand]}
-          | {:drop, Table.t(), :restrict | :cascade}
-          | {:drop_if_exists, Table.t(), :restrict | :cascade}
+          | {:drop, Table.t(), drop_mode()}
+          | {:drop_if_exists, Table.t(), drop_mode()}
           | {:create, Index.t()}
           | {:create_if_not_exists, Index.t()}
-          | {:drop, Index.t(), :restrict | :cascade}
-          | {:drop_if_exists, Index.t(), :restrict | :cascade}
+          | {:drop, Index.t(), drop_mode()}
+          | {:drop_if_exists, Index.t(), drop_mode()}
+          | {:create, Constraint.t()}
+          | {:drop, Constraint.t(), drop_mode()}
+          | {:drop_if_exists, Constraint.t(), drop_mode()}
 
   @typedoc "All commands allowed within the block passed to `table/2`"
   @type table_subcommand ::
