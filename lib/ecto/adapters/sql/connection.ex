@@ -19,7 +19,7 @@ defmodule Ecto.Adapters.SQL.Connection do
   Receives options and returns `DBConnection` supervisor child
   specification.
   """
-  @callback child_spec(options :: Keyword.t) :: :supervisor.child_spec()
+  @callback child_spec(options :: Keyword.t) :: :supervisor.child_spec() | {module, Keyword.t}
 
   @doc """
   Prepares and executes the given query with `DBConnection`.
