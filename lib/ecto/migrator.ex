@@ -687,11 +687,12 @@ defmodule Ecto.Migrator do
           * There is a deadlock while migrating (such as using concurrent
             indexes with a migration_lock)
 
-        To fix the first issue, run "mix ecto.create".
+        To fix the first issue, run "mix ecto.create" for the desired MIX_ENV.
 
         To address the second, you can run "mix ecto.drop" followed by
-        "mix ecto.create". Alternatively you may configure Ecto to use
-        another table and/or repository for managing migrations:
+        "mix ecto.create", both for the desired MIX_ENV. Alternatively you may
+        configure Ecto to use another table and/or repository for managing
+        migrations:
 
             config #{inspect repo.config[:otp_app]}, #{inspect repo},
               migration_source: "some_other_table_for_schema_migrations",
