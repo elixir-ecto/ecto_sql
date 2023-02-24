@@ -1670,6 +1670,11 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl(drop) == [~s|DROP INDEX [posts$main] ON [posts] LOCK=NONE; |]
   end
 
+  test "rename index" do
+    rename = {:rename, index(:people, [:name], name: "persons_name_index"), "people_name_index"}
+    assert execute_ddl(rename) == [~s|sp_rename N'people.persons_name_index', N'people_name_index', N'INDEX'|]
+  end
+
   defp remove_newlines(string) when is_binary(string) do
     string |> String.trim() |> String.replace("\n", " ")
   end

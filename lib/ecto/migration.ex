@@ -1066,15 +1066,24 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Renames a table.
+  Renames a table or index.
 
   ## Examples
 
+      # rename a table
       rename table("posts"), to: table("new_posts")
+
+      # rename an index
+      rename(index(:people, [:name], name: "persons_name_index"), to: "people_name_index")
   """
   def rename(%Table{} = table_current, to: %Table{} = table_new) do
     Runner.execute {:rename, __prefix__(table_current), __prefix__(table_new)}
     table_new
+  end
+
+  def rename(%Index{} = current_index, to: new_name) do
+    Runner.execute({:rename, current_index, new_name})
+    %{current_index | name: new_name}
   end
 
   @doc """

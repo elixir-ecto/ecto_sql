@@ -1964,6 +1964,11 @@ defmodule Ecto.Adapters.PostgresTest do
     assert execute_ddl(drop) == [~s|DROP INDEX "foo"."posts$main" CASCADE|]
   end
 
+  test "rename index" do
+    rename = {:rename, index(:people, [:name], name: "persons_name_index"), "people_name_index"}
+    assert execute_ddl(rename) == [~s|ALTER INDEX "persons_name_index" RENAME TO "people_name_index"|]
+  end
+
   test "create check constraint" do
     create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0")}
     assert execute_ddl(create) ==

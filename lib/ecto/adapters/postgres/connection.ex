@@ -999,6 +999,11 @@ if Code.ensure_loaded?(Postgrex) do
         drop_mode(mode)]]
     end
 
+    def execute_ddl({:rename, %Index{} = current_index, new_name}) do
+      [["ALTER INDEX ", quote_name(current_index.name),
+        " RENAME TO ", quote_name(new_name)]]
+    end
+
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
       [["ALTER TABLE ", quote_table(current_table.prefix, current_table.name),
         " RENAME TO ", quote_table(nil, new_table.name)]]

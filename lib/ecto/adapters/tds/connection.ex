@@ -1155,6 +1155,15 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
+    def execute_ddl({:rename, %Index{} = current_index, new_name}) do
+      [[
+        "sp_rename ",
+        "N'#{current_index.table}.#{current_index.name}', ",
+        "N'#{new_name}', ",
+        "N'INDEX'"
+      ]]
+    end
+
     def execute_ddl({command, %Index{}, :cascade}) when command in @drops,
       do: error!(nil, "MSSQL does not support `CASCADE` in DROP INDEX commands")
 
