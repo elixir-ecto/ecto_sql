@@ -224,7 +224,8 @@ defmodule Ecto.Migration.Runner do
     do: {:create, index}
   defp reverse({:drop_if_exists, %Index{} = index, _}),
     do: {:create_if_not_exists, index}
-
+  defp reverse({:rename, %Index{} = index, new_name}),
+    do: {:rename, %{index | name: new_name}, index.name}
   defp reverse({:create, %Table{} = table, _columns}),
     do: {:drop, table, :restrict}
   defp reverse({:create_if_not_exists, %Table{} = table, _columns}),
@@ -418,6 +419,8 @@ defmodule Ecto.Migration.Runner do
     do: "drop index #{quote_name(index.prefix, index.name)}#{drop_mode(mode)}"
   defp command({:drop_if_exists, %Index{} = index, mode}),
     do: "drop index if exists #{quote_name(index.prefix, index.name)}#{drop_mode(mode)}"
+  defp command({:rename, %Index{} = index_current, new_name}),
+    do: "rename index #{quote_name(index_current.name)} to #{new_name}"
   defp command({:rename, %Table{} = current_table, %Table{} = new_table}),
     do: "rename table #{quote_name(current_table.prefix, current_table.name)} to #{quote_name(new_table.prefix, new_table.name)}"
   defp command({:rename, %Table{} = table, current_column, new_column}),
