@@ -1081,7 +1081,7 @@ defmodule Ecto.Migration do
     table_new
   end
 
-  def rename(%Index{name: old_name} = current_index, to: new_name) do
+  def rename(%Index{} = current_index, to: new_name) do
     Runner.execute({:rename, current_index, new_name})
     %{current_index | name: new_name}
   end

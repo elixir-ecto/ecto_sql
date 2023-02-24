@@ -271,6 +271,20 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
+  defmodule RenameIndexMigration do
+    use Ecto.Migration
+
+    def change do
+      create table(:composite_parent) do
+        add :key_id, :integer
+      end
+
+      create unique_index(:composite_parent, [:id, :key_id], name: "old_index_name")
+
+      rename index(:composite_parent, [:id, :key_id], name: "old_index_name"), to: "new_index_name"
+    end
+  end
+
   defmodule ReferencesRollbackMigration do
     use Ecto.Migration
 
@@ -501,6 +515,11 @@ defmodule Ecto.Integration.MigrationTest do
     assert {1, nil} = PoolRepo.insert_all("composite_child", [[parent_id: id, parent_key_id: 2]])
 
     assert :ok == down(PoolRepo, num, CompositeForeignKeyMigration, log: false)
+  end
+
+  test "rename index", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, RenameIndexMigration, log: false)
+    assert :ok == down(PoolRepo, num, RenameIndexMigration, log: false)
   end
 
   test "rolls back references in change/1", %{migration_number: num} do
