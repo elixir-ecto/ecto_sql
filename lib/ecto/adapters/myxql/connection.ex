@@ -838,6 +838,11 @@ if Code.ensure_loaded?(MyXQL) do
     def execute_ddl({:drop_if_exists, %Index{}, _}),
       do: error!(nil, "MySQL adapter does not support drop if exists for index")
 
+    def execute_ddl({:rename, %Index{} = index, new_name}) do
+      [["ALTER TABLE ", quote_table(index.table), " RENAME INDEX ",
+      quote_name(index.name), " TO ", quote_name(new_name)]]
+    end
+
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
       [["RENAME TABLE ", quote_table(current_table.prefix, current_table.name),
         " TO ", quote_table(new_table.prefix, new_table.name)]]

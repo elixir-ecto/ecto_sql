@@ -1558,6 +1558,11 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert execute_ddl(drop) == [~s|DROP INDEX `posts$main` ON `foo`.`posts`|]
   end
 
+  test "rename index" do
+    rename = {:rename, index(:people, [:name], name: "persons_name_index"), "people_name_index"}
+    assert execute_ddl(rename) == [~s|ALTER TABLE `people` RENAME INDEX `persons_name_index` TO `people_name_index`|]
+  end
+
   test "rename table" do
     rename = {:rename, table(:posts), table(:new_posts)}
     assert execute_ddl(rename) == [~s|RENAME TABLE `posts` TO `new_posts`|]
