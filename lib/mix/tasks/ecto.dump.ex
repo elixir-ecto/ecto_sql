@@ -46,6 +46,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-r`, `--repo` - the repo to load the structure info from
     * `-d`, `--dump-path` - the path of the dump file to create
     * `-q`, `--quiet` - run the command quietly
+    * `-p`, `--prefixes` - list of comma-separated DB schemas that have schema_migration tables
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
   """
