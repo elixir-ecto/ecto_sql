@@ -9,7 +9,8 @@ defmodule Mix.Tasks.Ecto.Dump do
   @aliases [
     d: :dump_path,
     q: :quiet,
-    r: :repo
+    r: :repo,
+    p: :prefixes
   ]
 
   @switches [
@@ -17,7 +18,8 @@ defmodule Mix.Tasks.Ecto.Dump do
     quiet: :boolean,
     repo: [:string, :keep],
     no_compile: :boolean,
-    no_deps_check: :boolean
+    no_deps_check: :boolean,
+    prefixes: :string,
   ]
 
   @moduledoc """
@@ -51,6 +53,14 @@ defmodule Mix.Tasks.Ecto.Dump do
   @impl true
   def run(args) do
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
+
+    opts =  if Keyword.has_key?(opts, :prefixes) do
+      {_, opts} = Keyword.get_and_update(opts, :prefixes, &{&1, String.split(&1, ",")})
+      opts
+    else
+      opts
+    end
+
     opts = Keyword.merge(@default_opts, opts)
 
     Enum.each parse_repo(args), fn repo ->
