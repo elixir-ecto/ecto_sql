@@ -55,18 +55,18 @@ defmodule Ecto.Adapters.PostgresTest do
   defp delete_all(query), do: query |> SQL.delete_all |> IO.iodata_to_binary()
   defp execute_ddl(query), do: query |> SQL.execute_ddl |> Enum.map(&IO.iodata_to_binary/1)
 
-  defp insert(prefx, table, header, rows, on_conflict, returning, placeholders \\ []) do
+  defp insert(prefix, table, header, rows, on_conflict, returning, placeholders \\ []) do
     IO.iodata_to_binary(
-      SQL.insert(prefx, table, header, rows, on_conflict, returning, placeholders)
+      SQL.insert(prefix, table, header, rows, on_conflict, returning, placeholders)
     )
   end
 
-  defp update(prefx, table, fields, filter, returning) do
-    IO.iodata_to_binary(SQL.update(prefx, table, fields, filter, returning))
+  defp update(prefix, table, fields, filter, returning) do
+    IO.iodata_to_binary(SQL.update(prefix, table, fields, filter, returning))
   end
 
-  defp delete(prefx, table, filter, returning) do
-    IO.iodata_to_binary(SQL.delete(prefx, table, filter, returning))
+  defp delete(prefix, table, filter, returning) do
+    IO.iodata_to_binary(SQL.delete(prefix, table, filter, returning))
   end
 
   test "from" do
