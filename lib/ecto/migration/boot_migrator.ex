@@ -3,21 +3,18 @@ defmodule Ecto.Migration.BootMigrator do
   A process you can add to your Application Supervisor to run migrations. This will attempt to run migrations, and then silently shut its self down.
 
   Add the following to the top of your application children spec:
-     {Ecto.Migration.BootMigrator, otp_app: :my_app}
 
-  Optionally pass `:skip` to skip them. 
+    {Ecto.Migration.BootMigrator, repos: Application.fetch_env!(:my_app, :ecto_repos)}
 
-  #TODO More config
+  To skip migrations you can also pass `skip: true` or set the environment variable `SKIP_MIGRATIONS` to a truthy value.
   """
   use GenServer
 
   # Callbacks
   @impl true
   def init(opts) do
-    app = Keyword.fetch!(opts, :otp_app)
-    repos = Application.fetch_env!(app, :ecto_repos)
+    repos = Keyword.fetch!(opts, :repos)
 
-    # TODO probably a better way
     skip? = Keyword.get(opts, :skip, System.get_env("SKIP_MIGRATIONS") || false)
     migrator = Keyword.get(opts, :migrator, &Ecto.Migrator.run/3)
 
