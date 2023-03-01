@@ -9,8 +9,7 @@ defmodule Mix.Tasks.Ecto.Dump do
   @aliases [
     d: :dump_path,
     q: :quiet,
-    r: :repo,
-    p: :prefixes
+    r: :repo
   ]
 
   @switches [
@@ -19,7 +18,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     repo: [:string, :keep],
     no_compile: :boolean,
     no_deps_check: :boolean,
-    prefixes: :string,
+    migration_prefixes: :string,
   ]
 
   @moduledoc """
@@ -46,17 +45,17 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-r`, `--repo` - the repo to load the structure info from
     * `-d`, `--dump-path` - the path of the dump file to create
     * `-q`, `--quiet` - run the command quietly
-    * `-p`, `--prefixes` - list of comma-separated DB schemas that have schema_migration tables
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
+    * `--migration-prefixes` - list of comma-separated DB schemas that have schema_migration tables. Defaults to `public` schema only.
   """
 
   @impl true
   def run(args) do
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
 
-    opts =  if Keyword.has_key?(opts, :prefixes) do
-      {_, opts} = Keyword.get_and_update(opts, :prefixes, &{&1, String.split(&1, ",")})
+    opts =  if Keyword.has_key?(opts, :migration_prefixes) do
+      {_, opts} = Keyword.get_and_update(opts, :migration_prefixes, &{&1, String.split(&1, ",")})
       opts
     else
       opts

@@ -139,7 +139,7 @@ defmodule Ecto.Integration.StorageTest do
     def change, do: :ok
   end
 
-  defmodule TestSchemaMigration do
+  defmodule CreateTestSchemaMigration do
     use Ecto.Migration
 
     def change do
@@ -161,17 +161,22 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   test "structure dump and load with migrations table on multiple database schemas" do
-    public_schema_migration_version = @base_migration + System.unique_integer([:positive])
-    # running migration on public DB schema
-    :ok = Ecto.Migrator.up(PoolRepo, public_schema_migration_version, Migration, log: false)
-    # running migration on test_schema DB schema
+    # Create the test_schema schema and add the schema_migrations table there
     num = @base_migration + System.unique_integer([:positive])
-    :ok = Ecto.Migrator.up(PoolRepo, num, TestSchemaMigration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, num, CreateTestSchemaMigration, log: false)
+
+    # running migration on public DB schema
+    public_schema_migration_version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, public_schema_migration_version, Migration, log: false)
+
+    # running migration on test_schema DB schema
     test_schema_migration_version = @base_migration + System.unique_integer([:positive])
     :ok = Ecto.Migrator.up(PoolRepo, test_schema_migration_version, Migration, log: false, prefix: "test_schema")
-    config = Keyword.put(TestRepo.config(), :prefixes, ["public", "test_schema"])
+
+    config = Keyword.put(TestRepo.config(), :migration_prefixes, ["public", "test_schema"])
     {:ok, path} = Postgres.structure_dump(tmp_path(), config)
     contents = File.read!(path)
+
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{public_schema_migration_version})]
     assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{test_schema_migration_version})]
   end
