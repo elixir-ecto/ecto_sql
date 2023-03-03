@@ -166,7 +166,7 @@ defmodule Ecto.Integration.StorageTest do
 
     assert {output, 0} =
              Ecto.Adapters.MyXQL.dump_cmd(
-               ["--no-create-info", "--tables", "schema_migrations"],
+               [],
                [],
                PoolRepo.config()
              )

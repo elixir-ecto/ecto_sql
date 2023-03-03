@@ -429,7 +429,11 @@ defmodule Ecto.Adapters.MyXQL do
 
     database_args =
       if database = opts[:database] do
-        ["--database", database]
+        if cmd == "mysqldump" do
+          ["--databases", database]
+        else
+          ["--database", database]
+        end
       else
         []
       end
