@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-q`, `--quiet` - run the command quietly
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
-    * `--migration-prefixes` - list of comma-separated DB schemas that have schema_migration tables. Defaults to `public` schema only.
+    * `--migration-prefixes` - comma-separated list of prefixes that will have their migration table exported. Defaults to `public`. (Postgres only)
   """
 
   @impl true

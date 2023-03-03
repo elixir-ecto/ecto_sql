@@ -346,13 +346,14 @@ defmodule Ecto.Adapters.Postgres do
   defp select_versions(table, config) do
     migration_prefixes = config[:migration_prefixes] || ["public"]
 
-    result = Enum.reduce_while(migration_prefixes, [], fn prefix, prefix_versions ->
-      case run_query(~s[SELECT version FROM #{prefix}."#{table}" ORDER BY version], config) do
-        {:ok, %{rows: rows}} -> {:cont, prefix_versions ++ Enum.map(rows, &{prefix, hd(&1)})}
-        {:error, %{postgres: %{code: :undefined_table}}} -> {:cont, prefix_versions}
-        {:error, _} = error -> {:halt, error}
-      end
-    end)
+    result =
+      Enum.reduce_while(migration_prefixes, [], fn prefix, versions ->
+        case run_query(~s[SELECT version FROM #{prefix}."#{table}" ORDER BY version], config) do
+          {:ok, %{rows: rows}} -> {:cont, Enum.map(rows, &{prefix, hd(&1)}) ++ versions }
+          {:error, %{postgres: %{code: :undefined_table}}} -> {:cont, versions}
+          {:error, _} = error -> {:halt, error}
+        end
+      end)
 
     case result do
       {:error, _} = error -> error
@@ -376,10 +377,11 @@ defmodule Ecto.Adapters.Postgres do
     {:ok, path}
   end
 
-  defp append_versions(table, prefix_versions, path) do
-    sql = Enum.map_join(prefix_versions, fn {prefix, version} ->
-      ~s[INSERT INTO #{prefix}."#{table}" (version) VALUES (#{version});\n]
-    end)
+  defp append_versions(table, versions, path) do
+    sql =
+      Enum.map_join(versions, fn {prefix, version} ->
+        ~s[INSERT INTO #{prefix}."#{table}" (version) VALUES (#{version});\n]
+      end)
 
     File.open!(path, [:append], fn file ->
       IO.write(file, sql)
