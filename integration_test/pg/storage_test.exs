@@ -139,14 +139,6 @@ defmodule Ecto.Integration.StorageTest do
     def change, do: :ok
   end
 
-  defmodule CreateTestSchemaMigration do
-    use Ecto.Migration
-
-    def change do
-      execute TestRepo.create_prefix("test_schema")
-    end
-  end
-
   test "structure dump and load with migrations table" do
     num = @base_migration + System.unique_integer([:positive])
     :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
@@ -157,8 +149,8 @@ defmodule Ecto.Integration.StorageTest do
 
   test "structure dump and load with migrations table on multiple database schemas" do
     # Create the test_schema schema
-    num = @base_migration + System.unique_integer([:positive])
-    :ok = Ecto.Migrator.up(PoolRepo, num, CreateTestSchemaMigration, log: false)
+    run_psql(~s[CREATE SCHEMA test_schema], [PoolRepo.config()[:database]])
+
     # Run migrations
     version = @base_migration + System.unique_integer([:positive])
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
@@ -170,6 +162,8 @@ defmodule Ecto.Integration.StorageTest do
 
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{version})]
     assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
+  after
+    run_psql(~s[DROP SCHEMA test_schema], [PoolRepo.config()[:database]])
   end
 
 

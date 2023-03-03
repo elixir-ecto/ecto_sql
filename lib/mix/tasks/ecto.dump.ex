@@ -53,14 +53,7 @@ defmodule Mix.Tasks.Ecto.Dump do
   @impl true
   def run(args) do
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
-
-    opts =  if Keyword.has_key?(opts, :migration_prefixes) do
-      {_, opts} = Keyword.get_and_update(opts, :migration_prefixes, &{&1, String.split(&1, ",")})
-      opts
-    else
-      opts
-    end
-
+    opts = Keyword.update(opts, :migration_prefixes, nil, &String.split(&1, ","))
     opts = Keyword.merge(@default_opts, opts)
 
     Enum.each parse_repo(args), fn repo ->
