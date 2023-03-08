@@ -861,5 +861,49 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  describe "gen_server" do 
+    test "runs the migrator with repos config" do
+      migrator = fn repo, _, _ ->
+        assert TestRepo == repo
+        []
+      end
+
+      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
+    end
+
+    test "skip is set" do
+      migrator = fn repo, _, _ ->
+        refute TestRepo == repo
+        []
+      end
+
+      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: true]})
+    end
+
+    test "SKIP_MIGRATIONS is set" do
+      System.put_env("SKIP_MIGRATIONS", "true")
+      migrator = fn repo, _, _ ->
+        refute TestRepo == repo
+        []
+      end
+
+      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
+
+
+    after
+      System.delete_env("SKIP_MIGRATIONS")
+    end
+
+    test "migrations fail" do
+      migrator = fn repo, _, _ ->
+        assert TestRepo == repo
+        raise "boom"
+        []
+      end
+
+      assert {:error, {{%RuntimeError{message: "boom"}, _}, _}} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
+    end
+  end
+
   defp last_command(), do: Process.get(:last_command)
 end

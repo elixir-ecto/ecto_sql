@@ -77,6 +77,14 @@ defmodule Ecto.Migrator do
       $ bin/my_app eval "MyApp.Release.migrate"
       $ bin/my_app eval "MyApp.Release.rollback(MyApp.Repo, 20190417140000)"
 
+  ## Example: Running migrations on application startup
+
+  Add the following to the top of your application children spec:
+
+    {Ecto.Migrator, repos: Application.fetch_env!(:my_app, :ecto_repos)}
+
+  To skip migrations you can also pass `skip: true` or set the environment variable `SKIP_MIGRATIONS` to a truthy value.
+
   """
 
   require Logger
@@ -756,4 +764,27 @@ defmodule Ecto.Migrator do
   defp after_action(_repo, :noop) do
     :noop
   end
+
+  use GenServer
+
+  def start_link(state) do
+    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+  end
+
+  @impl true
+  def init(opts) do
+    repos = Keyword.fetch!(opts, :repos)
+
+    skip? = Keyword.get(opts, :skip, System.get_env("SKIP_MIGRATIONS") || false)
+    migrator = Keyword.get(opts, :migrator, &Ecto.Migrator.run/3)
+
+    unless skip? do
+      for repo <- repos do
+        {:ok, _, _} = with_repo(repo, &migrator.(&1, :up, all: true))
+      end
+    end
+
+    :ignore
+  end
+
 end
