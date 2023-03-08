@@ -147,7 +147,7 @@ defmodule Ecto.Integration.StorageTest do
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES]
   end
 
-  test "structure dump and load with migrations table on multiple database schemas" do
+  test "when :dump_prefixes is not provided, structure is dumped for all schemas but only public schema migration records are inserted" do
     # Create the test_schema schema
     run_psql(~s[CREATE SCHEMA test_schema], [PoolRepo.config()[:database]])
 
@@ -156,11 +156,54 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
 
-    config = Keyword.put(TestRepo.config(), :migration_prefixes, ["public", "test_schema"])
+    {:ok, path} = Postgres.structure_dump(tmp_path(), TestRepo.config())
+    contents = File.read!(path)
+
+    assert contents =~ "CREATE TABLE public.schema_migrations"
+    assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{version})]
+    assert contents =~ "CREATE TABLE test_schema.schema_migrations"
+    refute contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
+  after
+    run_psql(~s[DROP SCHEMA test_schema], [PoolRepo.config()[:database]])
+  end
+
+  test "dumps structure and schema_migration records from multiple schemas" do
+    # Create the test_schema schema
+    run_psql(~s[CREATE SCHEMA test_schema], [PoolRepo.config()[:database]])
+
+    # Run migrations
+    version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
+
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["public", "test_schema"])
     {:ok, path} = Postgres.structure_dump(tmp_path(), config)
     contents = File.read!(path)
 
+    assert contents =~ "CREATE TABLE public.schema_migrations"
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{version})]
+    assert contents =~ "CREATE TABLE test_schema.schema_migrations"
+    assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
+  after
+    run_psql(~s[DROP SCHEMA test_schema], [PoolRepo.config()[:database]])
+  end
+
+  test "dumps structure and schema_migration records only from queried schema" do
+    # Create the test_schema schema
+    run_psql(~s[CREATE SCHEMA test_schema], [PoolRepo.config()[:database]])
+
+    # Run migrations
+    version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
+
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["test_schema"])
+    {:ok, path} = Postgres.structure_dump(tmp_path(), config)
+    contents = File.read!(path)
+
+    refute contents =~ "CREATE TABLE public.schema_migrations"
+    refute contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{version})]
+    assert contents =~ "CREATE TABLE test_schema.schema_migrations"
     assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
   after
     run_psql(~s[DROP SCHEMA test_schema], [PoolRepo.config()[:database]])

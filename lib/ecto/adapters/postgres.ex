@@ -344,10 +344,10 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp select_versions(table, config) do
-    migration_prefixes = config[:migration_prefixes] || ["public"]
+    dump_prefixes = config[:dump_prefixes] || ["public"]
 
     result =
-      Enum.reduce_while(migration_prefixes, [], fn prefix, versions ->
+      Enum.reduce_while(dump_prefixes, [], fn prefix, versions ->
         case run_query(~s[SELECT version FROM #{prefix}."#{table}" ORDER BY version], config) do
           {:ok, %{rows: rows}} -> {:cont, Enum.map(rows, &{prefix, hd(&1)}) ++ versions }
           {:error, %{postgres: %{code: :undefined_table}}} -> {:cont, versions}
@@ -363,9 +363,11 @@ defmodule Ecto.Adapters.Postgres do
 
   defp pg_dump(default, config) do
     path = config[:dump_path] || Path.join(default, "structure.sql")
+    dump_prefixes = config[:dump_prefixes] || []
+    args = ["--file", path, "--schema-only", "--no-acl", "--no-owner"] ++ Enum.flat_map(dump_prefixes, &(["-n", &1]))
     File.mkdir_p!(Path.dirname(path))
 
-    case run_with_cmd("pg_dump", config, ["--file", path, "--schema-only", "--no-acl", "--no-owner"]) do
+    case run_with_cmd("pg_dump", config, args) do
       {_output, 0} ->
         {:ok, path}
       {output, _} ->

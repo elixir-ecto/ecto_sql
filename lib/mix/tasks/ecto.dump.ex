@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     repo: [:string, :keep],
     no_compile: :boolean,
     no_deps_check: :boolean,
-    migration_prefixes: :string,
+    dump_prefixes: :string,
   ]
 
   @moduledoc """
@@ -47,13 +47,13 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-q`, `--quiet` - run the command quietly
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
-    * `--migration-prefixes` - comma-separated list of prefixes that will have their migration table exported. Defaults to `public`. (Postgres only)
+    * `--dump-prefixes` - comma-separated list of prefixes that will be included in the structure dump. Defaults to all schemas. (Postgres only)
   """
 
   @impl true
   def run(args) do
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
-    opts = Keyword.update(opts, :migration_prefixes, nil, &String.split(&1, ","))
+    opts = Keyword.update(opts, :dump_prefixes, nil, &String.split(&1, ","))
     opts = Keyword.merge(@default_opts, opts)
 
     Enum.each parse_repo(args), fn repo ->
