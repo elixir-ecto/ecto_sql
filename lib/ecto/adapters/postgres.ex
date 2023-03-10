@@ -363,8 +363,14 @@ defmodule Ecto.Adapters.Postgres do
 
   defp pg_dump(default, config) do
     path = config[:dump_path] || Path.join(default, "structure.sql")
-    dump_prefixes = config[:dump_prefixes] || []
-    args = ["--file", path, "--schema-only", "--no-acl", "--no-owner"] ++ Enum.flat_map(dump_prefixes, &(["-n", &1]))
+    prefixes = config[:dump_prefixes] || []
+    non_prefix_args = ["--file", path, "--schema-only", "--no-acl", "--no-owner"]
+
+    args =
+      Enum.reduce(prefixes, non_prefix_args, fn prefix, acc ->
+        ["-n", prefix | acc]
+      end)
+
     File.mkdir_p!(Path.dirname(path))
 
     case run_with_cmd("pg_dump", config, args) do

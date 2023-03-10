@@ -59,6 +59,18 @@ defmodule Ecto.Integration.StorageTest do
     System.cmd("psql", args, env: env)
   end
 
+  def create_schema(database, schema) do
+    run_psql(~s[CREATE SCHEMA #{schema}], [database])
+  end
+
+  def drop_schema(database, schema) do
+    run_psql(~s[DROP SCHEMA #{schema}], [database])
+  end
+
+  def drop_schema_migrations_table(database, schema) do
+    run_psql(~s[DROP TABLE #{schema}.schema_migrations], [database])
+  end
+
   test "storage up (twice in a row)" do
     assert Postgres.storage_up(params()) == :ok
     assert Postgres.storage_up(params()) == {:error, :already_up}
@@ -149,7 +161,7 @@ defmodule Ecto.Integration.StorageTest do
 
   test "when :dump_prefixes is not provided, structure is dumped for all schemas but only public schema migration records are inserted" do
     # Create the test_schema schema
-    run_psql(~s[CREATE SCHEMA test_schema], [PoolRepo.config()[:database]])
+    create_schema(PoolRepo.config()[:database], "test_schema")
 
     # Run migrations
     version = @base_migration + System.unique_integer([:positive])
@@ -164,12 +176,13 @@ defmodule Ecto.Integration.StorageTest do
     assert contents =~ "CREATE TABLE test_schema.schema_migrations"
     refute contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
   after
-    run_psql(~s[DROP SCHEMA test_schema], [PoolRepo.config()[:database]])
+    drop_schema_migrations_table(PoolRepo.config()[:database], "test_schema")
+    drop_schema(PoolRepo.config()[:database], "test_schema")
   end
 
   test "dumps structure and schema_migration records from multiple schemas" do
     # Create the test_schema schema
-    run_psql(~s[CREATE SCHEMA test_schema], [PoolRepo.config()[:database]])
+    create_schema(PoolRepo.config()[:database], "test_schema")
 
     # Run migrations
     version = @base_migration + System.unique_integer([:positive])
@@ -185,12 +198,13 @@ defmodule Ecto.Integration.StorageTest do
     assert contents =~ "CREATE TABLE test_schema.schema_migrations"
     assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
   after
-    run_psql(~s[DROP SCHEMA test_schema], [PoolRepo.config()[:database]])
+    drop_schema_migrations_table(PoolRepo.config()[:database], "test_schema")
+    drop_schema(PoolRepo.config()[:database], "test_schema")
   end
 
   test "dumps structure and schema_migration records only from queried schema" do
     # Create the test_schema schema
-    run_psql(~s[CREATE SCHEMA test_schema], [PoolRepo.config()[:database]])
+    create_schema(PoolRepo.config()[:database], "test_schema")
 
     # Run migrations
     version = @base_migration + System.unique_integer([:positive])
@@ -206,7 +220,8 @@ defmodule Ecto.Integration.StorageTest do
     assert contents =~ "CREATE TABLE test_schema.schema_migrations"
     assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
   after
-    run_psql(~s[DROP SCHEMA test_schema], [PoolRepo.config()[:database]])
+    drop_schema_migrations_table(PoolRepo.config()[:database], "test_schema")
+    drop_schema(PoolRepo.config()[:database], "test_schema")
   end
 
 

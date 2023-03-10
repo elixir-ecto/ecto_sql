@@ -150,7 +150,51 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
     {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), TestRepo.config())
     contents = File.read!(path)
-    assert contents =~ "INSERT INTO `schema_migrations` (version) VALUES ("
+    assert contents =~ "INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{num})"
+  end
+
+  test "dumps structure and schema_migration records from multiple prefixes" do
+    # Create the test_schema schema
+    create_database()
+    prefix = params()[:database]
+
+    # Run migrations
+    version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: prefix)
+
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test", prefix])
+    {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
+    contents = File.read!(path)
+
+    assert contents =~ "Current Database: `#{prefix}`"
+    assert contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
+    assert contents =~ "Current Database: `ecto_test`"
+    assert contents =~ ~s[INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{version})]
+  after
+    drop_database()
+  end
+
+  test "dumps structure and schema_migration records only from queried prefix" do
+    # Create the test_schema schema
+    create_database()
+    prefix = params()[:database]
+
+    # Run migrations
+    version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: prefix)
+
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test"])
+    {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
+    contents = File.read!(path)
+
+    refute contents =~ "Current Database: `#{prefix}`"
+    refute contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
+    assert contents =~ "Current Database: `ecto_test`"
+    assert contents =~ ~s[INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{version})]
+  after
+    drop_database()
   end
 
   defp strip_timestamp(dump) do

@@ -312,9 +312,10 @@ defmodule Ecto.Adapters.MyXQL do
   def structure_dump(default, config) do
     table = config[:migration_source] || "schema_migrations"
     path  = config[:dump_path] || Path.join(default, "structure.sql")
+    dump_prefixes = config[:dump_prefixes] || [config[:database]]
 
-    with {:ok, versions} <- select_versions(table, config),
-         {:ok, contents} <- mysql_dump(config),
+    with {:ok, versions} <- select_versions(dump_prefixes, table, config),
+         {:ok, contents} <- mysql_dump(dump_prefixes, config),
          {:ok, contents} <- append_versions(table, versions, contents) do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
@@ -322,17 +323,31 @@ defmodule Ecto.Adapters.MyXQL do
     end
   end
 
-  defp select_versions(table, config) do
-    case run_query(~s[SELECT version FROM `#{table}` ORDER BY version], config) do
-      {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, &hd/1)}
-      {:error, %{mysql: %{name: :ER_NO_SUCH_TABLE}}} -> {:ok, []}
+  defp select_versions(dump_prefixes, table, config) do
+    result = Enum.reduce_while(dump_prefixes, [], fn prefix, versions ->
+      case run_query(~s[SELECT version FROM `#{prefix}`.`#{table}` ORDER BY version], config) do
+        {:ok, %{rows: rows}} -> {:cont, Enum.map(rows, &{prefix, hd(&1)}) ++ versions }
+        {:error, %{mysql: %{name: :ER_NO_SUCH_TABLE}}} -> {:cont, versions}
+        {:error, _} = error -> {:halt, error}
+        {:exit, exit} -> {:error, exit_to_exception(exit)}
+      end
+    end)
+
+    case result do
       {:error, _} = error -> error
-      {:exit, exit} -> {:error, exit_to_exception(exit)}
+      versions -> {:ok, versions}
     end
   end
 
-  defp mysql_dump(config) do
-    case run_with_cmd("mysqldump", config, ["--no-data", "--routines", config[:database]]) do
+  defp mysql_dump(dump_prefixes, config) do
+    non_prefix_args = ["--databases", "--no-data", "--routines"]
+
+    args =
+      Enum.reduce(non_prefix_args, dump_prefixes, fn args, acc ->
+        [args | acc]
+      end)
+
+    case run_with_cmd("mysqldump", config, args) do
       {output, 0} -> {:ok, output}
       {output, _} -> {:error, output}
     end
@@ -341,10 +356,13 @@ defmodule Ecto.Adapters.MyXQL do
   defp append_versions(_table, [], contents) do
     {:ok, contents}
   end
+
   defp append_versions(table, versions, contents) do
-    {:ok,
-      contents <>
-      Enum.map_join(versions, &~s[INSERT INTO `#{table}` (version) VALUES (#{&1});\n])}
+    sql_statements = Enum.map_join(versions, fn {prefix, version} ->
+      ~s[INSERT INTO `#{prefix}`.`#{table}` (version) VALUES (#{version});\n]
+    end)
+
+    {:ok, contents <> sql_statements}
   end
 
   @impl true
