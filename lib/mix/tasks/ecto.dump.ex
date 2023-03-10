@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-q`, `--quiet` - run the command quietly
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
-    * `--dump-prefixes` - comma-separated list of prefixes that will be included in the structure dump. Defaults to all schemas. (Postgres only)
+    * `--dump-prefixes` - comma-separated list of prefixes that will be included in the structure dump. When specified, the prefixes will have their definitions dumped along with the data in their migration table. The default behavior is dependent on the adapter. For Postgres, the configured database has the definitions dumped from all of its schemas as well as the data from the migration table in the `public` schema. For MySQL, the configured database has its definitions dumped as well as the data in the migration table.
   """
 
   @impl true
