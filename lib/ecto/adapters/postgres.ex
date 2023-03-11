@@ -344,10 +344,10 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp select_versions(table, config) do
-    dump_prefixes = config[:dump_prefixes] || ["public"]
+    prefixes = config[:dump_prefixes] || ["public"]
 
     result =
-      Enum.reduce_while(dump_prefixes, [], fn prefix, versions ->
+      Enum.reduce_while(prefixes, [], fn prefix, versions ->
         case run_query(~s[SELECT version FROM #{prefix}."#{table}" ORDER BY version], config) do
           {:ok, %{rows: rows}} -> {:cont, Enum.map(rows, &{prefix, hd(&1)}) ++ versions }
           {:error, %{postgres: %{code: :undefined_table}}} -> {:cont, versions}
