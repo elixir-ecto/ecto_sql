@@ -159,7 +159,7 @@ defmodule Ecto.Integration.StorageTest do
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES]
   end
 
-  test "when :dump_prefixes is not provided, structure is dumped for all schemas but only public schema migration records are inserted" do
+  test "when :prefix is not provided, structure is dumped for all schemas but only public schema migration records are inserted" do
     # Create the test_schema schema
     create_schema(PoolRepo.config()[:database], "test_schema")
 
@@ -189,7 +189,7 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
 
-    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["public", "test_schema"])
+    config = Keyword.merge(TestRepo.config(), [prefix: "public", prefix: "test_schema"])
     {:ok, path} = Postgres.structure_dump(tmp_path(), config)
     contents = File.read!(path)
 
@@ -211,7 +211,7 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
 
-    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["test_schema"])
+    config = Keyword.put(TestRepo.config(), :prefix, "test_schema")
     {:ok, path} = Postgres.structure_dump(tmp_path(), config)
     contents = File.read!(path)
 

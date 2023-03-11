@@ -344,7 +344,11 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp select_versions(table, config) do
-    prefixes = config[:dump_prefixes] || ["public"]
+    prefixes =
+      case Keyword.get_values(config, :prefix) do
+        [_ | _] = prefixes -> prefixes
+        [] -> ["public"]
+      end
 
     result =
       Enum.reduce_while(prefixes, [], fn prefix, versions ->
@@ -363,7 +367,7 @@ defmodule Ecto.Adapters.Postgres do
 
   defp pg_dump(default, config) do
     path = config[:dump_path] || Path.join(default, "structure.sql")
-    prefixes = config[:dump_prefixes] || []
+    prefixes = Keyword.get_values(config, :prefix)
     non_prefix_args = ["--file", path, "--schema-only", "--no-acl", "--no-owner"]
 
     args =
