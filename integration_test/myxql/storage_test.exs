@@ -168,8 +168,9 @@ defmodule Ecto.Integration.StorageTest do
     contents = File.read!(path)
 
     assert contents =~ "Current Database: `#{prefix}`"
-    assert contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
     assert contents =~ "Current Database: `ecto_test`"
+    assert contents =~ "CREATE TABLE `schema_migrations`"
+    assert contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
     assert contents =~ ~s[INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{version})]
   after
     drop_database()
@@ -190,8 +191,9 @@ defmodule Ecto.Integration.StorageTest do
     contents = File.read!(path)
 
     refute contents =~ "Current Database: `#{prefix}`"
-    refute contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
     assert contents =~ "Current Database: `ecto_test`"
+    assert contents =~ "CREATE TABLE `schema_migrations`"
+    refute contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
     assert contents =~ ~s[INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{version})]
   after
     drop_database()
