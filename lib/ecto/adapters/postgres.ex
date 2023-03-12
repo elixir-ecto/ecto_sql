@@ -93,6 +93,11 @@ defmodule Ecto.Adapters.Postgres do
     * `:lc_collate` - the collation order
     * `:lc_ctype` - the character classification
     * `:dump_path` - where to place dumped structures
+    * `dump_prefixes` - list of prefixes that will be included in the structure dump.
+      When specified, the prefixes will have their definitions dumped along with the
+      data in their migration table. When it is not specified, the configured
+      database has the definitions dumped from all of its schemas but only
+      the data from the migration table from the `public` schema is included.
     * `:force_drop` - force the database to be dropped even
       if it has connections to it (requires PostgreSQL 13+)
 

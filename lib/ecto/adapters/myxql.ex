@@ -50,6 +50,10 @@ defmodule Ecto.Adapters.MyXQL do
     * `:charset` - the database encoding (default: "utf8mb4")
     * `:collation` - the collation order
     * `:dump_path` - where to place dumped structures
+    * `:dump_prefixes` - list of prefixes that will be included in the
+      structure dump. When specified, the prefixes will have their definitions
+      dumped along with the data in their migration table. When it is not
+      specified, only the configured database and its migration table are dumped.
 
   ### After connect callback
 
