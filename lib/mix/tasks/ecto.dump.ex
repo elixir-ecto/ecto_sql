@@ -17,7 +17,8 @@ defmodule Mix.Tasks.Ecto.Dump do
     quiet: :boolean,
     repo: [:string, :keep],
     no_compile: :boolean,
-    no_deps_check: :boolean
+    no_deps_check: :boolean,
+    prefix: [:string, :keep]
   ]
 
   @moduledoc """
@@ -46,12 +47,30 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `-q`, `--quiet` - run the command quietly
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
+    * `--prefix` - prefix that will be included in the structure dump.
+      Can include multiple prefixes (ex. --prefix foo --prefix bar).
+      When specified, the prefixes will have their definitions dumped along
+      with the data in their migration table. The default behavior is
+      dependent on the adapter for backwards compatibility reasons.
+      For PostgreSQL, the configured database has the definitions dumped
+      from all of its schemas but only the data from the migration table
+      from the `public` schema is included. For MySQL, only the configured
+      database and its migration table are dumped.
   """
 
   @impl true
   def run(args) do
     {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
-    opts = Keyword.merge(@default_opts, opts)
+
+    dump_prefixes =
+      case Keyword.get_values(opts, :prefix) do
+        [_ | _] = prefixes -> prefixes
+        [] -> nil
+      end
+
+    opts = @default_opts
+    |> Keyword.merge(opts)
+    |> Keyword.put(:dump_prefixes, dump_prefixes)
 
     Enum.each parse_repo(args), fn repo ->
       ensure_repo(repo, args)

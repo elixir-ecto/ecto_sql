@@ -93,6 +93,11 @@ defmodule Ecto.Adapters.Postgres do
     * `:lc_collate` - the collation order
     * `:lc_ctype` - the character classification
     * `:dump_path` - where to place dumped structures
+    * `dump_prefixes` - list of prefixes that will be included in the structure dump.
+      When specified, the prefixes will have their definitions dumped along with the
+      data in their migration table. When it is not specified, the configured
+      database has the definitions dumped from all of its schemas but only
+      the data from the migration table from the `public` schema is included.
     * `:force_drop` - force the database to be dropped even
       if it has connections to it (requires PostgreSQL 13+)
 
@@ -344,18 +349,36 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp select_versions(table, config) do
-    case run_query(~s[SELECT version FROM public."#{table}" ORDER BY version], config) do
-      {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, &hd/1)}
-      {:error, %{postgres: %{code: :undefined_table}}} -> {:ok, []}
+    prefixes = config[:dump_prefixes] || ["public"]
+
+    result =
+      Enum.reduce_while(prefixes, [], fn prefix, versions ->
+        case run_query(~s[SELECT version FROM #{prefix}."#{table}" ORDER BY version], config) do
+          {:ok, %{rows: rows}} -> {:cont, Enum.map(rows, &{prefix, hd(&1)}) ++ versions }
+          {:error, %{postgres: %{code: :undefined_table}}} -> {:cont, versions}
+          {:error, _} = error -> {:halt, error}
+        end
+      end)
+
+    case result do
       {:error, _} = error -> error
+      versions -> {:ok, versions}
     end
   end
 
   defp pg_dump(default, config) do
     path = config[:dump_path] || Path.join(default, "structure.sql")
+    prefixes = config[:dump_prefixes] || []
+    non_prefix_args = ["--file", path, "--schema-only", "--no-acl", "--no-owner"]
+
+    args =
+      Enum.reduce(prefixes, non_prefix_args, fn prefix, acc ->
+        ["-n", prefix | acc]
+      end)
+
     File.mkdir_p!(Path.dirname(path))
 
-    case run_with_cmd("pg_dump", config, ["--file", path, "--schema-only", "--no-acl", "--no-owner"]) do
+    case run_with_cmd("pg_dump", config, args) do
       {_output, 0} ->
         {:ok, path}
       {output, _} ->
@@ -368,7 +391,10 @@ defmodule Ecto.Adapters.Postgres do
   end
 
   defp append_versions(table, versions, path) do
-    sql = Enum.map_join(versions, &~s[INSERT INTO public."#{table}" (version) VALUES (#{&1});\n])
+    sql =
+      Enum.map_join(versions, fn {prefix, version} ->
+        ~s[INSERT INTO #{prefix}."#{table}" (version) VALUES (#{version});\n]
+      end)
 
     File.open!(path, [:append], fn file ->
       IO.write(file, sql)

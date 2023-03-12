@@ -59,6 +59,18 @@ defmodule Ecto.Integration.StorageTest do
     System.cmd("psql", args, env: env)
   end
 
+  def create_schema(database, schema) do
+    run_psql(~s[CREATE SCHEMA #{schema}], [database])
+  end
+
+  def drop_schema(database, schema) do
+    run_psql(~s[DROP SCHEMA #{schema}], [database])
+  end
+
+  def drop_schema_migrations_table(database, schema) do
+    run_psql(~s[DROP TABLE #{schema}.schema_migrations], [database])
+  end
+
   test "storage up (twice in a row)" do
     assert Postgres.storage_up(params()) == :ok
     assert Postgres.storage_up(params()) == {:error, :already_up}
@@ -146,6 +158,72 @@ defmodule Ecto.Integration.StorageTest do
     contents = File.read!(path)
     assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES]
   end
+
+  test "when :dump_prefixes is not provided, structure is dumped for all schemas but only public schema migration records are inserted" do
+    # Create the test_schema schema
+    create_schema(PoolRepo.config()[:database], "test_schema")
+
+    # Run migrations
+    version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
+
+    {:ok, path} = Postgres.structure_dump(tmp_path(), TestRepo.config())
+    contents = File.read!(path)
+
+    assert contents =~ "CREATE TABLE public.schema_migrations"
+    assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{version})]
+    assert contents =~ "CREATE TABLE test_schema.schema_migrations"
+    refute contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
+  after
+    drop_schema_migrations_table(PoolRepo.config()[:database], "test_schema")
+    drop_schema(PoolRepo.config()[:database], "test_schema")
+  end
+
+  test "dumps structure and schema_migration records from multiple schemas" do
+    # Create the test_schema schema
+    create_schema(PoolRepo.config()[:database], "test_schema")
+
+    # Run migrations
+    version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
+
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["public", "test_schema"])
+    {:ok, path} = Postgres.structure_dump(tmp_path(), config)
+    contents = File.read!(path)
+
+    assert contents =~ "CREATE TABLE public.schema_migrations"
+    assert contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{version})]
+    assert contents =~ "CREATE TABLE test_schema.schema_migrations"
+    assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
+  after
+    drop_schema_migrations_table(PoolRepo.config()[:database], "test_schema")
+    drop_schema(PoolRepo.config()[:database], "test_schema")
+  end
+
+  test "dumps structure and schema_migration records only from queried schema" do
+    # Create the test_schema schema
+    create_schema(PoolRepo.config()[:database], "test_schema")
+
+    # Run migrations
+    version = @base_migration + System.unique_integer([:positive])
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
+    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: "test_schema")
+
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["test_schema"])
+    {:ok, path} = Postgres.structure_dump(tmp_path(), config)
+    contents = File.read!(path)
+
+    refute contents =~ "CREATE TABLE public.schema_migrations"
+    refute contents =~ ~s[INSERT INTO public."schema_migrations" (version) VALUES (#{version})]
+    assert contents =~ "CREATE TABLE test_schema.schema_migrations"
+    assert contents =~ ~s[INSERT INTO test_schema."schema_migrations" (version) VALUES (#{version})]
+  after
+    drop_schema_migrations_table(PoolRepo.config()[:database], "test_schema")
+    drop_schema(PoolRepo.config()[:database], "test_schema")
+  end
+
 
   test "storage status is up when database is created" do
     create_database()
