@@ -72,7 +72,6 @@ defmodule Mix.Tasks.Ecto.Dump do
     |> Keyword.merge(opts)
     |> Keyword.put(:dump_prefixes, dump_prefixes)
 
-
     Enum.each parse_repo(args), fn repo ->
       ensure_repo(repo, args)
       ensure_implements(repo.__adapter__(), Ecto.Adapter.Structure,
