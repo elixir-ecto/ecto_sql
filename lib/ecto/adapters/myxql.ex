@@ -312,11 +312,7 @@ defmodule Ecto.Adapters.MyXQL do
   def structure_dump(default, config) do
     table = config[:migration_source] || "schema_migrations"
     path  = config[:dump_path] || Path.join(default, "structure.sql")
-    prefixes =
-      case Keyword.get_values(config, :prefix) do
-        [_ | _] = prefixes -> prefixes
-        [] -> [config[:database]]
-      end
+    prefixes = config[:dump_prefixes] || [config[:database]]
 
     with {:ok, versions} <- select_versions(prefixes, table, config),
          {:ok, contents} <- mysql_dump(prefixes, config),

@@ -163,7 +163,7 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: prefix)
 
-    config = Keyword.merge(TestRepo.config(), [prefix: "ecto_test", prefix: prefix])
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test", prefix])
     {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
     contents = File.read!(path)
 
@@ -186,7 +186,7 @@ defmodule Ecto.Integration.StorageTest do
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: prefix)
 
-    config = Keyword.put(TestRepo.config(), :prefix, "ecto_test")
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test"])
     {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
     contents = File.read!(path)
 
