@@ -85,7 +85,12 @@ defmodule Ecto.Migrator do
      repos: Application.fetch_env!(:my_app, :ecto_repos),
      skip: System.get_env("SKIP_MIGRATIONS") == "true"}
 
-  To skip migrations you can also pass `skip: true` or set the environment variable `SKIP_MIGRATIONS` to a truthy value.
+  To skip migrations you can also pass `skip: true` or as in the example 
+  set the environment variable `SKIP_MIGRATIONS` to a truthy value.
+
+  To roll back you'd do it normally: 
+
+     $ mix ecto.rollback
 
   """
 
@@ -461,6 +466,39 @@ defmodule Ecto.Migrator do
     |> collect_migrations(directories)
     |> Enum.sort_by(fn {_, version, _} -> version end)
   end
+  
+  use GenServer
+
+  @doc """
+  GenServer which starts, runs migrations and then shutdowns normally. 
+  Use this to run migrations as part of your application start.
+
+  ## Options
+
+    * `:repos` - Required option to tell the migrator which Repo's to 
+      migrate. Example: `repos: [MyApp.Repo]
+    * `:skip?` - Option to skip migrations.
+      Defaults to `false`.
+  """
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  end
+
+  @impl true
+  def init(opts) do
+    repos = Keyword.fetch!(opts, :repos)
+
+    skip? = Keyword.get(opts, :skip, false)
+    migrator = Keyword.get(opts, :migrator, &Ecto.Migrator.run/3)
+
+    unless skip? do
+      for repo <- repos do
+        {:ok, _, _} = with_repo(repo, &migrator.(&1, :up, all: true))
+      end
+    end
+
+    :ignore
+  end
 
   defp collect_migrations(versions, migration_source) do
     ups_with_file =
@@ -765,27 +803,5 @@ defmodule Ecto.Migrator do
 
   defp after_action(_repo, :noop) do
     :noop
-  end
-
-  use GenServer
-
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
-  end
-
-  @impl true
-  def init(opts) do
-    repos = Keyword.fetch!(opts, :repos)
-
-    skip? = Keyword.get(opts, :skip, false)
-    migrator = Keyword.get(opts, :migrator, &Ecto.Migrator.run/3)
-
-    unless skip? do
-      for repo <- repos do
-        {:ok, _, _} = with_repo(repo, &migrator.(&1, :up, all: true))
-      end
-    end
-
-    :ignore
   end
 end

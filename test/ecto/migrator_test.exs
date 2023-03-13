@@ -880,20 +880,6 @@ defmodule Ecto.MigratorTest do
       assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: true]})
     end
 
-    test "SKIP_MIGRATIONS is set" do
-      System.put_env("SKIP_MIGRATIONS", "true")
-      migrator = fn repo, _, _ ->
-        refute TestRepo == repo
-        []
-      end
-
-      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
-
-
-    after
-      System.delete_env("SKIP_MIGRATIONS")
-    end
-
     test "migrations fail" do
       migrator = fn repo, _, _ ->
         assert TestRepo == repo
