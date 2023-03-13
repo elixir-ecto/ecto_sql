@@ -786,5 +786,4 @@ defmodule Ecto.Migrator do
 
     :ignore
   end
-
 end
