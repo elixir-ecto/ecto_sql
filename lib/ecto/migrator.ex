@@ -777,7 +777,7 @@ defmodule Ecto.Migrator do
   def init(opts) do
     repos = Keyword.fetch!(opts, :repos)
 
-    skip? = Keyword.get(opts, :skip, System.get_env("SKIP_MIGRATIONS") || false)
+    skip? = Keyword.get(opts, :skip, false)
     migrator = Keyword.get(opts, :migrator, &Ecto.Migrator.run/3)
 
     unless skip? do
