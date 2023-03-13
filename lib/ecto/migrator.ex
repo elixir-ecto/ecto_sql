@@ -81,7 +81,9 @@ defmodule Ecto.Migrator do
 
   Add the following to the top of your application children spec:
 
-    {Ecto.Migrator, repos: Application.fetch_env!(:my_app, :ecto_repos)}
+    {Ecto.Migrator,
+     repos: Application.fetch_env!(:my_app, :ecto_repos),
+     skip: System.get_env("SKIP_MIGRATIONS") == "true"}
 
   To skip migrations you can also pass `skip: true` or set the environment variable `SKIP_MIGRATIONS` to a truthy value.
 
