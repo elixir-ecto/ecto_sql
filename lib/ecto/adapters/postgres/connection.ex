@@ -1022,12 +1022,13 @@ if Code.ensure_loaded?(Postgrex) do
       queries ++ comments_on("CONSTRAINT", constraint.name, constraint.comment, table_name)
     end
 
-    def execute_ddl({command, %Constraint{}, :cascade}) when command in @drops,
-      do: error!(nil, "PostgreSQL does not support `CASCADE` in DROP CONSTRAINT commands")
-
-    def execute_ddl({command, %Constraint{} = constraint, :restrict}) when command in @drops do
-      [["ALTER TABLE ", quote_table(constraint.prefix, constraint.table),
-        " DROP CONSTRAINT ", if_do(command == :drop_if_exists, "IF EXISTS "), quote_name(constraint.name)]]
+    def execute_ddl({command, %Constraint{} = constraint, mode}) when command in @drops do
+      [["ALTER TABLE ",
+        quote_table(constraint.prefix, constraint.table),
+        " DROP CONSTRAINT ",
+        if_do(command == :drop_if_exists, "IF EXISTS "),
+        quote_name(constraint.name),
+        drop_mode(mode)]]
     end
 
     def execute_ddl(string) when is_binary(string), do: [string]
