@@ -2003,6 +2003,10 @@ defmodule Ecto.Adapters.PostgresTest do
     assert execute_ddl(drop) ==
       [~s|ALTER TABLE "products" DROP CONSTRAINT "price_must_be_positive"|]
 
+    drop = {:drop, constraint(:products, "price_must_be_positive"), :cascade}
+    assert execute_ddl(drop) ==
+      [~s|ALTER TABLE "products" DROP CONSTRAINT "price_must_be_positive" CASCADE|]
+
     drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
     assert execute_ddl(drop) ==
       [~s|ALTER TABLE "foo"."products" DROP CONSTRAINT "price_must_be_positive"|]
@@ -2012,6 +2016,10 @@ defmodule Ecto.Adapters.PostgresTest do
     drop = {:drop_if_exists, constraint(:products, "price_must_be_positive"), :restrict}
     assert execute_ddl(drop) ==
       [~s|ALTER TABLE "products" DROP CONSTRAINT IF EXISTS "price_must_be_positive"|]
+
+    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive"), :cascade}
+    assert execute_ddl(drop) ==
+      [~s|ALTER TABLE "products" DROP CONSTRAINT IF EXISTS "price_must_be_positive" CASCADE|]
 
     drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
     assert execute_ddl(drop) ==
