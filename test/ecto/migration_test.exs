@@ -773,7 +773,7 @@ defmodule Ecto.MigrationTest do
               {:modify, :title, :text, [from: {:string, null: false, size: 100}, null: true, size: 255]},
               {:modify, :author, :text, [from: :string, null: false]},
               {:modify, :extension, :string, from: :text},
-              {:remove, :summary}
+              {:remove, :summary, :text, []}
             ]}
 
     assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
@@ -880,6 +880,17 @@ defmodule Ecto.MigrationTest do
       flush()
       assert down_sql == last_command()
     end
+  end
+
+  test "backward: adding a reference column (column type is returned)" do
+    alter table(:posts) do
+      add :author_id, references(:authors)
+    end
+
+    flush()
+
+    assert {:alter, %Table{name: "posts"},
+            [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
   end
 
   defp last_command(), do: Process.get(:last_command)

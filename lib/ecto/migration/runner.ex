@@ -267,8 +267,8 @@ defmodule Ecto.Migration.Runner do
         table_reverse(t, [{:modify, name, reverse_type, reverse_opts} | acc])
     end
   end
-  defp table_reverse([{:add, name, _type, _opts} | t], acc) do
-    table_reverse(t, [{:remove, name} | acc])
+  defp table_reverse([{:add, name, type, _opts} | t], acc) do
+    table_reverse(t, [{:remove, name, type, []} | acc])
   end
   defp table_reverse([_ | _], _acc) do
     false
