@@ -9,7 +9,7 @@ defmodule Ecto.Adapter.Structure do
   The path will be looked in the `config` under :dump_path or
   default to the structure path inside `default`.
 
-  Returns `:ok` if it was dumped successfully, an error tuple otherwise.
+  Returns an `:ok` tuple if it was dumped successfully, an error tuple otherwise.
 
   ## Examples
 
@@ -27,7 +27,7 @@ defmodule Ecto.Adapter.Structure do
   The path will be looked in the `config` under :dump_path or
   default to the structure path inside `default`.
 
-  Returns `:ok` if it was loaded successfully, an error tuple otherwise.
+  Returns an `:ok` tuple if it was loaded successfully, an error tuple otherwise.
 
   ## Examples
 
