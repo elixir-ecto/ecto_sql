@@ -470,14 +470,13 @@ defmodule Ecto.Migrator do
   use GenServer
 
   @doc """
-  GenServer which starts, runs migrations and then shutdowns normally. 
-  Use this to run migrations as part of your application start.
+  Runs migrations as part of your supervision tree.
 
   ## Options
 
     * `:repos` - Required option to tell the migrator which Repo's to 
-      migrate. Example: `repos: [MyApp.Repo]
-    * `:skip?` - Option to skip migrations.
+      migrate. Example: `repos: [MyApp.Repo]`
+    * `:skip` - Option to skip migrations.
       Defaults to `false`.
   """
   def start_link(opts) do
