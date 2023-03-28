@@ -90,7 +90,7 @@ defmodule Ecto.Migrator do
 
   To roll back you'd do it normally: 
 
-     $ mix ecto.rollback
+      $ mix ecto.rollback
 
   """
 
