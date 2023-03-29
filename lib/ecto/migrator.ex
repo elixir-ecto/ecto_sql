@@ -488,8 +488,7 @@ defmodule Ecto.Migrator do
 
     * `:skip` - Option to skip migrations. Defaults to `false`.
 
-  Plus all other options described in `run/4`,
-  including all the options described in `up/4`.
+  Plus all other options described in `up/4`.
 
   See "Example: Running migrations on application startup" for more info.
   """
