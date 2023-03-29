@@ -861,7 +861,7 @@ defmodule Ecto.MigratorTest do
     end
   end
 
-  describe "gen_server" do 
+  describe "gen_server" do
     test "runs the migrator with repos config" do
       migrator = fn repo, _, _ ->
         assert TestRepo == repo
@@ -869,6 +869,16 @@ defmodule Ecto.MigratorTest do
       end
 
       assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
+    end
+
+    test "runs the migrator with extra opts" do
+      migrator = fn repo, _, opts ->
+        assert TestRepo == repo
+        assert opts == [all: true, prefix: "foo"]
+        []
+      end
+
+      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: false, prefix: "foo"]})
     end
 
     test "skip is set" do
