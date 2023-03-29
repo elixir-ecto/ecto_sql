@@ -89,8 +89,10 @@ defmodule Ecto.Migrator do
   To skip migrations you can also pass `skip: true` or as in the example
   set the environment variable `SKIP_MIGRATIONS` to a truthy value.
 
-  And all other options described in `up/4` are allowed,
-  for example if you want to run a specific number of migrations,
+  And all other options described in `run/4`,
+  including all the options described in `up/4`, are allowed.
+
+  For example if you want to run a specific number of migrations,
   log the SQL commands, and run migrations in a prefix:
 
       {Ecto.Migrator,
