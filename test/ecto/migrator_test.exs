@@ -878,7 +878,7 @@ defmodule Ecto.MigratorTest do
         []
       end
 
-      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: false, all: true, prefix: "foo"]})
+      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: false, prefix: "foo"]})
     end
 
     test "skip is set" do

@@ -83,21 +83,17 @@ defmodule Ecto.Migrator do
 
       {Ecto.Migrator,
        repos: Application.fetch_env!(:my_app, :ecto_repos),
-       skip: System.get_env("SKIP_MIGRATIONS") == "true",
-       all: true}
+       skip: System.get_env("SKIP_MIGRATIONS") == "true"}
 
   To skip migrations you can also pass `skip: true` or as in the example
   set the environment variable `SKIP_MIGRATIONS` to a truthy value.
 
-  And all other options described in `run/4`,
-  including all the options described in `up/4`, are allowed.
-
-  For example if you want to run a specific number of migrations,
-  log the SQL commands, and run migrations in a prefix:
+  And all other options described in `up/4` are allowed,
+  for example if you want to log the SQL commands,
+  and run migrations in a prefix:
 
       {Ecto.Migrator,
        repos: Application.fetch_env!(:my_app, :ecto_repos),
-       step: 10,
        log_migrator_sql: true,
        prefix: "my_app"}
 
@@ -506,6 +502,7 @@ defmodule Ecto.Migrator do
     {repos, opts} = Keyword.pop!(opts, :repos)
     {skip?, opts} = Keyword.pop(opts, :skip, false)
     {migrator, opts} = Keyword.pop(opts, :migrator, &Ecto.Migrator.run/3)
+    opts = Keyword.put(opts, :all, true)
 
     unless skip? do
       for repo <- repos do
