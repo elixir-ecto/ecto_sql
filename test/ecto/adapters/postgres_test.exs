@@ -261,6 +261,23 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{INNER JOIN "comments_scope" AS c1 ON c1."entity_id" = v0."guid")}
   end
 
+  test "CTE with prefix" do
+    query =
+      Schema
+      |> recursive_ctes(true)
+      |> with_cte("tree", as: fragment(@raw_sql_cte))
+      |> join(:inner, [p], c in "tree", on: c.id == p.category_id)
+      |> Ecto.Query.put_query_prefix("public")
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) ==
+      ~s{WITH RECURSIVE "tree" AS (#{@raw_sql_cte}) } <>
+      ~s{SELECT s0."x" } <>
+      ~s{FROM "public"."schema" AS s0 } <>
+      ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
+  end
+
   test "fragment CTE" do
     query =
       Schema
