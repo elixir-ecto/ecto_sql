@@ -46,36 +46,29 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     def to_constraints(%MyXQL.Error{mysql: %{name: :ER_DUP_ENTRY}, message: message}, opts) do
-      case :binary.split(message, " for key ") do
-        [_, quoted] -> [unique: normalize_index_name(quoted, opts[:source])]
+      with [_, quoted] <- :binary.split(message, " for key "),
+           [_, index | _] <- :binary.split(quoted, "'", [:global]) do
+        [unique: strip_source(index, opts[:source])]
+      else
         _ -> []
       end
     end
+
     def to_constraints(%MyXQL.Error{mysql: %{name: name}, message: message}, _opts)
         when name in [:ER_ROW_IS_REFERENCED_2, :ER_NO_REFERENCED_ROW_2] do
-      case :binary.split(message, [" CONSTRAINT ", " FOREIGN KEY "], [:global]) do
-        [_, quoted, _] -> [foreign_key: strip_quotes(quoted)]
+      with [_, quoted] <- :binary.split(message, [" CONSTRAINT ", " FOREIGN KEY "]),
+           [_, index | _] <- :binary.split(quoted, "'", [:global]) do
+        [foreign_key: index]
+      else
         _ -> []
       end
     end
+
     def to_constraints(_, _),
       do: []
 
-    defp strip_quotes(quoted) do
-      size = byte_size(quoted) - 2
-      <<_, unquoted::binary-size(size), _>> = quoted
-      unquoted
-    end
-
-    defp normalize_index_name(quoted, source) do
-      name = strip_quotes(quoted)
-
-      if source do
-        String.trim_leading(name, "#{source}.")
-      else
-        name
-      end
-    end
+    defp strip_source(name, nil), do: name
+    defp strip_source(name, source), do: String.trim_leading(name, "#{source}.")
 
     ## Query
 
