@@ -44,7 +44,7 @@ if Code.ensure_loaded?(MyXQL) do
       MyXQL.stream(conn, sql, params, opts)
     end
 
-    @quotes ~w(" ')
+    @quotes ~w(" ' `)
 
     @impl true
     def to_constraints(%MyXQL.Error{mysql: %{name: :ER_DUP_ENTRY}, message: message}, opts) do
