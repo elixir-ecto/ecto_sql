@@ -44,10 +44,12 @@ if Code.ensure_loaded?(MyXQL) do
       MyXQL.stream(conn, sql, params, opts)
     end
 
+    @quotes ~w(" ')
+
     @impl true
     def to_constraints(%MyXQL.Error{mysql: %{name: :ER_DUP_ENTRY}, message: message}, opts) do
       with [_, quoted] <- :binary.split(message, " for key "),
-           [_, index | _] <- :binary.split(quoted, "'", [:global]) do
+           [_, index | _] <- :binary.split(quoted, @quotes, [:global]) do
         [unique: strip_source(index, opts[:source])]
       else
         _ -> []
@@ -57,7 +59,7 @@ if Code.ensure_loaded?(MyXQL) do
     def to_constraints(%MyXQL.Error{mysql: %{name: name}, message: message}, _opts)
         when name in [:ER_ROW_IS_REFERENCED_2, :ER_NO_REFERENCED_ROW_2] do
       with [_, quoted] <- :binary.split(message, [" CONSTRAINT ", " FOREIGN KEY "]),
-           [_, index | _] <- :binary.split(quoted, "'", [:global]) do
+           [_, index | _] <- :binary.split(quoted, @quotes, [:global]) do
         [foreign_key: index]
       else
         _ -> []
