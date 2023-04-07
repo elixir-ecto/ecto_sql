@@ -59,6 +59,7 @@ defmodule Mix.Tasks.Ecto.Load do
   def run(args, table_exists? \\ &Ecto.Adapters.SQL.table_exists?/2) do
     {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     opts = Keyword.merge(@default_opts, opts)
+    opts = if opts[:quiet], do: Keyword.merge(opts, [log: false]), else: opts
 
     Enum.each(parse_repo(args), fn repo ->
       ensure_repo(repo, args)
@@ -70,7 +71,7 @@ defmodule Mix.Tasks.Ecto.Load do
       )
 
       {migration_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo, repo.config())
-      {:ok, loaded?, _} = Ecto.Migrator.with_repo(migration_repo, &table_exists?.(&1, source))
+      {:ok, loaded?, _} = Ecto.Migrator.with_repo(migration_repo, &table_exists?.(&1, source), opts)
 
       for repo <- Enum.uniq([repo, migration_repo]) do
         cond do
