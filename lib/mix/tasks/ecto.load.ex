@@ -56,10 +56,10 @@ defmodule Mix.Tasks.Ecto.Load do
   """
 
   @impl true
-  def run(args, table_exists? \\ &Ecto.Adapters.SQL.table_exists?/2) do
+  def run(args, table_exists? \\ &Ecto.Adapters.SQL.table_exists?/3) do
     {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     opts = Keyword.merge(@default_opts, opts)
-    opts = if opts[:quiet], do: Keyword.merge(opts, [log: false]), else: opts
+    opts = if opts[:quiet], do: Keyword.put(opts, :log, false), else: opts
 
     Enum.each(parse_repo(args), fn repo ->
       ensure_repo(repo, args)
@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Ecto.Load do
       )
 
       {migration_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo, repo.config())
-      {:ok, loaded?, _} = Ecto.Migrator.with_repo(migration_repo, &table_exists?.(&1, source), opts)
+      {:ok, loaded?, _} = Ecto.Migrator.with_repo(migration_repo, table_exists_closure(table_exists?, source, opts), opts)
 
       for repo <- Enum.uniq([repo, migration_repo]) do
         cond do
@@ -86,6 +86,14 @@ defmodule Mix.Tasks.Ecto.Load do
         end
       end
     end)
+  end
+
+  defp table_exists_closure(fun, source, opts) when is_function(fun, 3) do
+    &fun.(&1, source, opts)
+  end
+
+  defp table_exists_closure(fun, source, _opts) when is_function(fun, 2) do
+    &fun.(&1, source)
   end
 
   defp skip_safety_warnings? do
