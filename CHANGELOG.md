@@ -1,5 +1,20 @@
 # Changelog for v3.x
 
+## v3.10.0 (2022-04-10)
+
+### Enhancements
+
+  * [Ecto.Migrator] Allow running the migrator in your supervision tree
+  * [Ecto.Migrator] Allow renaming an index
+  * [Ecto.Migrator] Add `execute_file/1` and `execute_file/2`
+  * [mix ecto.dump] Support dumping  multiple prefixes on PostgreSQL and MySQL
+  * [mysql] Improve constraint matching support on alternative implementations
+  * [postgres] Allow `CASCADE` when dropping a constraint on postgres
+
+### Bug fixes
+
+  * [mix ecto.load] Suppress query logs in mix ecto.load when quiet flag is given
+
 ## v3.9.2 (2022-12-20)
 
 ### Enhancements
