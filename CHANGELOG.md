@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.10.1 (2022-04-11)
+
+### Enhancements
+
+  * [postgres] Allow Postgrex v0.17.x
+
 ## v3.10.0 (2022-04-10)
 
 ### Enhancements
