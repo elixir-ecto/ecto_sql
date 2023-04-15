@@ -524,7 +524,7 @@ defmodule Ecto.Adapters.SQL do
 
   For convenience, this function is also available under the repository:
 
-      iex> MyRepo.query_many(SELECT $1; SELECT $2;", [40, 2])
+      iex> MyRepo.query_many("SELECT $1; SELECT $2;", [40, 2])
       {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
 
   """
