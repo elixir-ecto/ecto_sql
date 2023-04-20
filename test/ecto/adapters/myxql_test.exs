@@ -265,6 +265,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       from(c in "categories",
         as: :parent_category,
         left_lateral_join: b in subquery(breadcrumbs_query),
+        on: true,
         select: %{id: c.id, breadcrumbs: b.breadcrumbs}
       )
       |> plan()
@@ -926,7 +927,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "join with hints" do
     assert Schema
-           |> join(:inner, [p], q in Schema2, hints: ["USE INDEX FOO", "USE INDEX BAR"])
+           |> join(:inner, [p], q in Schema2, on: true, hints: ["USE INDEX FOO", "USE INDEX BAR"])
            |> select([], true)
            |> plan()
            |> all() == ~s{SELECT TRUE FROM `schema` AS s0 INNER JOIN `schema2` AS s1 USE INDEX FOO USE INDEX BAR ON TRUE}
@@ -958,7 +959,7 @@ defmodule Ecto.Adapters.MyXQLTest do
            ~s{INNER JOIN (SELECT sp0.`x` AS `x`, sp0.`y` AS `z` FROM `posts` AS sp0 WHERE (sp0.`title` = ?)) AS s1 ON TRUE}
 
     posts = subquery("posts" |> where(title: parent_as(:comment).subtitle) |> select([r], r.title))
-    query = "comments" |> from(as: :comment) |> join(:inner, [c], p in subquery(posts)) |> select([_, p], p) |> plan()
+    query = "comments" |> from(as: :comment) |> join(:inner, [c], p in subquery(posts), on: true) |> select([_, p], p) |> plan()
     assert all(query) ==
            "SELECT s1.`title` FROM `comments` AS c0 " <>
            "INNER JOIN (SELECT sp0.`title` AS `title` FROM `posts` AS sp0 WHERE (sp0.`title` = c0.`subtitle`)) AS s1 ON TRUE"
@@ -976,7 +977,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "join with fragment" do
     query = Schema
-            |> join(:inner, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10))
+            |> join(:inner, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10), on: true)
             |> select([p], {p.id, ^0})
             |> where([p], p.id > 0 and p.id < ^100)
             |> plan()
@@ -998,14 +999,19 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "join with query interpolation" do
     inner = Ecto.Queryable.to_query(Schema2)
-    query = from(p in Schema, left_join: c in ^inner, select: {p.id, c.id}) |> plan()
+    query =
+      from(p in Schema, left_join: c in ^inner, on: true, select: {p.id, c.id})
+      |> plan()
     assert all(query) ==
            "SELECT s0.`id`, s1.`id` FROM `schema` AS s0 LEFT OUTER JOIN `schema2` AS s1 ON TRUE"
   end
 
   test "lateral join with fragment" do
     query = Schema
-            |> join(:inner_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10))
+            |> join(:inner_lateral, [p],
+              q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10),
+              on: true
+            )
             |> select([p, q], {p.id, q.z})
             |> where([p], p.id > 0 and p.id < ^100)
             |> plan()
