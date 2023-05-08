@@ -1443,6 +1443,9 @@ if Code.ensure_loaded?(Tds) do
 
     defp default_expr(_table, _name, :error), do: []
 
+    defp drop_constraint_from_expr({%Reference{} = ref, _opts}, table, name, stm_prefix),
+      do: drop_constraint_from_expr(ref, table, name, stm_prefix)
+
     defp drop_constraint_from_expr(%Reference{} = ref, table, name, stm_prefix) do
       [stm_prefix, "DROP CONSTRAINT ", reference_name(ref, table, name), "; "]
     end

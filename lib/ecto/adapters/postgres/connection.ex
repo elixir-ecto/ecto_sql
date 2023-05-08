@@ -1297,6 +1297,8 @@ if Code.ensure_loaded?(Postgrex) do
        reference_on_update(ref.on_update), validate(ref.validate)]
     end
 
+    defp drop_reference_expr({%Reference{} = ref, _opts}, table, name),
+      do: drop_reference_expr(ref, table, name)
     defp drop_reference_expr(%Reference{} = ref, table, name),
       do: ["DROP CONSTRAINT ", reference_name(ref, table, name), ", "]
     defp drop_reference_expr(_, _, _),
