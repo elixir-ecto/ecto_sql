@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
     * `--prefix` - prefix that will be included in the structure dump.
-      Can include multiple prefixes (ex. --prefix foo --prefix bar).
+      Can include multiple prefixes (ex. `--prefix foo --prefix bar`).
       When specified, the prefixes will have their definitions dumped along
       with the data in their migration table. The default behavior is
       dependent on the adapter for backwards compatibility reasons.
