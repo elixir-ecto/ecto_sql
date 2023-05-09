@@ -1394,7 +1394,7 @@ defmodule Ecto.Adapters.TdsTest do
          {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
          {:modify, :status, :string, from: :integer},
          {:modify, :user_id, :integer, from: %Reference{table: :users}},
-         {:modify, :space_id, :integer, from: {%Reference{table: :author}, null: false}},
+         {:modify, :space_id, :integer, null: true, from: {%Reference{table: :author}, null: false}},
          {:modify, :group_id, %Reference{table: :groups, column: :gid},
           from: %Reference{table: :groups}},
          {:remove, :summary}
@@ -1411,7 +1411,7 @@ defmodule Ecto.Adapters.TdsTest do
       ALTER TABLE [posts] ADD CONSTRAINT [posts_permalink_id_fkey] FOREIGN KEY ([permalink_id]) REFERENCES [permalinks]([id]) ON DELETE NO ACTION ON UPDATE NO ACTION;
       ALTER TABLE [posts] ALTER COLUMN [status] nvarchar(255); ALTER TABLE [posts] DROP CONSTRAINT [posts_user_id_fkey];
       ALTER TABLE [posts] ALTER COLUMN [user_id] integer;
-      ALTER TABLE [posts] DROP CONSTRAINT [posts_space_id_fkey]; ALTER TABLE [posts] ALTER COLUMN [space_id] integer;
+      ALTER TABLE [posts] DROP CONSTRAINT [posts_space_id_fkey]; ALTER TABLE [posts] ALTER COLUMN [space_id] integer NULL;
       ALTER TABLE [posts] DROP CONSTRAINT [posts_group_id_fkey];
       ALTER TABLE [posts] ALTER COLUMN [group_id] BIGINT;
       ALTER TABLE [posts] ADD CONSTRAINT [posts_group_id_fkey] FOREIGN KEY ([group_id]) REFERENCES [groups]([gid]) ON DELETE NO ACTION ON UPDATE NO ACTION;

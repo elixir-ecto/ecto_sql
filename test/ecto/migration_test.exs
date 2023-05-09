@@ -765,11 +765,13 @@ defmodule Ecto.MigrationTest do
       modify :extension, :text, from: :string
       modify :author, :string, null: false, from: :text
       modify :title, :string, null: false, size: 100, from: {:text, null: true, size: 255}
+      modify :author_id, references(:authors), null: true, from: {references(:authors), null: false}
     end
     flush()
 
     assert last_command() ==
            {:alter, %Table{name: "posts"}, [
+              {:modify, :author_id, %Reference{table: "authors"}, [from: {%Reference{table: "authors"}, null: true}, null: false]},
               {:modify, :title, :text, [from: {:string, null: false, size: 100}, null: true, size: 255]},
               {:modify, :author, :text, [from: :string, null: false]},
               {:modify, :extension, :string, from: :text},
