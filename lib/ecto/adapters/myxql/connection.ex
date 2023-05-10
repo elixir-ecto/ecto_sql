@@ -1033,6 +1033,8 @@ if Code.ensure_loaded?(MyXQL) do
     defp constraint_if_not_exists_expr(%Reference{} = ref, table, name),
       do: [", ADD " | reference_expr("FOREIGN KEY IF NOT EXISTS", ref, table, name)]
 
+    defp drop_constraint_expr({%Reference{} = ref, _opts}, table, name),
+      do: drop_constraint_expr(ref, table, name)
     defp drop_constraint_expr(%Reference{} = ref, table, name),
       do: ["DROP FOREIGN KEY ", reference_name(ref, table, name), ", "]
     defp drop_constraint_expr(_, _, _),
