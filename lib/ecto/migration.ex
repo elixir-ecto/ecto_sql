@@ -1047,9 +1047,9 @@ defmodule Ecto.Migration do
     * `:after` - positions field after the specified one. Only supported on MySQL,
       it is ignored by other databases.
     * `:start_value` - option for `:identity` key, represents initial value in sequence
-      generation. Defaults to `0`.
+      generation. Default is defined by the database.
     * `:increment` - option for `:identity` key, represents increment value for
-      sequence generation. Defaults to `1`.
+      sequence generation. Default is defined by the database.
 
   """
   def add(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
