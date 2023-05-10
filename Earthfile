@@ -1,3 +1,5 @@
+VERSION 0.5
+
 all:
     BUILD +test-all
     BUILD +integration-test-all
