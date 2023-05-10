@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: earthly/actions/setup-earthly@v1
         with:
-          version: v0.5.10
+          version: v0.7.4
       - uses: actions/checkout@v2
       - name: test ectl_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} +test
@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: earthly/actions/setup-earthly@v1
         with:
-          version: v0.5.10
+          version: v0.7.4
       - uses: actions/checkout@v2
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-postgres
@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: earthly/actions/setup-earthly@v1
         with:
-          version: v0.5.10
+          version: v0.7.4
       - uses: actions/checkout@v2
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-mysql
@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: earthly/actions/setup-earthly@v1
         with:
-          version: v0.5.10
+          version: v0.7.4
       - uses: actions/checkout@v2
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MSSQL=${{matrix.mssql}} +integration-test-mssql
