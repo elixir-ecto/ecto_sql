@@ -233,8 +233,9 @@ defmodule Ecto.Migration do
           config :app, App.Repo, migration_primary_key: false
 
       For Postgres version >= 10 `:identity` key may be used.
-      By default, all :identity column will be bigints. You may provide optional parameters for `:start_value` and `:increment` to customize the created sequence.
-      Config example:
+      By default, all :identity column will be bigints. You may provide optional
+      parameters for `:start_value` and `:increment` to customize the created
+      sequence. Config example:
 
           config :app, App.Repo, migration_primary_key: [type: :identity]
 
@@ -1045,8 +1046,10 @@ defmodule Ecto.Migration do
     * `:comment` - adds a comment to the added column.
     * `:after` - positions field after the specified one. Only supported on MySQL,
       it is ignored by other databases.
-    * `:start_value` - option for `:identity` key, represents initial value in sequence generation. Defaults to `0`.
-    * `:increment` - option for `:identity` ley, represents increment which uses for sequence generation. Defaults to `0`.
+    * `:start_value` - option for `:identity` key, represents initial value in sequence
+      generation. Defaults to `0`.
+    * `:increment` - option for `:identity` key, represents increment value for
+      sequence generation. Defaults to `1`.
 
   """
   def add(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
