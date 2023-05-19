@@ -336,7 +336,7 @@ defmodule Ecto.Adapters.SQL do
   """
   @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
                 :all | :update_all | :delete_all,
-                Ecto.Queryable.t, opts :: Keyword.t) :: String.t | Exception.t
+                Ecto.Queryable.t, opts :: Keyword.t) :: String.t | Exception.t | list(map)
   def explain(repo, operation, queryable, opts \\ [])
 
   def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
