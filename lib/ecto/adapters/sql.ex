@@ -733,6 +733,18 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
+    valid_log_levels = [false, :debug, :info, :notice, :warning, :error, :critical, :alert, :emergency]
+    if log not in valid_log_levels do 
+      raise """
+      invalid value for :log option in Repo config
+
+      The accepted values for the :log option are:
+      #{Enum.map_join(valid_log_levels, ", ", &inspect/1)}
+
+      See https://hexdocs.pm/ecto/Ecto.Repo.html for more information.
+      """
+    end
+
     stacktrace = Keyword.get(config, :stacktrace, nil)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
