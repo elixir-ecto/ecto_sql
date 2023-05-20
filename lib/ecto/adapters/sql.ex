@@ -734,6 +734,7 @@ defmodule Ecto.Adapters.SQL do
 
     log = Keyword.get(config, :log, :debug)
     valid_log_levels = [false, :debug, :info, :notice, :warning, :error, :critical, :alert, :emergency]
+
     if log not in valid_log_levels do 
       raise """
       invalid value for :log option in Repo config
