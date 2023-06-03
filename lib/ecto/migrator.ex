@@ -357,8 +357,7 @@ defmodule Ecto.Migrator do
   end
 
   defp attempt(repo, config, version, module, direction, operation, reference, opts) do
-    if Code.ensure_loaded?(module) and
-       function_exported?(module, operation, 0) do
+    if Code.ensure_loaded?(module) and function_exported?(module, operation, 0) do
       Runner.run(repo, config, version, module, direction, operation, reference, opts)
       :ok
     end
@@ -702,7 +701,7 @@ defmodule Ecto.Migrator do
   end
 
   defp migration?(mod) do
-    function_exported?(mod, :__migration__, 0)
+    Code.ensure_loaded?(mod) and function_exported?(mod, :__migration__, 0)
   end
 
   defp migrate([], direction, _repo, opts) do
