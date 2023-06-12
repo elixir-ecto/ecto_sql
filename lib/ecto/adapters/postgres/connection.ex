@@ -94,7 +94,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def query_many(_conn, _sql, _params, _opts) do
-      raise RuntimeError, "query_many is not supported in the Postgrex adapter"
+      raise RuntimeError, "query_many is not supported in the PostgreSQL adapter"
     end
 
     @impl true
@@ -528,6 +528,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp join_qual(:full),  do: "FULL OUTER JOIN "
     defp join_qual(:cross), do: "CROSS JOIN "
     defp join_qual(:cross_lateral), do: "CROSS JOIN LATERAL "
+    defp join_qual(qual), do: error!(nil, "join qualifier #{inspect(qual)} is not supported in the PostgreSQL adapter")
 
     defp where(%{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
