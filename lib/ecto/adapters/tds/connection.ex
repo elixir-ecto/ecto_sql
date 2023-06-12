@@ -520,10 +520,6 @@ if Code.ensure_loaded?(Tds) do
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
     defp join_qual(:inner), do: "INNER JOIN "
-    defp join_qual(:inner_loop), do: "INNER LOOP JOIN "
-    defp join_qual(:inner_hash), do: "INNER HASH JOIN "
-    defp join_qual(:inner_merge), do: "INNER MERGE JOIN "
-    defp join_qual(:inner_remote), do: "INNER REMOTE JOIN "
     defp join_qual(:left), do: "LEFT OUTER JOIN "
     defp join_qual(:right), do: "RIGHT OUTER JOIN "
     defp join_qual(:full), do: "FULL OUTER JOIN "
