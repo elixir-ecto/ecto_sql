@@ -512,7 +512,7 @@ if Code.ensure_loaded?(Postgrex) do
           end
 
           {join, name} = get_source(query, sources, ix, source)
-          [join_qual(qual), join, " AS ", name | join_on(qual, expr, sources, query)]
+          [join_qual(qual, query), join, " AS ", name | join_on(qual, expr, sources, query)]
       end)]
     end
 
@@ -520,15 +520,15 @@ if Code.ensure_loaded?(Postgrex) do
     defp join_on(:cross_lateral, true, _sources, _query), do: []
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
-    defp join_qual(:inner), do: "INNER JOIN "
-    defp join_qual(:inner_lateral), do: "INNER JOIN LATERAL "
-    defp join_qual(:left),  do: "LEFT OUTER JOIN "
-    defp join_qual(:left_lateral),  do: "LEFT OUTER JOIN LATERAL "
-    defp join_qual(:right), do: "RIGHT OUTER JOIN "
-    defp join_qual(:full),  do: "FULL OUTER JOIN "
-    defp join_qual(:cross), do: "CROSS JOIN "
-    defp join_qual(:cross_lateral), do: "CROSS JOIN LATERAL "
-    defp join_qual(qual), do: error!(nil, "join qualifier #{inspect(qual)} is not supported in the PostgreSQL adapter")
+    defp join_qual(:inner, _), do: "INNER JOIN "
+    defp join_qual(:inner_lateral, _), do: "INNER JOIN LATERAL "
+    defp join_qual(:left, _),  do: "LEFT OUTER JOIN "
+    defp join_qual(:left_lateral, _),  do: "LEFT OUTER JOIN LATERAL "
+    defp join_qual(:right, _), do: "RIGHT OUTER JOIN "
+    defp join_qual(:full, _),  do: "FULL OUTER JOIN "
+    defp join_qual(:cross, _), do: "CROSS JOIN "
+    defp join_qual(:cross_lateral, _), do: "CROSS JOIN LATERAL "
+    defp join_qual(qual, query), do: error!(query, "join qualifier #{inspect(qual)} is not supported in the PostgreSQL adapter")
 
     defp where(%{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)

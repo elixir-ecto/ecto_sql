@@ -506,7 +506,7 @@ if Code.ensure_loaded?(Tds) do
         intersperse_map(joins, ?\s, fn
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
             {join, name} = get_source(query, sources, ix, source)
-            qual_text = join_qual(qual)
+            qual_text = join_qual(qual, query)
             join = join || ["(", expr(source, sources, query) | ")"]
             [qual_text, join, " AS ", name, hints(hints) | join_on(qual, expr, sources, query)]
         end)
@@ -519,14 +519,14 @@ if Code.ensure_loaded?(Tds) do
     defp join_on(_qual, true, _sources, _query), do: [" ON 1 = 1"]
     defp join_on(_qual, expr, sources, query), do: [" ON " | expr(expr, sources, query)]
 
-    defp join_qual(:inner), do: "INNER JOIN "
-    defp join_qual(:left), do: "LEFT OUTER JOIN "
-    defp join_qual(:right), do: "RIGHT OUTER JOIN "
-    defp join_qual(:full), do: "FULL OUTER JOIN "
-    defp join_qual(:cross), do: "CROSS JOIN "
-    defp join_qual(:inner_lateral), do: "CROSS APPLY "
-    defp join_qual(:left_lateral), do: "OUTER APPLY "
-    defp join_qual(qual), do: error!(nil, "join qualifier #{inspect(qual)} is not supported in the Tds adapter")
+    defp join_qual(:inner, _), do: "INNER JOIN "
+    defp join_qual(:left, _), do: "LEFT OUTER JOIN "
+    defp join_qual(:right, _), do: "RIGHT OUTER JOIN "
+    defp join_qual(:full, _), do: "FULL OUTER JOIN "
+    defp join_qual(:cross, _), do: "CROSS JOIN "
+    defp join_qual(:inner_lateral, _), do: "CROSS APPLY "
+    defp join_qual(:left_lateral, _), do: "OUTER APPLY "
+    defp join_qual(qual, query), do: error!(query, "join qualifier #{inspect(qual)} is not supported in the Tds adapter")
 
     defp where(%Query{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
