@@ -398,6 +398,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp join_qual(:full, _),  do: " FULL OUTER JOIN "
     defp join_qual(:cross, _), do: " CROSS JOIN "
     defp join_qual(:cross_lateral, _), do: " CROSS JOIN LATERAL "
+    defp join_qual(qual), do: error!(nil, "join qualifier #{inspect(qual)} is not supported in the MySQL adapter")
 
     defp where(%{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
