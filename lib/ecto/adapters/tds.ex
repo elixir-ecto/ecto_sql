@@ -163,8 +163,7 @@ defmodule Ecto.Adapters.Tds do
   defp bool_decode(<<1>>), do: {:ok, true}
   defp bool_decode(0), do: {:ok, false}
   defp bool_decode(1), do: {:ok, true}
-  defp bool_decode(x) when is_boolean(x), do: {:ok, x}
-  defp bool_decode(nil), do: {:ok, false}
+  defp bool_decode(x), do: {:ok, x}
 
   defp json_decode(x) when is_binary(x), do: {:ok, Tds.json_library().decode!(x)}
   defp json_decode(x), do: {:ok, x}
@@ -271,7 +270,6 @@ defmodule Ecto.Adapters.Tds do
     end
   end
 
-
   @impl true
   def supports_ddl_transaction? do
     true
@@ -285,12 +283,14 @@ defmodule Ecto.Adapters.Tds do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
 
-    opts = Keyword.merge(opts, [timeout: :infinity, telemetry_options: [schema_migration: true]])
+    opts = Keyword.merge(opts, timeout: :infinity, telemetry_options: [schema_migration: true])
 
     {:ok, result} =
       transaction(meta, opts, fn ->
-        lock_name = "'ecto_#{inspect(repo)}'"
-        Ecto.Adapters.SQL.query!(meta, "sp_getapplock @Resource = #{lock_name}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1", [], opts)
+        query =
+          "sp_getapplock @Resource = 'ecto_#{inspect(repo)}', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1"
+
+        Ecto.Adapters.SQL.query!(meta, query, [], opts)
         fun.()
       end)
 
