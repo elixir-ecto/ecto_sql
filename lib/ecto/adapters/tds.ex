@@ -164,6 +164,7 @@ defmodule Ecto.Adapters.Tds do
   defp bool_decode(0), do: {:ok, false}
   defp bool_decode(1), do: {:ok, true}
   defp bool_decode(x) when is_boolean(x), do: {:ok, x}
+  defp bool_decode(nil), do: {:ok, false}
 
   defp json_decode(x) when is_binary(x), do: {:ok, Tds.json_library().decode!(x)}
   defp json_decode(x), do: {:ok, x}
