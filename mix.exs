@@ -77,8 +77,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      # {:ecto, "~> 3.10.2"}
-      {:ecto, github: "whatyouhide/ecto", branch: "dump-and-load-nil"}
+      {:ecto, "~> 3.10.2"}
     end
   end
 
