@@ -268,7 +268,7 @@ defmodule Ecto.Migrator do
           if opts[:strict_version_order] do
             raise Ecto.MigrationError, message
           else
-            Logger.warn message
+            Logger.warning message
           end
         end
 
