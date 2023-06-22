@@ -392,13 +392,9 @@ if Code.ensure_loaded?(Postgrex) do
        exprs}
     end
 
-    defp from(%{from: %{hints: [_ | _]}} = query, _sources) do
-      error!(query, "table hints are not supported by PostgreSQL")
-    end
-
-    defp from(%{from: %{source: source}} = query, sources) do
+    defp from(%{from: %{source: source, hints: hints}} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
-      [" FROM ", from, " AS " | name]
+      [" FROM ", from, " AS ", name | Enum.map(hints, &[?\s | &1])]
     end
 
     defp cte(%{with_ctes: %WithExpr{recursive: recursive, queries: [_ | _] = queries}} = query, sources) do
