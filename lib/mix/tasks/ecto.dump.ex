@@ -81,11 +81,13 @@ defmodule Mix.Tasks.Ecto.Dump do
 
       for repo <- Enum.uniq([repo, migration_repo]) do
         config = Keyword.merge(repo.config(), opts)
+        start_time = System.system_time()
 
         case repo.__adapter__().structure_dump(source_repo_priv(repo), config) do
           {:ok, location} ->
             unless opts[:quiet] do
-              Mix.shell().info "The structure for #{inspect repo} has been dumped to #{location}"
+              elapsed = System.convert_time_unit(System.system_time() - start_time, :native, :microsecond)
+              Mix.shell().info "The structure for #{inspect repo} has been dumped to #{location} in #{format_time(elapsed)}"
             end
           {:error, term} when is_binary(term) ->
             Mix.raise "The structure for #{inspect repo} couldn't be dumped: #{term}"
@@ -95,4 +97,8 @@ defmodule Mix.Tasks.Ecto.Dump do
       end
     end
   end
+  
+  defp format_time(microsec) when microsec < 1_000, do: "#{microsec} μs"
+  defp format_time(microsec) when microsec < 1_000_000, do: "#{div(microsec, 1_000)} ms"
+  defp format_time(microsec), do: "#{Float.round(microsec / 1_000_000.0)} s"
 end
