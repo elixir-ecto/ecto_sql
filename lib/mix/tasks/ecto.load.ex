@@ -53,6 +53,7 @@ defmodule Mix.Tasks.Ecto.Load do
     * `--no-compile` - does not compile applications before loading
     * `--no-deps-check` - does not check dependencies before loading
     * `--skip-if-loaded` - does not load the dump file if the repo has the migrations table up
+
   """
 
   @impl true
@@ -115,11 +116,13 @@ defmodule Mix.Tasks.Ecto.Load do
 
   defp load_structure(repo, opts) do
     config = Keyword.merge(repo.config(), opts)
-
+    start_time = System.system_time()
+    
     case repo.__adapter__().structure_load(source_repo_priv(repo), config) do
       {:ok, location} ->
         unless opts[:quiet] do
-          Mix.shell().info "The structure for #{inspect repo} has been loaded from #{location}"
+          elapsed = System.convert_time_unit(System.system_time() - start_time, :native, :microsecond)
+          Mix.shell().info "The structure for #{inspect repo} has been loaded from #{location} in #{format_time(elapsed)}"
         end
       {:error, term} when is_binary(term) ->
         Mix.raise "The structure for #{inspect repo} couldn't be loaded: #{term}"
@@ -127,4 +130,8 @@ defmodule Mix.Tasks.Ecto.Load do
         Mix.raise "The structure for #{inspect repo} couldn't be loaded: #{inspect term}"
     end
   end
+  
+  defp format_time(microsec) when microsec < 1_000, do: "#{microsec} μs"
+  defp format_time(microsec) when microsec < 1_000_000, do: "#{div(microsec, 1_000)} ms"
+  defp format_time(microsec), do: "#{Float.round(microsec / 1_000_000.0)} s"
 end
