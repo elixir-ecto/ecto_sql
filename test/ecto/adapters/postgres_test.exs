@@ -74,10 +74,35 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0}
   end
 
-  test "from with hints" do
-    assert_raise Ecto.QueryError, ~r/table hints are not supported by PostgreSQL/, fn ->
-      Schema |> from(hints: "USE INDEX FOO") |> select([r], r.x) |> plan() |> all()
-    end
+  test "from with hints list" do
+    query =
+      Schema
+      |> from(hints: ["TABLESAMPLE system_rows(1)"])
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0 TABLESAMPLE system_rows(1)}
+  end
+
+  test "from with hints string" do
+    query =
+      Schema
+      |> from(hints: "TABLESAMPLE system_rows(1)")
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0 TABLESAMPLE system_rows(1)}
+  end
+
+  test "from with hints list of tuples" do
+    one = 1
+    query =
+      Schema
+      |> from(hints: ["TABLESAMPLE SYSTEM": one])
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0 TABLESAMPLE SYSTEM 1}
   end
 
   test "from without schema" do

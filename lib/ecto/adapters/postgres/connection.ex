@@ -392,13 +392,18 @@ if Code.ensure_loaded?(Postgrex) do
        exprs}
     end
 
-    defp from(%{from: %{hints: [_ | _]}} = query, _sources) do
-      error!(query, "table hints are not supported by PostgreSQL")
+    defp from(%{from: %{source: source, hints: hints}} = query, sources) do
+      {from, name} = get_source(query, sources, 0, source)
+      [" FROM ", from, " AS ", name | hints(hints)]
     end
 
-    defp from(%{from: %{source: source}} = query, sources) do
-      {from, name} = get_source(query, sources, 0, source)
-      [" FROM ", from, " AS " | name]
+    defp hints([]), do: []
+    defp hints(hint) when is_binary(hint), do: [?\s | hint]
+    defp hints([{key, value} | tail]) do
+      [?\s, to_string(key), ?\s, to_string(value) | hints(tail)]
+    end
+    defp hints([hint | tail]) do
+      [?\s, hint | hints(tail)]
     end
 
     defp cte(%{with_ctes: %WithExpr{recursive: recursive, queries: [_ | _] = queries}} = query, sources) do
