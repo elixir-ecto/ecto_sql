@@ -210,6 +210,13 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_repo: App.MigrationRepo
 
+    * `:migration_cast_version_column` - Ecto uses a `version` column of type
+      `bigint` for the underlying migrations table (usually `schema_migrations`). By
+      default, Ecto casts this column as an `int` when reading or writing to the database
+      when running migrations. This behavior is there for legacy reasons, but if you
+      want to disable the `CAST`ing, you can set this option to `false`. You might want
+      to do that if you are using a database that doesn't support `CAST`ing in all queries.
+
     * `:priv` - the priv directory for the repo with the location of important assets,
       such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to
       "priv/foo_repo" and migrations should be placed at "priv/foo_repo/migrations"

@@ -10,6 +10,7 @@ defmodule Ecto.MigrationTest do
   alias EctoSQL.TestRepo
   alias Ecto.Migration.{Table, Index, Reference, Constraint}
   alias Ecto.Migration.Runner
+  alias Ecto.Migration.SchemaMigration
 
   setup meta do
     config = Application.get_env(:ecto_sql, TestRepo, [])
@@ -115,6 +116,13 @@ defmodule Ecto.MigrationTest do
   test "creates a reference with a foreign key type of identity" do
     assert references(:posts) ==
            %Reference{table: "posts", column: :id, type: :identity}
+  end
+
+  test "TODO" do
+    assert {_repo, query, _options} =
+              SchemaMigration.versions(TestRepo, [migration_cast_version_column: false], "")
+              
+    assert Macro.to_string(query.select.expr) == "&0.version()"
   end
 
   test "creates a reference without validating" do
