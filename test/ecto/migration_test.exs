@@ -118,10 +118,10 @@ defmodule Ecto.MigrationTest do
            %Reference{table: "posts", column: :id, type: :identity}
   end
 
-  test "TODO" do
+  test ":migration_cast_version_column option" do
     assert {_repo, query, _options} =
               SchemaMigration.versions(TestRepo, [migration_cast_version_column: false], "")
-              
+
     assert Macro.to_string(query.select.expr) == "&0.version()"
   end
 
