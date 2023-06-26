@@ -212,10 +212,12 @@ defmodule Ecto.Migration do
 
     * `:migration_cast_version_column` - Ecto uses a `version` column of type
       `bigint` for the underlying migrations table (usually `schema_migrations`). By
-      default, Ecto casts this column as an `int` when reading or writing to the database
-      when running migrations. This behavior is there for legacy reasons, but if you
-      want to disable the `CAST`ing, you can set this option to `false`. You might want
-      to do that if you are using a database that doesn't support `CAST`ing in all queries.
+      default, Ecto doesn't cast this to a different type when reading or writing to the database
+      when running migrations. However, some web frameworks store this column as a string.
+      For compatibility reasons, you can set this option to `true`, which makes Ecto
+      perform a `CAST(version AS int)`. This used to be the default behavior up to
+      Ecto 3.10, so if you are upgrading to 3.11+ and want to keep the old behavior,
+      set this option to `true`.
 
     * `:priv` - the priv directory for the repo with the location of important assets,
       such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to

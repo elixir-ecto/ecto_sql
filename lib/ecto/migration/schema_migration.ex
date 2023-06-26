@@ -40,7 +40,7 @@ defmodule Ecto.Migration.SchemaMigration do
     from_opts = [prefix: prefix] ++ @default_opts
 
     query =
-      if Keyword.get(config, :migration_cast_version_column, true) do
+      if Keyword.get(config, :migration_cast_version_column, false) do
         from(m in source, select: type(m.version, :integer))
       else
         from(m in source, select: m.version)
