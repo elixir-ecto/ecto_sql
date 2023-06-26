@@ -37,7 +37,16 @@ defmodule Ecto.Migration.SchemaMigration do
 
   def versions(repo, config, prefix) do
     {repo, source} = get_repo_and_source(repo, config)
-    {repo, from(m in source, select: type(m.version, :integer)), [prefix: prefix] ++ @default_opts}
+    from_opts = [prefix: prefix] ++ @default_opts
+
+    query =
+      if Keyword.get(config, :migration_cast_version_column, false) do
+        from(m in source, select: type(m.version, :integer))
+      else
+        from(m in source, select: m.version)
+      end
+
+    {repo, query, from_opts}
   end
 
   def up(repo, config, version, opts) do
