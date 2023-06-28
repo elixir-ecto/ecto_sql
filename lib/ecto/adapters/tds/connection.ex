@@ -466,6 +466,10 @@ if Code.ensure_loaded?(Tds) do
         ?)
       ]
     end
+    
+    defp cte_query(%Ecto.Query{updates: [_ | _]} = query, _sources, _parent_query) do
+      error!(query, "Tds adapter does not support data-modifying CTEs")
+    end
 
     defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})

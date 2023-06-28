@@ -316,6 +316,10 @@ if Code.ensure_loaded?(MyXQL) do
       [quote_name(name), " AS ", cte_query(cte, sources, query)]
     end
 
+    defp cte_query(%Ecto.Query{updates: [_ | _]} = query, _sources, _parent_query) do
+      error!(query, "MySQL adapter does not support data-modifying CTEs")
+    end
+    
     defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       ["(", all(query, subquery_as_prefix(sources)), ")"]
