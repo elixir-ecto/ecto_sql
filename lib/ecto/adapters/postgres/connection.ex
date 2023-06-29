@@ -421,21 +421,37 @@ if Code.ensure_loaded?(Postgrex) do
           true -> "MATERIALIZED"
           false -> "NOT MATERIALIZED"
         end
+        
+      operation = case opts[:operation] do
+        :update_all -> :update_all
+        :delete_all -> :delete_all
+        :insert_all -> :insert_all
+        _ -> :all
+      end
 
-      [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query)]
+      [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query, operation)]
     end
 
-    defp cte_query(%Ecto.Query{updates: [_ | _]} = query, sources, parent_query) do
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query, :update_all) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       ["(", update_all(query), ")"]
     end
     
-    defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query, :delete_all) do
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
+      ["(", delete_all(query), ")"]
+    end
+    
+    defp cte_query(%Ecto.Query{} = query, _sources, _parent_query, :insert_all) do
+      error!(query, "Postgres adapter does not support CTE operation :insert_all")
+    end
+    
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query, _operation) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       ["(", all(query, subquery_as_prefix(sources)), ")"]
     end
 
-    defp cte_query(%QueryExpr{expr: expr}, sources, query) do
+    defp cte_query(%QueryExpr{expr: expr}, sources, query, _operation) do
       expr(expr, sources, query)
     end
 
