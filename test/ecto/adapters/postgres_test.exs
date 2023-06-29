@@ -389,17 +389,30 @@ defmodule Ecto.Adapters.PostgresTest do
         |> where([c], is_nil(c.parent_id))
         |> update([c], set: [desc: "Root category"])
         |> select([c], %{id: c.id, desc: c.desc})
-  
+
       query =
         "update_categories"
-        |> with_cte("update_categories", as: ^cte_query)
+        |> with_cte("search_categories", as: ^cte_query)
+        |> with_cte("delete_categories", as: ^cte_query, operation: :delete_all)
+        |> with_cte("update_categories", as: ^cte_query, operation: :update_all)
         |> select([c], %{id: c.id, desc: c.desc})
         |> plan()
 
       assert all(query) ==
-        ~s{WITH "update_categories" AS } <>
+        ~s{WITH "search_categories" AS } <>
         ~s{(} <>
-        ~s{UPDATE "categories" AS c0 SET "desc" = 'Root category' WHERE (c0."parent_id" IS NULL) } <>
+        ~s{SELECT sc0."id" AS "id", sc0."desc" AS "desc" } <>
+        ~s{FROM "categories" AS sc0 } <>
+        ~s{WHERE (sc0."parent_id" IS NULL)} <>
+        ~s{), } <>
+        ~s{"delete_categories" AS (} <>
+        ~s{DELETE FROM "categories" AS c0 } <>
+        ~s{WHERE (c0."parent_id" IS NULL) } <>
+        ~s{RETURNING c0."id" AS "id", c0."desc" AS "desc"} <>
+        ~s{), } <>
+        ~s{"update_categories" AS (} <>
+        ~s{UPDATE "categories" AS c0 SET "desc" = 'Root category' } <>
+        ~s{WHERE (c0."parent_id" IS NULL) } <>
         ~s{RETURNING c0."id" AS "id", c0."desc" AS "desc"} <>
         ~s{) } <>
         ~s{SELECT u0."id", u0."desc" } <>

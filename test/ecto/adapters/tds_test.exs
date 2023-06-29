@@ -373,7 +373,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     query =
       "update_categories"
-      |> with_cte("update_categories", as: ^cte_query)
+      |> with_cte("update_categories", as: ^cte_query, operation: :update_all)
       |> select([c], %{id: c.id, desc: c.desc})
       |> plan()
 
