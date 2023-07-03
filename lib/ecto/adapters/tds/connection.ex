@@ -438,8 +438,10 @@ if Code.ensure_loaded?(Tds) do
       error!(query, "Tds adapter does not support materialized CTEs")
     end
 
-    defp cte_expr({name, _opts, cte}, sources, query) do
-      [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query)]
+    defp cte_expr({name, opts, cte}, sources, query) do
+      operation_opt = Map.get(opts, :operation)
+      
+      [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query, operation_opt)]
     end
 
     defp cte_header(%QueryExpr{}, query) do
@@ -467,9 +469,17 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    defp cte_query(%Ecto.Query{} = query, sources, parent_query) do
+    defp cte_query(query, sources, parent_query, nil) do
+      cte_query(query, sources, parent_query, :all)
+    end
+
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query, :all) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       [?(, all(query, subquery_as_prefix(sources)), ?)]
+    end
+    
+    defp cte_query(%Ecto.Query{} = query, _sources, _parent_query, operation) do
+      error!(query, "Tds adapter does not support data-modifying CTEs (operation: #{operation})")
     end
 
     defp update_fields(%Query{updates: updates} = query, sources) do

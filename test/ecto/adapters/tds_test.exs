@@ -364,6 +364,24 @@ defmodule Ecto.Adapters.TdsTest do
       ~s{SELECT STRING_AGG(st0.[id], ' / ') AS [breadcrumbs] FROM [tree] AS st0) AS s1}
   end
 
+  test "CTE with update statement" do
+    cte_query =
+      "categories"
+      |> where([c], is_nil(c.parent_id))
+      |> update([c], set: [desc: "Root category"])
+      |> select([c], %{id: c.id, desc: c.desc})
+
+    query =
+      "update_categories"
+      |> with_cte("update_categories", as: ^cte_query, operation: :update_all)
+      |> select([c], %{id: c.id, desc: c.desc})
+      |> plan()
+
+      assert_raise Ecto.QueryError, ~r/Tds adapter does not support data-modifying CTEs/, fn ->
+        all(query)
+      end
+  end
+
   test "select" do
     query = Schema |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT s0.[x], s0.[y] FROM [schema] AS s0}
