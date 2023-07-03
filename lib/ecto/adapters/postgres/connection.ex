@@ -422,14 +422,13 @@ if Code.ensure_loaded?(Postgrex) do
           false -> "NOT MATERIALIZED"
         end
         
-      operation = case opts[:operation] do
-        :update_all -> :update_all
-        :delete_all -> :delete_all
-        :insert_all -> :insert_all
-        _ -> :all
-      end
+      operation_opt = Map.get(opts, :operation)
 
-      [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query, operation)]
+      [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query, operation_opt)]
+    end
+
+    defp cte_query(query, sources, parent_query, nil) do
+      cte_query(query, sources, parent_query, :all)
     end
 
     defp cte_query(%Ecto.Query{} = query, sources, parent_query, :update_all) do
@@ -446,7 +445,7 @@ if Code.ensure_loaded?(Postgrex) do
       error!(query, "Postgres adapter does not support CTE operation :insert_all")
     end
     
-    defp cte_query(%Ecto.Query{} = query, sources, parent_query, _operation) do
+    defp cte_query(%Ecto.Query{} = query, sources, parent_query, :all) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       ["(", all(query, subquery_as_prefix(sources)), ")"]
     end
