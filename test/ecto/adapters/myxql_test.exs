@@ -540,6 +540,9 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = Schema |> select([r], fragment("? COLLATE ?", r.x, literal(^"es_ES"))) |> plan()
     assert all(query) == ~s{SELECT s0.`x` COLLATE `es_ES` FROM `schema` AS s0}
 
+    query = Schema |> select([r], r.x) |> where([r], fragment("? in (?,?,?)", r.x, ^1, splice(^[2, 3, 4]), ^5)) |> plan()
+    assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 WHERE (s0.`x` in (?,?,?,?,?))}
+
     value = 13
     query = Schema |> select([r], fragment("lcase(?, ?)", r.x, ^value)) |> plan()
     assert all(query) == ~s{SELECT lcase(s0.`x`, ?) FROM `schema` AS s0}

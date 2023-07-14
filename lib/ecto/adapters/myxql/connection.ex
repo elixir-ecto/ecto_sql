@@ -314,7 +314,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp cte_expr({name, opts, cte}, sources, query) do
       operation_opt = Map.get(opts, :operation)
-      
+
       [quote_name(name), " AS ", cte_query(cte, sources, query, operation_opt)]
     end
 
@@ -601,6 +601,10 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
+    end
+
+    defp expr({:splice, _, [{:^, _, [_, length]}]}, sources, query) do
+      Enum.intersperse(List.duplicate(??, length), ?,)
     end
 
     defp expr({:selected_as, _, [name]}, _sources, _query) do
