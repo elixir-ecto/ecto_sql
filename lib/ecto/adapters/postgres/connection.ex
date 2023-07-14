@@ -421,7 +421,7 @@ if Code.ensure_loaded?(Postgrex) do
           true -> "MATERIALIZED"
           false -> "NOT MATERIALIZED"
         end
-        
+
       operation_opt = Map.get(opts, :operation)
 
       [quote_name(name), " AS ", materialized_opt, cte_query(cte, sources, query, operation_opt)]
@@ -435,16 +435,16 @@ if Code.ensure_loaded?(Postgrex) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       ["(", update_all(query), ")"]
     end
-    
+
     defp cte_query(%Ecto.Query{} = query, sources, parent_query, :delete_all) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       ["(", delete_all(query), ")"]
     end
-    
+
     defp cte_query(%Ecto.Query{} = query, _sources, _parent_query, :insert_all) do
       error!(query, "Postgres adapter does not support CTE operation :insert_all")
     end
-    
+
     defp cte_query(%Ecto.Query{} = query, sources, parent_query, :all) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       ["(", all(query, subquery_as_prefix(sources)), ")"]
@@ -744,6 +744,10 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
+    end
+
+    defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
+      Enum.map_join(1..length, ",", &"$#{idx + &1}")
     end
 
     defp expr({:selected_as, _, [name]}, _sources, _query) do

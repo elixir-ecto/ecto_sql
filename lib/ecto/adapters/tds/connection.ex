@@ -440,7 +440,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp cte_expr({name, opts, cte}, sources, query) do
       operation_opt = Map.get(opts, :operation)
-      
+
       [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query, operation_opt)]
     end
 
@@ -477,7 +477,7 @@ if Code.ensure_loaded?(Tds) do
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       [?(, all(query, subquery_as_prefix(sources)), ?)]
     end
-    
+
     defp cte_query(%Ecto.Query{} = query, _sources, _parent_query, operation) do
       error!(query, "Tds adapter does not support data-modifying CTEs (operation: #{operation})")
     end
@@ -778,6 +778,10 @@ if Code.ensure_loaded?(Tds) do
 
     defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
+    end
+
+    defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
+      list_param_to_args(idx, length)
     end
 
     defp expr({:selected_as, _, [name]}, _sources, _query) do
