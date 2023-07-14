@@ -747,7 +747,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({:splice, _, [{:^, _, [idx, length]}]}, sources, query) do
-      list_param_to_args(idx, length)
+      Enum.map_join(1..length, ",", &"$#{idx + &1}")
     end
 
     defp expr({:selected_as, _, [name]}, _sources, _query) do
@@ -866,10 +866,6 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp expr(expr, _sources, query) do
       error!(query, "unsupported expression: #{inspect(expr)}")
-    end
-
-    defp list_param_to_args(idx, length) do
-      Enum.map_join(1..length, ",", &"$#{idx + &1}")
     end
 
     defp json_extract_path(expr, [], sources, query) do
