@@ -1208,6 +1208,12 @@ defmodule Ecto.Migration do
         modify :title, :text, null: false, from: {:string, null: true}
       end
 
+      # Modify the :on_delete option of an existing foreign key
+      alter table("comments") do
+        modify :post_id, references(:posts, on_delete: :delete_all),
+          from: references(:posts, on_delete: :nothing)
+      end
+
   ## Options
 
     * `:null` - determines whether the column accepts null values. If this option is
