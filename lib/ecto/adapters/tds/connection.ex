@@ -780,7 +780,7 @@ if Code.ensure_loaded?(Tds) do
       quote_name(literal)
     end
 
-    defp expr({:splice, _, [{:^, _, [idx, length]}]}, sources, query) do
+    defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
       list_param_to_args(idx, length)
     end
 

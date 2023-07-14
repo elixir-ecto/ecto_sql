@@ -603,7 +603,7 @@ if Code.ensure_loaded?(MyXQL) do
       quote_name(literal)
     end
 
-    defp expr({:splice, _, [{:^, _, [_, length]}]}, sources, query) do
+    defp expr({:splice, _, [{:^, _, [_, length]}]}, _sources, _query) do
       Enum.intersperse(List.duplicate(??, length), ?,)
     end
 

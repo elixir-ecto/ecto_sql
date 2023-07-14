@@ -746,7 +746,7 @@ if Code.ensure_loaded?(Postgrex) do
       quote_name(literal)
     end
 
-    defp expr({:splice, _, [{:^, _, [idx, length]}]}, sources, query) do
+    defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
       Enum.map_join(1..length, ",", &"$#{idx + &1}")
     end
 
