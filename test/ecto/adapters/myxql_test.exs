@@ -590,6 +590,16 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT CAST(? AS char) FROM `schema` AS s0}
   end
 
+  test "boolean type true is cast with an if" do
+    query = Schema |> select([], type(^true, :boolean)) |> plan()
+    assert all(query) == ~s{SELECT IF(?, TRUE, FALSE) FROM `schema` AS s0}
+  end
+
+  test "boolean type false is cast with an if" do
+    query = Schema |> select([], type(^false, :boolean)) |> plan()
+    assert all(query) == ~s{SELECT IF(?, TRUE, FALSE) FROM `schema` AS s0}
+  end
+
   test "json_extract_path" do
     query = Schema |> select([s], json_extract_path(s.meta, [0, 1])) |> plan()
     assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$[0][1]') FROM `schema` AS s0}
