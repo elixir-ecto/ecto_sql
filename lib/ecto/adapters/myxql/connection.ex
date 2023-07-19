@@ -689,6 +689,10 @@ if Code.ensure_loaded?(MyXQL) do
       [expr(other, sources, query), " + 0"]
     end
 
+    defp expr(%Ecto.Query.Tagged{value: other, type: :boolean}, sources, query) do
+      ["IF(", expr(other, sources, query), ", TRUE, FALSE)"]
+    end
+
     defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
       ["CAST(", expr(other, sources, query), " AS ", ecto_cast_to_db(type, query), ?)]
     end
