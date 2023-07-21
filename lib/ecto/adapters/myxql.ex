@@ -149,12 +149,12 @@ defmodule Ecto.Adapters.MyXQL do
   ## Custom MySQL types
 
   @impl true
-  def loaders({:map, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
-  def loaders(:map, type), do: [&json_decode/1, type]
-  def loaders(:float, type), do: [&float_decode/1, type]
-  def loaders(:boolean, type), do: [&bool_decode/1, type]
+  def loaders({:map, _}, type),  do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
+  def loaders(:map, type),       do: [&json_decode/1, type]
+  def loaders(:float, type),     do: [&float_decode/1, type]
+  def loaders(:boolean, type),   do: [&bool_decode/1, type]
   def loaders(:binary_id, type), do: [Ecto.UUID, type]
-  def loaders(_, type), do: [type]
+  def loaders(_, type),          do: [type]
 
   defp bool_decode(<<0>>), do: {:ok, false}
   defp bool_decode(<<1>>), do: {:ok, true}
@@ -174,19 +174,16 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl true
   def storage_up(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
 
     opts = Keyword.delete(opts, :database)
     charset = opts[:charset] || "utf8mb4"
 
-    check_existence_command =
-      "SELECT TRUE FROM information_schema.schemata WHERE schema_name = '#{database}'"
+    check_existence_command = "SELECT TRUE FROM information_schema.schemata WHERE schema_name = '#{database}'"
 
     case run_query(check_existence_command, opts) do
       {:ok, %{num_rows: 1}} ->
         {:error, :already_up}
-
       _ ->
         create_command =
           ~s(CREATE DATABASE `#{database}` DEFAULT CHARACTER SET = #{charset})
@@ -195,13 +192,10 @@ defmodule Ecto.Adapters.MyXQL do
         case run_query(create_command, opts) do
           {:ok, _} ->
             :ok
-
           {:error, %{mysql: %{name: :ER_DB_CREATE_EXISTS}}} ->
             {:error, :already_up}
-
           {:error, error} ->
             {:error, Exception.message(error)}
-
           {:exit, exit} ->
             {:error, exit_to_exception(exit)}
         end
@@ -213,8 +207,7 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl true
   def storage_down(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
 
     opts = Keyword.delete(opts, :database)
     command = "DROP DATABASE `#{database}`"
@@ -222,19 +215,14 @@ defmodule Ecto.Adapters.MyXQL do
     case run_query(command, opts) do
       {:ok, _} ->
         :ok
-
       {:error, %{mysql: %{name: :ER_DB_DROP_EXISTS}}} ->
         {:error, :already_down}
-
       {:error, %{mysql: %{name: :ER_BAD_DB_ERROR}}} ->
         {:error, :already_down}
-
       {:error, error} ->
         {:error, Exception.message(error)}
-
       {:exit, :killed} ->
         {:error, :already_down}
-
       {:exit, exit} ->
         {:error, exit_to_exception(exit)}
     end
@@ -242,13 +230,11 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl Ecto.Adapter.Storage
   def storage_status(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
 
     opts = Keyword.delete(opts, :database)
 
-    check_database_query =
-      "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{database}'"
+    check_database_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{database}'"
 
     case run_query(check_database_query, opts) do
       {:ok, %{num_rows: 0}} -> :down
@@ -270,7 +256,7 @@ defmodule Ecto.Adapters.MyXQL do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
 
-    opts = Keyword.merge(opts, timeout: :infinity, telemetry_options: [schema_migration: true])
+    opts = Keyword.merge(opts, [timeout: :infinity, telemetry_options: [schema_migration: true]])
 
     {:ok, result} =
       transaction(meta, opts, fn ->
@@ -296,12 +282,11 @@ defmodule Ecto.Adapters.MyXQL do
     {fields, values} = :lists.unzip(params)
     sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [], [])
 
-    opts =
-      if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_insert_#{source}_#{length(fields)}"} | opts]
-      else
-        opts
-      end
+    opts = if is_nil(Keyword.get(opts, :cache_statement)) do
+      [{:cache_statement, "ecto_insert_#{source}_#{length(fields)}"} | opts]
+    else
+      opts
+    end
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 0}} ->
@@ -317,7 +302,7 @@ defmodule Ecto.Adapters.MyXQL do
 
       {:error, err} ->
         case @conn.to_constraints(err, source: source) do
-          [] -> raise err
+          []          -> raise err
           constraints -> {:invalid, constraints}
         end
     end
@@ -327,9 +312,8 @@ defmodule Ecto.Adapters.MyXQL do
   defp primary_key!(_, []), do: nil
 
   defp primary_key!(%{schema: schema}, returning) do
-    raise ArgumentError,
-          "MySQL does not support :read_after_writes in schemas for non-primary keys. " <>
-            "The following fields in #{inspect(schema)} are tagged as such: #{inspect(returning)}"
+    raise ArgumentError, "MySQL does not support :read_after_writes in schemas for non-primary keys. " <>
+                         "The following fields in #{inspect schema} are tagged as such: #{inspect returning}"
   end
 
   defp last_insert_id(nil, _last_insert_id), do: []
@@ -417,27 +401,23 @@ defmodule Ecto.Adapters.MyXQL do
       |> Keyword.put(:backoff_type, :stop)
       |> Keyword.put(:max_restarts, 0)
 
-    task =
-      Task.Supervisor.async_nolink(Ecto.Adapters.SQL.StorageSupervisor, fn ->
-        {:ok, conn} = MyXQL.start_link(opts)
+    task = Task.Supervisor.async_nolink(Ecto.Adapters.SQL.StorageSupervisor, fn ->
+      {:ok, conn} = MyXQL.start_link(opts)
 
-        value = MyXQL.query(conn, sql, [], opts)
-        GenServer.stop(conn)
-        value
-      end)
+      value = MyXQL.query(conn, sql, [], opts)
+      GenServer.stop(conn)
+      value
+    end)
 
     timeout = Keyword.get(opts, :timeout, 15_000)
 
     case Task.yield(task, timeout) || Task.shutdown(task) do
       {:ok, {:ok, result}} ->
         {:ok, result}
-
       {:ok, {:error, error}} ->
         {:error, error}
-
       {:exit, exit} ->
         {:exit, exit}
-
       nil ->
         {:error, RuntimeError.exception("command timed out")}
     end
@@ -462,8 +442,8 @@ defmodule Ecto.Adapters.MyXQL do
         []
       end
 
-    host = opts[:hostname] || System.get_env("MYSQL_HOST") || "localhost"
-    port = opts[:port] || System.get_env("MYSQL_TCP_PORT") || "3306"
+    host     = opts[:hostname] || System.get_env("MYSQL_HOST") || "localhost"
+    port     = opts[:port] || System.get_env("MYSQL_TCP_PORT") || "3306"
     protocol = opts[:cli_protocol] || System.get_env("MYSQL_CLI_PROTOCOL") || "tcp"
 
     user_args =
@@ -475,13 +455,10 @@ defmodule Ecto.Adapters.MyXQL do
 
     args =
       [
-        "--host",
-        host,
-        "--port",
-        to_string(port),
-        "--protocol",
-        protocol
-      ] ++ user_args ++ opt_args
+        "--host", host,
+        "--port", to_string(port),
+        "--protocol", protocol
+      ] ++ user_args ++ database_args ++ opt_args
 
     cmd_opts =
       cmd_opts
