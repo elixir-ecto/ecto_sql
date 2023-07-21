@@ -156,16 +156,12 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   test "raises when attempting to dump multiple prefixes" do
-    create_database()
-    prefix = params()[:database]
-    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test", prefix])
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test", "another_db"])
     msg = "cannot dump multiple prefixes with MySQL. Please run the command separately for each prefix."
 
     assert_raise ArgumentError, msg, fn ->
       Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
     end
-  after
-    drop_database()
   end
 
   test "dumps structure and schema_migration records only from queried prefix" do
@@ -184,6 +180,8 @@ defmodule Ecto.Integration.StorageTest do
     refute contents =~ "USE `#{prefix}`"
     assert contents =~ "Database: #{prefix}"
     assert contents =~ "INSERT INTO `schema_migrations` (version) VALUES (#{version})"
+  after
+    drop_database()
   end
 
   defp strip_timestamp(dump) do
