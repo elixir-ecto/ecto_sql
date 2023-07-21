@@ -149,12 +149,12 @@ defmodule Ecto.Adapters.MyXQL do
   ## Custom MySQL types
 
   @impl true
-  def loaders({:map, _}, type),  do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
-  def loaders(:map, type),       do: [&json_decode/1, type]
-  def loaders(:float, type),     do: [&float_decode/1, type]
-  def loaders(:boolean, type),   do: [&bool_decode/1, type]
-  def loaders(:binary_id, type), do: [Ecto.UUID, type]
-  def loaders(_, type),          do: [type]
+  def loaders({:map, _}, type),   do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
+  def loaders(:map, type),        do: [&json_decode/1, type]
+  def loaders(:float, type),      do: [&float_decode/1, type]
+  def loaders(:boolean, type),    do: [&bool_decode/1, type]
+  def loaders(:binary_id, type),  do: [Ecto.UUID, type]
+  def loaders(_, type),           do: [type]
 
   defp bool_decode(<<0>>), do: {:ok, false}
   defp bool_decode(<<1>>), do: {:ok, true}
@@ -175,10 +175,8 @@ defmodule Ecto.Adapters.MyXQL do
   @impl true
   def storage_up(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
-
     opts = Keyword.delete(opts, :database)
     charset = opts[:charset] || "utf8mb4"
-
     check_existence_command = "SELECT TRUE FROM information_schema.schemata WHERE schema_name = '#{database}'"
 
     case run_query(check_existence_command, opts) do
@@ -202,13 +200,12 @@ defmodule Ecto.Adapters.MyXQL do
     end
   end
 
-  defp concat_if(content, nil, _fun), do: content
+  defp concat_if(content, nil, _fun),  do: content
   defp concat_if(content, value, fun), do: content <> " " <> fun.(value)
 
   @impl true
   def storage_down(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
-
     opts = Keyword.delete(opts, :database)
     command = "DROP DATABASE `#{database}`"
 
@@ -231,7 +228,6 @@ defmodule Ecto.Adapters.MyXQL do
   @impl Ecto.Adapter.Storage
   def storage_status(opts) do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
-
     opts = Keyword.delete(opts, :database)
 
     check_database_query = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{database}'"
@@ -281,7 +277,6 @@ defmodule Ecto.Adapters.MyXQL do
     key = primary_key!(schema_meta, returning)
     {fields, values} = :lists.unzip(params)
     sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [], [])
-
     opts = if is_nil(Keyword.get(opts, :cache_statement)) do
       [{:cache_statement, "ecto_insert_#{source}_#{length(fields)}"} | opts]
     else
@@ -310,7 +305,6 @@ defmodule Ecto.Adapters.MyXQL do
 
   defp primary_key!(%{autogenerate_id: {_, key, _type}}, [key]), do: key
   defp primary_key!(_, []), do: nil
-
   defp primary_key!(%{schema: schema}, returning) do
     raise ArgumentError, "MySQL does not support :read_after_writes in schemas for non-primary keys. " <>
                          "The following fields in #{inspect schema} are tagged as such: #{inspect returning}"
@@ -432,7 +426,7 @@ defmodule Ecto.Adapters.MyXQL do
   defp run_with_cmd(cmd, opts, opt_args, cmd_opts \\ []) do
     unless System.find_executable(cmd) do
       raise "could not find executable `#{cmd}` in path, " <>
-              "please guarantee it is available before running ecto commands"
+            "please guarantee it is available before running ecto commands"
     end
 
     env =
