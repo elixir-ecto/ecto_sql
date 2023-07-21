@@ -177,8 +177,8 @@ defmodule Ecto.Adapters.MyXQL do
     database = Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
     opts = Keyword.delete(opts, :database)
     charset = opts[:charset] || "utf8mb4"
-    check_existence_command = "SELECT TRUE FROM information_schema.schemata WHERE schema_name = '#{database}'"
 
+    check_existence_command = "SELECT TRUE FROM information_schema.schemata WHERE schema_name = '#{database}'"
     case run_query(check_existence_command, opts) do
       {:ok, %{num_rows: 1}} ->
         {:error, :already_up}
@@ -452,7 +452,7 @@ defmodule Ecto.Adapters.MyXQL do
         "--host", host,
         "--port", to_string(port),
         "--protocol", protocol
-      ] ++ user_args ++ database_args ++ opt_args
+      ] ++ user_args  ++ opt_args
 
     cmd_opts =
       cmd_opts
