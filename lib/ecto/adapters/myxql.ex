@@ -379,7 +379,13 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl true
   def dump_cmd(args, opts \\ [], config) when is_list(config) and is_list(args) do
-    args = args ++ [config[:database]]
+    args =
+      if database = config[:database] do
+        args ++ [database]
+      else
+        args
+      end
+
     run_with_cmd("mysqldump", config, args, opts)
   end
 
