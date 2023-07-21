@@ -146,55 +146,40 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   test "structure dump and load with migrations table" do
+    default_db = "ecto_test"
     num = @base_migration + System.unique_integer([:positive])
     :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
     {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), TestRepo.config())
     contents = File.read!(path)
-    assert contents =~ "INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{num})"
+    assert contents =~ "Database: #{default_db}"
+    assert contents =~ "INSERT INTO `schema_migrations` (version) VALUES (#{num})"
   end
 
-  test "dumps structure and schema_migration records from multiple prefixes" do
-    # Create the test_schema schema
-    create_database()
-    prefix = params()[:database]
+  test "raises when attempting to dump multiple prefixes" do
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test", "another_db"])
+    msg = "cannot dump multiple prefixes with MySQL. Please run the command separately for each prefix."
 
-    # Run migrations
-    version = @base_migration + System.unique_integer([:positive])
-    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
-    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: prefix)
-
-    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test", prefix])
-    {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
-    contents = File.read!(path)
-
-    assert contents =~ "Current Database: `#{prefix}`"
-    assert contents =~ "Current Database: `ecto_test`"
-    assert contents =~ "CREATE TABLE `schema_migrations`"
-    assert contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
-    assert contents =~ ~s[INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{version})]
-  after
-    drop_database()
+    assert_raise ArgumentError, msg, fn ->
+      Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
+    end
   end
 
   test "dumps structure and schema_migration records only from queried prefix" do
-    # Create the test_schema schema
+    # Create the storage_mgt database
     create_database()
     prefix = params()[:database]
 
     # Run migrations
     version = @base_migration + System.unique_integer([:positive])
-    :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false)
     :ok = Ecto.Migrator.up(PoolRepo, version, Migration, log: false, prefix: prefix)
 
-    config = Keyword.put(TestRepo.config(), :dump_prefixes, ["ecto_test"])
+    config = Keyword.put(TestRepo.config(), :dump_prefixes, [prefix])
     {:ok, path} = Ecto.Adapters.MyXQL.structure_dump(tmp_path(), config)
     contents = File.read!(path)
 
-    refute contents =~ "Current Database: `#{prefix}`"
-    assert contents =~ "Current Database: `ecto_test`"
-    assert contents =~ "CREATE TABLE `schema_migrations`"
-    refute contents =~ ~s[INSERT INTO `#{prefix}`.`schema_migrations` (version) VALUES (#{version})]
-    assert contents =~ ~s[INSERT INTO `ecto_test`.`schema_migrations` (version) VALUES (#{version})]
+    refute contents =~ "USE `#{prefix}`"
+    assert contents =~ "Database: #{prefix}"
+    assert contents =~ "INSERT INTO `schema_migrations` (version) VALUES (#{version})"
   after
     drop_database()
   end
