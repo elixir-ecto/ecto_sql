@@ -48,11 +48,11 @@ defmodule Mix.Tasks.Ecto.Dump do
     * `--no-compile` - does not compile applications before dumping
     * `--no-deps-check` - does not check dependencies before dumping
     * `--prefix` - prefix that will be included in the structure dump.
-      Can include multiple prefixes (ex. `--prefix foo --prefix bar`).
-      When specified, the prefixes will have their definitions dumped along
-      with the data in their migration table. The default behavior is
-      dependent on the adapter for backwards compatibility reasons.
-      For PostgreSQL, the configured database has the definitions dumped
+      Can include multiple prefixes (ex. `--prefix foo --prefix bar`) with
+      PostgreSQL but not MySQL. When specified, the prefixes will have
+      their definitions dumped along with the data in their migration table.
+      The default behavior is dependent on the adapter for backwards compatibility
+      reasons. For PostgreSQL, the configured database has the definitions dumped
       from all of its schemas but only the data from the migration table
       from the `public` schema is included. For MySQL, only the configured
       database and its migration table are dumped.
@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Ecto.Dump do
       end
     end
   end
-  
+
   defp format_time(microsec) when microsec < 1_000, do: "#{microsec} μs"
   defp format_time(microsec) when microsec < 1_000_000, do: "#{div(microsec, 1_000)} ms"
   defp format_time(microsec), do: "#{Float.round(microsec / 1_000_000.0)} s"
