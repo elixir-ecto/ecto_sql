@@ -115,7 +115,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
 
     opts =
       if opts[:quiet],
-        do: Keyword.merge(opts, [log: false, log_migrations_sql: false, log_migrator_sql: false]),
+        do: Keyword.merge(opts, log: false, log_migrations_sql: false, log_migrator_sql: false),
         else: opts
 
     # Start ecto_sql explicitly before as we don't need
@@ -135,8 +135,11 @@ defmodule Mix.Tasks.Ecto.Rollback do
         end
 
       case Ecto.Migrator.with_repo(repo, fun, [mode: :temporary] ++ opts) do
-        {:ok, _migrated, _apps} -> :ok
-        {:error, error} -> Mix.raise "Could not start repo #{inspect repo}, error: #{inspect error}"
+        {:ok, _migrated, _apps} ->
+          :ok
+
+        {:error, error} ->
+          Mix.raise("Could not start repo #{inspect(repo)}, error: #{inspect(error)}")
       end
     end
 

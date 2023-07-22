@@ -71,8 +71,11 @@ defmodule Mix.Tasks.Ecto.Load do
         "load structure for #{inspect(repo)}"
       )
 
-      {migration_repo, source} = Ecto.Migration.SchemaMigration.get_repo_and_source(repo, repo.config())
-      {:ok, loaded?, _} = Ecto.Migrator.with_repo(migration_repo, table_exists_closure(table_exists?, source, opts))
+      {migration_repo, source} =
+        Ecto.Migration.SchemaMigration.get_repo_and_source(repo, repo.config())
+
+      {:ok, loaded?, _} =
+        Ecto.Migrator.with_repo(migration_repo, table_exists_closure(table_exists?, source, opts))
 
       for repo <- Enum.uniq([repo, migration_repo]) do
         cond do
@@ -117,20 +120,26 @@ defmodule Mix.Tasks.Ecto.Load do
   defp load_structure(repo, opts) do
     config = Keyword.merge(repo.config(), opts)
     start_time = System.system_time()
-    
+
     case repo.__adapter__().structure_load(source_repo_priv(repo), config) do
       {:ok, location} ->
         unless opts[:quiet] do
-          elapsed = System.convert_time_unit(System.system_time() - start_time, :native, :microsecond)
-          Mix.shell().info "The structure for #{inspect repo} has been loaded from #{location} in #{format_time(elapsed)}"
+          elapsed =
+            System.convert_time_unit(System.system_time() - start_time, :native, :microsecond)
+
+          Mix.shell().info(
+            "The structure for #{inspect(repo)} has been loaded from #{location} in #{format_time(elapsed)}"
+          )
         end
+
       {:error, term} when is_binary(term) ->
-        Mix.raise "The structure for #{inspect repo} couldn't be loaded: #{term}"
+        Mix.raise("The structure for #{inspect(repo)} couldn't be loaded: #{term}")
+
       {:error, term} ->
-        Mix.raise "The structure for #{inspect repo} couldn't be loaded: #{inspect term}"
+        Mix.raise("The structure for #{inspect(repo)} couldn't be loaded: #{inspect(term)}")
     end
   end
-  
+
   defp format_time(microsec) when microsec < 1_000, do: "#{microsec} μs"
   defp format_time(microsec) when microsec < 1_000_000, do: "#{div(microsec, 1_000)} ms"
   defp format_time(microsec), do: "#{Float.round(microsec / 1_000_000.0)} s"

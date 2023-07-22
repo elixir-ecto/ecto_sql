@@ -4,7 +4,7 @@ defmodule Mix.EctoSQL do
   @doc """
   Ensures the given repository's migrations paths exists on the file system.
   """
-  @spec ensure_migrations_paths(Ecto.Repo.t, Keyword.t) :: [String.t]
+  @spec ensure_migrations_paths(Ecto.Repo.t(), Keyword.t()) :: [String.t()]
   def ensure_migrations_paths(repo, opts) do
     paths = Keyword.get_values(opts, :migrations_path)
     paths = if paths == [], do: [Path.join(source_repo_priv(repo), "migrations")], else: paths
@@ -19,9 +19,9 @@ defmodule Mix.EctoSQL do
   end
 
   defp raise_missing_migrations(path, repo) do
-    Mix.raise """
-    Could not find migrations directory #{inspect path}
-    for repo #{inspect repo}.
+    Mix.raise("""
+    Could not find migrations directory #{inspect(path)}
+    for repo #{inspect(repo)}.
 
     This may be because you are in a new project and the
     migration directory has not been created yet. Creating an
@@ -30,7 +30,7 @@ defmodule Mix.EctoSQL do
     If you expected existing migrations to be found, please
     make sure your repository has been properly configured
     and the configured path exists.
-    """
+    """)
   end
 
   @doc """

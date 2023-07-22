@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
   @impl true
   def run(args, migrator \\ &Ecto.Migrator.run/4) do
     repos = parse_repo(args)
-    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
+    {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
     opts =
       if opts[:to] || opts[:to_exclusive] || opts[:step] || opts[:all],
@@ -119,7 +119,7 @@ defmodule Mix.Tasks.Ecto.Migrate do
 
     opts =
       if opts[:quiet],
-        do: Keyword.merge(opts, [log: false, log_migrations_sql: false, log_migrator_sql: false]),
+        do: Keyword.merge(opts, log: false, log_migrations_sql: false, log_migrator_sql: false),
         else: opts
 
     # Start ecto_sql explicitly before as we don't need
@@ -139,8 +139,11 @@ defmodule Mix.Tasks.Ecto.Migrate do
         end
 
       case Ecto.Migrator.with_repo(repo, fun, [mode: :temporary] ++ opts) do
-        {:ok, _migrated, _apps} -> :ok
-        {:error, error} -> Mix.raise "Could not start repo #{inspect repo}, error: #{inspect error}"
+        {:ok, _migrated, _apps} ->
+          :ok
+
+        {:error, error} ->
+          Mix.raise("Could not start repo #{inspect(repo)}, error: #{inspect(error)}")
       end
     end
 

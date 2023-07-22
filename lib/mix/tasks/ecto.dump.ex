@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Ecto.Dump do
 
   @impl true
   def run(args) do
-    {opts, _} = OptionParser.parse! args, strict: @switches, aliases: @aliases
+    {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
     dump_prefixes =
       case Keyword.get_values(opts, :prefix) do
@@ -68,14 +68,19 @@ defmodule Mix.Tasks.Ecto.Dump do
         [] -> nil
       end
 
-    opts = @default_opts
-    |> Keyword.merge(opts)
-    |> Keyword.put(:dump_prefixes, dump_prefixes)
+    opts =
+      @default_opts
+      |> Keyword.merge(opts)
+      |> Keyword.put(:dump_prefixes, dump_prefixes)
 
-    Enum.each parse_repo(args), fn repo ->
+    Enum.each(parse_repo(args), fn repo ->
       ensure_repo(repo, args)
-      ensure_implements(repo.__adapter__(), Ecto.Adapter.Structure,
-                                            "dump structure for #{inspect repo}")
+
+      ensure_implements(
+        repo.__adapter__(),
+        Ecto.Adapter.Structure,
+        "dump structure for #{inspect(repo)}"
+      )
 
       migration_repo = repo.config()[:migration_repo] || repo
 
@@ -86,16 +91,22 @@ defmodule Mix.Tasks.Ecto.Dump do
         case repo.__adapter__().structure_dump(source_repo_priv(repo), config) do
           {:ok, location} ->
             unless opts[:quiet] do
-              elapsed = System.convert_time_unit(System.system_time() - start_time, :native, :microsecond)
-              Mix.shell().info "The structure for #{inspect repo} has been dumped to #{location} in #{format_time(elapsed)}"
+              elapsed =
+                System.convert_time_unit(System.system_time() - start_time, :native, :microsecond)
+
+              Mix.shell().info(
+                "The structure for #{inspect(repo)} has been dumped to #{location} in #{format_time(elapsed)}"
+              )
             end
+
           {:error, term} when is_binary(term) ->
-            Mix.raise "The structure for #{inspect repo} couldn't be dumped: #{term}"
+            Mix.raise("The structure for #{inspect(repo)} couldn't be dumped: #{term}")
+
           {:error, term} ->
-            Mix.raise "The structure for #{inspect repo} couldn't be dumped: #{inspect term}"
+            Mix.raise("The structure for #{inspect(repo)} couldn't be dumped: #{inspect(term)}")
         end
       end
-    end
+    end)
   end
 
   defp format_time(microsec) when microsec < 1_000, do: "#{microsec} μs"

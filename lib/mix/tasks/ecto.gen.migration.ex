@@ -63,35 +63,44 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   def run(args) do
     repos = parse_repo(args)
 
-    Enum.map repos, fn repo ->
+    Enum.map(repos, fn repo ->
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
         {opts, [name]} ->
           ensure_repo(repo, args)
           path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
           base_name = "#{underscore(name)}.exs"
           file = Path.join(path, "#{timestamp()}_#{base_name}")
-          unless File.dir?(path), do: create_directory path
+          unless File.dir?(path), do: create_directory(path)
 
           fuzzy_path = Path.join(path, "*_#{base_name}")
+
           if Path.wildcard(fuzzy_path) != [] do
-            Mix.raise "migration can't be created, there is already a migration file with name #{name}."
+            Mix.raise(
+              "migration can't be created, there is already a migration file with name #{name}."
+            )
           end
 
           # The :change option may be used by other tasks but not the CLI
-          assigns = [mod: Module.concat([repo, Migrations, camelize(name)]), change: opts[:change]]
-          create_file file, migration_template(assigns)
+          assigns = [
+            mod: Module.concat([repo, Migrations, camelize(name)]),
+            change: opts[:change]
+          ]
+
+          create_file(file, migration_template(assigns))
 
           if open?(file) and Mix.shell().yes?("Do you want to run this migration?") do
-            Mix.Task.run "ecto.migrate", ["-r", inspect(repo), "--migrations-path", path]
+            Mix.Task.run("ecto.migrate", ["-r", inspect(repo), "--migrations-path", path])
           end
 
           file
 
         {_, _} ->
-          Mix.raise "expected ecto.gen.migration to receive the migration file name, " <>
-                    "got: #{inspect Enum.join(args, " ")}"
+          Mix.raise(
+            "expected ecto.gen.migration to receive the migration file name, " <>
+              "got: #{inspect(Enum.join(args, " "))}"
+          )
       end
-    end
+    end)
   end
 
   defp timestamp do
@@ -105,11 +114,11 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   defp migration_module do
     case Application.get_env(:ecto_sql, :migration_module, Ecto.Migration) do
       migration_module when is_atom(migration_module) -> migration_module
-      other -> Mix.raise "Expected :migration_module to be a module, got: #{inspect(other)}"
+      other -> Mix.raise("Expected :migration_module to be a module, got: #{inspect(other)}")
     end
   end
 
-  embed_template :migration, """
+  embed_template(:migration, """
   defmodule <%= inspect @mod %> do
     use <%= inspect migration_module() %>
 
@@ -117,5 +126,5 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
   <%= @change %>
     end
   end
-  """
+  """)
 end
