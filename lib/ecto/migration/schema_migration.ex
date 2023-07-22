@@ -72,7 +72,8 @@ defmodule Ecto.Migration.SchemaMigration do
   defp default_opts(opts) do
     Keyword.merge(
       @default_opts,
-      [prefix: opts[:prefix], log: Keyword.get(opts, :log_migrator_sql, false)]
+      prefix: opts[:prefix],
+      log: Keyword.get(opts, :log_migrator_sql, false)
     )
   end
 end

@@ -32,9 +32,12 @@ defmodule Ecto.Adapter.Migration do
   @typedoc "All commands allowed within the block passed to `table/2`"
   @type table_subcommand ::
           {:add, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(), Keyword.t()}
-          | {:add_if_not_exists, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(), Keyword.t()}
-          | {:modify, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(), Keyword.t()}
-          | {:remove, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(), Keyword.t()}
+          | {:add_if_not_exists, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(),
+             Keyword.t()}
+          | {:modify, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(),
+             Keyword.t()}
+          | {:remove, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(),
+             Keyword.t()}
           | {:remove, field :: atom}
           | {:remove_if_exists, type :: Ecto.Type.t() | Reference.t() | binary()}
 
@@ -55,7 +58,7 @@ defmodule Ecto.Adapter.Migration do
   Executes migration commands.
   """
   @callback execute_ddl(adapter_meta, command, options :: Keyword.t()) ::
-              {:ok, [{Logger.level, Logger.message, Logger.metadata}]}
+              {:ok, [{Logger.level(), Logger.message(), Logger.metadata()}]}
 
   @doc """
   Locks the migrations table and emits the locked versions for callback execution.
