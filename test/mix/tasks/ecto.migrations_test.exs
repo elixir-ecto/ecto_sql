@@ -14,12 +14,14 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
   defmodule Repo do
     def start_link(_) do
       Process.put(:started, true)
-      Task.start_link fn ->
+
+      Task.start_link(fn ->
         Process.flag(:trap_exit, true)
+
         receive do
           {:EXIT, _, :normal} -> :ok
         end
-      end
+      end)
     end
 
     def stop() do
@@ -40,50 +42,51 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
 
     migrations = fn _, _, _ ->
       [
-        {:up,   0,              "up_migration_0"},
-        {:up,   20160000000001, "up_migration_1"},
-        {:up,   20160000000002, "up_migration_2"},
-        {:up,   20160000000003, "up_migration_3"},
-        {:down, 20160000000004, "down_migration_1"},
-        {:down, 20160000000005, "down_migration_2"}
+        {:up, 0, "up_migration_0"},
+        {:up, 20_160_000_000_001, "up_migration_1"},
+        {:up, 20_160_000_000_002, "up_migration_2"},
+        {:up, 20_160_000_000_003, "up_migration_3"},
+        {:down, 20_160_000_000_004, "down_migration_1"},
+        {:down, 20_160_000_000_005, "down_migration_2"}
       ]
     end
 
     expected_output = """
 
-      Repo: Mix.Tasks.Ecto.MigrationsTest.Repo
+    Repo: Mix.Tasks.Ecto.MigrationsTest.Repo
 
-        Status    Migration ID    Migration Name
-      --------------------------------------------------
-        up        0               up_migration_0
-        up        20160000000001  up_migration_1
-        up        20160000000002  up_migration_2
-        up        20160000000003  up_migration_3
-        down      20160000000004  down_migration_1
-        down      20160000000005  down_migration_2
-      """
-    run [], migrations, fn i -> assert(i == expected_output) end
+      Status    Migration ID    Migration Name
+    --------------------------------------------------
+      up        0               up_migration_0
+      up        20160000000001  up_migration_1
+      up        20160000000002  up_migration_2
+      up        20160000000003  up_migration_3
+      down      20160000000004  down_migration_1
+      down      20160000000005  down_migration_2
+    """
+
+    run([], migrations, fn i -> assert(i == expected_output) end)
   end
 
   test "migrations displays the up and down status for any given repo" do
     migrations = fn _, _, _ ->
       [
-        {:up,   20160000000001, "up_migration_1"},
-        {:down, 20160000000002, "down_migration_1"}
+        {:up, 20_160_000_000_001, "up_migration_1"},
+        {:down, 20_160_000_000_002, "down_migration_1"}
       ]
     end
 
     expected_output = """
 
-      Repo: Mix.Tasks.Ecto.MigrationsTest.Repo
+    Repo: Mix.Tasks.Ecto.MigrationsTest.Repo
 
-        Status    Migration ID    Migration Name
-      --------------------------------------------------
-        up        20160000000001  up_migration_1
-        down      20160000000002  down_migration_1
-      """
+      Status    Migration ID    Migration Name
+    --------------------------------------------------
+      up        20160000000001  up_migration_1
+      down      20160000000002  down_migration_1
+    """
 
-    run ["-r", to_string(Repo)], migrations, fn i -> assert(i == expected_output) end
+    run(["-r", to_string(Repo)], migrations, fn i -> assert(i == expected_output) end)
   end
 
   test "does not run from _build" do
@@ -95,7 +98,7 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
       []
     end
 
-    run [], migrations, fn _ -> :ok end
+    run([], migrations, fn _ -> :ok end)
   end
 
   test "uses custom paths" do
@@ -104,8 +107,10 @@ defmodule Mix.Tasks.Ecto.MigrationsTest do
     File.mkdir_p!(path1)
     File.mkdir_p!(path2)
 
-    run ["-r", to_string(Repo), "--migrations-path", path1, "--migrations-path", path2],
-        fn Repo, [^path1, ^path2], _opts -> [] end,
-        fn _ -> :ok end
+    run(
+      ["-r", to_string(Repo), "--migrations-path", path1, "--migrations-path", path2],
+      fn Repo, [^path1, ^path2], _opts -> [] end,
+      fn _ -> :ok end
+    )
   end
 end

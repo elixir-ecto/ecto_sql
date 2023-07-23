@@ -23,49 +23,54 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
   end
 
   test "generates a new migration" do
-    [path] = run ["-r", to_string(Repo), "my_migration"]
+    [path] = run(["-r", to_string(Repo), "my_migration"])
     assert Path.dirname(path) == @migrations_path
     assert Path.basename(path) =~ ~r/^\d{14}_my_migration\.exs$/
-    assert_file path, fn file ->
+
+    assert_file(path, fn file ->
       assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.MyMigration do"
       assert file =~ "use Ecto.Migration"
       assert file =~ "def change do"
-    end
+    end)
   end
 
   test "generates a new migration with Custom Migration Module" do
     Application.put_env(:ecto_sql, :migration_module, MyCustomApp.MigrationModule)
-    [path] = run ["-r", to_string(Repo), "my_custom_migration"]
+    [path] = run(["-r", to_string(Repo), "my_custom_migration"])
     Application.delete_env(:ecto_sql, :migration_module)
     assert Path.dirname(path) == @migrations_path
     assert Path.basename(path) =~ ~r/^\d{14}_my_custom_migration\.exs$/
-    assert_file path, fn file ->
-      assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.MyCustomMigration do"
+
+    assert_file(path, fn file ->
+      assert file =~
+               "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.MyCustomMigration do"
+
       assert file =~ "use MyCustomApp.MigrationModule"
       assert file =~ "def change do"
-    end
+    end)
   end
 
   test "underscores the filename when generating a migration" do
-    run ["-r", to_string(Repo), "MyMigration"]
+    run(["-r", to_string(Repo), "MyMigration"])
     assert [name] = File.ls!(@migrations_path)
     assert name =~ ~r/^\d{14}_my_migration\.exs$/
   end
 
   test "custom migrations_path" do
     dir = Path.join([unquote(tmp_path), "custom_migrations"])
-    [path] = run ["-r", to_string(Repo), "--migrations-path", dir, "custom_path"]
+    [path] = run(["-r", to_string(Repo), "--migrations-path", dir, "custom_path"])
     assert Path.dirname(path) == dir
   end
 
   test "raises when existing migration exists" do
-    run ["-r", to_string(Repo), "my_migration"]
+    run(["-r", to_string(Repo), "my_migration"])
+
     assert_raise Mix.Error, ~r"migration can't be created", fn ->
-      run ["-r", to_string(Repo), "my_migration"]
+      run(["-r", to_string(Repo), "my_migration"])
     end
   end
 
   test "raises when missing file" do
-    assert_raise Mix.Error, fn -> run ["-r", to_string(Repo)] end
+    assert_raise Mix.Error, fn -> run(["-r", to_string(Repo)]) end
   end
 end

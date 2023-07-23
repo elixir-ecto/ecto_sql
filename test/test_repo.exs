@@ -29,17 +29,17 @@ defmodule EctoSQL.TestAdapter do
   def ensure_all_started(_, _), do: {:ok, []}
 
   def init(_opts) do
-    child_spec = Supervisor.child_spec {Task, fn -> :timer.sleep(:infinity) end}, []
+    child_spec = Supervisor.child_spec({Task, fn -> :timer.sleep(:infinity) end}, [])
     {:ok, child_spec, %{meta: :meta}}
   end
 
-  def checkout(_, _, _), do: raise "not implemented"
-  def checked_out?(_), do: raise "not implemented"
-  def delete(_, _, _, _), do: raise "not implemented"
-  def insert_all(_, _, _, _, _, _, _, _), do: raise "not implemented"
-  def rollback(_, _), do: raise "not implemented"
-  def stream(_, _, _, _, _), do: raise "not implemented"
-  def update(_, _, _, _, _, _), do: raise "not implemented"
+  def checkout(_, _, _), do: raise("not implemented")
+  def checked_out?(_), do: raise("not implemented")
+  def delete(_, _, _, _), do: raise("not implemented")
+  def insert_all(_, _, _, _, _, _, _, _), do: raise("not implemented")
+  def rollback(_, _), do: raise("not implemented")
+  def stream(_, _, _, _, _), do: raise("not implemented")
+  def update(_, _, _, _, _, _), do: raise("not implemented")
 
   ## Types
 
@@ -53,13 +53,16 @@ defmodule EctoSQL.TestAdapter do
 
   # Migration emulation
 
-  def execute(_, _, {:nocache, {:all, %{from: %{source: {"schema_migrations", _}}}}}, _, opts) do
+  def execute(_, _, {:nocache, {:all, query}}, _, opts) do
+    %{from: %{source: {"schema_migrations", _}}} = query
     true = opts[:schema_migration]
     versions = MigrationsAgent.get()
     {length(versions), Enum.map(versions, &[elem(&1, 0)])}
   end
 
-  def execute(_, _meta, {:nocache, {:delete_all, %{from: %{source: {"schema_migrations", _}}}}}, [version], opts) do
+  def execute(_, _, {:nocache, {:delete_all, query}}, params, opts) do
+    %{from: %{source: {"schema_migrations", _}}} = query
+    [version] = params
     true = opts[:schema_migration]
     MigrationsAgent.down(version, opts)
     {1, nil}
@@ -76,7 +79,7 @@ defmodule EctoSQL.TestAdapter do
 
   def transaction(mod, _opts, fun) do
     Process.put(:in_transaction?, true)
-    send test_process(), {:transaction, mod, fun}
+    send(test_process(), {:transaction, mod, fun})
     {:ok, fun.()}
   after
     Process.put(:in_transaction?, false)
@@ -85,7 +88,7 @@ defmodule EctoSQL.TestAdapter do
   ## Migrations
 
   def lock_for_migrations(mod, opts, fun) do
-    send test_process(), {:lock_for_migrations, mod, fun, opts}
+    send(test_process(), {:lock_for_migrations, mod, fun, opts})
     fun.()
   end
 
