@@ -124,8 +124,9 @@ defmodule Mix.Tasks.Ecto.Rollback do
         do: Keyword.merge(opts, log: false, log_migrations_sql: false, log_migrator_sql: false),
         else: opts
 
-    log_level = String.to_existing_atom(Keyword.get(opts, :log_level, "debug"))
-    Logger.configure(level: log_level)
+    if log_level = opts[:log_level] do
+      Logger.configure(level: String.to_existing_atom(log_level))
+    end
 
     # Start ecto_sql explicitly before as we don't need
     # to restart those apps if migrated.
