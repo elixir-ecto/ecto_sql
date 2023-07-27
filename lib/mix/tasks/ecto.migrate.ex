@@ -18,7 +18,6 @@ defmodule Mix.Tasks.Ecto.Migrate do
     quiet: :boolean,
     prefix: :string,
     pool_size: :integer,
-    log_sql: :boolean,
     log_migrations_sql: :boolean,
     log_migrator_sql: :boolean,
     strict_version_order: :boolean,

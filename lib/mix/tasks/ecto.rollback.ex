@@ -18,7 +18,6 @@ defmodule Mix.Tasks.Ecto.Rollback do
     quiet: :boolean,
     prefix: :string,
     pool_size: :integer,
-    log_sql: :boolean,
     log_migrations_sql: :boolean,
     log_migrator_sql: :boolean,
     repo: [:keep, :string],
