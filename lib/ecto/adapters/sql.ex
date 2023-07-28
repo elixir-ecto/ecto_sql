@@ -96,6 +96,12 @@ defmodule Ecto.Adapters.SQL do
 
   require Logger
 
+  @type query_result :: %{
+          :rows => nil | [[term] | binary],
+          :num_rows => non_neg_integer,
+          optional(atom) => any
+        }
+
   @doc false
   defmacro __using__(opts) do
     quote do
@@ -135,14 +141,14 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @impl true
-      def loaders({:map, _}, type),   do: [&Ecto.Type.embedded_load(type, &1, :json)]
-      def loaders(:binary_id, type),  do: [Ecto.UUID, type]
-      def loaders(_, type),           do: [type]
+      def loaders({:map, _}, type), do: [&Ecto.Type.embedded_load(type, &1, :json)]
+      def loaders(:binary_id, type), do: [Ecto.UUID, type]
+      def loaders(_, type), do: [type]
 
       @impl true
-      def dumpers({:map, _}, type),   do: [&Ecto.Type.embedded_dump(type, &1, :json)]
-      def dumpers(:binary_id, type),  do: [type, Ecto.UUID]
-      def dumpers(_, type),           do: [type]
+      def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
+      def dumpers(:binary_id, type), do: [type, Ecto.UUID]
+      def dumpers(_, type), do: [type]
 
       ## Query
 
@@ -152,11 +158,13 @@ defmodule Ecto.Adapters.SQL do
       end
 
       def prepare(:update_all, query) do
-        {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.update_all(query))}}
+        {:cache,
+         {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.update_all(query))}}
       end
 
       def prepare(:delete_all, query) do
-        {:cache, {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.delete_all(query))}}
+        {:cache,
+         {System.unique_integer([:positive]), IO.iodata_to_binary(@conn.delete_all(query))}}
       end
 
       @impl true
@@ -172,36 +180,94 @@ defmodule Ecto.Adapters.SQL do
       ## Schema
 
       @impl true
-      def autogenerate(:id),        do: nil
-      def autogenerate(:embed_id),  do: Ecto.UUID.generate()
+      def autogenerate(:id), do: nil
+      def autogenerate(:embed_id), do: Ecto.UUID.generate()
       def autogenerate(:binary_id), do: Ecto.UUID.bingenerate()
 
       @impl true
-      def insert_all(adapter_meta, schema_meta, header, rows, on_conflict, returning, placeholders, opts) do
-        Ecto.Adapters.SQL.insert_all(adapter_meta, schema_meta, @conn, header, rows, on_conflict, returning, placeholders, opts)
+      def insert_all(
+            adapter_meta,
+            schema_meta,
+            header,
+            rows,
+            on_conflict,
+            returning,
+            placeholders,
+            opts
+          ) do
+        Ecto.Adapters.SQL.insert_all(
+          adapter_meta,
+          schema_meta,
+          @conn,
+          header,
+          rows,
+          on_conflict,
+          returning,
+          placeholders,
+          opts
+        )
       end
 
       @impl true
-      def insert(adapter_meta, %{source: source, prefix: prefix}, params,
-                 {kind, conflict_params, _} = on_conflict, returning, opts) do
+      def insert(adapter_meta, schema_meta, params, on_conflict, returning, opts) do
+        %{source: source, prefix: prefix} = schema_meta
+        {kind, conflict_params, _} = on_conflict
         {fields, values} = :lists.unzip(params)
         sql = @conn.insert(prefix, source, fields, [fields], on_conflict, returning, [])
-        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :insert, source, [], values ++ conflict_params, kind, returning, opts)
+
+        Ecto.Adapters.SQL.struct(
+          adapter_meta,
+          @conn,
+          sql,
+          :insert,
+          source,
+          [],
+          values ++ conflict_params,
+          kind,
+          returning,
+          opts
+        )
       end
 
       @impl true
-      def update(adapter_meta, %{source: source, prefix: prefix}, fields, params, returning, opts) do
+      def update(adapter_meta, schema_meta, fields, params, returning, opts) do
+        %{source: source, prefix: prefix} = schema_meta
         {fields, field_values} = :lists.unzip(fields)
         filter_values = Keyword.values(params)
         sql = @conn.update(prefix, source, fields, params, returning)
-        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :update, source, params, field_values ++ filter_values, :raise, returning, opts)
+
+        Ecto.Adapters.SQL.struct(
+          adapter_meta,
+          @conn,
+          sql,
+          :update,
+          source,
+          params,
+          field_values ++ filter_values,
+          :raise,
+          returning,
+          opts
+        )
       end
 
       @impl true
-      def delete(adapter_meta, %{source: source, prefix: prefix}, params, opts) do
+      def delete(adapter_meta, schema_meta, params, opts) do
+        %{source: source, prefix: prefix} = schema_meta
         filter_values = Keyword.values(params)
         sql = @conn.delete(prefix, source, params, [])
-        Ecto.Adapters.SQL.struct(adapter_meta, @conn, sql, :delete, source, params, filter_values, :raise, [], opts)
+
+        Ecto.Adapters.SQL.struct(
+          adapter_meta,
+          @conn,
+          sql,
+          :delete,
+          source,
+          params,
+          filter_values,
+          :raise,
+          [],
+          opts
+        )
       end
 
       ## Transaction
@@ -228,9 +294,19 @@ defmodule Ecto.Adapters.SQL do
         Ecto.Adapters.SQL.execute_ddl(meta, @conn, definition, opts)
       end
 
-      defoverridable [prepare: 2, execute: 5, insert: 6, update: 6, delete: 4, insert_all: 8,
-                      execute_ddl: 3, loaders: 2, dumpers: 2, autogenerate: 1, checkout: 3,
-                      ensure_all_started: 2, __before_compile__: 1]
+      defoverridable prepare: 2,
+                     execute: 5,
+                     insert: 6,
+                     update: 6,
+                     delete: 4,
+                     insert_all: 8,
+                     execute_ddl: 3,
+                     loaders: 2,
+                     dumpers: 2,
+                     autogenerate: 1,
+                     checkout: 3,
+                     ensure_all_started: 2,
+                     __before_compile__: 1
     end
   end
 
@@ -258,8 +334,8 @@ defmodule Ecto.Adapters.SQL do
       {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
 
   """
-  @spec to_sql(:all | :update_all | :delete_all, Ecto.Repo.t, Ecto.Queryable.t) ::
-               {String.t, [term]}
+  @spec to_sql(:all | :update_all | :delete_all, Ecto.Repo.t(), Ecto.Queryable.t()) ::
+          {String.t(), [term]}
   def to_sql(kind, repo, queryable) do
     case Ecto.Adapter.Queryable.prepare_query(kind, repo, queryable) do
       {{:cached, _update, _reset, {_id, cached}}, params} ->
@@ -334,9 +410,12 @@ defmodule Ecto.Adapters.SQL do
     * _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
 
   """
-  @spec explain(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta,
-                :all | :update_all | :delete_all,
-                Ecto.Queryable.t, opts :: Keyword.t) :: String.t | Exception.t | list(map)
+  @spec explain(
+          pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          :all | :update_all | :delete_all,
+          Ecto.Queryable.t(),
+          opts :: Keyword.t()
+        ) :: String.t() | Exception.t() | list(map)
   def explain(repo, operation, queryable, opts \\ [])
 
   def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
@@ -349,15 +428,15 @@ defmodule Ecto.Adapters.SQL do
       {prepared, prepared_params} = to_sql(operation, repo, queryable)
       sql_call(adapter_meta, :explain_query, [prepared], prepared_params, opts)
     end)
-     |> Ecto.Multi.run(:rollback, fn _, _ ->
-       {:error, :forced_rollback}
-     end)
-     |> repo.transaction(opts)
-     |> case do
-       {:error, :rollback, :forced_rollback, %{explain: result}} -> result
-       {:error, :explain, error, _} -> raise error
-       _ -> raise "unable to execute explain"
-     end
+    |> Ecto.Multi.run(:rollback, fn _, _ ->
+      {:error, :forced_rollback}
+    end)
+    |> repo.transaction(opts)
+    |> case do
+      {:error, :rollback, :forced_rollback, %{explain: result}} -> result
+      {:error, :explain, error, _} -> raise error
+      _ -> raise "unable to execute explain"
+    end
   end
 
   @doc """
@@ -381,7 +460,11 @@ defmodule Ecto.Adapters.SQL do
       iex> MyRepo.disconnect_all(60_000)
       :ok
   """
-  @spec disconnect_all(pid | Ecto.Repo.t | Ecto.Adapter.adapter_meta, non_neg_integer, opts :: Keyword.t()) :: :ok
+  @spec disconnect_all(
+          pid | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          non_neg_integer,
+          opts :: Keyword.t()
+        ) :: :ok
   def disconnect_all(repo, interval, opts \\ [])
 
   def disconnect_all(repo, interval, opts) when is_atom(repo) or is_pid(repo) do
@@ -420,7 +503,7 @@ defmodule Ecto.Adapters.SQL do
       [%{rows: [[42]], num_rows: 1}]
 
   """
-  @spec stream(Ecto.Repo.t, String.t, [term], Keyword.t) :: Enum.t
+  @spec stream(Ecto.Repo.t(), String.t(), [term], Keyword.t()) :: Enum.t()
   def stream(repo, sql, params \\ [], opts \\ []) do
     repo
     |> Ecto.Adapter.lookup_meta()
@@ -430,14 +513,12 @@ defmodule Ecto.Adapters.SQL do
   @doc """
   Same as `query/4` but raises on invalid queries.
   """
-  @spec query!(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
-               %{:rows => nil | [[term] | binary],
-                 :num_rows => non_neg_integer,
-                 optional(atom) => any}
+  @spec query!(pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(), iodata, [term], Keyword.t()) ::
+          query_result
   def query!(repo, sql, params \\ [], opts \\ []) do
     case query(repo, sql, params, opts) do
       {:ok, result} -> result
-      {:error, err} -> raise_sql_call_error err
+      {:error, err} -> raise_sql_call_error(err)
     end
   end
 
@@ -470,11 +551,8 @@ defmodule Ecto.Adapters.SQL do
       {:ok, %{rows: [[42]], num_rows: 1}}
 
   """
-  @spec query(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
-              {:ok, %{:rows => nil | [[term] | binary],
-                      :num_rows => non_neg_integer,
-                      optional(atom) => any}}
-              | {:error, Exception.t}
+  @spec query(pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(), iodata, [term], Keyword.t()) ::
+          {:ok, query_result} | {:error, Exception.t()}
   def query(repo, sql, params \\ [], opts \\ [])
 
   def query(repo, sql, params, opts) when is_atom(repo) or is_pid(repo) do
@@ -488,14 +566,12 @@ defmodule Ecto.Adapters.SQL do
   @doc """
   Same as `query_many/4` but raises on invalid queries.
   """
-  @spec query_many!(Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
-               [%{:rows => nil | [[term] | binary],
-                 :num_rows => non_neg_integer,
-                 optional(atom) => any}]
+  @spec query_many!(Ecto.Repo.t() | Ecto.Adapter.adapter_meta(), iodata, [term], Keyword.t()) ::
+          [query_result]
   def query_many!(repo, sql, params \\ [], opts \\ []) do
     case query_many(repo, sql, params, opts) do
       {:ok, result} -> result
-      {:error, err} -> raise_sql_call_error err
+      {:error, err} -> raise_sql_call_error(err)
     end
   end
 
@@ -528,11 +604,12 @@ defmodule Ecto.Adapters.SQL do
       {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
 
   """
-  @spec query_many(pid() | Ecto.Repo.t | Ecto.Adapter.adapter_meta, iodata, [term], Keyword.t) ::
-              {:ok, [%{:rows => nil | [[term] | binary],
-                      :num_rows => non_neg_integer,
-                      optional(atom) => any}]}
-              | {:error, Exception.t}
+  @spec query_many(
+          pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          iodata,
+          [term],
+          Keyword.t()
+        ) :: {:ok, [query_result]} | {:error, Exception.t()}
   def query_many(repo, sql, params \\ [], opts \\ [])
 
   def query_many(repo, sql, params, opts) when is_atom(repo) or is_pid(repo) do
@@ -566,7 +643,7 @@ defmodule Ecto.Adapters.SQL do
   Returns `true` if the `table` exists in the `repo`, otherwise `false`.
   The table is checked against the current database/schema in the connection.
   """
-  @spec table_exists?(Ecto.Repo.t, table :: String.t, opts :: Keyword.t) :: boolean
+  @spec table_exists?(Ecto.Repo.t(), table :: String.t(), opts :: Keyword.t()) :: boolean
   def table_exists?(repo, table, opts \\ []) when is_atom(repo) do
     %{sql: sql} = adapter_meta = Ecto.Adapter.lookup_meta(repo)
     {query, params} = sql.table_exists_query(table)
@@ -584,13 +661,19 @@ defmodule Ecto.Adapters.SQL do
   #     | My Post Title |       1 | NULL   |
   #     +---------------+---------+--------+
   @doc false
-  @spec format_table(%{:columns => [String.t] | nil, :rows => [term()] | nil, optional(atom) => any()}) :: String.t
+  @spec format_table(%{
+          :columns => [String.t()] | nil,
+          :rows => [term()] | nil,
+          optional(atom) => any()
+        }) :: String.t()
   def format_table(result)
 
   def format_table(nil), do: ""
   def format_table(%{columns: nil}), do: ""
   def format_table(%{columns: []}), do: ""
-  def format_table(%{columns: columns, rows: nil}), do: format_table(%{columns: columns, rows: []})
+
+  def format_table(%{columns: columns, rows: nil}),
+    do: format_table(%{columns: columns, rows: []})
 
   def format_table(%{columns: columns, rows: rows}) do
     column_widths =
@@ -608,32 +691,36 @@ defmodule Ecto.Adapters.SQL do
       "\n",
       separator(column_widths),
       "\n",
-      Enum.map(rows, &cells(&1, column_widths) ++ ["\n"]),
+      Enum.map(rows, &(cells(&1, column_widths) ++ ["\n"])),
       separator(column_widths)
     ]
     |> IO.iodata_to_binary()
   end
 
-  defp binary_length(nil), do: 4 # NULL
+  # NULL
+  defp binary_length(nil), do: 4
   defp binary_length(binary) when is_binary(binary), do: String.length(binary)
   defp binary_length(other), do: other |> inspect() |> String.length()
 
   defp separator(widths) do
-    Enum.map(widths, & [?+, ?-, String.duplicate("-", &1), ?-]) ++ [?+]
+    Enum.map(widths, &[?+, ?-, String.duplicate("-", &1), ?-]) ++ [?+]
   end
 
   defp cells(items, widths) do
     cell =
       [items, widths]
       |> List.zip()
-      |> Enum.map(fn {item, width} -> [?|, " ", format_item(item, width) , " "] end)
+      |> Enum.map(fn {item, width} -> [?|, " ", format_item(item, width), " "] end)
 
     [cell | [?|]]
   end
 
   defp format_item(nil, width), do: String.pad_trailing("NULL", width)
   defp format_item(item, width) when is_binary(item), do: String.pad_trailing(item, width)
-  defp format_item(item, width) when is_number(item), do: item |> inspect() |> String.pad_leading(width)
+
+  defp format_item(item, width) when is_number(item),
+    do: item |> inspect() |> String.pad_leading(width)
+
   defp format_item(item, width), do: item |> inspect() |> String.pad_trailing(width)
 
   ## Callbacks
@@ -720,11 +807,11 @@ defmodule Ecto.Adapters.SQL do
   def init(connection, driver, config) do
     unless Code.ensure_loaded?(connection) do
       raise """
-      could not find #{inspect connection}.
+      could not find #{inspect(connection)}.
 
-      Please verify you have added #{inspect driver} as a dependency:
+      Please verify you have added #{inspect(driver)} as a dependency:
 
-          {#{inspect driver}, ">= 0.0.0"}
+          {#{inspect(driver)}, ">= 0.0.0"}
 
       And remember to recompile Ecto afterwards by cleaning the current build:
 
@@ -733,9 +820,20 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
-    valid_log_levels = [false, :debug, :info, :notice, :warning, :error, :critical, :alert, :emergency]
 
-    if log not in valid_log_levels do 
+    valid_log_levels = [
+      false,
+      :debug,
+      :info,
+      :notice,
+      :warning,
+      :error,
+      :critical,
+      :alert,
+      :emergency
+    ]
+
+    if log not in valid_log_levels do
       raise """
       invalid value for :log option in Repo config
 
@@ -793,7 +891,17 @@ defmodule Ecto.Adapters.SQL do
   ## Query
 
   @doc false
-  def insert_all(adapter_meta, schema_meta, conn, header, rows, on_conflict, returning, placeholders, opts) do
+  def insert_all(
+        adapter_meta,
+        schema_meta,
+        conn,
+        header,
+        rows,
+        on_conflict,
+        returning,
+        placeholders,
+        opts
+      ) do
     %{source: source, prefix: prefix} = schema_meta
     {_, conflict_params, _} = on_conflict
 
@@ -805,11 +913,12 @@ defmodule Ecto.Adapters.SQL do
 
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders)
 
-    opts = if is_nil(Keyword.get(opts, :cache_statement)) do
-      [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
-    else
-      opts
-    end
+    opts =
+      if is_nil(Keyword.get(opts, :cache_statement)) do
+        [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
+      else
+        opts
+      end
 
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
 
@@ -818,8 +927,8 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp unzip_inserts(header, rows) do
-    Enum.map_reduce rows, [], fn fields, params ->
-      Enum.map_reduce header, params, fn key, acc ->
+    Enum.map_reduce(rows, [], fn fields, params ->
+      Enum.map_reduce(header, params, fn key, acc ->
         case :lists.keyfind(key, 1, fields) do
           {^key, {%Ecto.Query{} = query, query_params}} ->
             {{query, length(query_params)}, Enum.reverse(query_params, acc)}
@@ -827,12 +936,14 @@ defmodule Ecto.Adapters.SQL do
           {^key, {:placeholder, placeholder_index}} ->
             {{:placeholder, Integer.to_string(placeholder_index)}, acc}
 
-          {^key, value} -> {key, [value | acc]}
+          {^key, value} ->
+            {key, [value | acc]}
 
-          false -> {nil, acc}
+          false ->
+            {nil, acc}
         end
-      end
-    end
+      end)
+    end)
   end
 
   @doc false
@@ -850,42 +961,59 @@ defmodule Ecto.Adapters.SQL do
       {:ok, query, result} ->
         maybe_update_cache(prepare, update, {id, query})
         result
+
       {:error, err} ->
-        raise_sql_call_error err
+        raise_sql_call_error(err)
     end
   end
 
-  defp execute!(:unnamed = prepare, adapter_meta, {:cached, _update, _reset, {id, cached}}, params, opts) do
+  defp execute!(
+         :unnamed = prepare,
+         adapter_meta,
+         {:cached, _update, _reset, {id, cached}},
+         params,
+         opts
+       ) do
     name = prepare_name(prepare, id)
     prepared = String.Chars.to_string(cached)
 
     case sql_call(adapter_meta, :prepare_execute, [name, prepared], params, opts) do
       {:ok, _query, result} ->
         result
+
       {:error, err} ->
-        raise_sql_call_error err
+        raise_sql_call_error(err)
     end
   end
 
-  defp execute!(:named = _prepare, adapter_meta, {:cached, update, reset, {id, cached}}, params, opts) do
+  defp execute!(
+         :named = _prepare,
+         adapter_meta,
+         {:cached, update, reset, {id, cached}},
+         params,
+         opts
+       ) do
     case sql_call(adapter_meta, :execute, [cached], params, opts) do
       {:ok, query, result} ->
         update.({id, query})
         result
+
       {:ok, result} ->
         result
+
       {:error, err} ->
-        raise_sql_call_error err
+        raise_sql_call_error(err)
+
       {:reset, err} ->
         reset.({id, String.Chars.to_string(cached)})
-        raise_sql_call_error err
+        raise_sql_call_error(err)
     end
   end
 
   defp execute!(_prepare, adapter_meta, {:nocache, {_id, prepared}}, params, opts) do
     case sql_call(adapter_meta, :query, [prepared], params, opts) do
       {:ok, res} -> res
-      {:error, err} -> raise_sql_call_error err
+      {:error, err} -> raise_sql_call_error(err)
     end
   end
 
@@ -915,7 +1043,7 @@ defmodule Ecto.Adapters.SQL do
   defp prepare_stream(adapter_meta, prepared, params, opts) do
     adapter_meta
     |> Ecto.Adapters.SQL.Stream.build(prepared, params, opts)
-    |> Stream.map(fn(%{num_rows: nrows, rows: rows}) -> {nrows, rows} end)
+    |> Stream.map(fn %{num_rows: nrows, rows: rows} -> {nrows, rows} end)
   end
 
   defp raise_sql_call_error(%DBConnection.OwnershipError{} = err) do
@@ -923,7 +1051,7 @@ defmodule Ecto.Adapters.SQL do
     raise %{err | message: message}
   end
 
-  defp raise_sql_call_error(err), do: raise err
+  defp raise_sql_call_error(err), do: raise(err)
 
   @doc false
   def reduce(adapter_meta, statement, params, opts, acc, fun) do
@@ -958,12 +1086,24 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
-  def struct(adapter_meta, conn, sql, operation, source, params, values, on_conflict, returning, opts) do
-    opts = if is_nil(Keyword.get(opts, :cache_statement)) do
-      [{:cache_statement, "ecto_#{operation}_#{source}_#{length(params)}"} | opts]
-    else
-      opts
-    end
+  def struct(
+        adapter_meta,
+        conn,
+        sql,
+        operation,
+        source,
+        params,
+        values,
+        on_conflict,
+        returning,
+        opts
+      ) do
+    opts =
+      if is_nil(Keyword.get(opts, :cache_statement)) do
+        [{:cache_statement, "ecto_#{operation}_#{source}_#{length(params)}"} | opts]
+      else
+        opts
+      end
 
     case query(adapter_meta, sql, values, opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->
@@ -977,11 +1117,14 @@ defmodule Ecto.Adapters.SQL do
 
       {:ok, %{num_rows: num_rows}} when num_rows > 1 ->
         raise Ecto.MultiplePrimaryKeyError,
-              source: source, params: params, count: num_rows, operation: operation
+          source: source,
+          params: params,
+          count: num_rows,
+          operation: operation
 
       {:error, err} ->
         case conn.to_constraints(err, source: source) do
-          [] -> raise_sql_call_error err
+          [] -> raise_sql_call_error(err)
           constraints -> {:invalid, constraints}
         end
     end
@@ -1066,8 +1209,7 @@ defmodule Ecto.Adapters.SQL do
     stacktrace = Keyword.get(opts, :stacktrace)
     log_params = opts[:cast_params] || params
 
-    acc =
-      if idle_time, do: [idle_time: idle_time], else: []
+    acc = if idle_time, do: [idle_time: idle_time], else: []
 
     measurements =
       log_measurements(
@@ -1176,7 +1318,7 @@ defmodule Ecto.Adapters.SQL do
         "↳ ",
         Exception.format_mfa(module, function, arity),
         log_stacktrace_info(info),
-        IO.ANSI.reset(),
+        IO.ANSI.reset()
       ]
     else
       _ -> []
