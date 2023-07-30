@@ -1497,6 +1497,11 @@ defmodule Ecto.Adapters.PostgresTest do
     ~s|COMMENT ON COLUMN "foo"."posts"."updated_at" IS 'column comment 2'|]
   end
 
+  test "removing a column does not add a comment" do
+    alter = {:alter, table(:posts), [{:remove, :title, :string, [comment: "comment"]}]}
+    assert execute_ddl(alter) == [~s/ALTER TABLE "posts" DROP COLUMN "title"/]
+  end
+
   test "create table with references" do
     create = {:create, table(:posts),
               [{:add, :id, :serial, [primary_key: true]},
