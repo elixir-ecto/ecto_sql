@@ -1354,6 +1354,9 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp comments_for_columns(table_name, columns) do
       Enum.flat_map(columns, fn
+        {:remove, _column_name, _column_type, _opts}  ->
+          []
+
         {_operation, column_name, _column_type, opts} ->
           column_name = [table_name, ?. | quote_name(column_name)]
           comments_on("COLUMN", column_name, opts[:comment])
