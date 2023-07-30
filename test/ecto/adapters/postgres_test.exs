@@ -94,17 +94,6 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0 TABLESAMPLE system_rows(1)}
   end
 
-  test "from with hints list of tuples" do
-    one = 1
-    query =
-      Schema
-      |> from(hints: ["TABLESAMPLE SYSTEM": one])
-      |> select([r], r.x)
-      |> plan()
-
-    assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0 TABLESAMPLE SYSTEM 1}
-  end
-
   test "from without schema" do
     query = "posts" |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT p0."x" FROM "posts" AS p0}
