@@ -217,8 +217,8 @@ if Code.ensure_loaded?(Tds) do
             ?(,
             quote_names(header),
             ?),
-            returning |
-            insert_all(rows, counter_offset)
+            returning
+            | insert_all(rows, counter_offset)
           ]
         end
 
@@ -236,6 +236,7 @@ if Code.ensure_loaded?(Tds) do
     defp insert_all(%Ecto.Query{} = query, _counter) do
       [?\s, all(query)]
     end
+
     defp insert_all(rows, counter) do
       sql =
         intersperse_reduce(rows, ",", counter, fn row, counter ->
@@ -396,12 +397,18 @@ if Code.ensure_loaded?(Tds) do
         {:&, _, [idx]} ->
           case elem(sources, idx) do
             {nil, source, nil} ->
-              error!(query, "Tds adapter does not support selecting all fields from fragment #{source}. " <>
-                            "Please specify exactly which fields you want to select")
+              error!(
+                query,
+                "Tds adapter does not support selecting all fields from fragment #{source}. " <>
+                  "Please specify exactly which fields you want to select"
+              )
 
             {source, _, nil} ->
-              error!(query, "Tds adapter does not support selecting all fields from #{source} without a schema. " <>
-                            "Please specify a schema or specify exactly which fields you want in projection")
+              error!(
+                query,
+                "Tds adapter does not support selecting all fields from #{source} without a schema. " <>
+                  "Please specify a schema or specify exactly which fields you want in projection"
+              )
 
             {_, source, _} ->
               source
@@ -434,14 +441,20 @@ if Code.ensure_loaded?(Tds) do
 
     defp cte(%{with_ctes: _}, _), do: []
 
-    defp cte_expr({_name, %{materialized: materialized}, _cte}, _sources, query) when is_boolean(materialized) do
+    defp cte_expr({_name, %{materialized: materialized}, _cte}, _sources, query)
+         when is_boolean(materialized) do
       error!(query, "Tds adapter does not support materialized CTEs")
     end
 
     defp cte_expr({name, opts, cte}, sources, query) do
       operation_opt = Map.get(opts, :operation)
 
-      [quote_name(name), cte_header(cte, query), " AS ", cte_query(cte, sources, query, operation_opt)]
+      [
+        quote_name(name),
+        cte_header(cte, query),
+        " AS ",
+        cte_query(cte, sources, query, operation_opt)
+      ]
     end
 
     defp cte_header(%QueryExpr{}, query) do
@@ -536,7 +549,9 @@ if Code.ensure_loaded?(Tds) do
     defp join_qual(:cross, _), do: "CROSS JOIN "
     defp join_qual(:inner_lateral, _), do: "CROSS APPLY "
     defp join_qual(:left_lateral, _), do: "OUTER APPLY "
-    defp join_qual(qual, query), do: error!(query, "join qualifier #{inspect(qual)} is not supported in the Tds adapter")
+
+    defp join_qual(qual, query),
+      do: error!(query, "join qualifier #{inspect(qual)} is not supported in the Tds adapter")
 
     defp where(%Query{wheres: wheres} = query, sources) do
       boolean(" WHERE ", wheres, sources, query)
@@ -1166,12 +1181,14 @@ if Code.ensure_loaded?(Tds) do
     end
 
     def execute_ddl({:rename, %Index{} = current_index, new_name}) do
-      [[
-        "sp_rename ",
-        "N'#{current_index.table}.#{current_index.name}', ",
-        "N'#{new_name}', ",
-        "N'INDEX'"
-      ]]
+      [
+        [
+          "sp_rename ",
+          "N'#{current_index.table}.#{current_index.name}', ",
+          "N'#{new_name}', ",
+          "N'INDEX'"
+        ]
+      ]
     end
 
     def execute_ddl({command, %Index{}, :cascade}) when command in @drops,
@@ -1295,7 +1312,7 @@ if Code.ensure_loaded?(Tds) do
       end
     end
 
-    defp column_change(_statement_prefix, _table, {_command, _name, %Reference{validate: false}, _opts}) do
+    defp column_change(_, _, {_, _, %Reference{validate: false}, _}) do
       error!(nil, "validate: false on references is not supported in Tds")
     end
 
@@ -1528,9 +1545,11 @@ if Code.ensure_loaded?(Tds) do
     defp reference_column_type(type, opts), do: column_type(type, opts)
 
     defp reference_on_delete(:nilify_all), do: " ON DELETE SET NULL"
+
     defp reference_on_delete({:nilify, _columns}) do
       error!(nil, "Tds adapter does not support the `{:nilify, columns}` action for `:on_delete`")
     end
+
     defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
     defp reference_on_delete(:nothing), do: " ON DELETE NO ACTION"
     defp reference_on_delete(_), do: []
@@ -1560,7 +1579,10 @@ if Code.ensure_loaded?(Tds) do
 
     defp quote_name(name) when is_binary(name) do
       if String.contains?(name, ["[", "]"]) do
-        error!(nil, "bad literal/field/table name #{inspect(name)} ('[' and ']' are not permitted)")
+        error!(
+          nil,
+          "bad literal/field/table name #{inspect(name)} ('[' and ']' are not permitted)"
+        )
       end
 
       "[#{name}]"
@@ -1571,7 +1593,15 @@ if Code.ensure_loaded?(Tds) do
     defp quote_table(nil, name), do: quote_table(name)
 
     defp quote_table({server, db, schema}, name),
-      do: [quote_table(server), ".", quote_table(db), ".", quote_table(schema), ".", quote_table(name)]
+      do: [
+        quote_table(server),
+        ".",
+        quote_table(db),
+        ".",
+        quote_table(schema),
+        ".",
+        quote_table(name)
+      ]
 
     defp quote_table({db, schema}, name),
       do: [quote_table(db), ".", quote_table(schema), ".", quote_table(name)]
