@@ -84,6 +84,14 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert all(query) ==
              ~s{SELECT s0.[x] FROM [schema] AS s0 WITH (MAXDOP 1, OPTIMIZE FOR UNKNOWN)}
+
+    hint = "OPTIMIZE FOR UNKNOWN"
+
+    query =
+      Schema |> from(hints: ["MAXDOP 1", unsafe_fragment(^hint)]) |> select([r], r.x) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 WITH (MAXDOP 1, OPTIMIZE FOR UNKNOWN)}
   end
 
   test "from with schema prefix" do

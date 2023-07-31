@@ -494,7 +494,17 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp from(%{from: %{source: source, hints: hints}} = query, sources) do
       {from, name} = get_source(query, sources, 0, source)
-      [" FROM ", from, " AS ", name | Enum.map(hints, &[?\s | &1])]
+      [" FROM ", from, " AS ", name | hints(hints)]
+    end
+
+    defp hints([]), do: []
+
+    defp hints([{:unsafe_fragment, fragment} | tail]) do
+      [?\s, fragment | hints(tail)]
+    end
+
+    defp hints([hint | tail]) do
+      [?\s, hint | hints(tail)]
     end
 
     defp cte(%{with_ctes: %WithExpr{queries: [_ | _]}} = query, sources) do

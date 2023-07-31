@@ -71,7 +71,22 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "from with hints" do
+    # With string
+    query = Schema |> from(hints: "USE INDEX FOO") |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 USE INDEX FOO}
+
+    # With list of strings
     query = Schema |> from(hints: ["USE INDEX FOO", "USE INDEX BAR"]) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 USE INDEX FOO USE INDEX BAR}
+
+    # With unsafe fragment
+    hint = "USE INDEX BAR"
+    query = Schema |> from(hints: unsafe_fragment(^hint)) |> select([r], r.x) |> plan()
+    assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 USE INDEX BAR}
+
+    # With list of string and unsafe fragment
+    hint = "USE INDEX BAR"
+    query = Schema |> from(hints: ["USE INDEX FOO", unsafe_fragment(^hint)]) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 USE INDEX FOO USE INDEX BAR}
   end
 

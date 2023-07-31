@@ -638,7 +638,17 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    defp hints([_ | _] = hints), do: [" WITH (", Enum.intersperse(hints, ", "), ?)]
+    defp hints([_ | _] = hints) do
+      [
+        " WITH (",
+        Enum.map_intersperse(hints, ", ", fn
+          {:unsafe_fragment, fragment} -> fragment
+          hint -> hint
+        end),
+        ?)
+      ]
+    end
+
     defp hints([]), do: []
 
     defp lock(%{lock: nil}, _sources), do: []
