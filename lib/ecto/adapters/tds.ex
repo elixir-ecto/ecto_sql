@@ -288,7 +288,7 @@ defmodule Ecto.Adapters.Tds do
     {:ok, result} =
       transaction(meta, opts, fn ->
         query =
-          "sp_getapplock @Resource = 'ecto_#{inspect(repo)}', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1"
+          "exec sp_getapplock @Resource = 'ecto_#{inspect(repo)}', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1"
 
         Ecto.Adapters.SQL.query!(meta, query, [], opts)
         fun.()
