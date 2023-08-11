@@ -287,10 +287,10 @@ defmodule Ecto.Adapters.MyXQL do
                 "This may happen if you have trigger or other database conditions rejecting operations. " <>
                 "The emitted SQL was: #{sql}"
 
-      {:ok, %{num_rows: 1, last_insert_id: last_insert_id}} ->
-        {:ok, last_insert_id(key, last_insert_id)}
-
-      {:ok, %{num_rows: 2, last_insert_id: last_insert_id}} ->
+      # We were used to check if num_rows was 1 or 2 (in case of upserts)
+      # but MariaDB supports tables with System Versioning, and in those
+      # cases num_rows can be more than 2.
+      {:ok, %{last_insert_id: last_insert_id}} ->
         {:ok, last_insert_id(key, last_insert_id)}
 
       {:error, err} ->
