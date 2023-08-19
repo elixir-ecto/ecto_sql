@@ -11,6 +11,14 @@ defmodule Ecto.Integration.MyXQLTypeTest do
     end
   end
 
+  defmodule DecimalAsFloat do
+    use Ecto.Schema
+
+    schema "posts" do
+      field :cost, :float
+    end
+  end
+
   test "bit" do
     TestRepo.insert_all("bits", [[bit: <<1::1>>], [bit: <<0::1>>]])
 
@@ -27,5 +35,10 @@ defmodule Ecto.Integration.MyXQLTypeTest do
              true,
              false
            ]
+  end
+
+  test "decimal db column as float field" do
+    TestRepo.insert_all("posts", [%{cost: 1.0}, %{cost: 2.0}])
+    assert 3.0 == TestRepo.aggregate(DecimalAsFloat, :sum, :cost)
   end
 end

@@ -152,6 +152,7 @@ defmodule Ecto.Adapters.MyXQL do
   def loaders({:map, _}, type), do: [&json_decode/1, &Ecto.Type.embedded_load(type, &1, :json)]
   def loaders(:map, type), do: [&json_decode/1, type]
   def loaders(:float, type), do: [&float_decode/1, type]
+  def loaders({:aggregate, :float}, type), do: [&float_decode/1, type]
   def loaders(:boolean, type), do: [&bool_decode/1, type]
   def loaders(:binary_id, type), do: [Ecto.UUID, type]
   def loaders(_, type), do: [type]
