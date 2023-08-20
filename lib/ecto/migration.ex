@@ -13,13 +13,10 @@ defmodule Ecto.Migration do
   In order to manage migrations, Ecto creates a table called
   `schema_migrations` in the database, which stores all migrations
   that have already been executed. You can configure the name of
-  this table with the `:migration_source` configuration option.
+  this table with the `:migration_source` configuration option
+  and the name of the repository that manages it with `:migration_repo`.
 
-  You can configure a different database for the table that
-  manages your migrations by setting the `:migration_repo`
-  configuration option to a different repository.
-
-  Ecto also locks the `schema_migrations` table when running
+  Ecto locks the `schema_migrations` table when running
   migrations, guaranteeing two different servers cannot run the same
   migration at the same time.
 
@@ -88,6 +85,11 @@ defmodule Ecto.Migration do
   the proper timestamp and then we just fill in its contents:
 
       $ mix ecto.gen.migration add_weather_table
+
+  For the rest of this document, we will cover the migration APIs
+  provided by Ecto. For a in-depth discussion of migrations and how
+  to use them safely within your application and data, see the
+  [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/).
 
   ## Mix tasks
 
@@ -184,7 +186,7 @@ defmodule Ecto.Migration do
 
   ### Migrator configuration
 
-  These options configure how the underlying migration engine works:
+  These options configure where Ecto stores and how Ecto runs your migrations:
 
     * `:migration_source` - Version numbers of migrations will be saved in a
       table named `schema_migrations` by default. You can configure the name of
@@ -212,12 +214,12 @@ defmodule Ecto.Migration do
 
     * `:migration_cast_version_column` - Ecto uses a `version` column of type
       `bigint` for the underlying migrations table (usually `schema_migrations`). By
-      default, Ecto doesn't cast this to a different type when reading or writing to the database
-      when running migrations. However, some web frameworks store this column as a string.
-      For compatibility reasons, you can set this option to `true`, which makes Ecto
-      perform a `CAST(version AS int)`. This used to be the default behavior up to
-      Ecto 3.10, so if you are upgrading to 3.11+ and want to keep the old behavior,
-      set this option to `true`.
+      default, Ecto doesn't cast this to a different type when reading or writing to
+      the database when running migrations. However, some web frameworks store this
+      column as a string. For compatibility reasons, you can set this option to `true`,
+      which makes Ecto perform a `CAST(version AS int)`. This used to be the default
+      behavior up to Ecto 3.10, so if you are upgrading to 3.11+ and want to keep the
+      old behavior, set this option to `true`.
 
     * `:priv` - the priv directory for the repo with the location of important assets,
       such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to
@@ -230,9 +232,10 @@ defmodule Ecto.Migration do
 
   ### Migrations configuration
 
-  These options configure how each migration works. **It is generally discouraged
-  to change any of those configurations after your database is deployed to production,
-  as changing these options will retroactively change how all migrations work**.
+  These options configure the default values used by migrations. **It is generally
+  discouraged to change any of those configurations after your database is deployed
+  to production, as changing these options will retroactively change how all
+  migrations work**.
 
     * `:migration_primary_key` - By default, Ecto uses the `:id` column with type
       `:bigserial`, but you can configure it via:

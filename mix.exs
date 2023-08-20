@@ -188,6 +188,10 @@ defmodule EctoSQL.MixProject do
           Ecto.Adapters.Tds,
           Ecto.Adapters.Postgres
         ],
+        "TDS Types": [
+          Tds.Ecto.UUID,
+          Tds.Ecto.VarChar
+        ],
         "Adapter specification": [
           Ecto.Adapter.Migration,
           Ecto.Adapter.Structure,
