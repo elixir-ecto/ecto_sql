@@ -1,5 +1,28 @@
 # Changelog for v3.x
 
+## v3.11-dev
+
+### Enhancements
+
+  * [sql] Support fragment splicing
+  * [sql] Support data-modifying CTEs
+  * [mix ecto.migrate] Add `--log-level` to ecto.migrate
+  * [mix ecto.rollback] Add `--log-level` to ecto.rollback
+  * [tds] Include `exec` before stored procedure for TDS (for earlier SQLServer versions)
+
+## v3.10.2 (2023-08-21)
+
+### Enhancements
+
+  * [migrations] Handle `from: {reference, opts}` in FK migrations
+  * [mysql] Support MariaDB versioned tables
+
+### Bug fixes
+
+  * [migrations] Don't add comment to removed columns
+  * [migrations] Ensure module is loaded before checking for migration
+  * [mysql] Fix for casting boolean values in MySQL
+
 ## v3.10.1 (2023-04-11)
 
 ### Enhancements
