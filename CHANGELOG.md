@@ -1,12 +1,25 @@
 # Changelog for v3.x
 
-## v3.10.1 (2022-04-11)
+## v3.10.2 (2023-08-21)
+
+### Enhancements
+
+  * [migrations] Handle `from: {reference, opts}` in FK migrations
+  * [mysql] Support MariaDB versioned tables
+
+### Bug fixes
+
+  * [migrations] Don't add comment to removed columns
+  * [migrations] Ensure module is loaded before checking for migration
+  * [mysql] Fix for casting boolean values in MySQL
+
+## v3.10.1 (2023-04-11)
 
 ### Enhancements
 
   * [postgres] Allow Postgrex v0.17.x
 
-## v3.10.0 (2022-04-10)
+## v3.10.0 (2023-04-10)
 
 ### Enhancements
 
