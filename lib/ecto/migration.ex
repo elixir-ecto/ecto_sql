@@ -827,10 +827,10 @@ defmodule Ecto.Migration do
         end
       end
 
-  Alternately, you can put `@disable_migration_lock true` in your migration,
-  but would mean that in a multi-node setup, multiple nodes could be running
-  the migration at once, so it is discommended unless you only have one node
-  or have some other way of ensuring that only one node will run migrations.
+  Alternately, you can add `@disable_migration_lock true` to your migration file.
+  This would mean that different nodes in a multi-node setup could run the same
+  migration at once. It is recommended to isolate your migrations to a single node
+  when using concurrent index creation without an advisory lock.
 
   ## Index types
 
