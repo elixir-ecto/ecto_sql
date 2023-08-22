@@ -815,6 +815,8 @@ defmodule Ecto.Migration do
       # Config the Repo (PostgreSQL example)
       config MyApp.Repo, migration_lock: :pg_advisory_lock
 
+  and
+
       # Migrate with your concurrent operation
       defmodule MyRepo.Migrations.CreateIndexes do
         use Ecto.Migration
@@ -824,6 +826,10 @@ defmodule Ecto.Migration do
           create index("posts", [:slug], concurrently: true)
         end
       end
+
+  Alternately, you can put `@disable_migration_lock true` in your migration,
+  but would mean that in a multi-node setup, multiple nodes could be running
+  the migration at once, so it is generally discommended.
 
   ## Index types
 
