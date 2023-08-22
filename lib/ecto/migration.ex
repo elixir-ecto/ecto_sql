@@ -812,14 +812,12 @@ defmodule Ecto.Migration do
   utilizes advisory locks to faciliate running migrations one at a time even
   across multiple nodes. For example:
 
-      ## Config file
+  ### Config file (PostgreSQL)
 
-      # Config the Repo (PostgreSQL example)
       config MyApp.Repo, migration_lock: :pg_advisory_lock
 
-      ## Migration file
+  ### Migration file
 
-      # Migrate with your concurrent operation
       defmodule MyRepo.Migrations.CreateIndexes do
         use Ecto.Migration
         @disable_ddl_transaction true
