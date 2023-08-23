@@ -812,10 +812,12 @@ defmodule Ecto.Migration do
   utilizes advisory locks to faciliate running migrations one at a time even
   across multiple nodes. For example:
 
-      # Config the Repo (PostgreSQL example)
+  ### Config file (PostgreSQL)
+
       config MyApp.Repo, migration_lock: :pg_advisory_lock
 
-      # Migrate with your concurrent operation
+  ### Migration file
+
       defmodule MyRepo.Migrations.CreateIndexes do
         use Ecto.Migration
         @disable_ddl_transaction true
@@ -824,6 +826,11 @@ defmodule Ecto.Migration do
           create index("posts", [:slug], concurrently: true)
         end
       end
+
+  Alternately, you can add `@disable_migration_lock true` to your migration file.
+  This would mean that different nodes in a multi-node setup could run the same
+  migration at once. It is recommended to isolate your migrations to a single node
+  when using concurrent index creation without an advisory lock.
 
   ## Index types
 
