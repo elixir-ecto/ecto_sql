@@ -1184,6 +1184,67 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert query == ~s{DELETE FROM `schema` WHERE `x` IS NULL AND `y` = ?}
   end
 
+  # Values List
+
+  test "values list: all" do
+    uuid = Ecto.UUID.generate()
+    values = [%{bid: uuid, num: 1}, %{num: 2, bid: uuid}]
+    types = %{bid: Ecto.UUID, num: :integer}
+
+    query =
+      from(v1 in values(values, types),
+        join: v2 in values(values, types),
+        on: v1.bid == v2.bid,
+        select: v2,
+        where: v1.num == ^2
+      )
+      |> plan()
+      |> all()
+
+    assert query ==
+             ~s{SELECT v1.`bid`, v1.`num` } <>
+             ~s{FROM (VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v0 (`bid`,`num`) } <>
+             ~s{INNER JOIN (VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v1 (`bid`,`num`) ON v0.`bid` = v1.`bid` } <>
+             ~s{WHERE (v0.`num` = ?)}
+  end
+
+  test "values list: delete_all" do
+    uuid = Ecto.UUID.generate()
+    values = [%{bid: uuid, num: 1}, %{num: 2, bid: uuid}]
+    types = %{bid: Ecto.UUID, num: :integer}
+
+    query =
+      from(s in "schema", join: v in values(values, types), on: s.x == v.num, where: v.num == ^2)
+      |> plan(:delete_all)
+      |> delete_all()
+
+    assert query ==
+             ~s{DELETE s0.* FROM `schema` AS s0 } <>
+             ~s{INNER JOIN (VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v1 (`bid`,`num`) } <>
+             ~s{ON s0.`x` = v1.`num` WHERE (v1.`num` = ?)}
+  end
+
+  test "values list: update_all" do
+    uuid = Ecto.UUID.generate()
+    values = [%{bid: uuid, num: 1}, %{num: 2, bid: uuid}]
+    types = %{bid: Ecto.UUID, num: :integer}
+
+    query =
+      from(s in "schema",
+        join: v in values(values, types),
+        on: s.x == v.num,
+        where: v.num == ^2,
+        update: [set: [y: v.num]]
+      )
+      |> plan(:update_all)
+      |> update_all()
+
+    assert query ==
+             ~s{UPDATE `schema` AS s0, } <>
+               ~s{(VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v1 (`bid`,`num`) } <>
+               ~s{SET s0.`y` = v1.`num` WHERE (s0.`x` = v1.`num`) AND (v1.`num` = ?)}
+  end
+
   # DDL
 
   import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3,

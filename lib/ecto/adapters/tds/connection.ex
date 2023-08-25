@@ -791,6 +791,10 @@ if Code.ensure_loaded?(Tds) do
       |> parens_for_select
     end
 
+    defp expr({:values, _, [types, idx, num_rows]}, _, _query) do
+      [?(, values_list(types, idx + 1, num_rows), ?)]
+    end
+
     defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
     end
@@ -939,6 +943,25 @@ if Code.ensure_loaded?(Tds) do
       error!(query, "unsupported MSSQL expressions: `#{inspect(field)}`")
     end
 
+    defp values_list(types, idx, num_rows) do
+      rows = Enum.to_list(1..num_rows)
+
+      [
+        "VALUES ",
+        intersperse_reduce(rows, ?,, idx, fn _, idx ->
+          {value, idx} = values_expr(types, idx)
+          {[?(, value, ?)], idx}
+        end)
+        |> elem(0)
+      ]
+    end
+
+    defp values_expr(types, idx) do
+      intersperse_reduce(types, ?,, idx, fn {_field, type}, idx ->
+        {["CAST(", ?@ , Integer.to_string(idx), " AS ", column_type(type, []), ?)], idx + 1}
+      end)
+    end
+
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
       paren_expr(expr, sources, query)
     end
@@ -1001,6 +1024,9 @@ if Code.ensure_loaded?(Tds) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
+
+        {:values, _, _}  ->
+          {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
         {table, model, prefix} ->
           name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
@@ -1563,6 +1589,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp get_source(query, sources, ix, source) do
       {expr, name, _schema} = elem(sources, ix)
+      name = maybe_add_column_names(source, name)
       {expr || expr(source, sources, query), name}
     end
 
@@ -1572,6 +1599,13 @@ if Code.ensure_loaded?(Tds) do
         {%{} = parent, _sources} -> get_parent_sources_ix(parent, as)
       end
     end
+
+    defp maybe_add_column_names({:values, _, [types, _, _]}, name) do
+      fields = Keyword.keys(types)
+      [name, ?\s, ?(,  quote_names(fields), ?)]
+    end
+
+    defp maybe_add_column_names(_, name), do: name
 
     defp quote_name(name) when is_atom(name) do
       quote_name(Atom.to_string(name))

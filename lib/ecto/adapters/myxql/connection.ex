@@ -704,6 +704,10 @@ if Code.ensure_loaded?(MyXQL) do
       |> parens_for_select
     end
 
+    defp expr({:values, _, [types, _idx, num_rows]}, _, query) do
+      [?(, values_list(types, num_rows, query), ?)]
+    end
+
     defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
     end
@@ -832,6 +836,23 @@ if Code.ensure_loaded?(MyXQL) do
       error!(query, "unsupported expression: #{inspect(expr)}")
     end
 
+    defp values_list(types, num_rows, query) do
+      rows = Enum.to_list(1..num_rows)
+
+      [
+        "VALUES ",
+        intersperse_map(rows, ?,, fn _ ->
+          ["ROW(", values_expr(types, query), ?)]
+        end)
+      ]
+    end
+
+    defp values_expr(types, query) do
+      intersperse_map(types, ?,, fn {_field, type} ->
+        ["CAST(", ??, " AS ", ecto_cast_to_db(type, query), ?)]
+      end)
+    end
+
     defp interval(count, "millisecond", sources, query) do
       ["INTERVAL (", expr(count, sources, query) | " * 1000) microsecond"]
     end
@@ -869,6 +890,9 @@ if Code.ensure_loaded?(MyXQL) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
+
+        {:values, _, _}  ->
+          {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
         {table, schema, prefix} ->
           name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
@@ -1330,6 +1354,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp get_source(query, sources, ix, source) do
       {expr, name, _schema} = elem(sources, ix)
+      name = maybe_add_column_names(source, name)
       {expr || expr(source, sources, query), name}
     end
 
@@ -1339,6 +1364,13 @@ if Code.ensure_loaded?(MyXQL) do
         {%{} = parent, _sources} -> get_parent_sources_ix(parent, as)
       end
     end
+
+    defp maybe_add_column_names({:values, _, [types, _, _]}, name) do
+      fields = Keyword.keys(types)
+      [name, ?\s, ?(,  quote_names(fields), ?)]
+    end
+
+    defp maybe_add_column_names(_, name), do: name
 
     defp quote_name(name) when is_atom(name) do
       quote_name(Atom.to_string(name))

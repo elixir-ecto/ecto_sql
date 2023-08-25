@@ -893,6 +893,10 @@ if Code.ensure_loaded?(Postgrex) do
       |> parens_for_select
     end
 
+    defp expr({:values, _, [types, idx, num_rows]}, _, _query) do
+      [?(, values_list(types, idx + 1, num_rows), ?)]
+    end
+
     defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
     end
@@ -1038,6 +1042,25 @@ if Code.ensure_loaded?(Postgrex) do
       [?(, expr(expr, sources, query), "#>'{", path, "}')"]
     end
 
+    defp values_list(types, idx, num_rows) do
+      rows = Enum.to_list(1..num_rows)
+
+      [
+        "VALUES ",
+        intersperse_reduce(rows, ?,, idx, fn _, idx ->
+          {value, idx} = values_expr(types, idx)
+          {[?(, value, ?)], idx}
+        end)
+        |> elem(0)
+      ]
+    end
+
+    defp values_expr(types, idx) do
+      intersperse_reduce(types, ?,, idx, fn {_field, type}, idx ->
+        {[?$ , Integer.to_string(idx), ?:, ?: | tagged_to_db(type)], idx + 1}
+      end)
+    end
+
     defp type_unless_typed(%Ecto.Query.Tagged{}, _type), do: []
     defp type_unless_typed(_, type), do: [?:, ?: | type]
 
@@ -1101,6 +1124,9 @@ if Code.ensure_loaded?(Postgrex) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
+
+        {:values, _, _}  ->
+          {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
         {table, schema, prefix} ->
           name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
@@ -1702,6 +1728,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp get_source(query, sources, ix, source) do
       {expr, name, _schema} = elem(sources, ix)
+      name = maybe_add_column_names(source, name)
       {expr || expr(source, sources, query), name}
     end
 
@@ -1711,6 +1738,13 @@ if Code.ensure_loaded?(Postgrex) do
         {%{} = parent, _sources} -> get_parent_sources_ix(parent, as)
       end
     end
+
+    defp maybe_add_column_names({:values, _, [types, _, _]}, name) do
+      fields = Keyword.keys(types)
+      [name, ?\s, ?(,  quote_names(fields), ?)]
+    end
+
+    defp maybe_add_column_names(_, name), do: name
 
     defp quote_qualified_name(name, sources, ix) do
       {_, source, _} = elem(sources, ix)
