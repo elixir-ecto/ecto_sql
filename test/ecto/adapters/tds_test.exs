@@ -1229,6 +1229,67 @@ defmodule Ecto.Adapters.TdsTest do
     assert query == ~s{DELETE FROM [prefix].[schema] WHERE [x] = @1 AND [y] = @2}
   end
 
+  ## Values List
+
+  test "values list: all" do
+    uuid = Ecto.UUID.generate()
+    values = [%{bid: uuid, num: 1}, %{num: 2, bid: uuid}]
+    types = %{bid: Ecto.UUID, num: :integer}
+
+    query =
+      from(v1 in values(values, types),
+        join: v2 in values(values, types),
+        on: v1.bid == v2.bid,
+        select: v2,
+        where: v1.num == ^2
+      )
+      |> plan()
+      |> all()
+
+    assert query ==
+             ~s{SELECT v1.[bid], v1.[num] } <>
+             ~s{FROM (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v0 ([bid],[num]) } <>
+             ~s{INNER JOIN (VALUES (CAST(@5 AS uniqueidentifier),CAST(@6 AS integer)),(CAST(@7 AS uniqueidentifier),CAST(@8 AS integer))) AS v1 ([bid],[num]) ON v0.[bid] = v1.[bid] } <>
+             ~s{WHERE (v0.[num] = @9)}
+  end
+
+  test "values list: delete_all" do
+    uuid = Ecto.UUID.generate()
+    values = [%{bid: uuid, num: 1}, %{num: 2, bid: uuid}]
+    types = %{bid: Ecto.UUID, num: :integer}
+
+    query =
+      from(s in "schema", join: v in values(values, types), on: s.x == v.num, where: v.num == ^2)
+      |> plan(:delete_all)
+      |> delete_all()
+
+    assert query ==
+             ~s{DELETE s0 FROM [schema] AS s0 } <>
+             ~s{INNER JOIN (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v1 ([bid],[num]) } <>
+             ~s{ON s0.[x] = v1.[num] WHERE (v1.[num] = @5)}
+  end
+
+  test "values list: update_all" do
+    uuid = Ecto.UUID.generate()
+    values = [%{bid: uuid, num: 1}, %{num: 2, bid: uuid}]
+    types = %{bid: Ecto.UUID, num: :integer}
+
+    query =
+      from(s in "schema",
+        join: v in values(values, types),
+        on: s.x == v.num,
+        where: v.num == ^2,
+        update: [set: [y: v.num]]
+      )
+      |> plan(:update_all)
+      |> update_all()
+
+    assert query ==
+             ~s{UPDATE s0 SET s0.[y] = v1.[num] FROM [schema] AS s0 } <>
+               ~s{INNER JOIN (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v1 ([bid],[num]) } <>
+               ~s{ON s0.[x] = v1.[num] WHERE (v1.[num] = @5)}
+  end
+
   ## DDL
 
   import Ecto.Migration,
