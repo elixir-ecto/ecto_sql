@@ -1741,7 +1741,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp maybe_add_column_names({:values, _, [types, _, _]}, name) do
       fields = Keyword.keys(types)
-      [name, ?\s, ?(,  quote_names(fields), ?)]
+      [name, ?\s, ?(, quote_names(fields), ?)]
     end
 
     defp maybe_add_column_names(_, name), do: name
