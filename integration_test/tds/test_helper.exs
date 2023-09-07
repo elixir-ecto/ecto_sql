@@ -110,15 +110,16 @@ end
 Code.require_file("#{ecto}/integration_test/support/schemas.exs", __DIR__)
 Code.require_file("../support/migration.exs", __DIR__)
 
+# pool repo for non-async tests
 alias Ecto.Integration.PoolRepo
 
-Application.put_env(
-  :ecto_sql,
-  PoolRepo,
+pool_repo_config = [
   url: "#{Application.get_env(:ecto_sql, :tds_test_url)}/ecto_test",
   pool_size: 10,
   set_allow_snapshot_isolation: :on
-)
+]
+
+Application.put_env(:ecto_sql, PoolRepo, pool_repo_config)
 
 defmodule Ecto.Integration.PoolRepo do
   use Ecto.Integration.Repo,
@@ -133,6 +134,19 @@ defmodule Ecto.Integration.PoolRepo do
     "drop schema #{prefix}"
   end
 end
+
+# Pool repo for testing disabling async migrations
+alias Ecto.Integration.AsyncFalsePoolRepo
+
+defmodule Ecto.Integration.AsyncFalsePoolRepo do
+  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
+end
+
+Application.put_env(
+  :ecto_sql,
+  AsyncFalsePoolRepo,
+  Keyword.merge(pool_repo_config, async_migration: false, pool_size: 1)
+)
 
 defmodule Ecto.Integration.Case do
   use ExUnit.CaseTemplate
@@ -160,6 +174,7 @@ _ = Ecto.Adapters.Tds.storage_down(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()
+{:ok, _pid} = AsyncFalsePoolRepo.start_link()
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: :debug)
 Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
 Process.flag(:trap_exit, true)

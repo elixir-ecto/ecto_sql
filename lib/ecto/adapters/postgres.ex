@@ -264,7 +264,7 @@ defmodule Ecto.Adapters.Postgres do
   def lock_for_migrations(meta, opts, fun) do
     %{opts: adapter_opts, repo: repo} = meta
 
-    if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
+    if opts[:async_migration] and Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end
 

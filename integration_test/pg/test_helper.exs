@@ -45,13 +45,6 @@ defmodule Ecto.Integration.PoolRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
 end
 
-# Pool repo for non-async and advisory lock tests
-alias Ecto.Integration.AdvisoryLockPoolRepo
-
-defmodule Ecto.Integration.AdvisoryLockPoolRepo do
-  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
-end
-
 pool_repo_config = [
   url: Application.get_env(:ecto_sql, :pg_test_url) <> "/ecto_test",
   pool_size: 10,
@@ -60,10 +53,31 @@ pool_repo_config = [
 ]
 
 Application.put_env(:ecto_sql, PoolRepo, pool_repo_config)
+
+# Pool repo for non-async and advisory lock tests
+alias Ecto.Integration.AdvisoryLockPoolRepo
+
+defmodule Ecto.Integration.AdvisoryLockPoolRepo do
+  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
+end
+
 Application.put_env(:ecto_sql, AdvisoryLockPoolRepo, pool_repo_config ++ [
   migration_source: "advisory_lock_schema_migrations",
   migration_lock: :pg_advisory_lock
 ])
+
+# Pool repo for testing disabling async migrations
+alias Ecto.Integration.AsyncFalsePoolRepo
+
+defmodule Ecto.Integration.AsyncFalsePoolRepo do
+  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
+end
+
+Application.put_env(
+  :ecto_sql,
+  AsyncFalsePoolRepo,
+  Keyword.merge(pool_repo_config, async_migration: false, pool_size: 1)
+)
 
 # Load support files
 ecto = Mix.Project.deps_paths()[:ecto]
@@ -87,6 +101,7 @@ _   = Ecto.Adapters.Postgres.storage_down(TestRepo.config())
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()
 {:ok, _pid} = AdvisoryLockPoolRepo.start_link()
+{:ok, _pid} = AsyncFalsePoolRepo.start_link()
 
 %{rows: [[version]]} = TestRepo.query!("SHOW server_version", [])
 

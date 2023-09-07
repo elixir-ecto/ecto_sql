@@ -2,6 +2,7 @@ defmodule Ecto.Integration.MigrationsTest do
   use ExUnit.Case, async: true
 
   alias Ecto.Integration.PoolRepo
+  alias Ecto.Integration.AsyncFalsePoolRepo
   import ExUnit.CaptureLog
 
   @moduletag :capture_log
@@ -9,6 +10,15 @@ defmodule Ecto.Integration.MigrationsTest do
 
   defmodule NormalMigration do
     use Ecto.Migration
+
+    def change do
+      create_if_not_exists table(:log_mode_table)
+    end
+  end
+
+  defmodule AsyncFalseMigration do
+    use Ecto.Migration
+    @disable_async_migration true
 
     def change do
       create_if_not_exists table(:log_mode_table)
@@ -106,6 +116,22 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert log =~ "ALTER TABLE `alter_table` ADD `column2` varchar(255) COMMENT 'second column' AFTER `column1`"
+    end
+
+    test "raises when async migrations are disabled" do
+      num = @base_migration + System.unique_integer([:positive])
+
+      msg = ~r/MyXQL does not allow async migrations to be disabled when locking for concurrent migrators/
+
+      # disabled through repo
+      assert_raise Ecto.MigrationError, msg, fn ->
+        Ecto.Migrator.up(AsyncFalsePoolRepo, num, NormalMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+      end
+
+      # disabled through migration
+      assert_raise Ecto.MigrationError, msg, fn ->
+        Ecto.Migrator.up(PoolRepo, num, AsyncFalseMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+      end
     end
   end
 end

@@ -217,7 +217,7 @@ defmodule Ecto.Migrator do
   """
   @spec migrated_versions(Ecto.Repo.t(), Keyword.t()) :: [integer]
   def migrated_versions(repo, opts \\ []) do
-    lock_for_migrations(true, repo, opts, fn _config, versions -> versions end)
+    lock_for_migrations(true, repo, nil, opts, fn _config, versions -> versions end)
   end
 
   @doc """
@@ -278,7 +278,7 @@ defmodule Ecto.Migrator do
   end
 
   defp do_up(repo, config, version, module, opts) do
-    async_migrate_maybe_in_transaction(repo, config, version, module, :up, opts, fn ->
+    perform_migration(repo, config, version, module, :up, opts, fn ->
       attempt(repo, config, version, module, :forward, :up, :up, opts) ||
         attempt(repo, config, version, module, :forward, :change, :up, opts) ||
         {:error,
@@ -320,7 +320,7 @@ defmodule Ecto.Migrator do
   end
 
   defp do_down(repo, config, version, module, opts) do
-    async_migrate_maybe_in_transaction(repo, config, version, module, :down, opts, fn ->
+    perform_migration(repo, config, version, module, :down, opts, fn ->
       attempt(repo, config, version, module, :forward, :down, :down, opts) ||
         attempt(repo, config, version, module, :backward, :change, :down, opts) ||
         {:error,
@@ -330,7 +330,7 @@ defmodule Ecto.Migrator do
     end)
   end
 
-  defp async_migrate_maybe_in_transaction(repo, config, version, module, direction, opts, fun) do
+  defp perform_migration(repo, config, version, module, direction, opts, fun) do
     dynamic_repo = repo.get_dynamic_repo()
 
     fun_with_status = fn ->
@@ -339,9 +339,23 @@ defmodule Ecto.Migrator do
       result
     end
 
-    fn -> run_maybe_in_transaction(repo, dynamic_repo, module, fun_with_status, opts) end
-    |> Task.async()
-    |> Task.await(:infinity)
+    if async_migration?(config, module) do
+      fn -> run_maybe_in_transaction(repo, dynamic_repo, module, fun_with_status, opts) end
+      |> Task.async()
+      |> Task.await(:infinity)
+    else
+      run_maybe_in_transaction(repo, dynamic_repo, module, fun_with_status, opts)
+    end
+  end
+
+  defp async_migration?(config, nil) do
+    config[:async_migration] != false
+  end
+
+  defp async_migration?(config, module) do
+    if module.__migration__[:disable_async_migration],
+      do: false,
+      else: config[:async_migration] != false
   end
 
   defp run_maybe_in_transaction(repo, dynamic_repo, module, fun, opts) do
@@ -429,7 +443,7 @@ defmodule Ecto.Migrator do
     migration_source = List.wrap(migration_source)
 
     pending =
-      lock_for_migrations(true, repo, opts, fn _config, versions ->
+      lock_for_migrations(true, repo, nil, opts, fn _config, versions ->
         cond do
           opts[:all] ->
             pending_all(versions, migration_source, direction)
@@ -551,7 +565,7 @@ defmodule Ecto.Migrator do
     versions -- versions_with_file
   end
 
-  defp lock_for_migrations(lock_or_migration_number, repo, opts, fun) do
+  defp lock_for_migrations(lock_or_migration_number, repo, module, opts, fun) do
     dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
     skip_table_creation = Keyword.get(opts, :skip_table_creation, false)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
@@ -573,6 +587,7 @@ defmodule Ecto.Migrator do
       opts =
         opts
         |> Keyword.put(:migration_source, config[:migration_source] || "schema_migrations")
+        |> Keyword.put(:async_migration, async_migration?(config, module))
         |> Keyword.put(:log, migrator_log(opts))
 
       result =
@@ -606,7 +621,7 @@ defmodule Ecto.Migrator do
 
   defp conditional_lock_for_migrations(module, version, repo, opts, fun) do
     lock = if module.__migration__[:disable_migration_lock], do: false, else: version
-    lock_for_migrations(lock, repo, opts, fun)
+    lock_for_migrations(lock, repo, module, opts, fun)
   end
 
   defp pending_to(versions, migration_source, direction, target) when is_integer(target) do

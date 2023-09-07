@@ -2,6 +2,7 @@ defmodule Ecto.Integration.MigrationsTest do
   use ExUnit.Case, async: true
 
   alias Ecto.Integration.PoolRepo
+  alias Ecto.Integration.AsyncFalsePoolRepo
   import ExUnit.CaptureLog
 
   @moduletag :capture_log
@@ -9,6 +10,15 @@ defmodule Ecto.Integration.MigrationsTest do
 
   defmodule NormalMigration do
     use Ecto.Migration
+
+    def change do
+      create_if_not_exists table(:log_mode_table)
+    end
+  end
+
+  defmodule AsyncFalseMigration do
+    use Ecto.Migration
+    @disable_async_migration true
 
     def change do
       create_if_not_exists table(:log_mode_table)
@@ -76,6 +86,60 @@ defmodule Ecto.Integration.MigrationsTest do
       assert down_log =~ @drop_table_log
       refute down_log =~ @version_delete
       refute down_log =~ "commit []"
+    end
+
+    test "async migration disabled through repo config" do
+      num = @base_migration + System.unique_integer([:positive])
+      up_log =
+        capture_log(fn ->
+          Ecto.Migrator.up(AsyncFalsePoolRepo, num, NormalMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+        end)
+
+      assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 1
+      assert up_log =~ @get_lock_command
+      assert up_log =~ @create_table_sql
+      assert up_log =~ @create_table_log
+      assert up_log =~ @version_insert
+      assert Regex.scan(~r/(commit \[\])/, up_log) |> length() == 1
+
+      down_log =
+        capture_log(fn ->
+          Ecto.Migrator.down(AsyncFalsePoolRepo, num, NormalMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+        end)
+
+      assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 1
+      assert down_log =~ @get_lock_command
+      assert down_log =~ @drop_table_sql
+      assert down_log =~ @drop_table_log
+      assert down_log =~ @version_delete
+      assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 1
+    end
+
+    test "async migration disabled through migration module" do
+      num = @base_migration + System.unique_integer([:positive])
+      up_log =
+        capture_log(fn ->
+          Ecto.Migrator.up(PoolRepo, num, AsyncFalseMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+        end)
+
+      assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 1
+      assert up_log =~ @get_lock_command
+      assert up_log =~ @create_table_sql
+      assert up_log =~ @create_table_log
+      assert up_log =~ @version_insert
+      assert Regex.scan(~r/(commit \[\])/, up_log) |> length() == 1
+
+      down_log =
+        capture_log(fn ->
+          Ecto.Migrator.down(PoolRepo, num, AsyncFalseMigration, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+        end)
+
+      assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 1
+      assert down_log =~ @get_lock_command
+      assert down_log =~ @drop_table_sql
+      assert down_log =~ @drop_table_log
+      assert down_log =~ @version_delete
+      assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 1
     end
   end
 end

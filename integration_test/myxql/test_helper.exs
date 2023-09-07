@@ -41,14 +41,29 @@ end
 # Pool repo for non-async tests
 alias Ecto.Integration.PoolRepo
 
-Application.put_env(:ecto_sql, PoolRepo,
+pool_repo_config = [
   adapter: Ecto.Adapters.MyXQL,
   url: Application.get_env(:ecto_sql, :mysql_test_url) <> "/ecto_test",
   pool_size: 10,
   show_sensitive_data_on_connection_error: true
-)
+]
+
+Application.put_env(:ecto_sql, PoolRepo, pool_repo_config)
 
 defmodule Ecto.Integration.PoolRepo do
+  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MyXQL
+end
+
+# Pool repo for testing disabling async migrations
+alias Ecto.Integration.AsyncFalsePoolRepo
+
+Application.put_env(
+  :ecto_sql,
+  AsyncFalsePoolRepo,
+  Keyword.merge(pool_repo_config, async_migration: false, pool_size: 1)
+)
+
+defmodule Ecto.Integration.AsyncFalsePoolRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MyXQL
 end
 
@@ -73,6 +88,7 @@ _   = Ecto.Adapters.MyXQL.storage_down(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
 {:ok, _pid} = PoolRepo.start_link()
+{:ok, _pid} = AsyncFalsePoolRepo.start_link()
 
 %{rows: [[version]]} = TestRepo.query!("SELECT @@version", [])
 

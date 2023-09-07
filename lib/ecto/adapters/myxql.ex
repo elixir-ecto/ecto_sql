@@ -266,6 +266,12 @@ defmodule Ecto.Adapters.MyXQL do
   def lock_for_migrations(meta, opts, fun) do
     %{opts: adapter_opts, repo: repo} = meta
 
+    if not opts[:async_migration] do
+      raise Ecto.MigrationError,
+            "MyXQL does not allow async migrations to be disabled when locking for concurrent migrators. " <>
+              "DDL statements are not allowed to be run within the transaction created to hold the lock."
+    end
+
     if Keyword.fetch(adapter_opts, :pool_size) == {:ok, 1} do
       Ecto.Adapters.SQL.raise_migration_pool_size_error()
     end

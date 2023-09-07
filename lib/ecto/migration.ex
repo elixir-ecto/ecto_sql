@@ -206,6 +206,13 @@ defmodule Ecto.Migration do
           # fit. See the Ecto.Adapters.Postgres for more information:
           config :app, App.Repo, migration_lock: :pg_advisory_lock
 
+    * `:async_migration` - By default, Ecto will spawn a new process to run a migration.
+      This allows the migration lock to run in a transaction even when the migration itself
+      cannot. However, some databases are not able to separate the locking transaction from
+      the migration commands. For example, SQLite. In this case, you may disable async
+      migrations by configuring this option to `false`. You may also set it at the individual
+      migration level by adding `@disable_async_migration true` to the migration file.
+
     * `:migration_repo` - The migration repository is where the table managing the
       migrations will be stored (`migration_source` defines the table name). It defaults
       to the given repository itself but you can configure it via:
@@ -502,6 +509,7 @@ defmodule Ecto.Migration do
       import Ecto.Migration
       @disable_ddl_transaction false
       @disable_migration_lock false
+      @disable_async_migration false
       @before_compile Ecto.Migration
     end
   end
@@ -512,7 +520,8 @@ defmodule Ecto.Migration do
       def __migration__ do
         [
           disable_ddl_transaction: @disable_ddl_transaction,
-          disable_migration_lock: @disable_migration_lock
+          disable_migration_lock: @disable_migration_lock,
+          disable_async_migration: @disable_async_migration
         ]
       end
     end
