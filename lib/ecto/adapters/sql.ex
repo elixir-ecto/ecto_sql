@@ -633,6 +633,10 @@ defmodule Ecto.Adapters.SQL do
     [source: source] ++ opts
   end
 
+  defp put_source(opts, %{source: source}) when is_binary(source) do
+    [source: source] ++ opts
+  end
+
   defp put_source(opts, _) do
     opts
   end
@@ -922,7 +926,7 @@ defmodule Ecto.Adapters.SQL do
 
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
 
-    %{num_rows: num, rows: rows} = query!(adapter_meta, sql, all_params, opts)
+    %{num_rows: num, rows: rows} = query!(adapter_meta, sql, all_params, put_source(opts, schema_meta))
     {num, rows}
   end
 
