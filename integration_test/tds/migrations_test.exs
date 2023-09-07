@@ -27,6 +27,7 @@ defmodule Ecto.Integration.MigrationsTest do
 
   describe "Migrator" do
     @get_lock_command ~s(sp_getapplock @Resource = 'ecto_Ecto.Integration.PoolRepo', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1)
+    @get_lock_command_async_false ~s(sp_getapplock @Resource = 'ecto_Ecto.Integration.AsyncFalsePoolRepo', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1)
     @create_table_sql ~s(CREATE TABLE [log_mode_table])
     @create_table_log "create table if not exists log_mode_table"
     @drop_table_sql ~s(DROP TABLE [log_mode_table])
@@ -96,7 +97,7 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 1
-      assert up_log =~ @get_lock_command
+      assert up_log =~ @get_lock_command_async_false
       assert up_log =~ @create_table_sql
       assert up_log =~ @create_table_log
       assert up_log =~ @version_insert
@@ -108,7 +109,7 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 1
-      assert down_log =~ @get_lock_command
+      assert down_log =~ @get_lock_command_async_false
       assert down_log =~ @drop_table_sql
       assert down_log =~ @drop_table_log
       assert down_log =~ @version_delete
@@ -123,7 +124,7 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 1
-      assert up_log =~ @get_lock_command
+      assert up_log =~ @get_lock_command_async_false
       assert up_log =~ @create_table_sql
       assert up_log =~ @create_table_log
       assert up_log =~ @version_insert
@@ -135,7 +136,7 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 1
-      assert down_log =~ @get_lock_command
+      assert down_log =~ @get_lock_command_async_false
       assert down_log =~ @drop_table_sql
       assert down_log =~ @drop_table_log
       assert down_log =~ @version_delete
