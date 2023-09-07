@@ -8,7 +8,7 @@ defmodule Ecto.Migration.SchemaMigration do
 
   @primary_key false
   schema "schema_migrations" do
-    field :version, :integer
+    field :version, :integer, primary_key: true
     timestamps updated_at: false
   end
 
