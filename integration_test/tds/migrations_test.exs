@@ -124,7 +124,7 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 1
-      assert up_log =~ @get_lock_command_async_false
+      assert up_log =~ @get_lock_command
       assert up_log =~ @create_table_sql
       assert up_log =~ @create_table_log
       assert up_log =~ @version_insert
@@ -136,7 +136,7 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert Regex.scan(~r/(begin \[\])/, down_log) |> length() == 1
-      assert down_log =~ @get_lock_command_async_false
+      assert down_log =~ @get_lock_command
       assert down_log =~ @drop_table_sql
       assert down_log =~ @drop_table_log
       assert down_log =~ @version_delete
