@@ -209,9 +209,9 @@ defmodule Ecto.Migration do
     * `:async_migration` - By default, Ecto will spawn a new process to run a migration.
       This allows the migration lock to run in a transaction even when the migration itself
       cannot. However, some databases are not able to separate the locking transaction from
-      the migration commands. For example, SQLite. In this case, you may disable async
-      migrations by configuring this option to `false`. You may also set it at the individual
-      migration level by adding `@disable_async_migration true` to the migration file.
+      the migration commands. In this case, you may disable async migrations by configuring
+      this option to `false`. You may also set it at the individual migration level by adding
+      `@disable_async_migration true` to the migration file.
 
     * `:migration_repo` - The migration repository is where the table managing the
       migrations will be stored (`migration_source` defines the table name). It defaults

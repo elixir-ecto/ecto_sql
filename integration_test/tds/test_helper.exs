@@ -139,7 +139,7 @@ end
 alias Ecto.Integration.AsyncFalsePoolRepo
 
 defmodule Ecto.Integration.AsyncFalsePoolRepo do
-  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Postgres
+  use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.Tds
 end
 
 Application.put_env(
