@@ -922,7 +922,7 @@ defmodule Ecto.Adapters.SQL do
 
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
 
-    %{num_rows: num, rows: rows} = query!(adapter_meta, sql, all_params, opts)
+    %{num_rows: num, rows: rows} = query!(adapter_meta, sql, all_params, [source: source] ++ opts)
     {num, rows}
   end
 
