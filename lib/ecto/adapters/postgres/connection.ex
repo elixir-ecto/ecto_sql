@@ -1854,8 +1854,8 @@ if Code.ensure_loaded?(Postgrex) do
     defp ecto_to_db(:map), do: Application.fetch_env!(:ecto_sql, :postgres_map_type)
     defp ecto_to_db({:map, _}), do: Application.fetch_env!(:ecto_sql, :postgres_map_type)
     defp ecto_to_db(:time_usec), do: "time"
-    defp ecto_to_db(:utc_datetime), do: "timestamp"
-    defp ecto_to_db(:utc_datetime_usec), do: "timestamp"
+    defp ecto_to_db(:utc_datetime), do: "timestamptz"
+    defp ecto_to_db(:utc_datetime_usec), do: "timestamptz"
     defp ecto_to_db(:naive_datetime), do: "timestamp"
     defp ecto_to_db(:naive_datetime_usec), do: "timestamp"
     defp ecto_to_db(atom) when is_atom(atom), do: Atom.to_string(atom)
