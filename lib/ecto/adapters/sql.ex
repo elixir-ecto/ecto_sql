@@ -1105,7 +1105,7 @@ defmodule Ecto.Adapters.SQL do
         opts
       end
 
-    case query(adapter_meta, sql, values, opts) do
+    case query(adapter_meta, sql, values, [source: source] ++ opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->
         {:ok, []}
 
