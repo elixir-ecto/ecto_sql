@@ -420,7 +420,7 @@ defmodule Ecto.Migration do
             name: String.t(),
             prefix: atom | nil,
             comment: String.t() | nil,
-            primary_key: boolean | keyword(),
+            primary_key: boolean | keyword() |  [start_value: integer(), increment: integer(), cache: pos_integer(), clause: :by_default | :always],
             engine: atom,
             options: String.t()
           }
@@ -1595,8 +1595,9 @@ defmodule Ecto.Migration do
 
   defp pk_opts_to_tuple(opts) do
     opts = Keyword.put(opts, :primary_key, true)
+    inferred_type = [:start_value, :increment, :cache, :clause] |> Enum.any?(&Keyword.has_key?(opts, &1)) && :bigint || :bigserial
     {name, opts} = Keyword.pop(opts, :name, :id)
-    {type, opts} = Keyword.pop(opts, :type, :bigserial)
+    {type, opts} = Keyword.pop(opts, :type, inferred_type)
     {name, type, opts}
   end
 end
