@@ -251,10 +251,10 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @impl true
-      def delete(adapter_meta, schema_meta, params, opts) do
+      def delete(adapter_meta, schema_meta, params, returning, opts) do
         %{source: source, prefix: prefix} = schema_meta
         filter_values = Keyword.values(params)
-        sql = @conn.delete(prefix, source, params, [])
+        sql = @conn.delete(prefix, source, params, returning)
 
         Ecto.Adapters.SQL.struct(
           adapter_meta,
@@ -265,7 +265,7 @@ defmodule Ecto.Adapters.SQL do
           params,
           filter_values,
           :raise,
-          [],
+          returning,
           opts
         )
       end
@@ -298,7 +298,7 @@ defmodule Ecto.Adapters.SQL do
                      execute: 5,
                      insert: 6,
                      update: 6,
-                     delete: 4,
+                     delete: 5,
                      insert_all: 8,
                      execute_ddl: 3,
                      loaders: 2,
