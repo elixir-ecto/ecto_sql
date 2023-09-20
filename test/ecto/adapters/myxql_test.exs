@@ -141,8 +141,8 @@ defmodule Ecto.Adapters.MyXQLTest do
       ~s{WITH RECURSIVE `tree` AS } <>
       ~s{(SELECT sc0.`id` AS `id`, 1 AS `depth` FROM `categories` AS sc0 WHERE (sc0.`parent_id` IS NULL) } <>
       ~s{UNION ALL } <>
-      ~s{(SELECT c0.`id`, t1.`depth` + 1 FROM `categories` AS c0 } <>
-      ~s{INNER JOIN `tree` AS t1 ON t1.`id` = c0.`parent_id`)) } <>
+      ~s{(SELECT sc0.`id`, st1.`depth` + 1 FROM `categories` AS sc0 } <>
+      ~s{INNER JOIN `tree` AS st1 ON st1.`id` = sc0.`parent_id`)) } <>
       ~s{SELECT s0.`x`, t1.`id`, CAST(t1.`depth` AS unsigned) } <>
       ~s{FROM `schema` AS s0 } <>
       ~s{INNER JOIN `tree` AS t1 ON t1.`id` = s0.`category_id`}
@@ -276,8 +276,8 @@ defmodule Ecto.Adapters.MyXQLTest do
       ~s{(WITH RECURSIVE `tree` AS } <>
       ~s{(SELECT ssc0.`id` AS `id`, ssc0.`parent_id` AS `parent_id` FROM `categories` AS ssc0 WHERE (ssc0.`id` = c0.`id`) } <>
       ~s{UNION ALL } <>
-      ~s{(SELECT c0.`id`, c0.`parent_id` FROM `categories` AS c0 } <>
-      ~s{INNER JOIN `tree` AS t1 ON t1.`parent_id` = c0.`id`)) } <>
+      ~s{(SELECT ssc0.`id`, ssc0.`parent_id` FROM `categories` AS ssc0 } <>
+      ~s{INNER JOIN `tree` AS sst1 ON sst1.`parent_id` = ssc0.`id`)) } <>
       ~s{SELECT GROUP_CONCAT(st0.`id` SEPARATOR ' / ') AS `breadcrumbs` FROM `tree` AS st0) AS s1 ON TRUE}
   end
 
@@ -293,7 +293,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       ~s{c0.`id` IN } <>
       ~s{(SELECT sc0.`id` FROM `categories_left` AS sc0 WHERE (sc0.`id` = c0.`id`) } <>
       ~s{UNION } <>
-      ~s{(SELECT c0.`id` FROM `categories_right` AS c0 WHERE (c0.`id` = c0.`id`))))}
+      ~s{(SELECT sc0.`id` FROM `categories_right` AS sc0 WHERE (sc0.`id` = c0.`id`))))}
   end
 
   test "CTE with update statement" do

@@ -169,7 +169,7 @@ if Code.ensure_loaded?(Postgrex) do
       group_by = group_by(query, sources)
       having = having(query, sources)
       window = window(query, sources)
-      combinations = combinations(query)
+      combinations = combinations(query, as_prefix)
       order_by = order_by(query, order_by_distinct, sources)
       limit = limit(query, sources)
       offset = offset(query, sources)
@@ -782,14 +782,14 @@ if Code.ensure_loaded?(Postgrex) do
       [" OFFSET " | expr(expr, sources, query)]
     end
 
-    defp combinations(%{combinations: combinations}) do
+    defp combinations(%{combinations: combinations}, as_prefix) do
       Enum.map(combinations, fn
-        {:union, query} -> [" UNION (", all(query), ")"]
-        {:union_all, query} -> [" UNION ALL (", all(query), ")"]
-        {:except, query} -> [" EXCEPT (", all(query), ")"]
-        {:except_all, query} -> [" EXCEPT ALL (", all(query), ")"]
-        {:intersect, query} -> [" INTERSECT (", all(query), ")"]
-        {:intersect_all, query} -> [" INTERSECT ALL (", all(query), ")"]
+        {:union, query} -> [" UNION (", all(query, as_prefix), ")"]
+        {:union_all, query} -> [" UNION ALL (", all(query, as_prefix), ")"]
+        {:except, query} -> [" EXCEPT (", all(query, as_prefix), ")"]
+        {:except_all, query} -> [" EXCEPT ALL (", all(query, as_prefix), ")"]
+        {:intersect, query} -> [" INTERSECT (", all(query, as_prefix), ")"]
+        {:intersect_all, query} -> [" INTERSECT ALL (", all(query, as_prefix), ")"]
       end)
     end
 
