@@ -688,6 +688,12 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
+      combinations =
+        Enum.map(query.combinations, fn {type, combination_query} ->
+          {type, put_in(combination_query.aliases[@parent_as], {parent_query, sources})}
+        end)
+
+      query = put_in(query.combinations, combinations)
       query = put_in(query.aliases[@parent_as], {parent_query, sources})
       [?(, all(query, subquery_as_prefix(sources)), ?)]
     end

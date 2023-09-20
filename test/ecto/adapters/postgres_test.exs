@@ -372,6 +372,21 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{SELECT STRING_AGG(st0."id", ' / ') AS "breadcrumbs" FROM "tree" AS st0) AS s1 ON TRUE}
   end
 
+  test "parent binding subquery and combination" do
+    right_query = from(c in "categories_right", where: c.id == parent_as(:c).id, select: c.id)
+    left_query = from(c in "categories_left", where: c.id == parent_as(:c).id, select: c.id)
+    union_query = union(left_query, ^right_query)
+    query = from(c in "categories", as: :c, where: c.id in subquery(union_query), select: c.id) |> plan()
+
+    assert all(query) ==
+      ~s{SELECT c0."id" FROM "categories" AS c0 } <>
+      ~s{WHERE (} <>
+      ~s{c0."id" IN } <>
+      ~s{(SELECT sc0."id" FROM "categories_left" AS sc0 WHERE (sc0."id" = c0."id") } <>
+      ~s{UNION } <>
+      ~s{(SELECT c0."id" FROM "categories_right" AS c0 WHERE (c0."id" = c0."id"))))}
+  end
+
   test "CTE with update statement" do
       cte_query =
         "categories"
