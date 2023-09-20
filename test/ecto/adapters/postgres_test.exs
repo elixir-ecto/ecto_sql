@@ -373,8 +373,8 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "parent binding subquery and combination" do
-    right_query = from(c in "categories_right", where: c.id == parent_as(:c).id, select: c.id)
-    left_query = from(c in "categories_left", where: c.id == parent_as(:c).id, select: c.id)
+    right_query = from(c in "right_categories", where: c.id == parent_as(:c).id, select: c.id)
+    left_query = from(c in "left_categories", where: c.id == parent_as(:c).id, select: c.id)
     union_query = union(left_query, ^right_query)
     query = from(c in "categories", as: :c, where: c.id in subquery(union_query), select: c.id) |> plan()
 
@@ -382,9 +382,9 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{SELECT c0."id" FROM "categories" AS c0 } <>
       ~s{WHERE (} <>
       ~s{c0."id" IN } <>
-      ~s{(SELECT sc0."id" FROM "categories_left" AS sc0 WHERE (sc0."id" = c0."id") } <>
+      ~s{(SELECT sl0."id" FROM "left_categories" AS sl0 WHERE (sl0."id" = c0."id") } <>
       ~s{UNION } <>
-      ~s{(SELECT sc0."id" FROM "categories_right" AS sc0 WHERE (sc0."id" = c0."id"))))}
+      ~s{(SELECT sr0."id" FROM "right_categories" AS sr0 WHERE (sr0."id" = c0."id"))))}
   end
 
   test "CTE with update statement" do
