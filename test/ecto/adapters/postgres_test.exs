@@ -163,8 +163,8 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{WITH RECURSIVE "tree" AS } <>
       ~s{(SELECT sc0."id" AS "id", 1 AS "depth" FROM "categories" AS sc0 WHERE (sc0."parent_id" IS NULL) } <>
       ~s{UNION ALL } <>
-      ~s{(SELECT c0."id", t1."depth" + 1 FROM "categories" AS c0 } <>
-      ~s{INNER JOIN "tree" AS t1 ON t1."id" = c0."parent_id")) } <>
+      ~s{(SELECT sc0."id", st1."depth" + 1 FROM "categories" AS sc0 } <>
+      ~s{INNER JOIN "tree" AS st1 ON st1."id" = sc0."parent_id")) } <>
       ~s{SELECT s0."x", t1."id", t1."depth"::bigint } <>
       ~s{FROM "schema" AS s0 } <>
       ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
@@ -195,8 +195,8 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{WITH RECURSIVE "tree" AS MATERIALIZED} <>
       ~s{(SELECT sc0."id" AS "id", 1 AS "depth" FROM "categories" AS sc0 WHERE (sc0."parent_id" IS NULL) } <>
       ~s{UNION ALL } <>
-      ~s{(SELECT c0."id", t1."depth" + 1 FROM "categories" AS c0 } <>
-      ~s{INNER JOIN "tree" AS t1 ON t1."id" = c0."parent_id")) } <>
+      ~s{(SELECT sc0."id", st1."depth" + 1 FROM "categories" AS sc0 } <>
+      ~s{INNER JOIN "tree" AS st1 ON st1."id" = sc0."parent_id")) } <>
       ~s{SELECT s0."x", t1."id", t1."depth"::bigint } <>
       ~s{FROM "schema" AS s0 } <>
       ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
@@ -227,8 +227,8 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{WITH RECURSIVE "tree" AS NOT MATERIALIZED} <>
       ~s{(SELECT sc0."id" AS "id", 1 AS "depth" FROM "categories" AS sc0 WHERE (sc0."parent_id" IS NULL) } <>
       ~s{UNION ALL } <>
-      ~s{(SELECT c0."id", t1."depth" + 1 FROM "categories" AS c0 } <>
-      ~s{INNER JOIN "tree" AS t1 ON t1."id" = c0."parent_id")) } <>
+      ~s{(SELECT sc0."id", st1."depth" + 1 FROM "categories" AS sc0 } <>
+      ~s{INNER JOIN "tree" AS st1 ON st1."id" = sc0."parent_id")) } <>
       ~s{SELECT s0."x", t1."id", t1."depth"::bigint } <>
       ~s{FROM "schema" AS s0 } <>
       ~s{INNER JOIN "tree" AS t1 ON t1."id" = s0."category_id"}
@@ -367,9 +367,24 @@ defmodule Ecto.Adapters.PostgresTest do
       ~s{(WITH RECURSIVE "tree" AS } <>
       ~s{(SELECT ssc0."id" AS "id", ssc0."parent_id" AS "parent_id" FROM "categories" AS ssc0 WHERE (ssc0."id" = c0."id") } <>
       ~s{UNION ALL } <>
-      ~s{(SELECT c0."id", c0."parent_id" FROM "categories" AS c0 } <>
-      ~s{INNER JOIN "tree" AS t1 ON t1."parent_id" = c0."id")) } <>
+      ~s{(SELECT ssc0."id", ssc0."parent_id" FROM "categories" AS ssc0 } <>
+      ~s{INNER JOIN "tree" AS sst1 ON sst1."parent_id" = ssc0."id")) } <>
       ~s{SELECT STRING_AGG(st0."id", ' / ') AS "breadcrumbs" FROM "tree" AS st0) AS s1 ON TRUE}
+  end
+
+  test "parent binding subquery and combination" do
+    right_query = from(c in "right_categories", where: c.id == parent_as(:c).id, select: c.id)
+    left_query = from(c in "left_categories", where: c.id == parent_as(:c).id, select: c.id)
+    union_query = union(left_query, ^right_query)
+    query = from(c in "categories", as: :c, where: c.id in subquery(union_query), select: c.id) |> plan()
+
+    assert all(query) ==
+      ~s{SELECT c0."id" FROM "categories" AS c0 } <>
+      ~s{WHERE (} <>
+      ~s{c0."id" IN } <>
+      ~s{(SELECT sl0."id" FROM "left_categories" AS sl0 WHERE (sl0."id" = c0."id") } <>
+      ~s{UNION } <>
+      ~s{(SELECT sr0."id" FROM "right_categories" AS sr0 WHERE (sr0."id" = c0."id"))))}
   end
 
   test "CTE with update statement" do
