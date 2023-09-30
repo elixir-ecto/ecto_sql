@@ -151,8 +151,15 @@ defmodule Ecto.Adapters.Postgres do
   @impl true
   def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers({:in, sub}, {:in, sub}), do: [{:array, sub}]
-  def dumpers(:binary_id, type), do: [type, Ecto.UUID]
+  def dumpers(:binary_id, type), do: [type, &dump_and_tag(Ecto.UUID, &1)]
+  def dumpers(:uuid, type), do: [&dump_and_tag(type, &1)]
   def dumpers(_, type), do: [type]
+
+  defp dump_and_tag(type, value) do
+    with {:ok, value} <- Ecto.Type.dump(type, value) do
+      {:ok, %Ecto.Query.Tagged{value: value, type: :binary}}
+    end
+  end
 
   ## Query API
 

@@ -41,7 +41,9 @@ defmodule Ecto.Adapters.PostgresTest do
     schema "schema3" do
       field :list1, {:array, :string}
       field :list2, {:array, :integer}
+      field :binary_id, :binary_id
       field :binary, :binary
+      field :uuid, Ecto.UUID
     end
   end
 
@@ -939,9 +941,22 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == String.trim(result)
   end
 
+  test "dumping of binary types" do
+    query =
+      Schema3
+      |> where([s], s.binary == <<0, 1, 2, 3>> and s.uuid == "017f65d1-80bd-152d-f997-afa6dd33a00f")
+      |> select(true)
+      |> plan()
+
+    assert all(query) ==
+             "SELECT TRUE FROM \"schema3\" AS s0 " <>
+             "WHERE ((s0.\"binary\" = '\\x00010203'::bytea) " <>
+             "AND (s0.\"uuid\" = '\\x017f65d180bd152df997afa6dd33a00f'::bytea))"
+  end
+
   test "order_by and types" do
-    query = "schema3" |> order_by([e], type(fragment("?", e.binary), ^:decimal)) |> select(true) |> plan()
-    assert all(query) == "SELECT TRUE FROM \"schema3\" AS s0 ORDER BY s0.\"binary\"::decimal"
+    query = "schema" |> order_by([e], type(fragment("?", e.field), ^:decimal)) |> select(true) |> plan()
+    assert all(query) == "SELECT TRUE FROM \"schema\" AS s0 ORDER BY s0.\"field\"::decimal"
   end
 
   test "fragments and types" do
