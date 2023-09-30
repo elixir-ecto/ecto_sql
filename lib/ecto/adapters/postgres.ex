@@ -151,8 +151,19 @@ defmodule Ecto.Adapters.Postgres do
   @impl true
   def dumpers({:map, _}, type), do: [&Ecto.Type.embedded_dump(type, &1, :json)]
   def dumpers({:in, sub}, {:in, sub}), do: [{:array, sub}]
-  def dumpers(:binary_id, type), do: [type, Ecto.UUID]
+  def dumpers(:binary_id, type), do: [type, &dump_uuid/1]
+  def dumpers(:uuid, Ecto.UUID), do: [&dump_uuid/1]
+  def dumpers(:uuid, type), do: [&dump_uuid(type, &1)]
   def dumpers(_, type), do: [type]
+
+  defp dump_uuid(type, uuid) do
+    with {:ok, value} <- Ecto.Type.dump(type, uuid) do
+      Ecto.UUID.load(value)
+    end
+  end
+
+  defp dump_uuid(uuid) when byte_size(uuid) == 36, do: {:ok, uuid}
+  defp dump_uuid(_other), do: :error
 
   ## Query API
 
