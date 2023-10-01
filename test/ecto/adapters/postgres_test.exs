@@ -41,7 +41,6 @@ defmodule Ecto.Adapters.PostgresTest do
     schema "schema3" do
       field :list1, {:array, :string}
       field :list2, {:array, :integer}
-      field :binary_id, :binary_id
       field :binary, :binary
       field :uuid, Ecto.UUID
     end
