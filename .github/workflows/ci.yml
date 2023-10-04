@@ -43,6 +43,7 @@ jobs:
           - "1.11.4-erlang-21.3.8.24-alpine-3.13.3"
         mysql:
           - "5.7"
+          - "8.0"
     steps:
       - uses: earthly/actions-setup@v1
       - uses: actions/checkout@v3

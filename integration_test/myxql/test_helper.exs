@@ -19,11 +19,20 @@ Application.put_env(:ecto_sql, TestRepo,
   url: Application.get_env(:ecto_sql, :mysql_test_url) <> "/ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   show_sensitive_data_on_connection_error: true,
+  after_connect: {Ecto.Integration.TestRepo, :set_connection_charset, []},
   log: false
 )
 
 defmodule Ecto.Integration.TestRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MyXQL
+
+  def set_connection_charset(conn) do
+    %{rows: [[version]]} = MyXQL.query!(conn, "SELECT @@version", [])
+
+    if version >= "8.0.0" do
+      _ = MyXQL.query!(conn, "SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;", [])
+    end
+  end
 
   def create_prefix(prefix) do
     "create database #{prefix}"
