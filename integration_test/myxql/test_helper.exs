@@ -19,11 +19,20 @@ Application.put_env(:ecto_sql, TestRepo,
   url: Application.get_env(:ecto_sql, :mysql_test_url) <> "/ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   show_sensitive_data_on_connection_error: true,
+  after_connect: {Ecto.Integration.TestRepo, :set_connection_charset, []},
   log: false
 )
 
 defmodule Ecto.Integration.TestRepo do
   use Ecto.Integration.Repo, otp_app: :ecto_sql, adapter: Ecto.Adapters.MyXQL
+
+  def set_connection_charset(conn) do
+    %{rows: [[version]]} = MyXQL.query!(conn, "SELECT @@version", [])
+
+    if version >= "8.0.0" do
+      _ = MyXQL.query!(conn, "SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;", [])
+    end
+  end
 
   def create_prefix(prefix) do
     "create database #{prefix}"
@@ -106,11 +115,6 @@ excludes = [
 ]
 
 if Version.match?(version, ">= 8.0.0") do
-  # The default installation of MySQL 8.0 uses utf8mb4_0900_ai_ci as the collation for tables.
-  # However, it causes a collation error when a table's field is compared to `CAST(field AS char)`. The
-  # latter is given the collation utf8mb4_general_ci by MySQL and it is not clear how to fix this
-  # at the moment.
-  _ = TestRepo.query!("ALTER DATABASE ecto_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;", [])
   ExUnit.configure(exclude: excludes)
 else
   ExUnit.configure(exclude: [:values_list, :rename_column | excludes])
