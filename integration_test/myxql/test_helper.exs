@@ -106,6 +106,11 @@ excludes = [
 ]
 
 if Version.match?(version, ">= 8.0.0") do
+  # The default installation of MySQL 8.0 uses utf8mb4_0900_ai_ci as the collation for tables.
+  # However, it causes a collation error when a table's field is compared to `CAST(field AS char)`. The
+  # latter is given the collation utf8mb4_general_ci by MySQL and it is not clear how to fix this
+  # at the moment.
+  _ = TestRepo.query!("ALTER DATABASE ecto_test CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;", [])
   ExUnit.configure(exclude: excludes)
 else
   ExUnit.configure(exclude: [:values_list, :rename_column | excludes])
