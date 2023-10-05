@@ -8,13 +8,14 @@ jobs:
       fail-fast: false
       matrix:
         elixirbase:
-          - "1.13.4-erlang-24.3.4.2-alpine-3.16.0"
-          - "1.13.4-erlang-22.3.4.20-alpine-3.14.0"
+          - image: "1.13.4-erlang-24.3.4.2-alpine-3.16.0"
+            lint: lint
+          - image: "1.13.4-erlang-22.3.4.20-alpine-3.14.0"
     steps:
       - uses: earthly/actions-setup@v1
       - uses: actions/checkout@v3
       - name: test ecto_sql
-        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} +test
+        run: earthly -P --ci --build-arg LINT=${{matrix.elixirbase.lint}} --build-arg ELIXIR_BASE=${{matrix.elixirbase.image}} +test
   test-postgres:
     name: postgres integration test
     runs-on: ubuntu-latest
