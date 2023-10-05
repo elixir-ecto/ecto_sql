@@ -97,7 +97,12 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "from with 3-part prefix" do
-    query = Schema |> select([r], r.x) |> Map.put(:prefix, {"server", "database", "db_schema"}) |> plan()
+    query =
+      Schema
+      |> select([r], r.x)
+      |> Map.put(:prefix, {"server", "database", "db_schema"})
+      |> plan()
+
     assert all(query) == ~s{SELECT s0.[x] FROM [server].[database].[db_schema].[schema] AS s0}
   end
 
@@ -152,9 +157,11 @@ defmodule Ecto.Adapters.TdsTest do
     query = from(f in fragment("select_rows(arg)"), select: f.x) |> plan()
     assert all(query) == ~s{SELECT f0.[x] FROM select_rows(arg) AS f0}
 
-    assert_raise Ecto.QueryError, ~r"Tds adapter does not support selecting all fields from fragment", fn ->
-      all from(f in fragment("select ? as x", ^"abc"), select: f) |> plan()
-    end
+    assert_raise Ecto.QueryError,
+                 ~r"Tds adapter does not support selecting all fields from fragment",
+                 fn ->
+                   all(from(f in fragment("select ? as x", ^"abc"), select: f) |> plan())
+                 end
   end
 
   test "join with subquery" do
@@ -354,29 +361,32 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan()
 
     assert all(query) ==
-      ~s{SELECT c0.[id], s1.[breadcrumbs] FROM [categories] AS c0 } <>
-      ~s{OUTER APPLY } <>
-      ~s{(WITH [tree] ([id],[parent_id]) AS } <>
-      ~s{(SELECT ssc0.[id] AS [id], ssc0.[parent_id] AS [parent_id] FROM [categories] AS ssc0 WHERE (ssc0.[id] = c0.[id]) } <>
-      ~s{UNION ALL } <>
-      ~s{(SELECT ssc0.[id], ssc0.[parent_id] FROM [categories] AS ssc0 } <>
-      ~s{INNER JOIN [tree] AS sst1 ON sst1.[parent_id] = ssc0.[id])) } <>
-      ~s{SELECT STRING_AGG(st0.[id], ' / ') AS [breadcrumbs] FROM [tree] AS st0) AS s1}
+             ~s{SELECT c0.[id], s1.[breadcrumbs] FROM [categories] AS c0 } <>
+               ~s{OUTER APPLY } <>
+               ~s{(WITH [tree] ([id],[parent_id]) AS } <>
+               ~s{(SELECT ssc0.[id] AS [id], ssc0.[parent_id] AS [parent_id] FROM [categories] AS ssc0 WHERE (ssc0.[id] = c0.[id]) } <>
+               ~s{UNION ALL } <>
+               ~s{(SELECT ssc0.[id], ssc0.[parent_id] FROM [categories] AS ssc0 } <>
+               ~s{INNER JOIN [tree] AS sst1 ON sst1.[parent_id] = ssc0.[id])) } <>
+               ~s{SELECT STRING_AGG(st0.[id], ' / ') AS [breadcrumbs] FROM [tree] AS st0) AS s1}
   end
 
   test "parent binding subquery and combination" do
     right_query = from(c in "right_categories", where: c.id == parent_as(:c).id, select: c.id)
     left_query = from(c in "left_categories", where: c.id == parent_as(:c).id, select: c.id)
     union_query = union(left_query, ^right_query)
-    query = from(c in "categories", as: :c, where: c.id in subquery(union_query), select: c.id) |> plan()
+
+    query =
+      from(c in "categories", as: :c, where: c.id in subquery(union_query), select: c.id)
+      |> plan()
 
     assert all(query) ==
-      ~s{SELECT c0.[id] FROM [categories] AS c0 } <>
-      ~s{WHERE (} <>
-      ~s{c0.[id] IN } <>
-      ~s{(SELECT sl0.[id] FROM [left_categories] AS sl0 WHERE (sl0.[id] = c0.[id]) } <>
-      ~s{UNION } <>
-      ~s{(SELECT sr0.[id] FROM [right_categories] AS sr0 WHERE (sr0.[id] = c0.[id]))))}
+             ~s{SELECT c0.[id] FROM [categories] AS c0 } <>
+               ~s{WHERE (} <>
+               ~s{c0.[id] IN } <>
+               ~s{(SELECT sl0.[id] FROM [left_categories] AS sl0 WHERE (sl0.[id] = c0.[id]) } <>
+               ~s{UNION } <>
+               ~s{(SELECT sr0.[id] FROM [right_categories] AS sr0 WHERE (sr0.[id] = c0.[id]))))}
   end
 
   test "CTE with update statement" do
@@ -392,9 +402,9 @@ defmodule Ecto.Adapters.TdsTest do
       |> select([c], %{id: c.id, desc: c.desc})
       |> plan()
 
-      assert_raise Ecto.QueryError, ~r/Tds adapter does not support data-modifying CTEs/, fn ->
-        all(query)
-      end
+    assert_raise Ecto.QueryError, ~r/Tds adapter does not support data-modifying CTEs/, fn ->
+      all(query)
+    end
   end
 
   test "select" do
@@ -664,7 +674,12 @@ defmodule Ecto.Adapters.TdsTest do
     query = Schema |> select([r], fragment("? COLLATE ?", r.x, literal(^"es_ES"))) |> plan()
     assert all(query) == ~s{SELECT s0.[x] COLLATE [es_ES] FROM [schema] AS s0}
 
-    query = Schema |> select([r], r.x) |> where([r], fragment("? in (?,?,?)", r.x, ^1, splice(^[2, 3, 4]), ^5)) |> plan()
+    query =
+      Schema
+      |> select([r], r.x)
+      |> where([r], fragment("? in (?,?,?)", r.x, ^1, splice(^[2, 3, 4]), ^5))
+      |> plan()
+
     assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 WHERE (s0.[x] in (@1,@2,@3,@4,@5))}
 
     value = 13
@@ -706,16 +721,29 @@ defmodule Ecto.Adapters.TdsTest do
     query = "schema" |> select([s], selected_as(s.x, :integer)) |> plan()
     assert all(query) == ~s{SELECT s0.[x] AS [integer] FROM [schema] AS s0}
 
-    query = "schema" |> select([s], s.x |> coalesce(0) |> sum() |> selected_as(:integer)) |> plan()
+    query =
+      "schema" |> select([s], s.x |> coalesce(0) |> sum() |> selected_as(:integer)) |> plan()
+
     assert all(query) == ~s{SELECT sum(coalesce(s0.[x], 0)) AS [integer] FROM [schema] AS s0}
   end
 
   test "order_by can reference the alias of a selected value with selected_as/1s" do
-    query = "schema" |> select([s], selected_as(s.x, :integer)) |> order_by(selected_as(:integer)) |> plan()
+    query =
+      "schema"
+      |> select([s], selected_as(s.x, :integer))
+      |> order_by(selected_as(:integer))
+      |> plan()
+
     assert all(query) == ~s{SELECT s0.[x] AS [integer] FROM [schema] AS s0 ORDER BY [integer]}
 
-    query = "schema" |> select([s], selected_as(s.x, :integer)) |> order_by([desc: selected_as(:integer)]) |> plan()
-    assert all(query) == ~s{SELECT s0.[x] AS [integer] FROM [schema] AS s0 ORDER BY [integer] DESC}
+    query =
+      "schema"
+      |> select([s], selected_as(s.x, :integer))
+      |> order_by(desc: selected_as(:integer))
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] AS [integer] FROM [schema] AS s0 ORDER BY [integer] DESC}
   end
 
   test "tagged type" do
@@ -924,12 +952,13 @@ defmodule Ecto.Adapters.TdsTest do
       |> join(:inner, [p], p2 in subquery(sub), on: p.id == p2.id)
       |> update([_], set: [x: ^100])
 
-    {planned_query, cast_params, dump_params} = Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.Tds, query)
+    {planned_query, cast_params, dump_params} =
+      Ecto.Adapter.Queryable.plan_query(:update_all, Ecto.Adapters.Tds, query)
 
     assert update_all(planned_query) ==
-      ~s{UPDATE s0 SET s0.[x] = @1 FROM [schema] AS s0 INNER JOIN } <>
-      ~S{(SELECT ss0.[id] AS [id], ss0.[x] AS [x], ss0.[y] AS [y], ss0.[z] AS [z], ss0.[w] AS [w] FROM [schema] AS ss0 WHERE (ss0.[x] > @2)) } <>
-      ~S{AS s1 ON s0.[id] = s1.[id]}
+             ~s{UPDATE s0 SET s0.[x] = @1 FROM [schema] AS s0 INNER JOIN } <>
+               ~S{(SELECT ss0.[id] AS [id], ss0.[x] AS [x], ss0.[y] AS [y], ss0.[z] AS [z], ss0.[w] AS [w] FROM [schema] AS ss0 WHERE (ss0.[x] > @2)) } <>
+               ~S{AS s1 ON s0.[id] = s1.[id]}
 
     assert cast_params == [100, 10]
     assert dump_params == [100, 10]
@@ -1084,11 +1113,15 @@ defmodule Ecto.Adapters.TdsTest do
       |> join(
         :inner,
         [p],
-        q in fragment(~S"""
-          SELECT *
-          FROM schema2 AS s2
-          WHERE s2.id = ? AND s2.field = ?
-        """, p.x, ^10),
+        q in fragment(
+          ~S"""
+            SELECT *
+            FROM schema2 AS s2
+            WHERE s2.id = ? AND s2.field = ?
+          """,
+          p.x,
+          ^10
+        ),
         on: true
       )
       |> select([p], {p.id, ^0})
@@ -1104,27 +1137,41 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "inner lateral join with fragment" do
-    query = Schema
-            |> join(:inner_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10), on: true)
-            |> select([p, q], {p.id, q.z})
-            |> where([p], p.id > 0 and p.id < ^100)
-            |> plan()
+    query =
+      Schema
+      |> join(
+        :inner_lateral,
+        [p],
+        q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10),
+        on: true
+      )
+      |> select([p, q], {p.id, q.z})
+      |> where([p], p.id > 0 and p.id < ^100)
+      |> plan()
+
     assert all(query) ==
-           ~s{SELECT s0.[id], f1.[z] FROM [schema] AS s0 CROSS APPLY } <>
-           ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @1) AS f1 } <>
-           ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @2))}
+             ~s{SELECT s0.[id], f1.[z] FROM [schema] AS s0 CROSS APPLY } <>
+               ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @1) AS f1 } <>
+               ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @2))}
   end
 
   test "left lateral join with fragment" do
-    query = Schema
-            |> join(:left_lateral, [p], q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10), on: true)
-            |> select([p, q], {p.id, q.z})
-            |> where([p], p.id > 0 and p.id < ^100)
-            |> plan()
+    query =
+      Schema
+      |> join(
+        :left_lateral,
+        [p],
+        q in fragment("SELECT * FROM schema2 AS s2 WHERE s2.id = ? AND s2.field = ?", p.x, ^10),
+        on: true
+      )
+      |> select([p, q], {p.id, q.z})
+      |> where([p], p.id > 0 and p.id < ^100)
+      |> plan()
+
     assert all(query) ==
-           ~s{SELECT s0.[id], f1.[z] FROM [schema] AS s0 OUTER APPLY } <>
-           ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @1) AS f1 } <>
-           ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @2))}
+             ~s{SELECT s0.[id], f1.[z] FROM [schema] AS s0 OUTER APPLY } <>
+               ~s{(SELECT * FROM schema2 AS s2 WHERE s2.id = s0.[x] AND s2.field = @1) AS f1 } <>
+               ~s{WHERE ((s0.[id] > 0) AND (s0.[id] < @2))}
   end
 
   test "join with fragment and on defined" do
@@ -1216,10 +1263,11 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "insert with query as rows" do
-    query = from(s in "schema", select: %{ foo: fragment("3"), bar: s.bar }) |> plan(:all)
+    query = from(s in "schema", select: %{foo: fragment("3"), bar: s.bar}) |> plan(:all)
     query = insert(nil, "schema", [:foo, :bar], query, {:raise, [], []}, [:foo])
 
-    assert query == ~s{INSERT INTO [schema] ([foo],[bar]) OUTPUT INSERTED.[foo] SELECT 3, s0.[bar] FROM [schema] AS s0}
+    assert query ==
+             ~s{INSERT INTO [schema] ([foo],[bar]) OUTPUT INSERTED.[foo] SELECT 3, s0.[bar] FROM [schema] AS s0}
   end
 
   test "update" do
@@ -1263,9 +1311,9 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert query ==
              ~s{SELECT v1.[bid], v1.[num] } <>
-             ~s{FROM (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v0 ([bid],[num]) } <>
-             ~s{INNER JOIN (VALUES (CAST(@5 AS uniqueidentifier),CAST(@6 AS integer)),(CAST(@7 AS uniqueidentifier),CAST(@8 AS integer))) AS v1 ([bid],[num]) ON v0.[bid] = v1.[bid] } <>
-             ~s{WHERE (v0.[num] = @9)}
+               ~s{FROM (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v0 ([bid],[num]) } <>
+               ~s{INNER JOIN (VALUES (CAST(@5 AS uniqueidentifier),CAST(@6 AS integer)),(CAST(@7 AS uniqueidentifier),CAST(@8 AS integer))) AS v1 ([bid],[num]) ON v0.[bid] = v1.[bid] } <>
+               ~s{WHERE (v0.[num] = @9)}
   end
 
   test "values list: delete_all" do
@@ -1280,8 +1328,8 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert query ==
              ~s{DELETE s0 FROM [schema] AS s0 } <>
-             ~s{INNER JOIN (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v1 ([bid],[num]) } <>
-             ~s{ON s0.[x] = v1.[num] WHERE (v1.[num] = @5)}
+               ~s{INNER JOIN (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v1 ([bid],[num]) } <>
+               ~s{ON s0.[x] = v1.[num] WHERE (v1.[num] = @5)}
   end
 
   test "values list: update_all" do
@@ -1374,7 +1422,8 @@ defmodule Ecto.Adapters.TdsTest do
          {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
          {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all},
           []},
-         {:add, :category_6, %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []}
+         {:add, :category_6,
+          %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []}
        ]}
 
     assert execute_ddl(create) == [
@@ -1400,8 +1449,12 @@ defmodule Ecto.Adapters.TdsTest do
              |> Kernel.<>(" ")
            ]
 
-    create = {:create, table(:posts),
-              [{:add, :category_1, %Reference{table: :categories, on_delete: {:nilify, [:category_1]}}, []}]}
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :category_1, %Reference{table: :categories, on_delete: {:nilify, [:category_1]}},
+          []}
+       ]}
 
     msg = "Tds adapter does not support the `{:nilify, columns}` action for `:on_delete`"
     assert_raise ArgumentError, msg, fn -> execute_ddl(create) end
@@ -1501,7 +1554,8 @@ defmodule Ecto.Adapters.TdsTest do
          {:modify, :permalink_id, %Reference{table: :permalinks}, null: false},
          {:modify, :status, :string, from: :integer},
          {:modify, :user_id, :integer, from: %Reference{table: :users}},
-         {:modify, :space_id, :integer, null: true, from: {%Reference{table: :author}, null: false}},
+         {:modify, :space_id, :integer,
+          null: true, from: {%Reference{table: :author}, null: false}},
          {:modify, :group_id, %Reference{table: :groups, column: :gid},
           from: %Reference{table: :groups}},
          {:remove, :summary}
@@ -1606,9 +1660,11 @@ defmodule Ecto.Adapters.TdsTest do
 
     drop_cascade = {:drop, constraint(:products, "price_must_be_positive"), :cascade}
 
-    assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP CONSTRAINT commands", fn ->
-      execute_ddl(drop_cascade)
-    end
+    assert_raise ArgumentError,
+                 ~r"MSSQL does not support `CASCADE` in DROP CONSTRAINT commands",
+                 fn ->
+                   execute_ddl(drop_cascade)
+                 end
   end
 
   test "drop_if_exists constraint" do
@@ -1622,7 +1678,8 @@ defmodule Ecto.Adapters.TdsTest do
                  "ALTER TABLE [products] DROP CONSTRAINT [price_must_be_positive]; "
              ]
 
-    drop = {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
+    drop =
+      {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
 
     assert execute_ddl(drop) ==
              [
@@ -1635,9 +1692,11 @@ defmodule Ecto.Adapters.TdsTest do
 
     drop_cascade = {:drop_if_exists, constraint(:products, "price_must_be_positive"), :cascade}
 
-    assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP CONSTRAINT commands", fn ->
-      execute_ddl(drop_cascade)
-    end
+    assert_raise ArgumentError,
+                 ~r"MSSQL does not support `CASCADE` in DROP CONSTRAINT commands",
+                 fn ->
+                   execute_ddl(drop_cascade)
+                 end
   end
 
   test "rename table" do
@@ -1745,7 +1804,9 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "drop index with prefix" do
-    drop = {:drop, index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), :restrict}
+    drop =
+      {:drop, index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo),
+       :restrict}
 
     assert execute_ddl(drop) ==
              [~s|DROP INDEX [posts_category_id_permalink_index] ON [foo].[posts]; |]
@@ -1770,7 +1831,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     drop_cascade =
       {:drop_if_exists,
-      index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), :cascade}
+       index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), :cascade}
 
     assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP INDEX commands", fn ->
       execute_ddl(drop_cascade)
@@ -1784,7 +1845,10 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "rename index" do
     rename = {:rename, index(:people, [:name], name: "persons_name_index"), "people_name_index"}
-    assert execute_ddl(rename) == [~s|sp_rename N'people.persons_name_index', N'people_name_index', N'INDEX'|]
+
+    assert execute_ddl(rename) == [
+             ~s|sp_rename N'people.persons_name_index', N'people_name_index', N'INDEX'|
+           ]
   end
 
   defp remove_newlines(string) when is_binary(string) do

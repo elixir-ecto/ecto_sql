@@ -98,15 +98,14 @@ defmodule Ecto.MigratorTest do
     end
 
     defp flushed?() do
-      %{commands: commands} =
-        Agent.get(runner(), fn state -> state end)
+      %{commands: commands} = Agent.get(runner(), fn state -> state end)
       Enum.empty?(commands)
     end
 
     defp runner do
       case Process.get(:ecto_migration) do
         %{runner: runner} -> runner
-        _ -> raise "could not find migration runner process for #{inspect self()}"
+        _ -> raise "could not find migration runner process for #{inspect(self())}"
       end
     end
   end
@@ -197,15 +196,15 @@ defmodule Ecto.MigratorTest do
   def put_test_adapter_config(config) do
     Application.put_env(:ecto_sql, EctoSQL.TestAdapter, config)
 
-    on_exit fn ->
+    on_exit(fn ->
       Application.delete_env(:ecto, EctoSQL.TestAdapter)
-    end
+    end)
   end
 
   defp create_migration(name, opts \\ []) do
-    module = name |> Path.basename |> Path.rootname
+    module = name |> Path.basename() |> Path.rootname()
 
-    File.write! name, """
+    File.write!(name, """
     defmodule Ecto.MigrationTest.S#{module} do
       use Ecto.Migration
 
@@ -219,15 +218,15 @@ defmodule Ecto.MigratorTest do
         execute "down"
       end
     end
-    """
+    """)
   end
 
   test "execute one anonymous function" do
     module = ExecuteOneAnonymousFunctionMigration
     num = System.unique_integer([:positive])
-    capture_log(fn -> :ok = up(TestRepo, num, module, [log: false]) end)
+    capture_log(fn -> :ok = up(TestRepo, num, module, log: false) end)
     message = "no function clause matching in Ecto.Migration.Runner.command/1"
-    assert_raise(FunctionClauseError, message, fn -> down(TestRepo, num, module, [log: false]) end)
+    assert_raise(FunctionClauseError, message, fn -> down(TestRepo, num, module, log: false) end)
   end
 
   test "execute two anonymous functions" do
@@ -252,6 +251,7 @@ defmodule Ecto.MigratorTest do
     assert :ok == down(TestRepo, num, EmptyUpDownMigration, log: false)
     assert :ok == up(TestRepo, num, EmptyChangeMigration, log: false)
     message = "calling flush() inside change when doing rollback is not supported."
+
     assert_raise(RuntimeError, message, fn ->
       down(TestRepo, num, EmptyChangeMigration, log: false)
     end)
@@ -264,7 +264,7 @@ defmodule Ecto.MigratorTest do
 
     assert [{10, :custom} | _] = MigrationsAgent.get()
 
-    Process.put(:repo_default_options, [prefix: nil])
+    Process.put(:repo_default_options, prefix: nil)
 
     capture_log(fn ->
       :ok = up(TestRepo, 11, ChangeMigration, prefix: :custom)
@@ -280,53 +280,59 @@ defmodule Ecto.MigratorTest do
   end
 
   test "logs migrations" do
-    output = capture_log fn ->
-      :ok = up(TestRepo, 10, ChangeMigration)
-    end
+    output =
+      capture_log(fn ->
+        :ok = up(TestRepo, 10, ChangeMigration)
+      end)
 
     assert output =~ "== Running 10 Ecto.MigratorTest.ChangeMigration.change/0 forward"
     assert output =~ "create table posts"
     assert output =~ "create index posts_title_index"
     assert output =~ ~r"== Migrated 10 in \d.\ds"
 
-    output = capture_log fn ->
-      :ok = down(TestRepo, 10, ChangeMigration)
-    end
+    output =
+      capture_log(fn ->
+        :ok = down(TestRepo, 10, ChangeMigration)
+      end)
 
     assert output =~ "== Running 10 Ecto.MigratorTest.ChangeMigration.change/0 backward"
     assert output =~ "drop table posts"
     assert output =~ "drop index posts_title_index"
     assert output =~ ~r"== Migrated 10 in \d.\ds"
 
-    output = capture_log fn ->
-      :ok = up(TestRepo, 11, ChangeMigrationPrefix)
-    end
+    output =
+      capture_log(fn ->
+        :ok = up(TestRepo, 11, ChangeMigrationPrefix)
+      end)
 
     assert output =~ "== Running 11 Ecto.MigratorTest.ChangeMigrationPrefix.change/0 forward"
     assert output =~ "create table foo.comments"
     assert output =~ "create index foo.posts_title_index"
     assert output =~ ~r"== Migrated 11 in \d.\ds"
 
-    output = capture_log fn ->
-      :ok = down(TestRepo, 11, ChangeMigrationPrefix)
-    end
+    output =
+      capture_log(fn ->
+        :ok = down(TestRepo, 11, ChangeMigrationPrefix)
+      end)
 
     assert output =~ "== Running 11 Ecto.MigratorTest.ChangeMigrationPrefix.change/0 backward"
     assert output =~ "drop table foo.comments"
     assert output =~ "drop index foo.posts_title_index"
     assert output =~ ~r"== Migrated 11 in \d.\ds"
 
-    output = capture_log fn ->
-      :ok = up(TestRepo, 12, UpDownMigration)
-    end
+    output =
+      capture_log(fn ->
+        :ok = up(TestRepo, 12, UpDownMigration)
+      end)
 
     assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.up/0 forward"
     assert output =~ "alter table posts"
     assert output =~ ~r"== Migrated 12 in \d.\ds"
 
-    output = capture_log fn ->
-      :ok = down(TestRepo, 12, UpDownMigration)
-    end
+    output =
+      capture_log(fn ->
+        :ok = down(TestRepo, 12, UpDownMigration)
+      end)
 
     assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.down/0 forward"
     assert output =~ "execute \"foo\""
@@ -334,26 +340,34 @@ defmodule Ecto.MigratorTest do
   end
 
   test "logs ddl notices" do
-    output = capture_log fn ->
-      :ok = up(TestRepo, 10, ChangeMigration)
-    end
+    output =
+      capture_log(fn ->
+        :ok = up(TestRepo, 10, ChangeMigration)
+      end)
+
     assert output =~ "execute ddl"
 
-    output = capture_log fn ->
-      :ok = down(TestRepo, 10, ChangeMigration)
-    end
+    output =
+      capture_log(fn ->
+        :ok = down(TestRepo, 10, ChangeMigration)
+      end)
+
     assert output =~ "execute ddl"
   end
 
   test "silences ddl notices when log is set to false" do
-    output = capture_log fn ->
-      :ok = up(TestRepo, 10, ChangeMigration, log: false)
-    end
+    output =
+      capture_log(fn ->
+        :ok = up(TestRepo, 10, ChangeMigration, log: false)
+      end)
+
     refute output =~ "execute ddl"
 
-    output = capture_log fn ->
-      :ok = down(TestRepo, 10, ChangeMigration, log: false)
-    end
+    output =
+      capture_log(fn ->
+        :ok = down(TestRepo, 10, ChangeMigration, log: false)
+      end)
+
     refute output =~ "execute ddl"
   end
 
@@ -365,8 +379,9 @@ defmodule Ecto.MigratorTest do
 
   test "up invokes the repository adapter with up commands" do
     assert capture_log(fn ->
-      assert up(TestRepo, 0, Migration, log: false) == :ok
-    end) =~ "You are running migration 0 but an older migration with version 3 has already run"
+             assert up(TestRepo, 0, Migration, log: false) == :ok
+           end) =~
+             "You are running migration 0 but an older migration with version 3 has already run"
 
     assert up(TestRepo, 1, Migration, log: false) == :already_up
     assert up(TestRepo, 10, ChangeMigration, log: false) == :ok
@@ -423,8 +438,8 @@ defmodule Ecto.MigratorTest do
     end
 
     test "on run" do
-      in_tmp fn path ->
-        create_migration "13_sample.exs"
+      in_tmp(fn path ->
+        create_migration("13_sample.exs")
         assert run(TestRepo, path, :up, all: true, log: false) == [13]
         # One lock for fetching versions, another for running
         assert_receive {:lock_for_migrations, _, _, opts}
@@ -432,13 +447,13 @@ defmodule Ecto.MigratorTest do
         assert_receive {:lock_for_migrations, _, _, opts}
         assert opts[:migration_source] == "schema_migrations"
 
-        create_migration "14_sample.exs", [:disable_migration_lock]
+        create_migration("14_sample.exs", [:disable_migration_lock])
         assert run(TestRepo, path, :up, all: true, log: false) == [14]
         # One lock for fetching versions, another from running
         assert_receive {:lock_for_migrations, _, _, opts}
         assert opts[:migration_source] == "schema_migrations"
         refute_received {:lock_for_migrations, _, _, _}
-      end
+      end)
     end
   end
 
@@ -451,8 +466,8 @@ defmodule Ecto.MigratorTest do
     end
 
     test "skip schema migrations table creation" do
-      in_tmp fn path ->
-        create_migration "15_sample.exs"
+      in_tmp(fn path ->
+        create_migration("15_sample.exs")
 
         expected_result = [{:up, 15, "sample"}]
         assert migrations(TestRepo, path, skip_table_creation: true) == expected_result
@@ -462,12 +477,12 @@ defmodule Ecto.MigratorTest do
         assert opts[:skip_table_creation] == true
 
         assert match?(nil, last_command())
-      end
+      end)
     end
 
     test "default to create schema migrations table" do
-      in_tmp fn path ->
-        create_migration "15_sample.exs"
+      in_tmp(fn path ->
+        create_migration("15_sample.exs")
 
         expected_result = [{:up, 15, "sample"}]
         assert migrations(TestRepo, path) == expected_result
@@ -476,153 +491,166 @@ defmodule Ecto.MigratorTest do
         refute_received {:lock_for_migrations, _, _, _}
 
         assert match?({:create_if_not_exists, %_{name: :schema_migrations}, _}, last_command())
-      end
+      end)
     end
   end
 
   describe "run" do
     test "expects files starting with an integer" do
-      in_tmp fn path ->
-        create_migration "a_sample.exs"
+      in_tmp(fn path ->
+        create_migration("a_sample.exs")
         assert run(TestRepo, path, :up, all: true, log: false) == []
-      end
+      end)
     end
 
     test "fails if there is no migration in file" do
-      in_tmp fn path ->
-        File.write! "13_sample.exs", ":ok"
-        assert_raise Ecto.MigrationError, "file 13_sample.exs does not define an Ecto.Migration", fn ->
-          run(TestRepo, path, :up, all: true, log: false)
-        end
-      end
+      in_tmp(fn path ->
+        File.write!("13_sample.exs", ":ok")
+
+        assert_raise Ecto.MigrationError,
+                     "file 13_sample.exs does not define an Ecto.Migration",
+                     fn ->
+                       run(TestRepo, path, :up, all: true, log: false)
+                     end
+      end)
     end
 
     test "fails if there are duplicated versions" do
-      in_tmp fn path ->
-        create_migration "13_hello.exs"
-        create_migration "13_other.exs"
-        assert_raise Ecto.MigrationError, "migrations can't be executed, migration version 13 is duplicated", fn ->
-          run(TestRepo, path, :up, all: true, log: false)
-        end
-      end
+      in_tmp(fn path ->
+        create_migration("13_hello.exs")
+        create_migration("13_other.exs")
+
+        assert_raise Ecto.MigrationError,
+                     "migrations can't be executed, migration version 13 is duplicated",
+                     fn ->
+                       run(TestRepo, path, :up, all: true, log: false)
+                     end
+      end)
     end
 
     test "fails if there are duplicated name" do
-      in_tmp fn path ->
-        create_migration "13_hello.exs"
-        create_migration "14_hello.exs"
-        assert_raise Ecto.MigrationError, "migrations can't be executed, migration name hello is duplicated", fn ->
-          run(TestRepo, path, :up, all: true, log: false)
-        end
-      end
+      in_tmp(fn path ->
+        create_migration("13_hello.exs")
+        create_migration("14_hello.exs")
+
+        assert_raise Ecto.MigrationError,
+                     "migrations can't be executed, migration name hello is duplicated",
+                     fn ->
+                       run(TestRepo, path, :up, all: true, log: false)
+                     end
+      end)
     end
 
     test "upwards migrations skips migrations that are already up" do
-      in_tmp fn path ->
-        create_migration "1_sample.exs"
+      in_tmp(fn path ->
+        create_migration("1_sample.exs")
         assert run(TestRepo, path, :up, all: true, log: false) == []
-      end
+      end)
     end
 
     test "downwards migrations skips migrations that are already down" do
-      in_tmp fn path ->
-        create_migration "1_sample1.exs"
-        create_migration "4_sample2.exs"
+      in_tmp(fn path ->
+        create_migration("1_sample1.exs")
+        create_migration("4_sample2.exs")
         assert run(TestRepo, path, :down, all: true, log: false) == [1]
-      end
+      end)
     end
 
     test "stepwise migrations stop before all have been run" do
-      in_tmp fn path ->
-        create_migration "13_step_premature_end1.exs"
-        create_migration "14_step_premature_end2.exs"
+      in_tmp(fn path ->
+        create_migration("13_step_premature_end1.exs")
+        create_migration("14_step_premature_end2.exs")
         assert run(TestRepo, path, :up, step: 1, log: false) == [13]
-      end
+      end)
     end
 
     test "stepwise migrations stop at the number of available migrations" do
-      in_tmp fn path ->
-        create_migration "13_step_to_the_end1.exs"
-        create_migration "14_step_to_the_end2.exs"
+      in_tmp(fn path ->
+        create_migration("13_step_to_the_end1.exs")
+        create_migration("14_step_to_the_end2.exs")
         assert run(TestRepo, path, :up, step: 2, log: false) == [13, 14]
-      end
+      end)
     end
 
     test "stepwise migrations stop even if asked to exceed available" do
-      in_tmp fn path ->
-        create_migration "13_step_past_the_end1.exs"
-        create_migration "14_step_past_the_end2.exs"
+      in_tmp(fn path ->
+        create_migration("13_step_past_the_end1.exs")
+        create_migration("14_step_past_the_end2.exs")
         assert run(TestRepo, path, :up, step: 3, log: false) == [13, 14]
-      end
+      end)
     end
 
     test "version migrations stop before all have been run" do
-      in_tmp fn path ->
-        create_migration "13_version_premature_end1.exs"
-        create_migration "14_version_premature_end2.exs"
+      in_tmp(fn path ->
+        create_migration("13_version_premature_end1.exs")
+        create_migration("14_version_premature_end2.exs")
         assert run(TestRepo, path, :up, to: 13, log: false) == [13]
-      end
+      end)
     end
 
     test "version migrations stop at the number of available migrations" do
-      in_tmp fn path ->
-        create_migration "13_version_to_the_end1.exs"
-        create_migration "14_version_to_the_end2.exs"
+      in_tmp(fn path ->
+        create_migration("13_version_to_the_end1.exs")
+        create_migration("14_version_to_the_end2.exs")
         assert run(TestRepo, path, :up, to: 14, log: false) == [13, 14]
-      end
+      end)
     end
 
     test "version migrations stop even if asked to exceed available" do
-      in_tmp fn path ->
-        create_migration "13_version_past_the_end1.exs"
-        create_migration "14_version_past_the_end2.exs"
+      in_tmp(fn path ->
+        create_migration("13_version_past_the_end1.exs")
+        create_migration("14_version_past_the_end2.exs")
         assert run(TestRepo, path, :up, to: 15, log: false) == [13, 14]
-      end
+      end)
     end
 
     test "version migrations work inside directories" do
-      in_tmp fn path ->
+      in_tmp(fn path ->
         File.mkdir_p!("foo")
-        create_migration "foo/13_version_in_dir.exs"
+        create_migration("foo/13_version_in_dir.exs")
         assert run(TestRepo, Path.join(path, "foo"), :up, to: 15, log: false) == [13]
-      end
+      end)
     end
 
     test "migrations from multiple paths are executed in order" do
       in_tmp(fn path ->
         File.mkdir_p!("a")
         File.mkdir_p!("b")
-        create_migration "a/10_migration10.exs"
-        create_migration "a/12_migration12.exs"
-        create_migration "b/11_migration11.exs"
+        create_migration("a/10_migration10.exs")
+        create_migration("a/12_migration12.exs")
+        create_migration("b/11_migration11.exs")
         paths = [Path.join([path, "a"]), Path.join([path, "b"])]
         assert run(TestRepo, paths, :up, to: 12, log: false) == [10, 11, 12]
       end)
     end
 
     test "raises if target is not integer" do
-      in_tmp fn path ->
+      in_tmp(fn path ->
         message_base = "no function clause matching in "
 
         assert_raise(FunctionClauseError, message_base <> "Ecto.Migrator.pending_to/4", fn ->
           run(TestRepo, path, :up, to: "123")
         end)
 
-        assert_raise(FunctionClauseError, message_base <> "Ecto.Migrator.pending_to_exclusive/4", fn ->
-          run(TestRepo, path, :up, to_exclusive: "123")
-        end)
-      end
+        assert_raise(
+          FunctionClauseError,
+          message_base <> "Ecto.Migrator.pending_to_exclusive/4",
+          fn ->
+            run(TestRepo, path, :up, to_exclusive: "123")
+          end
+        )
+      end)
     end
   end
 
   describe "migrations" do
     test "give the up and down migration status" do
-      in_tmp fn path ->
-        create_migration "1_up_migration_1.exs"
-        create_migration "2_up_migration_2.exs"
-        create_migration "3_up_migration_3.exs"
-        create_migration "4_down_migration_1.exs"
-        create_migration "5_down_migration_2.exs"
+      in_tmp(fn path ->
+        create_migration("1_up_migration_1.exs")
+        create_migration("2_up_migration_2.exs")
+        create_migration("3_up_migration_3.exs")
+        create_migration("4_down_migration_1.exs")
+        create_migration("5_down_migration_2.exs")
 
         expected_result = [
           {:up, 1, "up_migration_1"},
@@ -633,27 +661,27 @@ defmodule Ecto.MigratorTest do
         ]
 
         assert migrations(TestRepo, path) == expected_result
-      end
+      end)
     end
 
     test "are picked up from subdirs" do
       in_tmp(fn path ->
         File.mkdir_p!("foo")
 
-        create_migration "foo/6_up_migration_1.exs"
-        create_migration "7_up_migration_2.exs"
-        create_migration "8_up_migration_3.exs"
+        create_migration("foo/6_up_migration_1.exs")
+        create_migration("7_up_migration_2.exs")
+        create_migration("8_up_migration_3.exs")
 
         assert run(TestRepo, path, :up, all: true, log: false) == [6, 7, 8]
       end)
     end
 
     test "give the migration status while file is deleted" do
-      in_tmp fn path ->
-        create_migration "1_up_migration_1.exs"
-        create_migration "2_up_migration_2.exs"
-        create_migration "3_up_migration_3.exs"
-        create_migration "4_down_migration_1.exs"
+      in_tmp(fn path ->
+        create_migration("1_up_migration_1.exs")
+        create_migration("2_up_migration_2.exs")
+        create_migration("3_up_migration_3.exs")
+        create_migration("4_down_migration_1.exs")
 
         File.rm("2_up_migration_2.exs")
 
@@ -661,83 +689,97 @@ defmodule Ecto.MigratorTest do
           {:up, 1, "up_migration_1"},
           {:up, 2, "** FILE NOT FOUND **"},
           {:up, 3, "up_migration_3"},
-          {:down, 4, "down_migration_1"},
+          {:down, 4, "down_migration_1"}
         ]
 
         assert migrations(TestRepo, path) == expected_result
-      end
+      end)
     end
 
     test "multiple paths" do
       in_tmp(fn path ->
         File.mkdir_p!("a")
         File.mkdir_p!("b")
-        create_migration "a/1_up_migration_1.exs"
-        create_migration "b/2_up_migration_2.exs"
-        create_migration "a/3_up_migration_3.exs"
+        create_migration("a/1_up_migration_1.exs")
+        create_migration("b/2_up_migration_2.exs")
+        create_migration("a/3_up_migration_3.exs")
 
-        assert migrations(TestRepo, [Path.join([path, "a"]), Path.join([path, "b"])]) ==  [
-          {:up, 1, "up_migration_1"},
-          {:up, 2, "up_migration_2"},
-          {:up, 3, "up_migration_3"},
-        ]
+        assert migrations(TestRepo, [Path.join([path, "a"]), Path.join([path, "b"])]) == [
+                 {:up, 1, "up_migration_1"},
+                 {:up, 2, "up_migration_2"},
+                 {:up, 3, "up_migration_3"}
+               ]
 
-        assert migrations(TestRepo, [Path.join([path, "a"])]) ==  [
-          {:up, 1, "up_migration_1"},
-          {:up, 2, "** FILE NOT FOUND **"},
-          {:up, 3, "up_migration_3"},
-        ]
+        assert migrations(TestRepo, [Path.join([path, "a"])]) == [
+                 {:up, 1, "up_migration_1"},
+                 {:up, 2, "** FILE NOT FOUND **"},
+                 {:up, 3, "up_migration_3"}
+               ]
       end)
     end
 
     test "run inside a transaction if the adapter supports ddl transactions" do
-      capture_log fn ->
+      capture_log(fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
         up(TestRepo, 0, ChangeMigration)
         assert_receive {:transaction, _, _}
-      end
+      end)
     end
 
     test "can be forced to run outside a transaction" do
-      capture_log fn ->
+      capture_log(fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
         up(TestRepo, 0, NoTransactionMigration)
         refute_received {:transaction, _}
-      end
+      end)
     end
 
     test "does not run inside a transaction if the adapter does not support ddl transactions" do
-      capture_log fn ->
+      capture_log(fn ->
         put_test_adapter_config(supports_ddl_transaction?: false, test_process: self())
         up(TestRepo, 0, ChangeMigration)
         refute_received {:transaction, _}
-      end
+      end)
     end
   end
 
   describe "alternate migration source format" do
     test "fails if there is no migration in file" do
-      assert_raise Ecto.MigrationError, "module Ecto.MigratorTest.EmptyModule is not an Ecto.Migration", fn ->
-        run(TestRepo, [{13, EmptyModule}], :up, all: true, log: false)
-      end
+      assert_raise Ecto.MigrationError,
+                   "module Ecto.MigratorTest.EmptyModule is not an Ecto.Migration",
+                   fn ->
+                     run(TestRepo, [{13, EmptyModule}], :up, all: true, log: false)
+                   end
     end
 
     test "fails if the module does not define migrations" do
-      assert_raise Ecto.MigrationError, "Ecto.MigratorTest.InvalidMigration does not implement a `up/0` or `change/0` function", fn ->
-        run(TestRepo, [{13, InvalidMigration}], :up, all: true, log: false)
-      end
+      assert_raise Ecto.MigrationError,
+                   "Ecto.MigratorTest.InvalidMigration does not implement a `up/0` or `change/0` function",
+                   fn ->
+                     run(TestRepo, [{13, InvalidMigration}], :up, all: true, log: false)
+                   end
     end
 
     test "fails if there are duplicated versions" do
-      assert_raise Ecto.MigrationError, "migrations can't be executed, migration version 13 is duplicated", fn ->
-        run(TestRepo, [{13, ChangeMigration}, {13, UpDownMigration}], :up, all: true, log: false)
-      end
+      assert_raise Ecto.MigrationError,
+                   "migrations can't be executed, migration version 13 is duplicated",
+                   fn ->
+                     run(TestRepo, [{13, ChangeMigration}, {13, UpDownMigration}], :up,
+                       all: true,
+                       log: false
+                     )
+                   end
     end
 
     test "fails if there are duplicated name" do
-      assert_raise Ecto.MigrationError, "migrations can't be executed, migration name Elixir.Ecto.MigratorTest.ChangeMigration is duplicated", fn ->
-        run(TestRepo, [{13, ChangeMigration}, {14, ChangeMigration}], :up, all: true, log: false)
-      end
+      assert_raise Ecto.MigrationError,
+                   "migrations can't be executed, migration name Elixir.Ecto.MigratorTest.ChangeMigration is duplicated",
+                   fn ->
+                     run(TestRepo, [{13, ChangeMigration}, {14, ChangeMigration}], :up,
+                       all: true,
+                       log: false
+                     )
+                   end
     end
 
     test "upwards migrations skips migrations that are already up" do
@@ -745,31 +787,46 @@ defmodule Ecto.MigratorTest do
     end
 
     test "downwards migrations skips migrations that are already down" do
-      assert run(TestRepo, [{1, ChangeMigration}, {4, UpDownMigration}], :down, all: true, log: false) == [1]
+      assert run(TestRepo, [{1, ChangeMigration}, {4, UpDownMigration}], :down,
+               all: true,
+               log: false
+             ) == [1]
     end
 
     test "stepwise migrations stop before all have been run" do
-      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, step: 1, log: false) == [13]
+      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up,
+               step: 1,
+               log: false
+             ) == [13]
     end
 
     test "stepwise migrations stop at the number of available migrations" do
-      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, step: 2, log: false) == [13, 14]
+      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up,
+               step: 2,
+               log: false
+             ) == [13, 14]
     end
 
     test "stepwise migrations stop even if asked to exceed available" do
-      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, step: 3, log: false) == [13, 14]
+      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up,
+               step: 3,
+               log: false
+             ) == [13, 14]
     end
 
     test "version migrations stop before all have been run" do
-      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 13, log: false) == [13]
+      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 13, log: false) ==
+               [13]
     end
 
     test "version migrations stop at the number of available migrations" do
-      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 14, log: false) == [13, 14]
+      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 14, log: false) ==
+               [13, 14]
     end
 
     test "version migrations stop even if asked to exceed available" do
-      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 15, log: false) == [13, 14]
+      assert run(TestRepo, [{13, ChangeMigration}, {14, UpDownMigration}], :up, to: 15, log: false) ==
+               [13, 14]
     end
   end
 
@@ -779,9 +836,10 @@ defmodule Ecto.MigratorTest do
     end
 
     test "both run when in a transaction going up" do
-      log = capture_log(fn ->
-        assert up(TestRepo, 10, MigrationWithCallbacks) == :ok
-      end)
+      log =
+        capture_log(fn ->
+          assert up(TestRepo, 10, MigrationWithCallbacks) == :ok
+        end)
 
       assert log =~ "after_begin"
       assert log =~ "before_commit"
@@ -790,18 +848,20 @@ defmodule Ecto.MigratorTest do
     test "are both run in a transaction going down" do
       assert up(TestRepo, 10, MigrationWithCallbacks, log: false) == :ok
 
-      log = capture_log(fn ->
-        assert down(TestRepo, 10, MigrationWithCallbacks) == :ok
-      end)
+      log =
+        capture_log(fn ->
+          assert down(TestRepo, 10, MigrationWithCallbacks) == :ok
+        end)
 
       assert log =~ "after_begin_down"
       assert log =~ "before_commit_down"
     end
 
     test "are not run when the transaction is disabled" do
-      log = capture_log(fn ->
-        assert up(TestRepo, 10, MigrationWithCallbacksAndNoTransaction) == :ok
-      end)
+      log =
+        capture_log(fn ->
+          assert up(TestRepo, 10, MigrationWithCallbacksAndNoTransaction) == :ok
+        end)
 
       refute log =~ "after_begin"
       refute log =~ "before_commit"
@@ -868,7 +928,8 @@ defmodule Ecto.MigratorTest do
         []
       end
 
-      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
+      assert {:ok, :undefined} =
+               start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
     end
 
     test "runs the migrator with extra opts" do
@@ -878,7 +939,11 @@ defmodule Ecto.MigratorTest do
         []
       end
 
-      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: false, prefix: "foo"]})
+      assert {:ok, :undefined} =
+               start_supervised(
+                 {Ecto.Migrator,
+                  [repos: [TestRepo], migrator: migrator, skip: false, prefix: "foo"]}
+               )
     end
 
     test "skip is set" do
@@ -887,7 +952,10 @@ defmodule Ecto.MigratorTest do
         []
       end
 
-      assert {:ok, :undefined} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: true]})
+      assert {:ok, :undefined} =
+               start_supervised(
+                 {Ecto.Migrator, [repos: [TestRepo], migrator: migrator, skip: true]}
+               )
     end
 
     test "migrations fail" do
@@ -897,7 +965,8 @@ defmodule Ecto.MigratorTest do
         []
       end
 
-      assert {:error, {{%RuntimeError{message: "boom"}, _}, _}} = start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
+      assert {:error, {{%RuntimeError{message: "boom"}, _}, _}} =
+               start_supervised({Ecto.Migrator, [repos: [TestRepo], migrator: migrator]})
     end
   end
 

@@ -36,7 +36,7 @@ defmodule Ecto.MigratorRepoTest do
     use Ecto.Repo, otp_app: :ecto_sql, adapter: EctoSQL.TestAdapter
   end
 
-  Application.put_env(:ecto_sql, MainRepo, [migration_repo: MigrationRepo])
+  Application.put_env(:ecto_sql, MainRepo, migration_repo: MigrationRepo)
 
   setup do
     {:ok, _} = start_supervised({MigrationsAgent, [{1, nil}, {2, nil}, {3, nil}]})
@@ -46,9 +46,9 @@ defmodule Ecto.MigratorRepoTest do
   def put_test_adapter_config(config) do
     Application.put_env(:ecto_sql, EctoSQL.TestAdapter, config)
 
-    on_exit fn ->
+    on_exit(fn ->
       Application.delete_env(:ecto, EctoSQL.TestAdapter)
-    end
+    end)
   end
 
   setup_all do
@@ -60,7 +60,9 @@ defmodule Ecto.MigratorRepoTest do
   describe "migration_repo option" do
     test "upwards and downwards migrations" do
       assert run(MainRepo, [{3, ChangeMigration}, {4, Migration}], :up, to: 4, log: false) == [4]
-      assert run(MainRepo, [{2, ChangeMigration}, {3, Migration}], :down, all: true, log: false) == [3, 2]
+
+      assert run(MainRepo, [{2, ChangeMigration}, {3, Migration}], :down, all: true, log: false) ==
+               [3, 2]
     end
 
     test "down invokes the repository adapter with down commands" do
@@ -74,13 +76,13 @@ defmodule Ecto.MigratorRepoTest do
     end
 
     test "migrations run inside a transaction if the adapter supports ddl transactions when configuring a migration repo" do
-      capture_log fn ->
+      capture_log(fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
         up(MainRepo, 0, Migration)
 
         assert_receive {:transaction, %{repo: MainRepo}, _}
         assert_receive {:lock_for_migrations, %{repo: MigrationRepo}, _, _}
-      end
+      end)
     end
   end
 end

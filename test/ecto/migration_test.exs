@@ -15,7 +15,7 @@ defmodule Ecto.MigrationTest do
   setup meta do
     config = Application.get_env(:ecto_sql, TestRepo, [])
     Application.put_env(:ecto_sql, TestRepo, Keyword.merge(config, meta[:repo_config] || []))
-    on_exit fn -> Application.put_env(:ecto_sql, TestRepo, config) end
+    on_exit(fn -> Application.put_env(:ecto_sql, TestRepo, config) end)
   end
 
   setup meta do
@@ -53,29 +53,58 @@ defmodule Ecto.MigrationTest do
 
   test "creates an index" do
     assert index(:posts, [:title]) ==
-           %Index{table: "posts", unique: false, name: :posts_title_index, columns: [:title]}
+             %Index{table: "posts", unique: false, name: :posts_title_index, columns: [:title]}
+
     assert index("posts", [:title]) ==
-           %Index{table: "posts", unique: false, name: :posts_title_index, columns: [:title]}
+             %Index{table: "posts", unique: false, name: :posts_title_index, columns: [:title]}
+
     assert index(:posts, :title) ==
-           %Index{table: "posts", unique: false, name: :posts_title_index, columns: [:title]}
+             %Index{table: "posts", unique: false, name: :posts_title_index, columns: [:title]}
+
     assert index(:posts, ["lower(title)"]) ==
-           %Index{table: "posts", unique: false, name: :posts_lower_title_index, columns: ["lower(title)"]}
+             %Index{
+               table: "posts",
+               unique: false,
+               name: :posts_lower_title_index,
+               columns: ["lower(title)"]
+             }
+
     assert index(:posts, [:title], name: :foo, unique: true) ==
-           %Index{table: "posts", unique: true, name: :foo, columns: [:title]}
-    assert index(:posts, [:title], where: "status = 'published'", name: :published_posts_title_index, unique: true) ==
-           %Index{table: "posts", unique: true, where: "status = 'published'", name: :published_posts_title_index, columns: [:title]}
+             %Index{table: "posts", unique: true, name: :foo, columns: [:title]}
+
+    assert index(:posts, [:title],
+             where: "status = 'published'",
+             name: :published_posts_title_index,
+             unique: true
+           ) ==
+             %Index{
+               table: "posts",
+               unique: true,
+               where: "status = 'published'",
+               name: :published_posts_title_index,
+               columns: [:title]
+             }
+
     assert unique_index(:posts, [:title], name: :foo) ==
-           %Index{table: "posts", unique: true, name: :foo, columns: [:title]}
+             %Index{table: "posts", unique: true, name: :foo, columns: [:title]}
+
     assert unique_index(:posts, :title, name: :foo) ==
-           %Index{table: "posts", unique: true, name: :foo, columns: [:title]}
+             %Index{table: "posts", unique: true, name: :foo, columns: [:title]}
+
     assert unique_index(:table_one__table_two, :title) ==
-           %Index{table: "table_one__table_two", unique: true, name: :table_one__table_two_title_index, columns: [:title]}
+             %Index{
+               table: "table_one__table_two",
+               unique: true,
+               name: :table_one__table_two_title_index,
+               columns: [:title]
+             }
   end
 
   test "raises if nulls_distinct is set for a non-unique index" do
     assert_raise ArgumentError, fn ->
       index(:posts, [:title], unique: false, nulls_distinct: false)
     end
+
     assert_raise ArgumentError, fn ->
       index(:posts, [:title], unique: false, nulls_distinct: true)
     end
@@ -89,65 +118,100 @@ defmodule Ecto.MigrationTest do
 
   test "creates a reference" do
     assert references(:posts) ==
-           %Reference{table: "posts", column: :id, type: :bigserial}
+             %Reference{table: "posts", column: :id, type: :bigserial}
+
     assert references(:posts, type: :identity) ==
-           %Reference{table: "posts", column: :id, type: :identity}
+             %Reference{table: "posts", column: :id, type: :identity}
+
     assert references("posts") ==
-           %Reference{table: "posts", column: :id, type: :bigserial}
+             %Reference{table: "posts", column: :id, type: :bigserial}
+
     assert references(:posts, type: :uuid, column: :other) ==
-           %Reference{table: "posts", column: :other, type: :uuid, prefix: nil}
+             %Reference{table: "posts", column: :other, type: :uuid, prefix: nil}
+
     assert references(:posts, type: :uuid, column: :other, prefix: :blog) ==
-           %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
+             %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
   end
 
   @tag repo_config: [migration_foreign_key: [type: :uuid, column: :other, prefix: :blog]]
   test "create a reference with using the foreign key repo config" do
     assert references(:posts) ==
-           %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
+             %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
   end
 
   @tag repo_config: [migration_primary_key: [type: :binary_id]]
   test "creates a reference with a foreign key type default to the primary key type" do
     assert references(:posts) ==
-           %Reference{table: "posts", column: :id, type: :binary_id}
+             %Reference{table: "posts", column: :id, type: :binary_id}
   end
 
   @tag repo_config: [migration_primary_key: [type: :identity]]
   test "creates a reference with a foreign key type of identity" do
     assert references(:posts) ==
-           %Reference{table: "posts", column: :id, type: :identity}
+             %Reference{table: "posts", column: :id, type: :identity}
   end
 
   test ":migration_cast_version_column option" do
-    {_repo, query, _options} = SchemaMigration.versions(TestRepo, [migration_cast_version_column: true], "")
+    {_repo, query, _options} =
+      SchemaMigration.versions(TestRepo, [migration_cast_version_column: true], "")
+
     assert Macro.to_string(query.select.expr) == "type(&0.version(), :integer)"
 
-    {_repo, query, _options} = SchemaMigration.versions(TestRepo, [migration_cast_version_column: false], "")
+    {_repo, query, _options} =
+      SchemaMigration.versions(TestRepo, [migration_cast_version_column: false], "")
+
     assert Macro.to_string(query.select.expr) == "&0.version()"
   end
 
   test "creates a reference without validating" do
     assert references(:posts, validate: false) ==
-      %Reference{table: "posts", column: :id, type: :bigserial, validate: false}
+             %Reference{table: "posts", column: :id, type: :bigserial, validate: false}
   end
 
   test "creates a constraint" do
     assert constraint(:posts, :price_is_positive, check: "price > 0") ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: true}
+             %Constraint{
+               table: "posts",
+               name: :price_is_positive,
+               check: "price > 0",
+               validate: true
+             }
+
     assert constraint("posts", :price_is_positive, check: "price > 0") ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: true}
+             %Constraint{
+               table: "posts",
+               name: :price_is_positive,
+               check: "price > 0",
+               validate: true
+             }
+
     assert constraint(:posts, :exclude_price, exclude: "price") ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
+             %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
+
     assert constraint("posts", :exclude_price, exclude: "price") ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
+             %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: true}
+
     assert constraint(:posts, :price_is_positive, check: "price > 0", validate: false) ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: false}
+             %Constraint{
+               table: "posts",
+               name: :price_is_positive,
+               check: "price > 0",
+               validate: false
+             }
+
     assert constraint("posts", :price_is_positive, check: "price > 0", validate: false) ==
-           %Constraint{table: "posts", name: :price_is_positive, check: "price > 0", validate: false}
+             %Constraint{
+               table: "posts",
+               name: :price_is_positive,
+               check: "price > 0",
+               validate: false
+             }
+
     assert constraint(:posts, :exclude_price, exclude: "price", validate: false) ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
+             %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
+
     assert constraint("posts", :exclude_price, exclude: "price", validate: false) ==
-           %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
+             %Constraint{table: "posts", name: :exclude_price, exclude: "price", validate: false}
   end
 
   test "runs a reversible command" do
@@ -185,45 +249,50 @@ defmodule Ecto.MigrationTest do
   end
 
   test "forward: creates a table" do
-    result = create(table = table(:posts)) do
-      add :title, :string
-      add :cost, :decimal, precision: 3
-      add :likes, :"int UNSIGNED", default: 0
-      add :author_id, references(:authors)
-      timestamps()
-    end
+    result =
+      create(table = table(:posts)) do
+        add :title, :string
+        add :cost, :decimal, precision: 3
+        add :likes, :"int UNSIGNED", default: 0
+        add :author_id, references(:authors)
+        timestamps()
+      end
+
     flush()
 
     assert last_command() ==
-           {:create, table,
-              [{:add, :id, :bigserial, [primary_key: true]},
-               {:add, :title, :string, []},
-               {:add, :cost, :decimal, [precision: 3]},
-               {:add, :likes, :"int UNSIGNED", [default: 0]},
-               {:add, :author_id, %Reference{table: "authors"}, []},
-               {:add, :inserted_at, :naive_datetime, [null: false]},
-               {:add, :updated_at, :naive_datetime, [null: false]}]}
+             {:create, table,
+              [
+                {:add, :id, :bigserial, [primary_key: true]},
+                {:add, :title, :string, []},
+                {:add, :cost, :decimal, [precision: 3]},
+                {:add, :likes, :"int UNSIGNED", [default: 0]},
+                {:add, :author_id, %Reference{table: "authors"}, []},
+                {:add, :inserted_at, :naive_datetime, [null: false]},
+                {:add, :updated_at, :naive_datetime, [null: false]}
+              ]}
 
     assert result == table(:posts)
 
     create table = table(:posts, primary_key: false, timestamps: false) do
       add :title, :string
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table,
-              [{:add, :title, :string, []}]}
+             {:create, table, [{:add, :title, :string, []}]}
   end
 
   @tag repo_config: [migration_primary_key: [name: :uuid, type: :uuid]]
   test "forward: create a table with custom primary key" do
     create(table = table(:posts)) do
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
+             {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
   end
 
   @tag repo_config: [migration_primary_key: [name: :uuid, type: :uuid]]
@@ -232,7 +301,7 @@ defmodule Ecto.MigrationTest do
     flush()
 
     assert last_command() ==
-           {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
+             {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
   end
 
   test "forward: create a table with only custom primary key via table options" do
@@ -240,34 +309,45 @@ defmodule Ecto.MigrationTest do
     flush()
 
     assert last_command() ==
-           {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
+             {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
   end
 
-  @tag repo_config: [migration_primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}]]
+  @tag repo_config: [
+         migration_primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}]
+       ]
   test "forward: create a table with custom primary key options" do
     create(table = table(:posts)) do
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table, [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
+             {:create, table,
+              [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
   end
 
   test "forward: create a table with custom primary key options via table options" do
-    create(table = table(:posts, primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}])) do
+    create(
+      table = table(:posts, primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}])
+    ) do
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table, [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
+             {:create, table,
+              [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
   end
 
   test "forward: passing a value other than a bool to :primary_key on table/2 raises" do
-    assert_raise ArgumentError, ":primary_key option must be either a boolean or a keyword list of options", fn ->
-      create(table(:posts, primary_key: "not a valid value")) do
-      end
-      flush()
-    end
+    assert_raise ArgumentError,
+                 ":primary_key option must be either a boolean or a keyword list of options",
+                 fn ->
+                   create(table(:posts, primary_key: "not a valid value")) do
+                   end
+
+                   flush()
+                 end
   end
 
   @tag repo_config: [migration_primary_key: false]
@@ -282,6 +362,7 @@ defmodule Ecto.MigrationTest do
   test "forward: create a table block without a primary key by default via repo config" do
     create(table = table(:posts)) do
     end
+
     flush()
 
     assert last_command() == {:create, table, []}
@@ -292,13 +373,16 @@ defmodule Ecto.MigrationTest do
     create(table = table(:posts)) do
       timestamps()
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table, [
-              {:add, :id, :bigserial, [primary_key: true]},
-              {:add, :inserted_at, :utc_datetime, [null: true]},
-              {:add, :updated_at, :utc_datetime, [null: true]}]}
+             {:create, table,
+              [
+                {:add, :id, :bigserial, [primary_key: true]},
+                {:add, :inserted_at, :utc_datetime, [null: true]},
+                {:add, :updated_at, :utc_datetime, [null: true]}
+              ]}
   end
 
   test "forward: creates a table without precision option for numeric type" do
@@ -308,6 +392,7 @@ defmodule Ecto.MigrationTest do
         add :cost, :decimal, scale: 3
         timestamps()
       end
+
       flush()
     end
   end
@@ -316,35 +401,41 @@ defmodule Ecto.MigrationTest do
     create table = table(:posts, primary_key: false) do
       timestamps(inserted_at: :created_at, updated_at: false)
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table,
-              [{:add, :created_at, :naive_datetime, [null: false]}]}
+             {:create, table, [{:add, :created_at, :naive_datetime, [null: false]}]}
   end
 
   test "forward: creates a table with timestamps of type date" do
     create table = table(:posts, primary_key: false) do
       timestamps(inserted_at: :inserted_on, updated_at: :updated_on, type: :date)
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table,
-              [{:add, :inserted_on, :date, [null: false]},
-               {:add, :updated_on, :date, [null: false]}]}
+             {:create, table,
+              [
+                {:add, :inserted_on, :date, [null: false]},
+                {:add, :updated_on, :date, [null: false]}
+              ]}
   end
 
   test "forward: creates a table with timestamps of database specific type" do
     create table = table(:posts, primary_key: false) do
       timestamps(type: :"datetime(6)")
     end
+
     flush()
 
     assert last_command() ==
-           {:create, table,
-              [{:add, :inserted_at, :"datetime(6)", [null: false]},
-               {:add, :updated_at, :"datetime(6)", [null: false]}]}
+             {:create, table,
+              [
+                {:add, :inserted_at, :"datetime(6)", [null: false]},
+                {:add, :updated_at, :"datetime(6)", [null: false]}
+              ]}
   end
 
   test "forward: creates an empty table" do
@@ -352,7 +443,7 @@ defmodule Ecto.MigrationTest do
     flush()
 
     assert last_command() ==
-           {:create, table, [{:add, :id, :bigserial, [primary_key: true]}]}
+             {:create, table, [{:add, :id, :bigserial, [primary_key: true]}]}
   end
 
   test "forward: alters a table" do
@@ -364,33 +455,41 @@ defmodule Ecto.MigrationTest do
       remove :status, :string
       remove_if_exists :status, :string
     end
+
     flush()
 
     assert last_command() ==
-           {:alter, %Table{name: "posts"},
-              [{:add, :summary, :text, []},
-               {:add_if_not_exists, :summary, :text, []},
-               {:modify, :title, :text, []},
-               {:remove, :views},
-               {:remove, :status, :string, []},
-               {:remove_if_exists, :status, :string}]
-              }
+             {:alter, %Table{name: "posts"},
+              [
+                {:add, :summary, :text, []},
+                {:add_if_not_exists, :summary, :text, []},
+                {:modify, :title, :text, []},
+                {:remove, :views},
+                {:remove, :status, :string, []},
+                {:remove_if_exists, :status, :string}
+              ]}
   end
 
   test "forward: removing a reference column (remove/3 called)" do
     alter table(:posts) do
       remove :author_id, references(:authors), []
     end
+
     flush()
-    assert {:alter, %Table{name: "posts"}, [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+
+    assert {:alter, %Table{name: "posts"},
+            [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
   end
 
   test "forward: removing a reference if column (remove_if_exists/2 called)" do
     alter table(:posts) do
       remove_if_exists :author_id, references(:authors)
     end
+
     flush()
-    assert {:alter, %Table{name: "posts"}, [{:remove_if_exists, :author_id, %Reference{table: "authors"}}]} = last_command()
+
+    assert {:alter, %Table{name: "posts"},
+            [{:remove_if_exists, :author_id, %Reference{table: "authors"}}]} = last_command()
   end
 
   test "forward: alter numeric column without specifying precision" do
@@ -398,6 +497,7 @@ defmodule Ecto.MigrationTest do
       alter table(:posts) do
         modify :cost, :decimal, scale: 5
       end
+
       flush()
     end
   end
@@ -407,12 +507,14 @@ defmodule Ecto.MigrationTest do
       alter table(:posts) do
         add_if_not_exists :cost, :decimal, scale: 5
       end
+
       flush()
     end
   end
 
   test "forward: alter datetime column invoke argument error" do
-    msg = "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead"
+    msg =
+      "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead"
 
     assert_raise ArgumentError, msg, fn ->
       alter table(:posts) do
@@ -426,6 +528,7 @@ defmodule Ecto.MigrationTest do
       alter table(:posts) do
         modify(:hello, Ecto.DateTime)
       end
+
       flush()
     end
   end
@@ -594,10 +697,11 @@ defmodule Ecto.MigrationTest do
   @tag prefix: :bar
   test "forward: raise error when prefixes don't match" do
     assert_raise Ecto.MigrationError,
-                 "the :prefix option `foo` does not match the migrator prefix `bar`", fn ->
-      create(table(:posts, prefix: "foo"))
-      flush()
-    end
+                 "the :prefix option `foo` does not match the migrator prefix `bar`",
+                 fn ->
+                   create(table(:posts, prefix: "foo"))
+                   flush()
+                 end
   end
 
   test "forward: drops a table with prefix from migration" do
@@ -705,13 +809,13 @@ defmodule Ecto.MigrationTest do
   end
 
   test "forward: executes a command from a file" do
-    in_tmp fn _path ->
+    in_tmp(fn _path ->
       up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
       File.write!("up.sql", up_sql)
-      execute_file "up.sql"
+      execute_file("up.sql")
       flush()
       assert up_sql == last_command()
-    end
+    end)
   end
 
   test "fails gracefully with nested create" do
@@ -719,6 +823,7 @@ defmodule Ecto.MigrationTest do
       create table(:posts) do
         create index(:posts, [:foo])
       end
+
       flush()
     end
 
@@ -727,6 +832,7 @@ defmodule Ecto.MigrationTest do
         create table(:foo) do
         end
       end
+
       flush()
     end
   end
@@ -746,6 +852,7 @@ defmodule Ecto.MigrationTest do
       add :title, :string
       add :cost, :decimal, precision: 3
     end
+
     flush()
 
     assert last_command() == {:drop, table, :restrict}
@@ -756,6 +863,7 @@ defmodule Ecto.MigrationTest do
       add :title, :string
       add :cost, :decimal, precision: 3
     end
+
     flush()
 
     assert last_command() == {:drop_if_exists, table, :restrict}
@@ -774,24 +882,32 @@ defmodule Ecto.MigrationTest do
       modify :extension, :text, from: :string
       modify :author, :string, null: false, from: :text
       modify :title, :string, null: false, size: 100, from: {:text, null: true, size: 255}
-      modify :author_id, references(:authors), null: true, from: {references(:authors), null: false}
+
+      modify :author_id, references(:authors),
+        null: true,
+        from: {references(:authors), null: false}
     end
+
     flush()
 
     assert last_command() ==
-           {:alter, %Table{name: "posts"}, [
-              {:modify, :author_id, %Reference{table: "authors"}, [from: {%Reference{table: "authors"}, null: true}, null: false]},
-              {:modify, :title, :text, [from: {:string, null: false, size: 100}, null: true, size: 255]},
-              {:modify, :author, :text, [from: :string, null: false]},
-              {:modify, :extension, :string, from: :text},
-              {:remove, :summary, :text, []}
-            ]}
+             {:alter, %Table{name: "posts"},
+              [
+                {:modify, :author_id, %Reference{table: "authors"},
+                 [from: {%Reference{table: "authors"}, null: true}, null: false]},
+                {:modify, :title, :text,
+                 [from: {:string, null: false, size: 100}, null: true, size: 255]},
+                {:modify, :author, :text, [from: :string, null: false]},
+                {:modify, :extension, :string, from: :text},
+                {:remove, :summary, :text, []}
+              ]}
 
     assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
       alter table(:posts) do
         add :summary, :text
         modify :summary, :string
       end
+
       flush()
     end
 
@@ -800,6 +916,7 @@ defmodule Ecto.MigrationTest do
         add :summary, :text
         remove :summary
       end
+
       flush()
     end
   end
@@ -808,6 +925,7 @@ defmodule Ecto.MigrationTest do
     alter table(:posts) do
       remove :title, :string, []
     end
+
     flush()
     assert {:alter, %Table{name: "posts"}, [{:add, :title, :string, []}]} = last_command()
   end
@@ -816,6 +934,7 @@ defmodule Ecto.MigrationTest do
     alter table(:posts) do
       remove :title, :string
     end
+
     flush()
     assert {:alter, %Table{name: "posts"}, [{:add, :title, :string, []}]} = last_command()
   end
@@ -824,8 +943,11 @@ defmodule Ecto.MigrationTest do
     alter table(:posts) do
       remove :author_id, references(:authors), []
     end
+
     flush()
-    assert {:alter, %Table{name: "posts"}, [{:add, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+
+    assert {:alter, %Table{name: "posts"}, [{:add, :author_id, %Reference{table: "authors"}, []}]} =
+             last_command()
   end
 
   test "backward: rename column" do
@@ -880,17 +1002,17 @@ defmodule Ecto.MigrationTest do
   end
 
   test "backward: reverses a command from a file" do
-    in_tmp fn _path ->
+    in_tmp(fn _path ->
       up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
       File.write!("up.sql", up_sql)
 
       down_sql = ~s(DROP TABLE IF EXISTS "execute_file_table")
       File.write!("down.sql", down_sql)
 
-      execute_file "up.sql", "down.sql"
+      execute_file("up.sql", "down.sql")
       flush()
       assert down_sql == last_command()
-    end
+    end)
   end
 
   test "backward: adding a reference column (column type is returned)" do

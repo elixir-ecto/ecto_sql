@@ -11,33 +11,33 @@ defmodule Ecto.TypeTest do
   # We don't effectively dump because we need to keep JSON encoding
   test "dumps through the adapter" do
     assert adapter_dump(MyXQL, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
 
     assert adapter_dump(Postgres, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
 
     assert adapter_dump(Tds, {:map, Elixir.Tds.Ecto.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
   end
 
   # Therefore we need to support both binaries and strings when loading
   test "loads through the adapter" do
     assert adapter_load(MyXQL, {:map, Ecto.UUID}, %{"a" => @uuid_binary}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
 
     assert adapter_load(Postgres, {:map, Ecto.UUID}, %{"a" => @uuid_binary}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
 
     assert adapter_load(Tds, {:map, Elixir.Tds.Ecto.UUID}, %{"a" => @mssql_uuid_binary}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
 
     assert adapter_load(MyXQL, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
 
     assert adapter_load(Postgres, {:map, Ecto.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
 
     assert adapter_load(Tds, {:map, Elixir.Tds.Ecto.UUID}, %{"a" => @uuid_string}) ==
-           {:ok, %{"a" => @uuid_string}}
+             {:ok, %{"a" => @uuid_string}}
   end
 end

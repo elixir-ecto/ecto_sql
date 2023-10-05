@@ -38,15 +38,24 @@ defmodule Ecto.TenantMigratorTest do
   def put_test_adapter_config(config) do
     Application.put_env(:ecto_sql, EctoSQL.TestAdapter, config)
 
-    on_exit fn ->
+    on_exit(fn ->
       Application.delete_env(:ecto, EctoSQL.TestAdapter)
-    end
+    end)
   end
 
   describe "dynamic_repo option" do
     test "upwards and downwards migrations" do
-      assert run(TestRepo, [{3, ChangeMigration}, {4, Migration}], :up, to: 4, log: false, dynamic_repo: :tenant_db) == [4]
-      assert run(TestRepo, [{2, ChangeMigration}, {3, Migration}], :down, all: true, log: false, dynamic_repo: :tenant_db) == [3, 2]
+      assert run(TestRepo, [{3, ChangeMigration}, {4, Migration}], :up,
+               to: 4,
+               log: false,
+               dynamic_repo: :tenant_db
+             ) == [4]
+
+      assert run(TestRepo, [{2, ChangeMigration}, {3, Migration}], :down,
+               all: true,
+               log: false,
+               dynamic_repo: :tenant_db
+             ) == [3, 2]
     end
 
     test "down invokes the repository adapter with down commands" do
@@ -60,11 +69,11 @@ defmodule Ecto.TenantMigratorTest do
     end
 
     test "migrations run inside a transaction if the adapter supports ddl transactions" do
-      capture_log fn ->
+      capture_log(fn ->
         put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
         up(TestRepo, 0, Migration, dynamic_repo: :tenant_db)
         assert_receive {:transaction, _, _}
-      end
+      end)
     end
   end
 end
