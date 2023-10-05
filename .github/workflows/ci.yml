@@ -13,6 +13,8 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1
       - uses: actions/checkout@v3
+      - name: Check formatting
+        run: mix format --check-formatted
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} +test
   test-postgres:
