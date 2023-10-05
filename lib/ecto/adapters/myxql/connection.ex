@@ -1447,7 +1447,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp ecto_size_to_db(type), do: ecto_to_db(type)
 
     defp ecto_to_db(type, query \\ nil)
-    defp ecto_to_db({:array, _}, query), do: error!(query,    "Array type is not supported by MySQL")
+    defp ecto_to_db({:array, _}, query), do: error!(query, "Array type is not supported by MySQL")
     defp ecto_to_db(:id, _query), do: "integer"
     defp ecto_to_db(:serial, _query), do: "bigint unsigned not null auto_increment"
     defp ecto_to_db(:bigserial, _query), do: "bigint unsigned not null auto_increment"
