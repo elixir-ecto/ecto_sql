@@ -17,6 +17,7 @@ test:
     RUN MIX_ENV=test mix deps.compile
     COPY --dir bench integration_test lib test ./
 
+    RUN if [ -n "${LINT+set}" ]; then mix format --check-formatted; fi
     RUN mix deps.get && mix deps.unlock --check-unused
     RUN mix deps.compile
     RUN mix compile #--warnings-as-errors
