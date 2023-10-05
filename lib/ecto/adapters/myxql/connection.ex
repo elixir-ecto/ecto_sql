@@ -897,7 +897,7 @@ if Code.ensure_loaded?(MyXQL) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
-        {:values, _, _}  ->
+        {:values, _, _} ->
           {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
         {table, schema, prefix} ->

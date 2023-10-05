@@ -1063,7 +1063,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp values_expr(types, idx) do
       intersperse_reduce(types, ?,, idx, fn {_field, type}, idx ->
-        {[?$ , Integer.to_string(idx), ?:, ?: | tagged_to_db(type)], idx + 1}
+        {[?$, Integer.to_string(idx), ?:, ?: | tagged_to_db(type)], idx + 1}
       end)
     end
 
@@ -1131,7 +1131,7 @@ if Code.ensure_loaded?(Postgrex) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
-        {:values, _, _}  ->
+        {:values, _, _} ->
           {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
         {table, schema, prefix} ->
@@ -1375,7 +1375,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp comments_for_columns(table_name, columns) do
       Enum.flat_map(columns, fn
-        {:remove, _column_name, _column_type, _opts}  ->
+        {:remove, _column_name, _column_type, _opts} ->
           []
 
         {_operation, column_name, _column_type, opts} ->

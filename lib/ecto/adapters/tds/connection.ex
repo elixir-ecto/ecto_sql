@@ -964,7 +964,7 @@ if Code.ensure_loaded?(Tds) do
 
     defp values_expr(types, idx) do
       intersperse_reduce(types, ?,, idx, fn {_field, type}, idx ->
-        {["CAST(", ?@ , Integer.to_string(idx), " AS ", column_type(type, []), ?)], idx + 1}
+        {["CAST(", ?@, Integer.to_string(idx), " AS ", column_type(type, []), ?)], idx + 1}
       end)
     end
 
@@ -1031,7 +1031,7 @@ if Code.ensure_loaded?(Tds) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
-        {:values, _, _}  ->
+        {:values, _, _} ->
           {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
         {table, model, prefix} ->
