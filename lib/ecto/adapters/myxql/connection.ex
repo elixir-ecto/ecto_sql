@@ -225,7 +225,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp insert_all_value(nil), do: "DEFAULT"
     defp insert_all_value({%Ecto.Query{} = query, _params_counter}), do: [?(, all(query), ?)]
-    defp insert_all_value(_), do: '?'
+    defp insert_all_value(_), do: ~c"?"
 
     @impl true
     def update(prefix, table, fields, filters, _returning) do
@@ -628,7 +628,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr({:^, [], [_ix]}, _sources, _query) do
-      '?'
+      ~c"?"
     end
 
     defp expr({{:., _, [{:parent_as, _, [as]}, field]}, _, []}, _sources, query)

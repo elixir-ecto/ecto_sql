@@ -234,588 +234,600 @@ defmodule Ecto.MigrationTest do
   end
 
   ## Forward
-  @moduletag direction: :forward
 
-  test "forward: executes the given SQL" do
-    execute "HELLO, IS IT ME YOU ARE LOOKING FOR?"
-    flush()
-    assert last_command() == "HELLO, IS IT ME YOU ARE LOOKING FOR?"
-  end
+  describe "forward" do
+    @describetag direction: :forward
 
-  test "forward: executes given keyword command" do
-    execute create: "posts", capped: true, size: 1024
-    flush()
-    assert last_command() == [create: "posts", capped: true, size: 1024]
-  end
+    test "executes the given SQL" do
+      execute "HELLO, IS IT ME YOU ARE LOOKING FOR?"
+      flush()
+      assert last_command() == "HELLO, IS IT ME YOU ARE LOOKING FOR?"
+    end
 
-  test "forward: creates a table" do
-    result =
+    test "executes given keyword command" do
+      execute create: "posts", capped: true, size: 1024
+      flush()
+      assert last_command() == [create: "posts", capped: true, size: 1024]
+    end
+
+    test "creates a table" do
+      result =
+        create(table = table(:posts)) do
+          add :title, :string
+          add :cost, :decimal, precision: 3
+          add :likes, :"int UNSIGNED", default: 0
+          add :author_id, references(:authors)
+          timestamps()
+        end
+
+      flush()
+
+      assert last_command() ==
+               {:create, table,
+                [
+                  {:add, :id, :bigserial, [primary_key: true]},
+                  {:add, :title, :string, []},
+                  {:add, :cost, :decimal, [precision: 3]},
+                  {:add, :likes, :"int UNSIGNED", [default: 0]},
+                  {:add, :author_id, %Reference{table: "authors"}, []},
+                  {:add, :inserted_at, :naive_datetime, [null: false]},
+                  {:add, :updated_at, :naive_datetime, [null: false]}
+                ]}
+
+      assert result == table(:posts)
+
+      create table = table(:posts, primary_key: false, timestamps: false) do
+        add :title, :string
+      end
+
+      flush()
+
+      assert last_command() ==
+               {:create, table, [{:add, :title, :string, []}]}
+    end
+
+    @tag repo_config: [migration_primary_key: [name: :uuid, type: :uuid]]
+    test "create a table with custom primary key" do
       create(table = table(:posts)) do
-        add :title, :string
-        add :cost, :decimal, precision: 3
-        add :likes, :"int UNSIGNED", default: 0
-        add :author_id, references(:authors)
-        timestamps()
       end
 
-    flush()
+      flush()
 
-    assert last_command() ==
-             {:create, table,
-              [
-                {:add, :id, :bigserial, [primary_key: true]},
-                {:add, :title, :string, []},
-                {:add, :cost, :decimal, [precision: 3]},
-                {:add, :likes, :"int UNSIGNED", [default: 0]},
-                {:add, :author_id, %Reference{table: "authors"}, []},
-                {:add, :inserted_at, :naive_datetime, [null: false]},
-                {:add, :updated_at, :naive_datetime, [null: false]}
-              ]}
-
-    assert result == table(:posts)
-
-    create table = table(:posts, primary_key: false, timestamps: false) do
-      add :title, :string
+      assert last_command() ==
+               {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
     end
 
-    flush()
+    @tag repo_config: [migration_primary_key: [name: :uuid, type: :uuid]]
+    test "create a table with only custom primary key" do
+      create(table = table(:posts))
+      flush()
 
-    assert last_command() ==
-             {:create, table, [{:add, :title, :string, []}]}
-  end
-
-  @tag repo_config: [migration_primary_key: [name: :uuid, type: :uuid]]
-  test "forward: create a table with custom primary key" do
-    create(table = table(:posts)) do
+      assert last_command() ==
+               {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
     end
 
-    flush()
+    test "create a table with only custom primary key via table options" do
+      create(table = table(:posts, primary_key: [name: :uuid, type: :uuid]))
+      flush()
 
-    assert last_command() ==
-             {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
-  end
-
-  @tag repo_config: [migration_primary_key: [name: :uuid, type: :uuid]]
-  test "forward: create a table with only custom primary key" do
-    create(table = table(:posts))
-    flush()
-
-    assert last_command() ==
-             {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
-  end
-
-  test "forward: create a table with only custom primary key via table options" do
-    create(table = table(:posts, primary_key: [name: :uuid, type: :uuid]))
-    flush()
-
-    assert last_command() ==
-             {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
-  end
-
-  @tag repo_config: [
-         migration_primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}]
-       ]
-  test "forward: create a table with custom primary key options" do
-    create(table = table(:posts)) do
+      assert last_command() ==
+               {:create, table, [{:add, :uuid, :uuid, [primary_key: true]}]}
     end
 
-    flush()
+    @tag repo_config: [
+           migration_primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}]
+         ]
+    test "create a table with custom primary key options" do
+      create(table = table(:posts)) do
+      end
 
-    assert last_command() ==
-             {:create, table,
-              [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
-  end
+      flush()
 
-  test "forward: create a table with custom primary key options via table options" do
-    create(
-      table = table(:posts, primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}])
-    ) do
+      assert last_command() ==
+               {:create, table,
+                [
+                  {:add, :id, :uuid,
+                   [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}
+                ]}
     end
 
-    flush()
+    test "create a table with custom primary key options via table options" do
+      create(
+        table =
+          table(:posts, primary_key: [type: :uuid, default: {:fragment, "gen_random_uuid()"}])
+      ) do
+      end
 
-    assert last_command() ==
-             {:create, table,
-              [{:add, :id, :uuid, [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}]}
-  end
+      flush()
 
-  test "forward: passing a value other than a bool to :primary_key on table/2 raises" do
-    assert_raise ArgumentError,
-                 ":primary_key option must be either a boolean or a keyword list of options",
-                 fn ->
-                   create(table(:posts, primary_key: "not a valid value")) do
+      assert last_command() ==
+               {:create, table,
+                [
+                  {:add, :id, :uuid,
+                   [primary_key: true, default: {:fragment, "gen_random_uuid()"}]}
+                ]}
+    end
+
+    test "passing a value other than a bool to :primary_key on table/2 raises" do
+      assert_raise ArgumentError,
+                   ":primary_key option must be either a boolean or a keyword list of options",
+                   fn ->
+                     create(table(:posts, primary_key: "not a valid value")) do
+                     end
+
+                     flush()
                    end
-
-                   flush()
-                 end
-  end
-
-  @tag repo_config: [migration_primary_key: false]
-  test "forward: create a table without a primary key by default via repo config" do
-    create(table = table(:posts))
-    flush()
-
-    assert last_command() == {:create, table, []}
-  end
-
-  @tag repo_config: [migration_primary_key: false]
-  test "forward: create a table block without a primary key by default via repo config" do
-    create(table = table(:posts)) do
     end
 
-    flush()
+    @tag repo_config: [migration_primary_key: false]
+    test "create a table without a primary key by default via repo config" do
+      create(table = table(:posts))
+      flush()
 
-    assert last_command() == {:create, table, []}
-  end
-
-  @tag repo_config: [migration_timestamps: [type: :utc_datetime, null: true]]
-  test "forward: create a table with timestamps" do
-    create(table = table(:posts)) do
-      timestamps()
+      assert last_command() == {:create, table, []}
     end
 
-    flush()
+    @tag repo_config: [migration_primary_key: false]
+    test "create a table block without a primary key by default via repo config" do
+      create(table = table(:posts)) do
+      end
 
-    assert last_command() ==
-             {:create, table,
-              [
-                {:add, :id, :bigserial, [primary_key: true]},
-                {:add, :inserted_at, :utc_datetime, [null: true]},
-                {:add, :updated_at, :utc_datetime, [null: true]}
-              ]}
-  end
+      flush()
 
-  test "forward: creates a table without precision option for numeric type" do
-    assert_raise ArgumentError, "column cost is missing precision option", fn ->
-      create(table(:posts)) do
-        add :title, :string
-        add :cost, :decimal, scale: 3
+      assert last_command() == {:create, table, []}
+    end
+
+    @tag repo_config: [migration_timestamps: [type: :utc_datetime, null: true]]
+    test "create a table with timestamps" do
+      create(table = table(:posts)) do
         timestamps()
       end
 
       flush()
-    end
-  end
 
-  test "forward: creates a table without updated_at timestamp" do
-    create table = table(:posts, primary_key: false) do
-      timestamps(inserted_at: :created_at, updated_at: false)
-    end
-
-    flush()
-
-    assert last_command() ==
-             {:create, table, [{:add, :created_at, :naive_datetime, [null: false]}]}
-  end
-
-  test "forward: creates a table with timestamps of type date" do
-    create table = table(:posts, primary_key: false) do
-      timestamps(inserted_at: :inserted_on, updated_at: :updated_on, type: :date)
+      assert last_command() ==
+               {:create, table,
+                [
+                  {:add, :id, :bigserial, [primary_key: true]},
+                  {:add, :inserted_at, :utc_datetime, [null: true]},
+                  {:add, :updated_at, :utc_datetime, [null: true]}
+                ]}
     end
 
-    flush()
+    test "creates a table without precision option for numeric type" do
+      assert_raise ArgumentError, "column cost is missing precision option", fn ->
+        create(table(:posts)) do
+          add :title, :string
+          add :cost, :decimal, scale: 3
+          timestamps()
+        end
 
-    assert last_command() ==
-             {:create, table,
-              [
-                {:add, :inserted_on, :date, [null: false]},
-                {:add, :updated_on, :date, [null: false]}
-              ]}
-  end
-
-  test "forward: creates a table with timestamps of database specific type" do
-    create table = table(:posts, primary_key: false) do
-      timestamps(type: :"datetime(6)")
+        flush()
+      end
     end
 
-    flush()
-
-    assert last_command() ==
-             {:create, table,
-              [
-                {:add, :inserted_at, :"datetime(6)", [null: false]},
-                {:add, :updated_at, :"datetime(6)", [null: false]}
-              ]}
-  end
-
-  test "forward: creates an empty table" do
-    create table = table(:posts)
-    flush()
-
-    assert last_command() ==
-             {:create, table, [{:add, :id, :bigserial, [primary_key: true]}]}
-  end
-
-  test "forward: alters a table" do
-    alter table(:posts) do
-      add :summary, :text
-      add_if_not_exists :summary, :text
-      modify :title, :text
-      remove :views
-      remove :status, :string
-      remove_if_exists :status, :string
-    end
-
-    flush()
-
-    assert last_command() ==
-             {:alter, %Table{name: "posts"},
-              [
-                {:add, :summary, :text, []},
-                {:add_if_not_exists, :summary, :text, []},
-                {:modify, :title, :text, []},
-                {:remove, :views},
-                {:remove, :status, :string, []},
-                {:remove_if_exists, :status, :string}
-              ]}
-  end
-
-  test "forward: removing a reference column (remove/3 called)" do
-    alter table(:posts) do
-      remove :author_id, references(:authors), []
-    end
-
-    flush()
-
-    assert {:alter, %Table{name: "posts"},
-            [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
-  end
-
-  test "forward: removing a reference if column (remove_if_exists/2 called)" do
-    alter table(:posts) do
-      remove_if_exists :author_id, references(:authors)
-    end
-
-    flush()
-
-    assert {:alter, %Table{name: "posts"},
-            [{:remove_if_exists, :author_id, %Reference{table: "authors"}}]} = last_command()
-  end
-
-  test "forward: alter numeric column without specifying precision" do
-    assert_raise ArgumentError, "column cost is missing precision option", fn ->
-      alter table(:posts) do
-        modify :cost, :decimal, scale: 5
+    test "creates a table without updated_at timestamp" do
+      create table = table(:posts, primary_key: false) do
+        timestamps(inserted_at: :created_at, updated_at: false)
       end
 
       flush()
-    end
-  end
 
-  test "forward: conditional creates a numeric column without specifying precision" do
-    assert_raise ArgumentError, "column cost is missing precision option", fn ->
-      alter table(:posts) do
-        add_if_not_exists :cost, :decimal, scale: 5
+      assert last_command() ==
+               {:create, table, [{:add, :created_at, :naive_datetime, [null: false]}]}
+    end
+
+    test "creates a table with timestamps of type date" do
+      create table = table(:posts, primary_key: false) do
+        timestamps(inserted_at: :inserted_on, updated_at: :updated_on, type: :date)
       end
 
       flush()
+
+      assert last_command() ==
+               {:create, table,
+                [
+                  {:add, :inserted_on, :date, [null: false]},
+                  {:add, :updated_on, :date, [null: false]}
+                ]}
     end
-  end
 
-  test "forward: alter datetime column invoke argument error" do
-    msg =
-      "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead"
-
-    assert_raise ArgumentError, msg, fn ->
-      alter table(:posts) do
-        modify :created_at, :datetime
-      end
-    end
-  end
-
-  test "forward: column modifications invoke type validations" do
-    assert_raise ArgumentError, ~r"invalid migration type: Ecto.DateTime", fn ->
-      alter table(:posts) do
-        modify(:hello, Ecto.DateTime)
+    test "creates a table with timestamps of database specific type" do
+      create table = table(:posts, primary_key: false) do
+        timestamps(type: :"datetime(6)")
       end
 
       flush()
-    end
-  end
 
-  test "forward: rename column" do
-    result = rename(table(:posts), :given_name, to: :first_name)
-    flush()
-
-    assert last_command() == {:rename, %Table{name: "posts"}, :given_name, :first_name}
-    assert result == table(:posts)
-  end
-
-  test "forward: drops a table" do
-    result = drop table(:posts)
-    flush()
-    assert {:drop, %Table{}, _} = last_command()
-    assert result == table(:posts)
-  end
-
-  test "forward: drops a table if table exists" do
-    result = drop_if_exists table(:posts)
-    flush()
-    assert {:drop_if_exists, %Table{}, _} = last_command()
-    assert result == table(:posts)
-  end
-
-  test "forward: drops a table with cascade" do
-    result = drop table(:posts), mode: :cascade
-    flush()
-    assert {:drop, %Table{}, :cascade} = last_command()
-    assert result == table(:posts)
-  end
-
-  test "forward: drops a table if table exists with cascade" do
-    result = drop_if_exists table(:posts), mode: :cascade
-    flush()
-    assert {:drop_if_exists, %Table{}, :cascade} = last_command()
-    assert result == table(:posts)
-  end
-
-  test "forward: creates an index" do
-    create index(:posts, [:title])
-    flush()
-    assert {:create, %Index{}} = last_command()
-  end
-
-  test "forward: creates a check constraint" do
-    create constraint(:posts, :price, check: "price > 0")
-    flush()
-    assert {:create, %Constraint{}} = last_command()
-  end
-
-  test "forward: creates an exclusion constraint" do
-    create constraint(:posts, :price, exclude: "price")
-    flush()
-    assert {:create, %Constraint{}} = last_command()
-  end
-
-  test "forward: raises on invalid constraints" do
-    assert_raise ArgumentError, "a constraint must have either a check or exclude option", fn ->
-      create constraint(:posts, :price)
-      flush()
+      assert last_command() ==
+               {:create, table,
+                [
+                  {:add, :inserted_at, :"datetime(6)", [null: false]},
+                  {:add, :updated_at, :"datetime(6)", [null: false]}
+                ]}
     end
 
-    assert_raise ArgumentError, "a constraint must not have both check and exclude options", fn ->
-      create constraint(:posts, :price, check: "price > 0", exclude: "price")
+    test "creates an empty table" do
+      create table = table(:posts)
       flush()
+
+      assert last_command() ==
+               {:create, table, [{:add, :id, :bigserial, [primary_key: true]}]}
     end
-  end
 
-  test "forward: drops an index" do
-    drop index(:posts, [:title])
-    flush()
-    assert {:drop, %Index{}, _} = last_command()
-  end
+    test "alters a table" do
+      alter table(:posts) do
+        add :summary, :text
+        add_if_not_exists :summary, :text
+        modify :title, :text
+        remove :views
+        remove :status, :string
+        remove_if_exists :status, :string
+      end
 
-  test "forward: drops an index with cascade" do
-    drop index(:posts, [:title]), mode: :cascade
-    flush()
-    assert {:drop, %Index{}, :cascade} = last_command()
-  end
-
-  test "forward: drops a constraint" do
-    drop constraint(:posts, :price)
-    flush()
-    assert {:drop, %Constraint{}, _} = last_command()
-  end
-
-  test "forward: drops a constraint if constraint exists" do
-    drop_if_exists constraint(:posts, :price)
-    flush()
-    assert {:drop_if_exists, %Constraint{}, _} = last_command()
-  end
-
-  test "forward: renames a table" do
-    result = rename(table(:posts), to: table(:new_posts))
-    flush()
-    assert {:rename, %Table{name: "posts"}, %Table{name: "new_posts"}} = last_command()
-    assert result == table(:new_posts)
-  end
-
-  # prefix
-
-  test "forward: creates a table with prefix from migration" do
-    create(table(:posts, prefix: "foo"))
-    flush()
-
-    {_, table, _} = last_command()
-    assert table.prefix == "foo"
-  end
-
-  @tag prefix: "foo"
-  test "forward: creates a table with prefix from manager" do
-    create(table(:posts))
-    flush()
-
-    {_, table, _} = last_command()
-    assert table.prefix == "foo"
-  end
-
-  @tag prefix: "foo", repo_config: [migration_default_prefix: "baz"]
-  test "forward: creates a table with prefix from manager overriding the default prefix configuration" do
-    create(table(:posts))
-    flush()
-
-    {_, table, _} = last_command()
-    assert table.prefix == "foo"
-  end
-
-  @tag repo_config: [migration_default_prefix: "baz"]
-  test "forward: creates a table with prefix from migration overriding the default prefix configuration" do
-    create(table(:posts, prefix: "foo"))
-    flush()
-
-    {_, table, _} = last_command()
-    assert table.prefix == "foo"
-  end
-
-  @tag repo_config: [migration_default_prefix: "baz"]
-  test "forward: create a table with prefix from configuration" do
-    create(table(:posts))
-    flush()
-
-    {_, table, _} = last_command()
-    assert table.prefix == "baz"
-  end
-
-  @tag prefix: :foo
-  test "forward: creates a table with prefix from manager matching atom prefix" do
-    create(table(:posts, prefix: "foo"))
-    flush()
-
-    {_, table, _} = last_command()
-    assert table.prefix == "foo"
-  end
-
-  @tag prefix: "foo"
-  test "forward: creates a table with prefix from manager matching string prefix" do
-    create(table(:posts, prefix: :foo))
-    flush()
-
-    {_, table, _} = last_command()
-    assert table.prefix == :foo
-  end
-
-  @tag prefix: :bar
-  test "forward: raise error when prefixes don't match" do
-    assert_raise Ecto.MigrationError,
-                 "the :prefix option `foo` does not match the migrator prefix `bar`",
-                 fn ->
-                   create(table(:posts, prefix: "foo"))
-                   flush()
-                 end
-  end
-
-  test "forward: drops a table with prefix from migration" do
-    drop(table(:posts, prefix: "foo"))
-    flush()
-    {:drop, table, _} = last_command()
-    assert table.prefix == "foo"
-  end
-
-  @tag prefix: "foo"
-  test "forward: drops a table with prefix from manager" do
-    drop(table(:posts))
-    flush()
-    {:drop, table, _} = last_command()
-    assert table.prefix == "foo"
-  end
-
-  @tag repo_config: [migration_default_prefix: "baz"]
-  test "forward: drops a table with prefix from configuration" do
-    drop(table(:posts))
-    flush()
-    {:drop, table, _} = last_command()
-    assert table.prefix == "baz"
-  end
-
-  test "forward: rename column on table with index prefixed from migration" do
-    rename(table(:posts, prefix: "foo"), :given_name, to: :first_name)
-    flush()
-
-    {_, table, _, new_name} = last_command()
-    assert table.prefix == "foo"
-    assert new_name == :first_name
-  end
-
-  @tag prefix: "foo"
-  test "forward: rename column on table with index prefixed from manager" do
-    rename(table(:posts), :given_name, to: :first_name)
-    flush()
-
-    {_, table, _, new_name} = last_command()
-    assert table.prefix == "foo"
-    assert new_name == :first_name
-  end
-
-  @tag repo_config: [migration_default_prefix: "baz"]
-  test "forward: rename column on table with index prefixed from configuration" do
-    rename(table(:posts), :given_name, to: :first_name)
-    flush()
-
-    {_, table, _, new_name} = last_command()
-    assert table.prefix == "baz"
-    assert new_name == :first_name
-  end
-
-  test "forward: creates an index with prefix from migration" do
-    create index(:posts, [:title], prefix: "foo")
-    flush()
-    {_, index} = last_command()
-    assert index.prefix == "foo"
-  end
-
-  @tag prefix: "foo"
-  test "forward: creates an index with prefix from manager" do
-    create index(:posts, [:title])
-    flush()
-    {_, index} = last_command()
-    assert index.prefix == "foo"
-  end
-
-  @tag repo_config: [migration_default_prefix: "baz"]
-  test "forward: creates an index with prefix from configuration" do
-    create index(:posts, [:title])
-    flush()
-    {_, index} = last_command()
-    assert index.prefix == "baz"
-  end
-
-  test "forward: drops an index with a prefix from migration" do
-    drop index(:posts, [:title], prefix: "foo")
-    flush()
-    {_, index, _} = last_command()
-    assert index.prefix == "foo"
-  end
-
-  @tag prefix: "foo"
-  test "forward: drops an index with a prefix from manager" do
-    drop index(:posts, [:title])
-    flush()
-    {_, index, _} = last_command()
-    assert index.prefix == "foo"
-  end
-
-  @tag repo_config: [migration_default_prefix: "baz"]
-  test "forward: drops an index with a prefix from configuration" do
-    drop index(:posts, [:title])
-    flush()
-    {_, index, _} = last_command()
-    assert index.prefix == "baz"
-  end
-
-  test "forward: executes a command" do
-    execute "SELECT 1", "SELECT 2"
-    flush()
-    assert "SELECT 1" = last_command()
-  end
-
-  test "forward: executes a command from a file" do
-    in_tmp(fn _path ->
-      up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
-      File.write!("up.sql", up_sql)
-      execute_file("up.sql")
       flush()
-      assert up_sql == last_command()
-    end)
+
+      assert last_command() ==
+               {:alter, %Table{name: "posts"},
+                [
+                  {:add, :summary, :text, []},
+                  {:add_if_not_exists, :summary, :text, []},
+                  {:modify, :title, :text, []},
+                  {:remove, :views},
+                  {:remove, :status, :string, []},
+                  {:remove_if_exists, :status, :string}
+                ]}
+    end
+
+    test "removing a reference column (remove/3 called)" do
+      alter table(:posts) do
+        remove :author_id, references(:authors), []
+      end
+
+      flush()
+
+      assert {:alter, %Table{name: "posts"},
+              [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+    end
+
+    test "removing a reference if column (remove_if_exists/2 called)" do
+      alter table(:posts) do
+        remove_if_exists :author_id, references(:authors)
+      end
+
+      flush()
+
+      assert {:alter, %Table{name: "posts"},
+              [{:remove_if_exists, :author_id, %Reference{table: "authors"}}]} = last_command()
+    end
+
+    test "alter numeric column without specifying precision" do
+      assert_raise ArgumentError, "column cost is missing precision option", fn ->
+        alter table(:posts) do
+          modify :cost, :decimal, scale: 5
+        end
+
+        flush()
+      end
+    end
+
+    test "conditional creates a numeric column without specifying precision" do
+      assert_raise ArgumentError, "column cost is missing precision option", fn ->
+        alter table(:posts) do
+          add_if_not_exists :cost, :decimal, scale: 5
+        end
+
+        flush()
+      end
+    end
+
+    test "alter datetime column invoke argument error" do
+      msg =
+        "the :datetime type in migrations is not supported, please use :utc_datetime or :naive_datetime instead"
+
+      assert_raise ArgumentError, msg, fn ->
+        alter table(:posts) do
+          modify :created_at, :datetime
+        end
+      end
+    end
+
+    test "column modifications invoke type validations" do
+      assert_raise ArgumentError, ~r"invalid migration type: Ecto.DateTime", fn ->
+        alter table(:posts) do
+          modify(:hello, Ecto.DateTime)
+        end
+
+        flush()
+      end
+    end
+
+    test "rename column" do
+      result = rename(table(:posts), :given_name, to: :first_name)
+      flush()
+
+      assert last_command() == {:rename, %Table{name: "posts"}, :given_name, :first_name}
+      assert result == table(:posts)
+    end
+
+    test "drops a table" do
+      result = drop table(:posts)
+      flush()
+      assert {:drop, %Table{}, _} = last_command()
+      assert result == table(:posts)
+    end
+
+    test "drops a table if table exists" do
+      result = drop_if_exists table(:posts)
+      flush()
+      assert {:drop_if_exists, %Table{}, _} = last_command()
+      assert result == table(:posts)
+    end
+
+    test "drops a table with cascade" do
+      result = drop table(:posts), mode: :cascade
+      flush()
+      assert {:drop, %Table{}, :cascade} = last_command()
+      assert result == table(:posts)
+    end
+
+    test "drops a table if table exists with cascade" do
+      result = drop_if_exists table(:posts), mode: :cascade
+      flush()
+      assert {:drop_if_exists, %Table{}, :cascade} = last_command()
+      assert result == table(:posts)
+    end
+
+    test "creates an index" do
+      create index(:posts, [:title])
+      flush()
+      assert {:create, %Index{}} = last_command()
+    end
+
+    test "creates a check constraint" do
+      create constraint(:posts, :price, check: "price > 0")
+      flush()
+      assert {:create, %Constraint{}} = last_command()
+    end
+
+    test "creates an exclusion constraint" do
+      create constraint(:posts, :price, exclude: "price")
+      flush()
+      assert {:create, %Constraint{}} = last_command()
+    end
+
+    test "raises on invalid constraints" do
+      assert_raise ArgumentError, "a constraint must have either a check or exclude option", fn ->
+        create constraint(:posts, :price)
+        flush()
+      end
+
+      assert_raise ArgumentError,
+                   "a constraint must not have both check and exclude options",
+                   fn ->
+                     create constraint(:posts, :price, check: "price > 0", exclude: "price")
+                     flush()
+                   end
+    end
+
+    test "drops an index" do
+      drop index(:posts, [:title])
+      flush()
+      assert {:drop, %Index{}, _} = last_command()
+    end
+
+    test "drops an index with cascade" do
+      drop index(:posts, [:title]), mode: :cascade
+      flush()
+      assert {:drop, %Index{}, :cascade} = last_command()
+    end
+
+    test "drops a constraint" do
+      drop constraint(:posts, :price)
+      flush()
+      assert {:drop, %Constraint{}, _} = last_command()
+    end
+
+    test "drops a constraint if constraint exists" do
+      drop_if_exists constraint(:posts, :price)
+      flush()
+      assert {:drop_if_exists, %Constraint{}, _} = last_command()
+    end
+
+    test "renames a table" do
+      result = rename(table(:posts), to: table(:new_posts))
+      flush()
+      assert {:rename, %Table{name: "posts"}, %Table{name: "new_posts"}} = last_command()
+      assert result == table(:new_posts)
+    end
+
+    # prefix
+
+    test "creates a table with prefix from migration" do
+      create(table(:posts, prefix: "foo"))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.prefix == "foo"
+    end
+
+    @tag prefix: "foo"
+    test "creates a table with prefix from manager" do
+      create(table(:posts))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.prefix == "foo"
+    end
+
+    @tag prefix: "foo", repo_config: [migration_default_prefix: "baz"]
+    test "creates a table with prefix from manager overriding the default prefix configuration" do
+      create(table(:posts))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.prefix == "foo"
+    end
+
+    @tag repo_config: [migration_default_prefix: "baz"]
+    test "creates a table with prefix from migration overriding the default prefix configuration" do
+      create(table(:posts, prefix: "foo"))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.prefix == "foo"
+    end
+
+    @tag repo_config: [migration_default_prefix: "baz"]
+    test "create a table with prefix from configuration" do
+      create(table(:posts))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.prefix == "baz"
+    end
+
+    @tag prefix: :foo
+    test "creates a table with prefix from manager matching atom prefix" do
+      create(table(:posts, prefix: "foo"))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.prefix == "foo"
+    end
+
+    @tag prefix: "foo"
+    test "creates a table with prefix from manager matching string prefix" do
+      create(table(:posts, prefix: :foo))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.prefix == :foo
+    end
+
+    @tag prefix: :bar
+    test "raise error when prefixes don't match" do
+      assert_raise Ecto.MigrationError,
+                   "the :prefix option `foo` does not match the migrator prefix `bar`",
+                   fn ->
+                     create(table(:posts, prefix: "foo"))
+                     flush()
+                   end
+    end
+
+    test "drops a table with prefix from migration" do
+      drop(table(:posts, prefix: "foo"))
+      flush()
+      {:drop, table, _} = last_command()
+      assert table.prefix == "foo"
+    end
+
+    @tag prefix: "foo"
+    test "drops a table with prefix from manager" do
+      drop(table(:posts))
+      flush()
+      {:drop, table, _} = last_command()
+      assert table.prefix == "foo"
+    end
+
+    @tag repo_config: [migration_default_prefix: "baz"]
+    test "drops a table with prefix from configuration" do
+      drop(table(:posts))
+      flush()
+      {:drop, table, _} = last_command()
+      assert table.prefix == "baz"
+    end
+
+    test "rename column on table with index prefixed from migration" do
+      rename(table(:posts, prefix: "foo"), :given_name, to: :first_name)
+      flush()
+
+      {_, table, _, new_name} = last_command()
+      assert table.prefix == "foo"
+      assert new_name == :first_name
+    end
+
+    @tag prefix: "foo"
+    test "rename column on table with index prefixed from manager" do
+      rename(table(:posts), :given_name, to: :first_name)
+      flush()
+
+      {_, table, _, new_name} = last_command()
+      assert table.prefix == "foo"
+      assert new_name == :first_name
+    end
+
+    @tag repo_config: [migration_default_prefix: "baz"]
+    test "rename column on table with index prefixed from configuration" do
+      rename(table(:posts), :given_name, to: :first_name)
+      flush()
+
+      {_, table, _, new_name} = last_command()
+      assert table.prefix == "baz"
+      assert new_name == :first_name
+    end
+
+    test "creates an index with prefix from migration" do
+      create index(:posts, [:title], prefix: "foo")
+      flush()
+      {_, index} = last_command()
+      assert index.prefix == "foo"
+    end
+
+    @tag prefix: "foo"
+    test "creates an index with prefix from manager" do
+      create index(:posts, [:title])
+      flush()
+      {_, index} = last_command()
+      assert index.prefix == "foo"
+    end
+
+    @tag repo_config: [migration_default_prefix: "baz"]
+    test "creates an index with prefix from configuration" do
+      create index(:posts, [:title])
+      flush()
+      {_, index} = last_command()
+      assert index.prefix == "baz"
+    end
+
+    test "drops an index with a prefix from migration" do
+      drop index(:posts, [:title], prefix: "foo")
+      flush()
+      {_, index, _} = last_command()
+      assert index.prefix == "foo"
+    end
+
+    @tag prefix: "foo"
+    test "drops an index with a prefix from manager" do
+      drop index(:posts, [:title])
+      flush()
+      {_, index, _} = last_command()
+      assert index.prefix == "foo"
+    end
+
+    @tag repo_config: [migration_default_prefix: "baz"]
+    test "drops an index with a prefix from configuration" do
+      drop index(:posts, [:title])
+      flush()
+      {_, index, _} = last_command()
+      assert index.prefix == "baz"
+    end
+
+    test "executes a command" do
+      execute "SELECT 1", "SELECT 2"
+      flush()
+      assert "SELECT 1" = last_command()
+    end
+
+    test "executes a command from a file" do
+      in_tmp(fn _path ->
+        up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
+        File.write!("up.sql", up_sql)
+        execute_file("up.sql")
+        flush()
+        assert up_sql == last_command()
+      end)
+    end
   end
 
   test "fails gracefully with nested create" do
@@ -838,192 +850,195 @@ defmodule Ecto.MigrationTest do
   end
 
   ## Reverse
-  @moduletag direction: :backward
 
-  test "backward: fails when executing SQL" do
-    assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
-      execute "HELLO, IS IT ME YOU ARE LOOKING FOR?"
-      flush()
-    end
-  end
+  describe "backward" do
+    @describetag direction: :backward
 
-  test "backward: creates a table" do
-    create table = table(:posts) do
-      add :title, :string
-      add :cost, :decimal, precision: 3
+    test "fails when executing SQL" do
+      assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
+        execute "HELLO, IS IT ME YOU ARE LOOKING FOR?"
+        flush()
+      end
     end
 
-    flush()
-
-    assert last_command() == {:drop, table, :restrict}
-  end
-
-  test "backward: creates a table if not exists" do
-    create_if_not_exists table = table(:posts) do
-      add :title, :string
-      add :cost, :decimal, precision: 3
-    end
-
-    flush()
-
-    assert last_command() == {:drop_if_exists, table, :restrict}
-  end
-
-  test "backward: creates an empty table" do
-    create table = table(:posts)
-    flush()
-
-    assert last_command() == {:drop, table, :restrict}
-  end
-
-  test "backward: alters a table" do
-    alter table(:posts) do
-      add :summary, :text
-      modify :extension, :text, from: :string
-      modify :author, :string, null: false, from: :text
-      modify :title, :string, null: false, size: 100, from: {:text, null: true, size: 255}
-
-      modify :author_id, references(:authors),
-        null: true,
-        from: {references(:authors), null: false}
-    end
-
-    flush()
-
-    assert last_command() ==
-             {:alter, %Table{name: "posts"},
-              [
-                {:modify, :author_id, %Reference{table: "authors"},
-                 [from: {%Reference{table: "authors"}, null: true}, null: false]},
-                {:modify, :title, :text,
-                 [from: {:string, null: false, size: 100}, null: true, size: 255]},
-                {:modify, :author, :text, [from: :string, null: false]},
-                {:modify, :extension, :string, from: :text},
-                {:remove, :summary, :text, []}
-              ]}
-
-    assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
-      alter table(:posts) do
-        add :summary, :text
-        modify :summary, :string
+    test "creates a table" do
+      create table = table(:posts) do
+        add :title, :string
+        add :cost, :decimal, precision: 3
       end
 
       flush()
+
+      assert last_command() == {:drop, table, :restrict}
     end
 
-    assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
-      alter table(:posts) do
-        add :summary, :text
-        remove :summary
+    test "creates a table if not exists" do
+      create_if_not_exists table = table(:posts) do
+        add :title, :string
+        add :cost, :decimal, precision: 3
       end
 
       flush()
-    end
-  end
 
-  test "backward: removing a column (remove/3 called)" do
-    alter table(:posts) do
-      remove :title, :string, []
+      assert last_command() == {:drop_if_exists, table, :restrict}
     end
 
-    flush()
-    assert {:alter, %Table{name: "posts"}, [{:add, :title, :string, []}]} = last_command()
-  end
-
-  test "backward: removing a column (remove/2 called)" do
-    alter table(:posts) do
-      remove :title, :string
-    end
-
-    flush()
-    assert {:alter, %Table{name: "posts"}, [{:add, :title, :string, []}]} = last_command()
-  end
-
-  test "backward: removing a reference column (remove/3 called)" do
-    alter table(:posts) do
-      remove :author_id, references(:authors), []
-    end
-
-    flush()
-
-    assert {:alter, %Table{name: "posts"}, [{:add, :author_id, %Reference{table: "authors"}, []}]} =
-             last_command()
-  end
-
-  test "backward: rename column" do
-    rename table(:posts), :given_name, to: :first_name
-    flush()
-
-    assert last_command() == {:rename, %Table{name: "posts"}, :first_name, :given_name}
-  end
-
-  test "backward: drops a table" do
-    assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
-      drop table(:posts)
+    test "creates an empty table" do
+      create table = table(:posts)
       flush()
+
+      assert last_command() == {:drop, table, :restrict}
     end
-  end
 
-  test "backward: creates an index" do
-    create index(:posts, [:title])
-    flush()
-    assert {:drop, %Index{}, _} = last_command()
-  end
+    test "alters a table" do
+      alter table(:posts) do
+        add :summary, :text
+        modify :extension, :text, from: :string
+        modify :author, :string, null: false, from: :text
+        modify :title, :string, null: false, size: 100, from: {:text, null: true, size: 255}
 
-  test "backward: creates an index if not exists" do
-    create_if_not_exists index(:posts, [:title])
-    flush()
-    assert {:drop_if_exists, %Index{}, _} = last_command()
-  end
+        modify :author_id, references(:authors),
+          null: true,
+          from: {references(:authors), null: false}
+      end
 
-  test "backward: drops an index" do
-    drop index(:posts, [:title])
-    flush()
-    assert {:create, %Index{}} = last_command()
-  end
-
-  test "backward: drops a constraint" do
-    assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
-      drop_if_exists constraint(:posts, :price)
       flush()
+
+      assert last_command() ==
+               {:alter, %Table{name: "posts"},
+                [
+                  {:modify, :author_id, %Reference{table: "authors"},
+                   [from: {%Reference{table: "authors"}, null: true}, null: false]},
+                  {:modify, :title, :text,
+                   [from: {:string, null: false, size: 100}, null: true, size: 255]},
+                  {:modify, :author, :text, [from: :string, null: false]},
+                  {:modify, :extension, :string, from: :text},
+                  {:remove, :summary, :text, []}
+                ]}
+
+      assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
+        alter table(:posts) do
+          add :summary, :text
+          modify :summary, :string
+        end
+
+        flush()
+      end
+
+      assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
+        alter table(:posts) do
+          add :summary, :text
+          remove :summary
+        end
+
+        flush()
+      end
     end
-  end
 
-  test "backward: renames a table" do
-    rename table(:posts), to: table(:new_posts)
-    flush()
-    assert {:rename, %Table{name: "new_posts"}, %Table{name: "posts"}} = last_command()
-  end
+    test "removing a column (remove/3 called)" do
+      alter table(:posts) do
+        remove :title, :string, []
+      end
 
-  test "backward: reverses a command" do
-    execute "SELECT 1", "SELECT 2"
-    flush()
-    assert "SELECT 2" = last_command()
-  end
-
-  test "backward: reverses a command from a file" do
-    in_tmp(fn _path ->
-      up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
-      File.write!("up.sql", up_sql)
-
-      down_sql = ~s(DROP TABLE IF EXISTS "execute_file_table")
-      File.write!("down.sql", down_sql)
-
-      execute_file("up.sql", "down.sql")
       flush()
-      assert down_sql == last_command()
-    end)
-  end
-
-  test "backward: adding a reference column (column type is returned)" do
-    alter table(:posts) do
-      add :author_id, references(:authors)
+      assert {:alter, %Table{name: "posts"}, [{:add, :title, :string, []}]} = last_command()
     end
 
-    flush()
+    test "removing a column (remove/2 called)" do
+      alter table(:posts) do
+        remove :title, :string
+      end
 
-    assert {:alter, %Table{name: "posts"},
-            [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+      flush()
+      assert {:alter, %Table{name: "posts"}, [{:add, :title, :string, []}]} = last_command()
+    end
+
+    test "removing a reference column (remove/3 called)" do
+      alter table(:posts) do
+        remove :author_id, references(:authors), []
+      end
+
+      flush()
+
+      assert {:alter, %Table{name: "posts"},
+              [{:add, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+    end
+
+    test "rename column" do
+      rename table(:posts), :given_name, to: :first_name
+      flush()
+
+      assert last_command() == {:rename, %Table{name: "posts"}, :first_name, :given_name}
+    end
+
+    test "drops a table" do
+      assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
+        drop table(:posts)
+        flush()
+      end
+    end
+
+    test "creates an index" do
+      create index(:posts, [:title])
+      flush()
+      assert {:drop, %Index{}, _} = last_command()
+    end
+
+    test "creates an index if not exists" do
+      create_if_not_exists index(:posts, [:title])
+      flush()
+      assert {:drop_if_exists, %Index{}, _} = last_command()
+    end
+
+    test "drops an index" do
+      drop index(:posts, [:title])
+      flush()
+      assert {:create, %Index{}} = last_command()
+    end
+
+    test "drops a constraint" do
+      assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
+        drop_if_exists constraint(:posts, :price)
+        flush()
+      end
+    end
+
+    test "renames a table" do
+      rename table(:posts), to: table(:new_posts)
+      flush()
+      assert {:rename, %Table{name: "new_posts"}, %Table{name: "posts"}} = last_command()
+    end
+
+    test "reverses a command" do
+      execute "SELECT 1", "SELECT 2"
+      flush()
+      assert "SELECT 2" = last_command()
+    end
+
+    test "reverses a command from a file" do
+      in_tmp(fn _path ->
+        up_sql = ~s(CREATE TABLE IF NOT EXISTS "execute_file_table" \(i integer\))
+        File.write!("up.sql", up_sql)
+
+        down_sql = ~s(DROP TABLE IF EXISTS "execute_file_table")
+        File.write!("down.sql", down_sql)
+
+        execute_file("up.sql", "down.sql")
+        flush()
+        assert down_sql == last_command()
+      end)
+    end
+
+    test "adding a reference column (column type is returned)" do
+      alter table(:posts) do
+        add :author_id, references(:authors)
+      end
+
+      flush()
+
+      assert {:alter, %Table{name: "posts"},
+              [{:remove, :author_id, %Reference{table: "authors"}, []}]} = last_command()
+    end
   end
 
   defp last_command(), do: Process.get(:last_command)
