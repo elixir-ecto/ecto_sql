@@ -39,7 +39,6 @@ jobs:
         if: ${{ matrix.lint }}
       - name: Compile
         run: mix compile
-        if: ${{ matrix.lint }}
       - name: Run tests
         run: mix test
 
