@@ -40,8 +40,6 @@ jobs:
       - name: Check formatting
         run: mix format --check-formatted
         if: ${{ matrix.lint }}
-      - name: Compile
-        run: mix compile
       - name: Run tests
         run: mix test
 
