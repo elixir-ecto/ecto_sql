@@ -1,32 +1,7 @@
 VERSION 0.5
 
 all:
-    BUILD +test-all
-    BUILD +integration-test-all
-
-
-test-all:
-    BUILD \
-        --build-arg ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.16.0  \
-        --build-arg ELIXIR_BASE=1.13.4-erlang-22.3.4.20-alpine-3.14.0 \
-        +test
-
-
-test:
-    FROM +test-setup
-    RUN MIX_ENV=test mix deps.compile
-    COPY --dir bench integration_test lib test ./
-
-    ARG LINT
-    RUN if [ "$LINT" == "lint" ]; then mix format --check-formatted; fi
-    RUN mix deps.get && mix deps.unlock --check-unused
-    RUN mix deps.compile
-    RUN mix compile #--warnings-as-errors
-    RUN mix test
-
-
-integration-test-all:
-    ARG ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.16.0
+    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.17.4
     BUILD \
         --build-arg POSTGRES=15.0 \
         --build-arg POSTGRES=11.11 \
@@ -36,6 +11,7 @@ integration-test-all:
 
     BUILD \
         --build-arg MYSQL=5.7 \
+        --build-arg MYSQL=8.0 \
         +integration-test-mysql
 
     BUILD \
@@ -43,16 +19,17 @@ integration-test-all:
         --build-arg MSSQL=2019 \
         +integration-test-mssql
 
-
-integration-test-base:
-    FROM +setup-base
+setup-base:
+    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.17.4
+    FROM hexpm/elixir:$ELIXIR_BASE
+    RUN apk add --no-progress --update git build-base
+    ENV ELIXIR_ASSERT_TIMEOUT=10000
+    WORKDIR /src/ecto_sql
     RUN apk add --no-progress --update docker docker-compose
-
     RUN mix local.rebar --force
     RUN mix local.hex --force
 
-
-COMMON_INTEGRATION_SETUP_AND_MIX:
+COMMON_SETUP_AND_MIX:
     COMMAND
     COPY mix.exs mix.lock .formatter.exs .
     COPY --dir bench integration_test lib test ./
@@ -60,9 +37,8 @@ COMMON_INTEGRATION_SETUP_AND_MIX:
     RUN mix deps.compile
     RUN mix compile #--warnings-as-errors
 
-
 integration-test-postgres:
-    FROM +integration-test-base
+    FROM +setup-base
     ARG POSTGRES="11.11"
 
     IF [ "$POSTGRES" = "9.5" ]
@@ -82,7 +58,7 @@ integration-test-postgres:
         RUN apk add postgresql-client
     END
 
-    DO +COMMON_INTEGRATION_SETUP_AND_MIX
+    DO +COMMON_SETUP_AND_MIX
 
     # then run the tests
     WITH DOCKER \
@@ -100,12 +76,11 @@ integration-test-postgres:
             PG_URL=postgres:postgres@127.0.0.1 ECTO_ADAPTER=pg mix test;
     END
 
-
 integration-test-mysql:
-    FROM +integration-test-base
+    FROM +setup-base
     RUN apk add mysql-client
 
-    DO +COMMON_INTEGRATION_SETUP_AND_MIX
+    DO +COMMON_SETUP_AND_MIX
 
     ARG MYSQL="5.7"
     WITH DOCKER \
@@ -128,7 +103,7 @@ integration-test-mysql:
 
 
 integration-test-mssql:
-    FROM +integration-test-base
+    FROM +setup-base
 
     RUN apk add --no-cache curl gnupg --virtual .build-dependencies -- && \
         curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.5.2.1-1_amd64.apk && \
@@ -137,7 +112,7 @@ integration-test-mssql:
         apk del .build-dependencies && rm -f msodbcsql*.sig mssql-tools*.apk
     ENV PATH="/opt/mssql-tools/bin:${PATH}"
 
-    DO +COMMON_INTEGRATION_SETUP_AND_MIX
+    DO +COMMON_SETUP_AND_MIX
 
     ARG MSSQL="2017"
     WITH DOCKER \
@@ -154,21 +129,3 @@ integration-test-mssql:
             # run tests
             ECTO_ADAPTER=tds mix test;
     END
-
-
-setup-base:
-    ARG ELIXIR_BASE=1.13.4-erlang-24.3.4.2-alpine-3.17.0
-    FROM hexpm/elixir:$ELIXIR_BASE
-    RUN apk add --no-progress --update git build-base
-    ENV ELIXIR_ASSERT_TIMEOUT=10000
-    WORKDIR /src/ecto_sql
-
-
-test-setup:
-    FROM +setup-base
-    COPY mix.exs .
-    COPY mix.lock .
-    COPY .formatter.exs .
-    RUN mix local.rebar --force
-    RUN mix local.hex --force
-    RUN mix deps.get

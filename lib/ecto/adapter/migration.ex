@@ -67,5 +67,5 @@ defmodule Ecto.Adapter.Migration do
   """
   @callback lock_for_migrations(adapter_meta, options :: Keyword.t(), fun) ::
               result
-            when fun: (() -> result), result: var
+            when fun: (-> result), result: var
 end
