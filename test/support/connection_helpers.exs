@@ -16,5 +16,4 @@ defmodule Support.ConnectionHelpers do
     {elem, user_acc} = reducer.(elem, user_acc)
     intersperse_reduce(rest, separator, user_acc, reducer, [acc, elem, separator])
   end
-
 end
