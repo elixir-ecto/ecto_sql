@@ -1,7 +1,10 @@
+Code.require_file("../../support/connection_helpers.exs", __DIR__)
+
 defmodule Ecto.Adapters.PostgresTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query
+  import Support.ConnectionHelpers
 
   alias Ecto.Queryable
   alias Ecto.Adapters.Postgres.Connection, as: SQL
@@ -1889,10 +1892,16 @@ defmodule Ecto.Adapters.PostgresTest do
       |> plan()
       |> all()
 
+    cast_types = %{bid: "uuid", num: "bigint"}
+    from_values_text = values_text(values, cast_types, 1)
+    join_values_text = values_text(values, cast_types, 5)
+    select_fields = Enum.map_join(types, ", ", fn {field, _} -> ~s{v1."#{field}"} end)
+    field_names = Enum.map_join(types, ",", fn {field, _} -> ~s{"#{field}"} end)
+
     assert query ==
-             ~s{SELECT v1."bid", v1."num" } <>
-               ~s{FROM (VALUES ($1::uuid,$2::bigint),($3::uuid,$4::bigint)) AS v0 ("bid","num") } <>
-               ~s{INNER JOIN (VALUES ($5::uuid,$6::bigint),($7::uuid,$8::bigint)) AS v1 ("bid","num") ON v0."bid" = v1."bid" } <>
+             ~s{SELECT #{select_fields} } <>
+               ~s{FROM (#{from_values_text}) AS v0 (#{field_names}) } <>
+               ~s{INNER JOIN (#{join_values_text}) AS v1 (#{field_names}) ON v0."bid" = v1."bid" } <>
                ~s{WHERE (v0."num" = $9)}
   end
 
@@ -1906,9 +1915,13 @@ defmodule Ecto.Adapters.PostgresTest do
       |> plan(:delete_all)
       |> delete_all()
 
+    cast_types = %{bid: "uuid", num: "bigint"}
+    values_text = values_text(values, cast_types, 1)
+    fields = Enum.map_join(types, ",", fn {field, _} -> ~s{"#{field}"} end)
+
     assert query ==
              ~s{DELETE FROM "schema" AS s0 } <>
-               ~s{USING (VALUES ($1::uuid,$2::bigint),($3::uuid,$4::bigint)) AS v1 ("bid","num") } <>
+               ~s{USING (#{values_text}) AS v1 (#{fields}) } <>
                ~s{WHERE (s0."x" = v1."num") AND (v1."num" = $5)}
   end
 
@@ -1927,10 +1940,34 @@ defmodule Ecto.Adapters.PostgresTest do
       |> plan(:update_all)
       |> update_all()
 
+    cast_types = %{bid: "uuid", num: "bigint"}
+    values_text = values_text(values, cast_types, 1)
+    fields = Enum.map_join(types, ",", fn {field, _} -> ~s{"#{field}"} end)
+
     assert query ==
              ~s{UPDATE "schema" AS s0 SET "y" = v1."num" } <>
-               ~s{FROM (VALUES ($1::uuid,$2::bigint),($3::uuid,$4::bigint)) AS v1 ("bid","num") } <>
+               ~s{FROM (#{values_text}) AS v1 (#{fields}) } <>
                ~s{WHERE (s0."x" = v1."num") AND (v1."num" = $5)}
+  end
+
+  defp values_text(values, types, ix) do
+    types = Map.to_list(types)
+
+    [
+      "VALUES ",
+      intersperse_reduce(values, ?,, ix, fn _, ix ->
+        {value, ix} = values_expr(types, ix)
+        {[?(, value, ?)], ix}
+      end)
+      |> elem(0)
+    ]
+    |> IO.iodata_to_binary()
+  end
+
+  defp values_expr(types, ix) do
+    intersperse_reduce(types, ?,, ix, fn {field, _}, ix ->
+      {[?$, Integer.to_string(ix), ?:, ?: | types[field]], ix + 1}
+    end)
   end
 
   # DDL
@@ -2231,14 +2268,17 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "create table with a map column, and a map default with values" do
+    default = %{foo: "bar", baz: "boom"}
+    default_text = "'{" <> Enum.map_join(default, ",", fn {k, v} -> ~s{"#{k}":"#{v}"} end) <> "}'"
+
     create =
       {:create, table(:posts),
        [
-         {:add, :a, :map, [default: %{foo: "bar", baz: "boom"}]}
+         {:add, :a, :map, [default: default]}
        ]}
 
     assert execute_ddl(create) == [
-             ~s|CREATE TABLE "posts" ("a" jsonb DEFAULT '{"baz":"boom","foo":"bar"}')|
+             ~s|CREATE TABLE "posts" ("a" jsonb DEFAULT #{default_text})|
            ]
   end
 
