@@ -393,7 +393,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp select(fields, sources, query) do
-      intersperse_map(fields, ", ", fn
+      Enum.map_intersperse(fields, ", ", fn
         {:&, _, [idx]} ->
           case elem(sources, idx) do
             {nil, source, nil} ->
@@ -435,7 +435,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp cte(%{with_ctes: %WithExpr{queries: [_ | _] = queries}} = query, sources) do
-      ctes = intersperse_map(queries, ", ", &cte_expr(&1, sources, query))
+      ctes = Enum.map_intersperse(queries, ", ", &cte_expr(&1, sources, query))
       ["WITH ", ctes, " "]
     end
 
@@ -467,7 +467,7 @@ if Code.ensure_loaded?(Tds) do
     defp cte_header(%Ecto.Query{select: %{fields: fields}} = query, _) do
       [
         " (",
-        intersperse_map(fields, ",", fn
+        Enum.map_intersperse(fields, ",", fn
           {key, _} ->
             quote_name(key)
 
@@ -526,7 +526,7 @@ if Code.ensure_loaded?(Tds) do
     defp join(%{joins: joins} = query, sources) do
       [
         ?\s,
-        intersperse_map(joins, ?\s, fn
+        Enum.map_intersperse(joins, ?\s, fn
           %JoinExpr{on: %QueryExpr{expr: expr}, qual: qual, ix: ix, source: source, hints: hints} ->
             {join, name} = get_source(query, sources, ix, source)
             qual_text = join_qual(qual, query)
@@ -571,8 +571,8 @@ if Code.ensure_loaded?(Tds) do
     defp group_by(%{group_bys: group_bys} = query, sources) do
       [
         " GROUP BY "
-        | intersperse_map(group_bys, ", ", fn %QueryExpr{expr: expr} ->
-            intersperse_map(expr, ", ", &expr(&1, sources, query))
+        | Enum.map_intersperse(group_bys, ", ", fn %QueryExpr{expr: expr} ->
+            Enum.map_intersperse(expr, ", ", &expr(&1, sources, query))
           end)
       ]
     end
@@ -582,8 +582,8 @@ if Code.ensure_loaded?(Tds) do
     defp order_by(%{order_bys: order_bys} = query, sources) do
       [
         " ORDER BY "
-        | intersperse_map(order_bys, ", ", fn %QueryExpr{expr: expr} ->
-            intersperse_map(expr, ", ", &order_by_expr(&1, sources, query))
+        | Enum.map_intersperse(order_bys, ", ", fn %QueryExpr{expr: expr} ->
+            Enum.map_intersperse(expr, ", ", &order_by_expr(&1, sources, query))
           end)
       ]
     end
@@ -860,7 +860,7 @@ if Code.ensure_loaded?(Tds) do
           [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
 
         {:fun, fun} ->
-          [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
+          [fun, ?(, modifier, Enum.map_intersperse(args, ", ", &expr(&1, sources, query)), ?)]
       end
     end
 
@@ -995,7 +995,7 @@ if Code.ensure_loaded?(Tds) do
     defp returning([], _verb), do: []
 
     defp returning(returning, verb) when is_list(returning) do
-      [" OUTPUT ", intersperse_map(returning, ", ", &[verb, ?., quote_name(&1)])]
+      [" OUTPUT ", Enum.map_intersperse(returning, ", ", &[verb, ?., quote_name(&1)])]
     end
 
     defp returning(%{select: nil}, _, _),
@@ -1004,7 +1004,7 @@ if Code.ensure_loaded?(Tds) do
     defp returning(%{select: %{fields: fields}} = query, idx, verb),
       do: [
         " OUTPUT "
-        | intersperse_map(fields, ", ", fn
+        | Enum.map_intersperse(fields, ", ", fn
             {{:., _, [{:&, _, [^idx]}, key]}, _, _} -> [verb, ?., quote_name(key)]
             _ -> error!(query, "MSSQL can only return table #{verb} columns")
           end)
@@ -1157,7 +1157,7 @@ if Code.ensure_loaded?(Tds) do
       include =
         index.include
         |> List.wrap()
-        |> intersperse_map(", ", &index_expr/1)
+        |> Enum.map_intersperse(", ", &index_expr/1)
 
       [
         [
@@ -1173,7 +1173,7 @@ if Code.ensure_loaded?(Tds) do
           " ON ",
           quote_table(prefix, index.table),
           " (",
-          intersperse_map(index.columns, ", ", &index_expr/1),
+          Enum.map_intersperse(index.columns, ", ", &index_expr/1),
           ?),
           if_do(include != [], [" INCLUDE ", ?(, include, ?)]),
           if_do(index.where, [" WHERE (", index.where, ?)]),
@@ -1321,7 +1321,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_definitions(table, columns) do
-      intersperse_map(columns, ", ", &column_definition(table, &1))
+      Enum.map_intersperse(columns, ", ", &column_definition(table, &1))
     end
 
     defp column_definition(table, {:add, name, %Reference{} = ref, opts}) do
@@ -1628,7 +1628,7 @@ if Code.ensure_loaded?(Tds) do
       "[#{name}]"
     end
 
-    defp quote_names(names), do: intersperse_map(names, ?,, &quote_name/1)
+    defp quote_names(names), do: Enum.map_intersperse(names, ?,, &quote_name/1)
 
     defp quote_table(nil, name), do: quote_table(name)
 
@@ -1679,13 +1679,6 @@ if Code.ensure_loaded?(Tds) do
       end
 
       name
-    end
-
-    defp intersperse_map([], _separator, _mapper), do: []
-    defp intersperse_map([elem], _separator, mapper), do: mapper.(elem)
-
-    defp intersperse_map([elem | rest], separator, mapper) do
-      [mapper.(elem), separator | intersperse_map(rest, separator, mapper)]
     end
 
     defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])

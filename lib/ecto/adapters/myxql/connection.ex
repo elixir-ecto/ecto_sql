@@ -192,7 +192,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp on_conflict({fields, _, []}, _header) when is_list(fields) do
       [
         " ON DUPLICATE KEY UPDATE "
-        | intersperse_map(fields, ?,, fn field ->
+        | Enum.map_intersperse(fields, ?,, fn field ->
             quoted = quote_name(field)
             [quoted, " = VALUES(", quoted, ?)]
           end)
@@ -213,8 +213,8 @@ if Code.ensure_loaded?(MyXQL) do
     defp insert_all(rows) when is_list(rows) do
       [
         "VALUES ",
-        intersperse_map(rows, ?,, fn row ->
-          [?(, intersperse_map(row, ?,, &insert_all_value/1), ?)]
+        Enum.map_intersperse(rows, ?,, fn row ->
+          [?(, Enum.map_intersperse(row, ?,, &insert_all_value/1), ?)]
         end)
       ]
     end
@@ -229,10 +229,10 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     def update(prefix, table, fields, filters, _returning) do
-      fields = intersperse_map(fields, ", ", &[quote_name(&1), " = ?"])
+      fields = Enum.map_intersperse(fields, ", ", &[quote_name(&1), " = ?"])
 
       filters =
-        intersperse_map(filters, " AND ", fn
+        Enum.map_intersperse(filters, " AND ", fn
           {field, nil} ->
             [quote_name(field), " IS NULL"]
 
@@ -246,7 +246,7 @@ if Code.ensure_loaded?(MyXQL) do
     @impl true
     def delete(prefix, table, filters, _returning) do
       filters =
-        intersperse_map(filters, " AND ", fn
+        Enum.map_intersperse(filters, " AND ", fn
           {field, nil} ->
             [quote_name(field), " IS NULL"]
 
@@ -330,7 +330,7 @@ if Code.ensure_loaded?(MyXQL) do
       do: "TRUE"
 
     defp select(fields, sources, query) do
-      intersperse_map(fields, ", ", fn
+      Enum.map_intersperse(fields, ", ", fn
         {:&, _, [idx]} ->
           case elem(sources, idx) do
             {nil, source, nil} ->
@@ -367,7 +367,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp cte(%{with_ctes: %WithExpr{queries: [_ | _]}} = query, sources) do
       %{with_ctes: with} = query
       recursive_opt = if with.recursive, do: "RECURSIVE ", else: ""
-      ctes = intersperse_map(with.queries, ", ", &cte_expr(&1, sources, query))
+      ctes = Enum.map_intersperse(with.queries, ", ", &cte_expr(&1, sources, query))
       ["WITH ", recursive_opt, ctes, " "]
     end
 
@@ -442,7 +442,7 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp using_join(%{joins: joins} = query, kind, sources) do
       froms =
-        intersperse_map(joins, ", ", fn
+        Enum.map_intersperse(joins, ", ", fn
           %JoinExpr{source: %Ecto.SubQuery{params: [_ | _]}} ->
             error!(
               query,
@@ -511,8 +511,8 @@ if Code.ensure_loaded?(MyXQL) do
     defp group_by(%{group_bys: group_bys} = query, sources) do
       [
         " GROUP BY "
-        | intersperse_map(group_bys, ", ", fn %QueryExpr{expr: expr} ->
-            intersperse_map(expr, ", ", &expr(&1, sources, query))
+        | Enum.map_intersperse(group_bys, ", ", fn %QueryExpr{expr: expr} ->
+            Enum.map_intersperse(expr, ", ", &expr(&1, sources, query))
           end)
       ]
     end
@@ -522,22 +522,22 @@ if Code.ensure_loaded?(MyXQL) do
     defp window(%{windows: windows} = query, sources) do
       [
         " WINDOW "
-        | intersperse_map(windows, ", ", fn {name, %{expr: kw}} ->
+        | Enum.map_intersperse(windows, ", ", fn {name, %{expr: kw}} ->
             [quote_name(name), " AS " | window_exprs(kw, sources, query)]
           end)
       ]
     end
 
     defp window_exprs(kw, sources, query) do
-      [?(, intersperse_map(kw, ?\s, &window_expr(&1, sources, query)), ?)]
+      [?(, Enum.map_intersperse(kw, ?\s, &window_expr(&1, sources, query)), ?)]
     end
 
     defp window_expr({:partition_by, fields}, sources, query) do
-      ["PARTITION BY " | intersperse_map(fields, ", ", &expr(&1, sources, query))]
+      ["PARTITION BY " | Enum.map_intersperse(fields, ", ", &expr(&1, sources, query))]
     end
 
     defp window_expr({:order_by, fields}, sources, query) do
-      ["ORDER BY " | intersperse_map(fields, ", ", &order_by_expr(&1, sources, query))]
+      ["ORDER BY " | Enum.map_intersperse(fields, ", ", &order_by_expr(&1, sources, query))]
     end
 
     defp window_expr({:frame, {:fragment, _, _} = fragment}, sources, query) do
@@ -549,8 +549,8 @@ if Code.ensure_loaded?(MyXQL) do
     defp order_by(%{order_bys: order_bys} = query, sources) do
       [
         " ORDER BY "
-        | intersperse_map(order_bys, ", ", fn %QueryExpr{expr: expr} ->
-            intersperse_map(expr, ", ", &order_by_expr(&1, sources, query))
+        | Enum.map_intersperse(order_bys, ", ", fn %QueryExpr{expr: expr} ->
+            Enum.map_intersperse(expr, ", ", &order_by_expr(&1, sources, query))
           end)
       ]
     end
@@ -654,7 +654,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr({:in, _, [left, right]}, sources, query) when is_list(right) do
-      args = intersperse_map(right, ?,, &expr(&1, sources, query))
+      args = Enum.map_intersperse(right, ?,, &expr(&1, sources, query))
       [expr(left, sources, query), " IN (", args, ?)]
     end
 
@@ -759,7 +759,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr({:{}, _, elems}, sources, query) do
-      [?(, intersperse_map(elems, ?,, &expr(&1, sources, query)), ?)]
+      [?(, Enum.map_intersperse(elems, ?,, &expr(&1, sources, query)), ?)]
     end
 
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
@@ -790,7 +790,7 @@ if Code.ensure_loaded?(MyXQL) do
           [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
 
         {:fun, fun} ->
-          [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
+          [fun, ?(, modifier, Enum.map_intersperse(args, ", ", &expr(&1, sources, query)), ?)]
       end
     end
 
@@ -847,14 +847,14 @@ if Code.ensure_loaded?(MyXQL) do
 
       [
         "VALUES ",
-        intersperse_map(rows, ?,, fn _ ->
+        Enum.map_intersperse(rows, ?,, fn _ ->
           ["ROW(", values_expr(types, query), ?)]
         end)
       ]
     end
 
     defp values_expr(types, query) do
-      intersperse_map(types, ?,, fn {_field, type} ->
+      Enum.map_intersperse(types, ?,, fn {_field, type} ->
         ["CAST(", ??, " AS ", ecto_cast_to_db(type, query), ?)]
       end)
     end
@@ -989,7 +989,7 @@ if Code.ensure_loaded?(MyXQL) do
           quote_table(index.prefix, index.table),
           ?\s,
           ?(,
-          intersperse_map(index.columns, ", ", &index_expr/1),
+          Enum.map_intersperse(index.columns, ", ", &index_expr/1),
           ?),
           if_do(index.using, [" USING ", to_string(index.using)]),
           if_do(index.concurrently, " LOCK=NONE")
@@ -1097,7 +1097,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp column_definitions(table, columns) do
-      intersperse_map(columns, ", ", &column_definition(table, &1))
+      Enum.map_intersperse(columns, ", ", &column_definition(table, &1))
     end
 
     defp column_definition(table, {:add, name, %Reference{} = ref, opts}) do
@@ -1115,7 +1115,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp column_changes(table, columns) do
-      intersperse_map(columns, ", ", &column_change(table, &1))
+      Enum.map_intersperse(columns, ", ", &column_change(table, &1))
     end
 
     defp column_change(_table, {_command, _name, %Reference{validate: false}, _opts}) do
@@ -1390,7 +1390,7 @@ if Code.ensure_loaded?(MyXQL) do
       [?`, name, ?`]
     end
 
-    defp quote_names(names), do: intersperse_map(names, ?,, &quote_name/1)
+    defp quote_names(names), do: Enum.map_intersperse(names, ?,, &quote_name/1)
 
     defp quote_table(nil, name), do: quote_table(name)
     defp quote_table(prefix, name), do: [quote_table(prefix), ?., quote_table(name)]
@@ -1408,17 +1408,6 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp format_to_sql(:map), do: "FORMAT=JSON"
     defp format_to_sql(:text), do: "FORMAT=TRADITIONAL"
-
-    defp intersperse_map(list, separator, mapper, acc \\ [])
-
-    defp intersperse_map([], _separator, _mapper, acc),
-      do: acc
-
-    defp intersperse_map([elem], _separator, mapper, acc),
-      do: [acc | mapper.(elem)]
-
-    defp intersperse_map([elem | rest], separator, mapper, acc),
-      do: intersperse_map(rest, separator, mapper, [acc, mapper.(elem), separator])
 
     defp if_do(condition, value) do
       if condition, do: value, else: []

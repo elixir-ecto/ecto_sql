@@ -13,7 +13,7 @@ jobs:
           - elixir: 1.15.6
             otp: 24.3.4.13
           - elixir: 1.15.6
-            otp: 25.3.2.6
+            otp: 26.1.2
             lint: lint
     steps:
       - name: Checkout

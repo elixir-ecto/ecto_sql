@@ -1,7 +1,10 @@
+Code.require_file("../../support/connection_helpers.exs", __DIR__)
+
 defmodule Ecto.Adapters.TdsTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query
+  import Support.ConnectionHelpers
 
   alias Ecto.Queryable
   alias Ecto.Adapters.Tds.Connection, as: SQL
@@ -1309,10 +1312,16 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan()
       |> all()
 
+    cast_types = %{bid: "uniqueidentifier", num: "integer"}
+    from_values_text = values_text(values, cast_types, 1)
+    join_values_text = values_text(values, cast_types, 5)
+    select_fields = Enum.map_join(types, ", ", fn {field, _} -> "v1.[#{field}]" end)
+    field_names = Enum.map_join(types, ",", fn {field, _} -> "[#{field}]" end)
+
     assert query ==
-             ~s{SELECT v1.[bid], v1.[num] } <>
-               ~s{FROM (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v0 ([bid],[num]) } <>
-               ~s{INNER JOIN (VALUES (CAST(@5 AS uniqueidentifier),CAST(@6 AS integer)),(CAST(@7 AS uniqueidentifier),CAST(@8 AS integer))) AS v1 ([bid],[num]) ON v0.[bid] = v1.[bid] } <>
+             ~s{SELECT #{select_fields} } <>
+               ~s{FROM (#{from_values_text}) AS v0 (#{field_names}) } <>
+               ~s{INNER JOIN (#{join_values_text}) AS v1 (#{field_names}) ON v0.[bid] = v1.[bid] } <>
                ~s{WHERE (v0.[num] = @9)}
   end
 
@@ -1326,9 +1335,13 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan(:delete_all)
       |> delete_all()
 
+    cast_types = %{bid: "uniqueidentifier", num: "integer"}
+    values_text = values_text(values, cast_types, 1)
+    fields = Enum.map_join(types, ",", fn {field, _} -> "[#{field}]" end)
+
     assert query ==
              ~s{DELETE s0 FROM [schema] AS s0 } <>
-               ~s{INNER JOIN (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v1 ([bid],[num]) } <>
+               ~s{INNER JOIN (#{values_text}) AS v1 (#{fields}) } <>
                ~s{ON s0.[x] = v1.[num] WHERE (v1.[num] = @5)}
   end
 
@@ -1347,10 +1360,34 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan(:update_all)
       |> update_all()
 
+    cast_types = %{bid: "uniqueidentifier", num: "integer"}
+    values_text = values_text(values, cast_types, 1)
+    fields = Enum.map_join(types, ",", fn {field, _} -> "[#{field}]" end)
+
     assert query ==
              ~s{UPDATE s0 SET s0.[y] = v1.[num] FROM [schema] AS s0 } <>
-               ~s{INNER JOIN (VALUES (CAST(@1 AS uniqueidentifier),CAST(@2 AS integer)),(CAST(@3 AS uniqueidentifier),CAST(@4 AS integer))) AS v1 ([bid],[num]) } <>
+               ~s{INNER JOIN (#{values_text}) AS v1 (#{fields}) } <>
                ~s{ON s0.[x] = v1.[num] WHERE (v1.[num] = @5)}
+  end
+
+  defp values_text(values, types, ix) do
+    types = Map.to_list(types)
+
+    [
+      "VALUES ",
+      intersperse_reduce(values, ?,, ix, fn _, ix ->
+        {value, ix} = values_expr(types, ix)
+        {[?(, value, ?)], ix}
+      end)
+      |> elem(0)
+    ]
+    |> IO.iodata_to_binary()
+  end
+
+  defp values_expr(types, ix) do
+    intersperse_reduce(types, ?,, ix, fn {field, _}, ix ->
+      {["CAST(", ?@, Integer.to_string(ix), " AS ", types[field], ?)], ix + 1}
+    end)
   end
 
   ## DDL

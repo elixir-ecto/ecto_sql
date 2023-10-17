@@ -1485,10 +1485,16 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan()
       |> all()
 
+    cast_types = %{bid: "binary(16)", num: "unsigned"}
+    from_values_text = values_text(values, cast_types)
+    join_values_text = values_text(values, cast_types)
+    select_fields = Enum.map_join(types, ", ", fn {field, _} -> "v1.`#{field}`" end)
+    field_names = Enum.map_join(types, ",", fn {field, _} -> "`#{field}`" end)
+
     assert query ==
-             ~s{SELECT v1.`bid`, v1.`num` } <>
-               ~s{FROM (VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v0 (`bid`,`num`) } <>
-               ~s{INNER JOIN (VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v1 (`bid`,`num`) ON v0.`bid` = v1.`bid` } <>
+             ~s{SELECT #{select_fields} } <>
+               ~s{FROM (#{from_values_text}) AS v0 (#{field_names}) } <>
+               ~s{INNER JOIN (#{join_values_text}) AS v1 (#{field_names}) ON v0.`bid` = v1.`bid` } <>
                ~s{WHERE (v0.`num` = ?)}
   end
 
@@ -1502,9 +1508,13 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan(:delete_all)
       |> delete_all()
 
+    cast_types = %{bid: "binary(16)", num: "unsigned"}
+    values_text = values_text(values, cast_types)
+    fields = Enum.map_join(types, ",", fn {field, _} -> "`#{field}`" end)
+
     assert query ==
              ~s{DELETE s0.* FROM `schema` AS s0 } <>
-               ~s{INNER JOIN (VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v1 (`bid`,`num`) } <>
+               ~s{INNER JOIN (#{values_text}) AS v1 (#{fields}) } <>
                ~s{ON s0.`x` = v1.`num` WHERE (v1.`num` = ?)}
   end
 
@@ -1523,10 +1533,32 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan(:update_all)
       |> update_all()
 
+    cast_types = %{bid: "binary(16)", num: "unsigned"}
+    values_text = values_text(values, cast_types)
+    fields = Enum.map_join(types, ",", fn {field, _} -> "`#{field}`" end)
+
     assert query ==
              ~s{UPDATE `schema` AS s0, } <>
-               ~s{(VALUES ROW(CAST(? AS binary(16)),CAST(? AS unsigned)),ROW(CAST(? AS binary(16)),CAST(? AS unsigned))) AS v1 (`bid`,`num`) } <>
+               ~s{(#{values_text}) AS v1 (#{fields}) } <>
                ~s{SET s0.`y` = v1.`num` WHERE (s0.`x` = v1.`num`) AND (v1.`num` = ?)}
+  end
+
+  defp values_text(values, types) do
+    types = Map.to_list(types)
+
+    [
+      "VALUES ",
+      Enum.map_intersperse(values, ?,, fn _ ->
+        ["ROW(", values_expr(types), ?)]
+      end)
+    ]
+    |> IO.iodata_to_binary()
+  end
+
+  defp values_expr(types) do
+    Enum.map_intersperse(types, ?,, fn {field, _} ->
+      ["CAST(", ??, " AS ", types[field], ?)]
+    end)
   end
 
   # DDL
@@ -1708,15 +1740,18 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "create table with a map column, and a map default with values" do
+    default = %{foo: "bar", baz: "boom"}
+    default_text = "'{" <> Enum.map_join(default, ",", fn {k, v} -> ~s{"#{k}":"#{v}"} end) <> "}'"
+
     create =
       {:create, table(:posts),
        [
-         {:add, :a, :map, [default: %{foo: "bar", baz: "boom"}]}
+         {:add, :a, :map, [default: default]}
        ]}
 
     assert execute_ddl(create) == [
              """
-             CREATE TABLE `posts` (`a` json DEFAULT ('{\"baz\":\"boom\",\"foo\":\"bar\"}')) ENGINE = INNODB
+             CREATE TABLE `posts` (`a` json DEFAULT (#{default_text})) ENGINE = INNODB
              """
              |> remove_newlines
            ]
