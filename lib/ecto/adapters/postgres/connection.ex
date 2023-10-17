@@ -223,7 +223,7 @@ if Code.ensure_loaded?(Postgrex) do
 
       values =
         if header == [] do
-          [" VALUES " | intersperse_map(rows, ?,, fn _ -> "(DEFAULT)" end)]
+          [" VALUES " | Enum.map_intersperse(rows, ?,, fn _ -> "(DEFAULT)" end)]
         else
           [" (", quote_names(header), ") " | insert_all(rows, counter_offset)]
         end
@@ -276,7 +276,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp replace(fields) do
       [
         "UPDATE SET "
-        | intersperse_map(fields, ?,, fn field ->
+        | Enum.map_intersperse(fields, ?,, fn field ->
             quoted = quote_name(field)
             [quoted, " = ", "EXCLUDED." | quoted]
           end)
@@ -450,7 +450,7 @@ if Code.ensure_loaded?(Postgrex) do
       do: "TRUE"
 
     defp select_fields(fields, sources, query) do
-      intersperse_map(fields, ", ", fn
+      Enum.map_intersperse(fields, ", ", fn
         {:&, _, [idx]} ->
           case elem(sources, idx) do
             {nil, source, nil} ->
@@ -487,7 +487,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp distinct(%QueryExpr{expr: exprs}, sources, query) do
       {[
          " DISTINCT ON (",
-         intersperse_map(exprs, ", ", fn {_, expr} -> expr(expr, sources, query) end),
+         Enum.map_intersperse(exprs, ", ", fn {_, expr} -> expr(expr, sources, query) end),
          ?)
        ], exprs}
     end
@@ -500,7 +500,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp cte(%{with_ctes: %WithExpr{queries: [_ | _]}} = query, sources) do
       %{with_ctes: with} = query
       recursive_opt = if with.recursive, do: "RECURSIVE ", else: ""
-      ctes = intersperse_map(with.queries, ", ", &cte_expr(&1, sources, query))
+      ctes = Enum.map_intersperse(with.queries, ", ", &cte_expr(&1, sources, query))
       ["WITH ", recursive_opt, ctes, " "]
     end
 
@@ -609,7 +609,7 @@ if Code.ensure_loaded?(Postgrex) do
       end
 
       froms =
-        intersperse_map(inner_joins, ", ", fn
+        Enum.map_intersperse(inner_joins, ", ", fn
           %JoinExpr{qual: :inner, ix: ix, source: source} ->
             {join, name} = get_source(query, sources, ix, source)
             [join, " AS " | [name]]
@@ -627,7 +627,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp using_join(%{joins: joins} = query, kind, prefix, sources) do
       froms =
-        intersperse_map(joins, ", ", fn
+        Enum.map_intersperse(joins, ", ", fn
           %JoinExpr{qual: :inner, ix: ix, source: source} ->
             {join, name} = get_source(query, sources, ix, source)
             [join, " AS " | name]
@@ -649,7 +649,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp join(%{joins: joins} = query, sources) do
       [
         ?\s
-        | intersperse_map(joins, ?\s, fn
+        | Enum.map_intersperse(joins, ?\s, fn
             %JoinExpr{
               on: %QueryExpr{expr: expr},
               qual: qual,
@@ -700,9 +700,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp group_by(%{group_bys: group_bys} = query, sources) do
       [
         " GROUP BY "
-        | intersperse_map(group_bys, ", ", fn
+        | Enum.map_intersperse(group_bys, ", ", fn
             %QueryExpr{expr: expr} ->
-              intersperse_map(expr, ", ", &expr(&1, sources, query))
+              Enum.map_intersperse(expr, ", ", &expr(&1, sources, query))
           end)
       ]
     end
@@ -712,22 +712,22 @@ if Code.ensure_loaded?(Postgrex) do
     defp window(%{windows: windows} = query, sources) do
       [
         " WINDOW "
-        | intersperse_map(windows, ", ", fn {name, %{expr: kw}} ->
+        | Enum.map_intersperse(windows, ", ", fn {name, %{expr: kw}} ->
             [quote_name(name), " AS " | window_exprs(kw, sources, query)]
           end)
       ]
     end
 
     defp window_exprs(kw, sources, query) do
-      [?(, intersperse_map(kw, ?\s, &window_expr(&1, sources, query)), ?)]
+      [?(, Enum.map_intersperse(kw, ?\s, &window_expr(&1, sources, query)), ?)]
     end
 
     defp window_expr({:partition_by, fields}, sources, query) do
-      ["PARTITION BY " | intersperse_map(fields, ", ", &expr(&1, sources, query))]
+      ["PARTITION BY " | Enum.map_intersperse(fields, ", ", &expr(&1, sources, query))]
     end
 
     defp window_expr({:order_by, fields}, sources, query) do
-      ["ORDER BY " | intersperse_map(fields, ", ", &order_by_expr(&1, sources, query))]
+      ["ORDER BY " | Enum.map_intersperse(fields, ", ", &order_by_expr(&1, sources, query))]
     end
 
     defp window_expr({:frame, {:fragment, _, _} = fragment}, sources, query) do
@@ -739,7 +739,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp order_by(%{order_bys: order_bys} = query, distinct, sources) do
       order_bys = Enum.flat_map(order_bys, & &1.expr)
       order_bys = order_by_concat(distinct, order_bys)
-      [" ORDER BY " | intersperse_map(order_bys, ", ", &order_by_expr(&1, sources, query))]
+      [" ORDER BY " | Enum.map_intersperse(order_bys, ", ", &order_by_expr(&1, sources, query))]
     end
 
     defp order_by_concat([head | left], [head | right]), do: [head | order_by_concat(left, right)]
@@ -852,7 +852,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({:in, _, [left, right]}, sources, query) when is_list(right) do
-      args = intersperse_map(right, ?,, &expr(&1, sources, query))
+      args = Enum.map_intersperse(right, ?,, &expr(&1, sources, query))
       [expr(left, sources, query), " IN (", args, ?)]
     end
 
@@ -954,7 +954,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({:{}, _, elems}, sources, query) do
-      [?(, intersperse_map(elems, ?,, &expr(&1, sources, query)), ?)]
+      [?(, Enum.map_intersperse(elems, ?,, &expr(&1, sources, query)), ?)]
     end
 
     defp expr({:count, _, []}, _sources, _query), do: "count(*)"
@@ -984,7 +984,7 @@ if Code.ensure_loaded?(Postgrex) do
           [maybe_paren(left, sources, query), op | maybe_paren(right, sources, query)]
 
         {:fun, fun} ->
-          [fun, ?(, modifier, intersperse_map(args, ", ", &expr(&1, sources, query)), ?)]
+          [fun, ?(, modifier, Enum.map_intersperse(args, ", ", &expr(&1, sources, query)), ?)]
       end
     end
 
@@ -1003,7 +1003,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr(list, sources, query) when is_list(list) do
-      ["ARRAY[", intersperse_map(list, ?,, &expr(&1, sources, query)), ?]]
+      ["ARRAY[", Enum.map_intersperse(list, ?,, &expr(&1, sources, query)), ?]]
     end
 
     defp expr(%Decimal{} = decimal, _sources, _query) do
@@ -1044,7 +1044,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp json_extract_path(expr, path, sources, query) do
-      path = intersperse_map(path, ?,, &escape_json/1)
+      path = Enum.map_intersperse(path, ?,, &escape_json/1)
       [?(, expr(expr, sources, query), "#>'{", path, "}')"]
     end
 
@@ -1207,8 +1207,8 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     def execute_ddl({command, %Index{} = index}) when command in @creates do
-      fields = intersperse_map(index.columns, ", ", &index_expr/1)
-      include_fields = intersperse_map(index.include, ", ", &index_expr/1)
+      fields = Enum.map_intersperse(index.columns, ", ", &index_expr/1)
+      include_fields = Enum.map_intersperse(index.include, ", ", &index_expr/1)
 
       maybe_nulls_distinct =
         case index.nulls_distinct do
@@ -1388,7 +1388,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_definitions(table, columns) do
-      intersperse_map(columns, ", ", &column_definition(table, &1))
+      Enum.map_intersperse(columns, ", ", &column_definition(table, &1))
     end
 
     defp column_definition(table, {:add, name, %Reference{} = ref, opts}) do
@@ -1407,7 +1407,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_changes(table, columns) do
-      intersperse_map(columns, ", ", &column_change(table, &1))
+      Enum.map_intersperse(columns, ", ", &column_change(table, &1))
     end
 
     defp column_change(table, {:add, name, %Reference{} = ref, opts}) do
@@ -1758,7 +1758,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp quote_names(names) do
-      intersperse_map(names, ?,, &quote_name/1)
+      Enum.map_intersperse(names, ?,, &quote_name/1)
     end
 
     defp quote_name(name) when is_atom(name) do
@@ -1798,17 +1798,6 @@ if Code.ensure_loaded?(Postgrex) do
     defp format_to_sql(:yaml), do: "FORMAT YAML"
 
     defp single_quote(value), do: [?', escape_string(value), ?']
-
-    defp intersperse_map(list, separator, mapper, acc \\ [])
-
-    defp intersperse_map([], _separator, _mapper, acc),
-      do: acc
-
-    defp intersperse_map([elem], _separator, mapper, acc),
-      do: [acc | mapper.(elem)]
-
-    defp intersperse_map([elem | rest], separator, mapper, acc),
-      do: intersperse_map(rest, separator, mapper, [acc, mapper.(elem), separator])
 
     defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])
 

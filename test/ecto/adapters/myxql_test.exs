@@ -1,10 +1,7 @@
-Code.require_file("../../support/connection_helpers.exs", __DIR__)
-
 defmodule Ecto.Adapters.MyXQLTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query
-  import Support.ConnectionHelpers
 
   alias Ecto.Queryable
   alias Ecto.Adapters.MyXQL.Connection, as: SQL
@@ -1551,7 +1548,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     [
       "VALUES ",
-      intersperse_map(values, ?,, fn _ ->
+      Enum.map_intersperse(values, ?,, fn _ ->
         ["ROW(", values_expr(types), ?)]
       end)
     ]
@@ -1559,7 +1556,7 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   defp values_expr(types) do
-    intersperse_map(types, ?,, fn {field, _} ->
+    Enum.map_intersperse(types, ?,, fn {field, _} ->
       ["CAST(", ??, " AS ", types[field], ?)]
     end)
   end
