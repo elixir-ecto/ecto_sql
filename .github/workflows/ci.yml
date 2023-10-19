@@ -53,7 +53,6 @@ jobs:
       matrix:
         elixirbase:
           - "1.11.4-erlang-21.3.8.24-alpine-3.13.3"
-          - "1.15.6-erlang-26.1.2-alpine-3.16.7"
         postgres:
           - "15.0"
           - "11.11"
@@ -73,7 +72,6 @@ jobs:
       matrix:
         elixirbase:
           - "1.11.4-erlang-21.3.8.24-alpine-3.13.3"
-          - "1.15.6-erlang-26.1.2-alpine-3.16.7"
         mysql:
           - "5.7"
           - "8.0"
@@ -91,7 +89,6 @@ jobs:
       matrix:
         elixirbase:
           - "1.11.4-erlang-21.3.8.24-alpine-3.13.3"
-          - "1.15.6-erlang-26.1.2-alpine-3.16.7"
         mssql:
           - "2017"
           - "2019"
