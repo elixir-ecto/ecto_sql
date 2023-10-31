@@ -2009,8 +2009,9 @@ defmodule Ecto.Adapters.MyXQLTest do
            ]
   end
 
-  test "alter table with primary key" do
-    alter = {:alter, table(:posts), [{:add, :my_pk, :serial, [primary_key: true]}]}
+  test "alter table add/3 with primary key" do
+    alter =
+      {:alter, table(:posts), [{:add, :my_pk, :serial, [primary_key: true]}]}
 
     assert execute_ddl(alter) == [
              """
@@ -2020,6 +2021,13 @@ defmodule Ecto.Adapters.MyXQLTest do
              """
              |> remove_newlines
            ]
+  end
+
+  test "alter table remove/3 with primary key" do
+    alter =
+      {:alter, table(:posts), [{:remove, :my_pk, :serial, [primary_key: true]}]}
+
+    assert execute_ddl(alter) == ["ALTER TABLE `posts` DROP `my_pk`" |> remove_newlines]
   end
 
   test "alter table with invalid reference opts" do

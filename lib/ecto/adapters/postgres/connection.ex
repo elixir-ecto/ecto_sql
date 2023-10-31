@@ -1340,7 +1340,8 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp pk_definition(columns, prefix) do
       pks =
-        for {_, name, _, opts} <- columns,
+        for {action, name, _, opts} <- columns,
+            action != :remove,
             opts[:primary_key],
             do: name
 

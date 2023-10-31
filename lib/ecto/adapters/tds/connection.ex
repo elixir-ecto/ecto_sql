@@ -1307,7 +1307,8 @@ if Code.ensure_loaded?(Tds) do
 
     defp pk_definitions(columns, prefix) do
       pks =
-        for {_, name, _, opts} <- columns,
+        for {action, name, _, opts} <- columns,
+            action != :remove,
             opts[:primary_key],
             do: name
 
@@ -1434,6 +1435,9 @@ if Code.ensure_loaded?(Tds) do
     defp column_change(statement_prefix, _table, {:remove, name}) do
       [statement_prefix, "DROP COLUMN ", quote_name(name), "; "]
     end
+
+    defp column_change(statement_prefix, _table, {:remove, name, _type, _opts}),
+      do: [statement_prefix, "DROP COLUMN ", quote_name(name)]
 
     defp column_change(
            statement_prefix,

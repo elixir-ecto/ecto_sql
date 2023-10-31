@@ -1086,7 +1086,8 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp pk_definitions(columns, prefix) do
       pks =
-        for {_, name, _, opts} <- columns,
+        for {action, name, _, opts} <- columns,
+            action != :remove,
             opts[:primary_key],
             do: name
 

@@ -1646,6 +1646,13 @@ defmodule Ecto.Adapters.TdsTest do
              ]
   end
 
+  test "alter table remove/3 with primary key" do
+    alter =
+      {:alter, table(:posts), [{:remove, :my_pk, :serial, [primary_key: true]}]}
+
+    assert execute_ddl(alter) == ["ALTER TABLE [posts] DROP COLUMN [my_pk]" |> remove_newlines]
+  end
+
   test "alter table with invalid reference opts" do
     alter =
       {:alter, table(:posts),
