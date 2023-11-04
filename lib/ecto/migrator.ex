@@ -552,7 +552,7 @@ defmodule Ecto.Migrator do
   end
 
   defp lock_for_migrations(lock_or_migration_number, repo, opts, fun) do
-    dynamic_repo = Keyword.get(opts, :dynamic_repo, repo)
+    dynamic_repo = Keyword.get(opts, :dynamic_repo, repo.get_dynamic_repo())
     skip_table_creation = Keyword.get(opts, :skip_table_creation, false)
     previous_dynamic_repo = repo.put_dynamic_repo(dynamic_repo)
 
