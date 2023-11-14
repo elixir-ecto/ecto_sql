@@ -460,7 +460,7 @@ defmodule Ecto.Migration.Runner do
     do: "drop index if exists #{quote_name(index.prefix, index.name)}#{drop_mode(mode)}"
 
   defp command({:rename, %Index{} = index_current, new_name}),
-    do: "rename index #{quote_name(index_current.name)} to #{new_name}"
+    do: "rename index #{quote_name(index_current.prefix, index_current.name)} to #{new_name}"
 
   defp command({:rename, %Table{} = current_table, %Table{} = new_table}),
     do:
