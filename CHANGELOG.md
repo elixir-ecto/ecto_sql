@@ -1,14 +1,20 @@
 # Changelog for v3.x
 
-## v3.11-dev
+## v3.11.0 (2023-11-14)
 
 ### Enhancements
 
-  * [sql] Support fragment splicing
-  * [sql] Support data-modifying CTEs
   * [mix ecto.migrate] Add `--log-level` to ecto.migrate
   * [mix ecto.rollback] Add `--log-level` to ecto.rollback
+  * [sql] Support fragment splicing
+  * [sql] Support data-modifying CTEs
+  * [sql] Add source to insert_ll, insert, update, and delete telemetry events
   * [tds] Include `exec` before stored procedure for TDS (for earlier SQLServer versions)
+
+### Bug fixes
+
+  * [mix ecto.migrate] Read existing dynamic repo in migrations
+  * [mix ecto.migrate] Don't add primary key on remove migration
 
 ## v3.10.2 (2023-08-21)
 

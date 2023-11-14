@@ -347,8 +347,8 @@ defmodule Ecto.Migrator do
   defp run_maybe_in_transaction(repo, dynamic_repo, module, fun, opts) do
     repo.put_dynamic_repo(dynamic_repo)
 
-    if module.__migration__[:disable_ddl_transaction] ||
-         not repo.__adapter__().supports_ddl_transaction? do
+    if module.__migration__()[:disable_ddl_transaction] ||
+         not repo.__adapter__().supports_ddl_transaction?() do
       fun.()
     else
       {:ok, result} = repo.transaction(fun, log: migrator_log(opts), timeout: :infinity)
@@ -605,7 +605,7 @@ defmodule Ecto.Migrator do
   end
 
   defp conditional_lock_for_migrations(module, version, repo, opts, fun) do
-    lock = if module.__migration__[:disable_migration_lock], do: false, else: version
+    lock = if module.__migration__()[:disable_migration_lock], do: false, else: version
     lock_for_migrations(lock, repo, opts, fun)
   end
 
@@ -771,7 +771,7 @@ defmodule Ecto.Migrator do
         configure Ecto to use another table and/or repository for managing
         migrations:
 
-            config #{inspect(repo.config[:otp_app])}, #{inspect(repo)},
+            config #{inspect(repo.config()[:otp_app])}, #{inspect(repo)},
               migration_source: "some_other_table_for_schema_migrations",
               migration_repo: AnotherRepoForSchemaMigrations
 

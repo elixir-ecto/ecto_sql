@@ -135,7 +135,7 @@ defmodule Mix.Tasks.Ecto.Rollback do
     for repo <- repos do
       ensure_repo(repo, args)
       paths = ensure_migrations_paths(repo, opts)
-      pool = repo.config[:pool]
+      pool = repo.config()[:pool]
 
       fun =
         if Code.ensure_loaded?(pool) and function_exported?(pool, :unboxed_run, 2) do
