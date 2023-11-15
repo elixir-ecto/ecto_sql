@@ -2726,6 +2726,16 @@ defmodule Ecto.Adapters.PostgresTest do
            ]
   end
 
+  test "rename index with prefix" do
+    rename =
+      {:rename, index(:people, [:name], name: "persons_name_index", prefix: :foo),
+       "people_name_index"}
+
+    assert execute_ddl(rename) == [
+             ~s|ALTER INDEX "foo"."persons_name_index" RENAME TO "people_name_index"|
+           ]
+  end
+
   test "create check constraint" do
     create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0")}
 

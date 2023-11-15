@@ -230,7 +230,7 @@ if Code.ensure_loaded?(Postgrex) do
 
       [
         "INSERT INTO ",
-        quote_table(prefix, table),
+        quote_name(prefix, table),
         insert_as(on_conflict),
         values,
         on_conflict(on_conflict, header) | returning(returning)
@@ -332,7 +332,7 @@ if Code.ensure_loaded?(Postgrex) do
 
       [
         "UPDATE ",
-        quote_table(prefix, table),
+        quote_name(prefix, table),
         " SET ",
         fields,
         " WHERE ",
@@ -351,7 +351,7 @@ if Code.ensure_loaded?(Postgrex) do
             {[quote_name(field), " = $" | Integer.to_string(acc)], acc + 1}
         end)
 
-      ["DELETE FROM ", quote_table(prefix, table), " WHERE ", filters | returning(returning)]
+      ["DELETE FROM ", quote_name(prefix, table), " WHERE ", filters | returning(returning)]
     end
 
     @impl true
@@ -1136,7 +1136,7 @@ if Code.ensure_loaded?(Postgrex) do
 
         {table, schema, prefix} ->
           name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
-          {quote_table(prefix, table), name, schema}
+          {quote_name(prefix, table), name, schema}
 
         %Ecto.SubQuery{} ->
           {nil, as_prefix ++ [?s | Integer.to_string(pos)], nil}
@@ -1160,7 +1160,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def execute_ddl({command, %Table{} = table, columns}) when command in @creates do
-      table_name = quote_table(table.prefix, table.name)
+      table_name = quote_name(table.prefix, table.name)
 
       query = [
         "CREATE TABLE ",
@@ -1184,14 +1184,14 @@ if Code.ensure_loaded?(Postgrex) do
         [
           "DROP TABLE ",
           if_do(command == :drop_if_exists, "IF EXISTS "),
-          quote_table(table.prefix, table.name),
+          quote_name(table.prefix, table.name),
           drop_mode(mode)
         ]
       ]
     end
 
     def execute_ddl({:alter, %Table{} = table, changes}) do
-      table_name = quote_table(table.prefix, table.name)
+      table_name = quote_name(table.prefix, table.name)
 
       query = [
         "ALTER TABLE ",
@@ -1227,7 +1227,7 @@ if Code.ensure_loaded?(Postgrex) do
           quote_name(index.name),
           " ON ",
           if_do(index.only, "ONLY "),
-          quote_table(index.prefix, index.table),
+          quote_name(index.prefix, index.table),
           if_do(index.using, [" USING ", to_string(index.using)]),
           ?\s,
           ?(,
@@ -1239,7 +1239,7 @@ if Code.ensure_loaded?(Postgrex) do
         ]
       ]
 
-      queries ++ comments_on("INDEX", quote_table(index.prefix, index.name), index.comment)
+      queries ++ comments_on("INDEX", quote_name(index.prefix, index.name), index.comment)
     end
 
     def execute_ddl({command, %Index{} = index, mode}) when command in @drops do
@@ -1248,23 +1248,30 @@ if Code.ensure_loaded?(Postgrex) do
           "DROP INDEX ",
           if_do(index.concurrently, "CONCURRENTLY "),
           if_do(command == :drop_if_exists, "IF EXISTS "),
-          quote_table(index.prefix, index.name),
+          quote_name(index.prefix, index.name),
           drop_mode(mode)
         ]
       ]
     end
 
     def execute_ddl({:rename, %Index{} = current_index, new_name}) do
-      [["ALTER INDEX ", quote_name(current_index.name), " RENAME TO ", quote_name(new_name)]]
+      [
+        [
+          "ALTER INDEX ",
+          quote_name(current_index.prefix, current_index.name),
+          " RENAME TO ",
+          quote_name(new_name)
+        ]
+      ]
     end
 
     def execute_ddl({:rename, %Table{} = current_table, %Table{} = new_table}) do
       [
         [
           "ALTER TABLE ",
-          quote_table(current_table.prefix, current_table.name),
+          quote_name(current_table.prefix, current_table.name),
           " RENAME TO ",
-          quote_table(nil, new_table.name)
+          quote_name(nil, new_table.name)
         ]
       ]
     end
@@ -1273,7 +1280,7 @@ if Code.ensure_loaded?(Postgrex) do
       [
         [
           "ALTER TABLE ",
-          quote_table(table.prefix, table.name),
+          quote_name(table.prefix, table.name),
           " RENAME ",
           quote_name(current_column),
           " TO ",
@@ -1283,7 +1290,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     def execute_ddl({:create, %Constraint{} = constraint}) do
-      table_name = quote_table(constraint.prefix, constraint.table)
+      table_name = quote_name(constraint.prefix, constraint.table)
       queries = [["ALTER TABLE ", table_name, " ADD ", new_constraint_expr(constraint)]]
 
       queries ++ comments_on("CONSTRAINT", constraint.name, constraint.comment, table_name)
@@ -1293,7 +1300,7 @@ if Code.ensure_loaded?(Postgrex) do
       [
         [
           "ALTER TABLE ",
-          quote_table(constraint.prefix, constraint.table),
+          quote_name(constraint.prefix, constraint.table),
           " DROP CONSTRAINT ",
           if_do(command == :drop_if_exists, "IF EXISTS "),
           quote_name(constraint.name),
@@ -1672,7 +1679,7 @@ if Code.ensure_loaded?(Postgrex) do
         "FOREIGN KEY (",
         quote_names(current_columns),
         ") REFERENCES ",
-        quote_table(ref.prefix || table.prefix, ref.table),
+        quote_name(ref.prefix || table.prefix, ref.table),
         ?(,
         quote_names(reference_columns),
         ?),
@@ -1762,27 +1769,17 @@ if Code.ensure_loaded?(Postgrex) do
       Enum.map_intersperse(names, ?,, &quote_name/1)
     end
 
+    defp quote_name(nil, name), do: quote_name(name)
+
+    defp quote_name(prefix, name), do: [quote_name(prefix), ?., quote_name(name)]
+
     defp quote_name(name) when is_atom(name) do
       quote_name(Atom.to_string(name))
     end
 
     defp quote_name(name) when is_binary(name) do
       if String.contains?(name, "\"") do
-        error!(nil, "bad literal/field/table name #{inspect(name)} (\" is not permitted)")
-      end
-
-      [?", name, ?"]
-    end
-
-    defp quote_table(nil, name), do: quote_table(name)
-    defp quote_table(prefix, name), do: [quote_table(prefix), ?., quote_table(name)]
-
-    defp quote_table(name) when is_atom(name),
-      do: quote_table(Atom.to_string(name))
-
-    defp quote_table(name) do
-      if String.contains?(name, "\"") do
-        error!(nil, "bad table name #{inspect(name)}")
+        error!(nil, "bad literal/field/index/table name #{inspect(name)} (\" is not permitted)")
       end
 
       [?", name, ?"]
