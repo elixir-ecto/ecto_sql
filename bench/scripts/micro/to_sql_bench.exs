@@ -59,6 +59,6 @@ file = Path.join(path, "to_sql.json")
 Benchee.run(
   jobs,
   inputs: inputs,
-  formatters: [Benchee.Formatters.JSON, Benchee.Formatters.Console],
+  formatters: [Benchee.Formatters.Console],
   formatter_options: [json: [file: file]]
 )
