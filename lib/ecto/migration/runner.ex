@@ -24,7 +24,7 @@ defmodule Ecto.Migration.Runner do
     log(level, "== Running #{version} #{inspect(module)}.#{operation}/0 #{direction}")
     {time, _} = :timer.tc(fn -> perform_operation(repo, module, operation) end)
     log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
-
+  after
     stop()
   end
 
@@ -61,8 +61,7 @@ defmodule Ecto.Migration.Runner do
   Stops the runner.
   """
   def stop() do
-    runner = runner()
-    Process.alive?(runner) && Agent.stop(runner)
+    Agent.stop(runner())
   end
 
   @doc """

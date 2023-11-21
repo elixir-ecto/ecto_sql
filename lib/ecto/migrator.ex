@@ -357,7 +357,6 @@ defmodule Ecto.Migrator do
     end
   catch
     kind, reason ->
-      Runner.stop()
       {kind, reason, __STACKTRACE__}
   end
 
