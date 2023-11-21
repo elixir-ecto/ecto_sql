@@ -112,6 +112,7 @@ defmodule Ecto.Integration.MigratorTest do
 
   test "bad execute migration" do
     assert catch_error(up(PoolRepo, 31, BadMigration, log: false))
+    assert DynamicSupervisor.which_children(Ecto.MigratorSupervisor) == []
   end
 
   test "broken link migration" do

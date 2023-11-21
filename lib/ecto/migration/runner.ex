@@ -61,7 +61,8 @@ defmodule Ecto.Migration.Runner do
   Stops the runner.
   """
   def stop() do
-    Agent.stop(runner())
+    runner = runner()
+    Process.alive?(runner) && Agent.stop(runner)
   end
 
   @doc """
