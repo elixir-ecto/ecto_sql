@@ -81,8 +81,10 @@ if Code.ensure_loaded?(Tds) do
     defp prepare_params(params) do
       {params, _} =
         Enum.map_reduce(params, 1, fn param, acc ->
-          {value, type} = prepare_param(param)
-          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+          case prepare_param(param) do
+            {value, type} -> {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+            %Tds.Parameter{} = param -> {param, acc}
+          end
         end)
 
       params
@@ -107,6 +109,19 @@ if Code.ensure_loaded?(Tds) do
 
     defp prepare_param(%Time{} = value) do
       {value, :time}
+    end
+
+    defp prepare_param(%Tds.Parameter{name: <<"@", _::binary>>, type: nil, value: value} = param) do
+      {_value, type} = prepare_param(value)
+      %{param | type: type}
+    end
+
+    defp prepare_param(%Tds.Parameter{name: <<"@", _::binary>>} = param) do
+      param
+    end
+
+    defp prepare_param(%Tds.Parameter{}) do
+      error!(nil, "Parameters must have a name when passed as a Tds.Parameter struct")
     end
 
     defp prepare_param(%{__struct__: module} = _value) do
