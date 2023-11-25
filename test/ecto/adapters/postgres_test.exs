@@ -2034,6 +2034,7 @@ defmodule Ecto.Adapters.PostgresTest do
          {:add, :on_hand, :integer, [default: 0, null: true]},
          {:add, :published_at, :"time without time zone", [null: true]},
          {:add, :is_active, :boolean, [default: true]},
+         {:add, :token, :bitstring, [size: 23]},
          {:add, :tags, {:array, :string}, [default: []]},
          {:add, :languages, {:array, :string}, [default: ["pt", "es"]]},
          {:add, :limits, {:array, :integer}, [default: [100, 30_000]]}
@@ -2046,6 +2047,7 @@ defmodule Ecto.Adapters.PostgresTest do
              "on_hand" integer DEFAULT 0 NULL,
              "published_at" time without time zone NULL,
              "is_active" boolean DEFAULT true,
+             "token" bit varying(23),
              "tags" varchar(255)[] DEFAULT ARRAY[]::varchar[],
              "languages" varchar(255)[] DEFAULT ARRAY['pt','es']::varchar[],
              "limits" integer[] DEFAULT ARRAY[100,30000]::integer[])

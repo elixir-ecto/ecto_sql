@@ -1623,7 +1623,8 @@ defmodule Ecto.Adapters.MyXQLTest do
          {:add, :on_hand, :integer, [default: 0, null: true]},
          {:add, :likes, :"smallint unsigned", [default: 0, null: false]},
          {:add, :published_at, :"datetime(6)", [null: true]},
-         {:add, :is_active, :boolean, [default: true]}
+         {:add, :is_active, :boolean, [default: true]},
+         {:add, :token, :bitstring, [size: 23]}
        ]}
 
     assert execute_ddl(create) == [
@@ -1634,7 +1635,8 @@ defmodule Ecto.Adapters.MyXQLTest do
              `on_hand` integer DEFAULT 0 NULL,
              `likes` smallint unsigned DEFAULT 0 NOT NULL,
              `published_at` datetime(6) NULL,
-             `is_active` boolean DEFAULT true) ENGINE = INNODB
+             `is_active` boolean DEFAULT true,
+             `token` varbinary(23)) ENGINE = INNODB
              """
              |> remove_newlines
            ]

@@ -1883,6 +1883,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp ecto_to_db(:bigserial), do: "bigserial"
     defp ecto_to_db(:binary_id), do: "uuid"
     defp ecto_to_db(:string), do: "varchar"
+    defp ecto_to_db(:bitstring), do: "bit varying"
     defp ecto_to_db(:binary), do: "bytea"
     defp ecto_to_db(:map), do: Application.fetch_env!(:ecto_sql, :postgres_map_type)
     defp ecto_to_db({:map, _}), do: Application.fetch_env!(:ecto_sql, :postgres_map_type)
