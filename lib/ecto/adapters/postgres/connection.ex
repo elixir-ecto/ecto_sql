@@ -880,6 +880,10 @@ if Code.ensure_loaded?(Postgrex) do
       ["NOT (", expr(expr, sources, query), ?)]
     end
 
+    defp expr({:~~~, _, [expr]}, sources, query) do
+      ["~(", expr(expr, sources, query), ?)]
+    end
+
     defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
       combinations =
         Enum.map(query.combinations, fn {type, combination_query} ->
