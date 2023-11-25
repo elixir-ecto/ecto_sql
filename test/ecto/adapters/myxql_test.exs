@@ -590,7 +590,6 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = Schema |> select([r], r.x >>> 2) |> plan()
     assert all(query) == ~s{SELECT s0.`x` >> 2 FROM `schema` AS s0}
-
   end
 
   test "unary ops" do
