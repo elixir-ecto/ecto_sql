@@ -301,9 +301,18 @@ if Code.ensure_loaded?(MyXQL) do
       -: " - ",
       *: " * ",
       /: " / ",
+      &&&: " & ",
+      |||: " | ",
+      <<<: " << ",
+      >>>: " >> ",
       and: " AND ",
       or: " OR ",
-      like: " LIKE "
+      like: " LIKE ",
+      band: " & ",
+      bor: " | ",
+      bxor: " ^ ",
+      bsl: " << ",
+      bsr: " >> "
     ]
 
     @binary_ops Keyword.keys(binary_ops)
@@ -681,6 +690,10 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp expr({:not, _, [expr]}, sources, query) do
       ["NOT (", expr(expr, sources, query), ?)]
+    end
+
+    defp expr({bnot, _, [expr]}, sources, query) when bnot in ~w(~~~ bnot)a do
+      ["~" | op_to_binary(expr, sources, query)]
     end
 
     defp expr({:filter, _, _}, _sources, query) do
