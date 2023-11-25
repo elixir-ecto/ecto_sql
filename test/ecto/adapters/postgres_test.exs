@@ -777,9 +777,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = Schema |> select([r], r.x &&& 2) |> plan()
     assert all(query) == ~s{SELECT s0."x" & 2 FROM "schema" AS s0}
-  end
 
-  test "bitwise ops" do
     query = Schema |> select([r], r.x ||| 2) |> plan()
     assert all(query) == ~s{SELECT s0."x" | 2 FROM "schema" AS s0}
 
@@ -789,8 +787,38 @@ defmodule Ecto.Adapters.PostgresTest do
     query = Schema |> select([r], r.x >>> 2) |> plan()
     assert all(query) == ~s{SELECT s0."x" >> 2 FROM "schema" AS s0}
 
+  end
+
+  test "unary ops" do
     query = Schema |> select([r], ~~~r.x) |> plan()
-    assert all(query) == ~s{SELECT ~(s0."x") FROM "schema" AS s0}
+    assert all(query) == ~s{SELECT ~s0."x" FROM "schema" AS s0}
+  end
+
+  test "bitwise functions" do
+    query = Schema |> select([r], band(r.x, 2)) |> plan()
+    assert all(query) == ~s{SELECT s0."x" & 2 FROM "schema" AS s0}
+
+    query = Schema |> select([r], bor(r.x, 2)) |> plan()
+    assert all(query) == ~s{SELECT s0."x" | 2 FROM "schema" AS s0}
+
+    query = Schema |> select([r], bxor(r.x, 2)) |> plan()
+    assert all(query) == ~s{SELECT s0."x" # 2 FROM "schema" AS s0}
+
+    query = Schema |> select([r], bsl(r.x, 2)) |> plan()
+    assert all(query) == ~s{SELECT s0."x" << 2 FROM "schema" AS s0}
+
+    query = Schema |> select([r], bsr(r.x, 2)) |> plan()
+    assert all(query) == ~s{SELECT s0."x" >> 2 FROM "schema" AS s0}
+
+    query = Schema |> select([r], bnot(r.x)) |> plan()
+    assert all(query) == ~s{SELECT ~s0."x" FROM "schema" AS s0}
+
+    # test parenthesis
+    query = Schema |> select([r], band(r.x ||| 1, 2)) |> plan()
+    assert all(query) == ~s{SELECT (s0."x" | 1) & 2 FROM "schema" AS s0}
+
+    query = Schema |> select([r], bnot(r.x &&& 1)) |> plan()
+    assert all(query) == ~s{SELECT ~(s0."x" & 1) FROM "schema" AS s0}
   end
 
   test "is_nil" do

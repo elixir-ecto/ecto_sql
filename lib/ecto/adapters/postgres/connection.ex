@@ -435,7 +435,12 @@ if Code.ensure_loaded?(Postgrex) do
       and: " AND ",
       or: " OR ",
       ilike: " ILIKE ",
-      like: " LIKE "
+      like: " LIKE ",
+      band: " & ",
+      bor: " | ",
+      bxor: " # ",
+      bsl: " << ",
+      bsr: " >> "
     ]
 
     @binary_ops Keyword.keys(binary_ops)
@@ -880,8 +885,8 @@ if Code.ensure_loaded?(Postgrex) do
       ["NOT (", expr(expr, sources, query), ?)]
     end
 
-    defp expr({:~~~, _, [expr]}, sources, query) do
-      ["~(", expr(expr, sources, query), ?)]
+    defp expr({bnot, _, [expr]}, sources, query) when bnot in ~w(~~~ bnot)a do
+      ["~" | maybe_paren(expr, sources, query)]
     end
 
     defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
