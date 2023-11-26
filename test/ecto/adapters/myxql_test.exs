@@ -594,7 +594,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   test "unary ops" do
     query = Schema |> select([r], ~~~r.x) |> plan()
-    assert all(query) == ~s{SELECT ~s0.`x` FROM `schema` AS s0}
+    assert all(query) == ~s{SELECT ~(s0.`x`) FROM `schema` AS s0}
   end
 
   test "bitwise functions" do
@@ -614,7 +614,7 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT s0.`x` >> 2 FROM `schema` AS s0}
 
     query = Schema |> select([r], bnot(r.x)) |> plan()
-    assert all(query) == ~s{SELECT ~s0.`x` FROM `schema` AS s0}
+    assert all(query) == ~s{SELECT ~(s0.`x`) FROM `schema` AS s0}
 
     # test parenthesis
     query = Schema |> select([r], band(r.x ||| 1, 2)) |> plan()
@@ -749,6 +749,9 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "tagged type" do
+    query = Schema |> select([t], type(~~~t.x, :integer)) |> plan()
+    assert all(query) == ~s{SELECT CAST(~(s0.`x`) AS unsigned) FROM `schema` AS s0}
+
     query =
       Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
 

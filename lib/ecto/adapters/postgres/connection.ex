@@ -886,7 +886,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({bnot, _, [expr]}, sources, query) when bnot in ~w(~~~ bnot)a do
-      ["~" | maybe_paren(expr, sources, query)]
+      ["~(", expr(expr, sources, query), ?)]
     end
 
     defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
@@ -1106,6 +1106,9 @@ if Code.ensure_loaded?(Postgrex) do
       do: paren_expr(expr, sources, query)
 
     defp maybe_paren({:is_nil, _, [_]} = expr, sources, query),
+      do: paren_expr(expr, sources, query)
+
+    defp maybe_paren({bnot, _, [_]} = expr, sources, query) when bnot in ~w(~~~ bnot)a,
       do: paren_expr(expr, sources, query)
 
     defp maybe_paren(expr, sources, query),

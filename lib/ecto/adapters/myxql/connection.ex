@@ -693,7 +693,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr({bnot, _, [expr]}, sources, query) when bnot in ~w(~~~ bnot)a do
-      ["~" | op_to_binary(expr, sources, query)]
+      ["~(", expr(expr, sources, query), ?)]
     end
 
     defp expr({:filter, _, _}, _sources, query) do
