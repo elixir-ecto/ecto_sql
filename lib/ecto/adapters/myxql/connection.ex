@@ -1477,7 +1477,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp ecto_to_db(:bigserial, _query), do: "bigint unsigned not null auto_increment"
     defp ecto_to_db(:binary_id, _query), do: "binary(16)"
     defp ecto_to_db(:string, _query), do: "varchar"
-    defp ecto_to_db(:bitstring, _query), do: "varbinary"
+    defp ecto_to_db(:bitstring, _query), do: "bit"
     defp ecto_to_db(:float, _query), do: "double"
     defp ecto_to_db(:binary, _query), do: "blob"
     # MySQL does not support uuid
