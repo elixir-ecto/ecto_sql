@@ -948,8 +948,8 @@ defmodule Ecto.Adapters.PostgresTest do
     query = Schema |> select([t], type(t.x + t.y, :integer)) |> plan()
     assert all(query) == ~s{SELECT (s0."x" + s0."y")::bigint FROM "schema" AS s0}
 
-    query = Schema |> select([t], type(~~~t.x, bitstring: 5)) |> plan()
-    assert all(query) == ~s{SELECT (~(s0."x"))::bit varying(5) FROM "schema" AS s0}
+    query = Schema |> select([t], type(~~~t.x, :integer)) |> plan()
+    assert all(query) == ~s{SELECT (~(s0."x"))::bigint FROM "schema" AS s0}
 
     query =
       Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()

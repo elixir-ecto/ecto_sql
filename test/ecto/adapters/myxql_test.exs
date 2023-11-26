@@ -749,8 +749,8 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "tagged type" do
-    query = Schema |> select([t], type(~~~t.x, bitstring: 5)) |> plan()
-    assert all(query) == ~s{SELECT CAST(~(s0.`x`) AS bit(5)) FROM `schema` AS s0}
+    query = Schema |> select([t], type(~~~t.x, :integer)) |> plan()
+    assert all(query) == ~s{SELECT CAST(~(s0.`x`) AS unsigned) FROM `schema` AS s0}
 
     query =
       Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
@@ -1639,7 +1639,7 @@ defmodule Ecto.Adapters.MyXQLTest do
              `likes` smallint unsigned DEFAULT 0 NOT NULL,
              `published_at` datetime(6) NULL,
              `is_active` boolean DEFAULT true,
-             `token` bit(23)) ENGINE = INNODB
+             `token` varbinary(23)) ENGINE = INNODB
              """
              |> remove_newlines
            ]

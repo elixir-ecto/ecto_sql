@@ -1087,10 +1087,6 @@ if Code.ensure_loaded?(Postgrex) do
     defp tagged_to_db(:id), do: "bigint"
     defp tagged_to_db(:integer), do: "bigint"
     defp tagged_to_db({:array, type}), do: [tagged_to_db(type), ?[, ?]]
-
-    defp tagged_to_db({type, size}) when is_number(size),
-      do: [ecto_to_db(type), ?(, to_string(size), ?)]
-
     defp tagged_to_db(type), do: ecto_to_db(type)
 
     defp interval(count, interval, _sources, _query) when is_integer(count) do

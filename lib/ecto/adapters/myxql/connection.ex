@@ -1465,10 +1465,6 @@ if Code.ensure_loaded?(MyXQL) do
     defp ecto_cast_to_db(:string, _query), do: "char"
     defp ecto_cast_to_db(:utc_datetime_usec, _query), do: "datetime(6)"
     defp ecto_cast_to_db(:naive_datetime_usec, _query), do: "datetime(6)"
-
-    defp ecto_cast_to_db({type, size}, query) when is_number(size),
-      do: [ecto_to_db(type, query), ?(, to_string(size), ?)]
-
     defp ecto_cast_to_db(type, query), do: ecto_to_db(type, query)
 
     defp ecto_size_to_db(:binary), do: "varbinary"
