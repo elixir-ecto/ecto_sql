@@ -886,6 +886,9 @@ if Code.ensure_loaded?(MyXQL) do
     defp op_to_binary({:is_nil, _, [_]} = expr, sources, query),
       do: paren_expr(expr, sources, query)
 
+    defp op_to_binary({bnot, _, [_]} = expr, sources, query) when bnot in ~w(~~~ bnot)a,
+      do: paren_expr(expr, sources, query)
+
     defp op_to_binary(expr, sources, query),
       do: expr(expr, sources, query)
 
