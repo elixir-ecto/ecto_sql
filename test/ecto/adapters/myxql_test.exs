@@ -1639,7 +1639,7 @@ defmodule Ecto.Adapters.MyXQLTest do
              `likes` smallint unsigned DEFAULT 0 NOT NULL,
              `published_at` datetime(6) NULL,
              `is_active` boolean DEFAULT true,
-             `token` varbinary(23)) ENGINE = INNODB
+             `token` bit(23)) ENGINE = INNODB
              """
              |> remove_newlines
            ]
