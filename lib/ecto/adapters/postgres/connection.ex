@@ -1235,6 +1235,7 @@ if Code.ensure_loaded?(Postgrex) do
           ?),
           if_do(include_fields != [], [" INCLUDE ", ?(, include_fields, ?)]),
           maybe_nulls_distinct,
+          if_do(index.options != nil, [" WITH ", ?(, index.options, ?)]),
           if_do(index.where, [" WHERE ", to_string(index.where)])
         ]
       ]
