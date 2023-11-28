@@ -2694,6 +2694,13 @@ defmodule Ecto.Adapters.PostgresTest do
              [~s|CREATE INDEX "posts_permalink_index" ON ONLY "posts" ("permalink")|]
   end
 
+  test "create an index with storage parameters" do
+    create = {:create, index(:posts, [:title], options: "fillfactor=50")}
+
+    assert execute_ddl(create) ==
+             [~s|CREATE INDEX "posts_title_index" ON "posts" ("title") WITH (fillfactor=50)|]
+  end
+
   test "drop index" do
     drop = {:drop, index(:posts, [:id], name: "posts$main"), :restrict}
     assert execute_ddl(drop) == [~s|DROP INDEX "posts$main"|]
