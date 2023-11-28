@@ -771,25 +771,29 @@ defmodule Ecto.Migration do
   ## Options
 
     * `:name` - the name of the index. Defaults to "#{table}_#{column}_index".
-    * `:unique` - indicates whether the index should be unique. Defaults to
-      `false`.
-    * `:concurrently` - indicates whether the index should be created/dropped
-      concurrently.
-    * `:using` - configures the index type.
     * `:prefix` - specify an optional prefix for the index.
-    * `:where` - specify conditions for a partial index.
-    * `:include` - specify fields for a covering index. This is not supported
-      by all databases. For more information on PostgreSQL support, please
-      [read the official docs](https://www.postgresql.org/docs/current/indexes-index-only-scans.html).
+    * `:unique` - indicates whether the index should be unique. Defaults to `false`.
+    * `:comment` - adds a comment to the index.
+    * `:using` - configures the index type.
+
+  Some options are supported only by some databases:
+
+    * `:concurrently` - indicates whether the index should be created/dropped
+      concurrently in MSSQL and PostgreSQL.
+    * `:include` - specify fields for a covering index,
+      [supported by PostgreSQL only](https://www.postgresql.org/docs/current/indexes-index-only-scans.html).
     * `:nulls_distinct` - specify whether null values should be considered
       distinct for a unique index. Defaults to `nil`, which will not add the
       parameter to the generated SQL and thus use the database default.
       This option is currently only supported by PostgreSQL 15+.
       For MySQL, it is always false. For MSSQL, it is always true.
       See the dedicated section on this option for more information.
-    * `:only` - Indicates not to recurse creating indexes on partitions, if the table is partitioned.
-      This option is currently only supported by PostgreSQL 11+. Defaults to `false`.
-    * `:comment` - adds a comment to the index.
+    * `:only` - indicates to not recurse creating indexes on partitions.
+      [supported by PostgreSQL only](https://www.postgresql.org/docs/current/ddl-partitioning.html#DDL-PARTITIONING-DECLARATIVE-MAINTENANCE).
+    * `:options` - configures index options (WITH clause) for both PostgreSQL
+      and MSSQL
+    * `:where` - specify conditions for a partial index (PostgreSQL) /
+      filtered index (MSSQL).
 
   ## Adding/dropping indexes concurrently
 
