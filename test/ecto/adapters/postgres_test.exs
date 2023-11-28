@@ -2695,10 +2695,10 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "create an index with storage parameters" do
-    create = {:create, index(:posts, [:permalink], options: "fillfactor=50")}
+    create = {:create, index(:posts, [:title], options: "fillfactor=50")}
 
     assert execute_ddl(create) ==
-             [~s|CREATE INDEX "posts_permalink_index" ON "posts" ("permalink") WITH (fillfactor=50)|]
+             [~s|CREATE INDEX "posts_title_index" ON "posts" ("title") WITH (fillfactor=50)|]
   end
 
   test "drop index" do
