@@ -1,7 +1,7 @@
 VERSION 0.6
 
 all:
-    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.17.4
+    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
     BUILD \
         --build-arg POSTGRES=15.0 \
         --build-arg POSTGRES=11.11 \
@@ -20,7 +20,7 @@ all:
         +integration-test-mssql
 
 setup-base:
-    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.17.4
+    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
     FROM hexpm/elixir:$ELIXIR_BASE
     RUN apk add --no-progress --update git build-base
     ENV ELIXIR_ASSERT_TIMEOUT=10000
@@ -62,7 +62,7 @@ integration-test-postgres:
 
     # then run the tests
     WITH DOCKER \
-        --pull "postgres:$POSTGRES"
+        --pull "postgres:$POSTGRES" --platform linux/amd64
         RUN set -e; \
             timeout=$(expr $(date +%s) + 30); \
             docker run --name pg --network=host -d -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres "postgres:$POSTGRES"; \
@@ -84,7 +84,7 @@ integration-test-mysql:
 
     ARG MYSQL="5.7"
     WITH DOCKER \
-        --pull "mysql:$MYSQL"
+        --pull "mysql:$MYSQL" --platform linux/amd64
         RUN set -e; \
             timeout=$(expr $(date +%s) + 30); \
             docker run --name mysql --network=host -d -e MYSQL_ROOT_PASSWORD=root "mysql:$MYSQL" \
@@ -103,25 +103,26 @@ integration-test-mysql:
 
 
 integration-test-mssql:
+    ARG TARGETARCH 
     FROM +setup-base
 
     RUN apk add --no-cache curl gnupg --virtual .build-dependencies -- && \
-        curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.5.2.1-1_amd64.apk && \
-        curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/mssql-tools_17.5.2.1-1_amd64.apk && \
-        echo y | apk add --allow-untrusted msodbcsql17_17.5.2.1-1_amd64.apk mssql-tools_17.5.2.1-1_amd64.apk && \
+        curl -O https://download.microsoft.com/download/3/5/5/355d7943-a338-41a7-858d-53b259ea33f5/msodbcsql18_18.3.2.1-1_${TARGETARCH}.apk && \
+        curl -O https://download.microsoft.com/download/3/5/5/355d7943-a338-41a7-858d-53b259ea33f5/mssql-tools18_18.3.1.1-1_${TARGETARCH}.apk && \
+        echo y | apk add --allow-untrusted msodbcsql18_18.3.2.1-1_${TARGETARCH}.apk mssql-tools18_18.3.1.1-1_${TARGETARCH}.apk && \
         apk del .build-dependencies && rm -f msodbcsql*.sig mssql-tools*.apk
-    ENV PATH="/opt/mssql-tools/bin:${PATH}"
+    ENV PATH="/opt/mssql-tools18/bin:${PATH}"
 
     DO +COMMON_SETUP_AND_MIX
 
     ARG MSSQL="2017"
     WITH DOCKER \
-        --pull "mcr.microsoft.com/mssql/server:$MSSQL-latest"
+        --pull "mcr.microsoft.com/mssql/server:$MSSQL-latest" --platform linux/amd64
         RUN set -e; \
             timeout=$(expr $(date +%s) + 30); \
             docker run -d -p 1433:1433 --name mssql -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=some!Password' "mcr.microsoft.com/mssql/server:$MSSQL-latest"; \
             # wait for mssql to start
-            while ! sqlcmd -S tcp:127.0.0.1,1433 -U sa -P 'some!Password' -Q "SELECT 1" >/dev/null 2>&1; do \
+            while ! sqlcmd -C -S tcp:127.0.0.1,1433 -U sa -P 'some!Password' -Q "SELECT 1" >/dev/null 2>&1; do \
                 test "$(date +%s)" -le "$timeout" || (echo "timed out waiting for mssql"; exit 1); \
                 echo "waiting for mssql"; \
                 sleep 1; \
