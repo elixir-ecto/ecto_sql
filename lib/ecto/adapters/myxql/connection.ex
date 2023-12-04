@@ -1256,28 +1256,46 @@ if Code.ensure_loaded?(MyXQL) do
     defp options_expr(options),
       do: [?\s, to_string(options)]
 
-    defp column_type(type, _opts) when type in ~w(time utc_datetime naive_datetime)a,
-      do: ecto_to_db(type)
+    defp column_type(type, opts) when type in ~w(time utc_datetime naive_datetime)a do
+      generated = Keyword.get(opts, :generated)
+      [ecto_to_db(type), generated_expr(generated)]
+    end
 
     defp column_type(type, opts)
          when type in ~w(time_usec utc_datetime_usec naive_datetime_usec)a do
       precision = Keyword.get(opts, :precision, 6)
+      generated = Keyword.get(opts, :generated)
       type_name = ecto_to_db(type)
 
-      [type_name, ?(, to_string(precision), ?)]
+      [type_name, ?(, to_string(precision), ?), generated_expr(generated)]
     end
 
     defp column_type(type, opts) do
       size = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)
+      generated = Keyword.get(opts, :generated)
       scale = Keyword.get(opts, :scale)
 
-      cond do
-        size -> [ecto_size_to_db(type), ?(, to_string(size), ?)]
-        precision -> [ecto_to_db(type), ?(, to_string(precision), ?,, to_string(scale || 0), ?)]
-        type == :string -> ["varchar(255)"]
-        true -> ecto_to_db(type)
-      end
+      type =
+        cond do
+          size -> [ecto_size_to_db(type), ?(, to_string(size), ?)]
+          precision -> [ecto_to_db(type), ?(, to_string(precision), ?,, to_string(scale || 0), ?)]
+          type == :string -> ["varchar(255)"]
+          true -> ecto_to_db(type)
+        end
+
+      [type, generated_expr(generated)]
+    end
+
+    defp generated_expr(nil), do: []
+
+    defp generated_expr(expr) when is_binary(expr) do
+      [" AS ", expr]
+    end
+
+    defp generated_expr(other) do
+      raise ArgumentError,
+            "the `:generated` option only accepts strings, received: #{inspect(other)}"
     end
 
     defp reference_expr(type, ref, table, name) do

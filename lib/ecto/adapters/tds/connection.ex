@@ -1544,7 +1544,19 @@ if Code.ensure_loaded?(Tds) do
       size = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)
       scale = Keyword.get(opts, :scale)
-      ecto_to_db(type, size, precision, scale)
+      generated = Keyword.get(opts, :generated)
+      [ecto_to_db(type, size, precision, scale), generated_expr(generated)]
+    end
+
+    defp generated_expr(nil), do: []
+
+    defp generated_expr(expr) when is_binary(expr) do
+      [" AS ", expr]
+    end
+
+    defp generated_expr(other) do
+      raise ArgumentError,
+            "the `:generated` option only accepts strings, received: #{inspect(other)}"
     end
 
     defp constraint_expr(%Reference{} = ref, table, name) do

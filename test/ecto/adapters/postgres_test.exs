@@ -2208,6 +2208,26 @@ defmodule Ecto.Adapters.PostgresTest do
            ]
   end
 
+  test "create table with generated column" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :id, :integer,
+          [
+            primary_key: true,
+            generated: "ALWAYS AS IDENTITY (MINVALUE  0 START WITH 0 INCREMENT BY 1)"
+          ]},
+         {:add, :id_str, :string, [generated: ~s|ALWAYS AS (id) STORED|]}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE "posts" ("id" integer GENERATED ALWAYS AS IDENTITY (MINVALUE  0 START WITH 0 INCREMENT BY 1), "id_str" varchar(255) GENERATED ALWAYS AS (id) STORED, PRIMARY KEY ("id"))
+             """
+             |> remove_newlines
+           ]
+  end
+
   test "create table with binary column and null-byte default" do
     create = {:create, table(:blobs), [{:add, :blob, :binary, [default: <<0>>]}]}
 
