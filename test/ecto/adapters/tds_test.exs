@@ -1532,6 +1532,23 @@ defmodule Ecto.Adapters.TdsTest do
            ]
   end
 
+  test "create table with generated column" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :id, :integer, [primary_key: true]},
+         {:add, :id_float, :float, [generated: ~s|(CAST(id AS float))|]}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE [posts] ([id] integer, [id_float] float AS (CAST(id AS float)), CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]));
+             """
+             |> remove_newlines
+             |> Kernel.<>(" ")
+           ]
+  end
+
   test "create table with binary column and UTF-8 default" do
     create = {:create, table(:blobs), [{:add, :blob, :binary, [default: "foo"]}]}
 

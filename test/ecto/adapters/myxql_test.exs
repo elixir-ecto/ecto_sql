@@ -1739,6 +1739,22 @@ defmodule Ecto.Adapters.MyXQLTest do
            ]
   end
 
+  test "create table with generated column" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :id, :integer, [primary_key: true]},
+         {:add, :id_float, :float, [generated: ~s|(CAST(id AS double))|]}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE `posts` (`id` integer, `id_float` double AS (CAST(id AS double)), PRIMARY KEY (`id`)) ENGINE = INNODB
+             """
+             |> remove_newlines
+           ]
+  end
+
   test "create table with a map column, and a map default with values" do
     default = %{foo: "bar", baz: "boom"}
     default_text = "'{" <> Enum.map_join(default, ",", fn {k, v} -> ~s{"#{k}":"#{v}"} end) <> "}'"

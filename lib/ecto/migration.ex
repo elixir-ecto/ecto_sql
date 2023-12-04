@@ -1092,6 +1092,9 @@ defmodule Ecto.Migration do
         add :summary, :text               # Database type
         add :object,  :map                # Elixir type which is handled by the database
         add :custom, :'"UserDefinedType"' # A case-sensitive, user-defined type name
+        add :identity, :integer, generated: "BY DEFAULT AS IDENTITY" # Postgres generated identity column
+        add :generated_psql, :string, generated: "ALWAYS AS (id::text) STORED" # Postgres calculated column
+        add :generated_other, :string, generated: "CAST(id AS char)" # MySQL and TDS calculated column
       end
 
   ## Options
@@ -1112,6 +1115,9 @@ defmodule Ecto.Migration do
     * `:comment` - adds a comment to the added column.
     * `:after` - positions field after the specified one. Only supported on MySQL,
       it is ignored by other databases.
+    * `:generated` - a string representing the expression for a generated column. See
+      above for a comprehensive set of examples for each of the built-in adapters. If
+      specified alongside `:start_value`/`:increment`, those options will be ignored.
     * `:start_value` - option for `:identity` key, represents initial value in sequence
       generation. Default is defined by the database.
     * `:increment` - option for `:identity` key, represents increment value for
