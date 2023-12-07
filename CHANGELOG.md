@@ -1,5 +1,17 @@
 # Changelog for v3.x
 
+## v3.11.1 (2023-12-07)
+
+### Enhancements
+
+  * [Ecto.Migration] Add `:generated` option to columns
+  * [Ecto.Migration] Add index storage parameters (via :options) for Postgres
+
+### Bug fixes
+
+  * [Ecto.Migrations] Support `:prefix` on index rename
+  * [Ecto.Migrator] Stop runner if migration fails
+
 ## v3.11.0 (2023-11-14)
 
 ### Enhancements
