@@ -27,6 +27,8 @@ defmodule Ecto.Integration.Migration do
       add :intensity, :float
       add :author_id, :integer
       add :posted, :date
+      add :composite_a, :integer
+      add :composite_b, :integer
       timestamps(null: true)
     end
 
@@ -112,6 +114,26 @@ defmodule Ecto.Integration.Migration do
       add :b, :integer, primary_key: true
       add :name, :string
     end
+
+    create table(:composite_pk_composite_pk, primary_key: false) do
+      add :a_1, references(:composite_pk, column: :a, with: [b_1: :b], type: :integer)
+      add :b_1, :integer
+      add :a_2, references(:composite_pk, column: :a, with: [b_2: :b], type: :integer)
+      add :b_2, :integer
+    end
+
+
+    alter table(:posts) do
+      modify :composite_a, references(:composite_pk, column: :a, with: [composite_b: :b], type: :integer)
+    end
+
+    create table(:one_to_one_composite_pk) do
+      add :composite_a, references(:composite_pk, column: :a, with: [composite_b: :b], type: :integer)
+      add :composite_b, :integer
+      timestamps()
+    end
+
+    create unique_index(:one_to_one_composite_pk, [:composite_a, :composite_b])
 
     create table(:corrupted_pk, primary_key: false) do
       add :a, :string
