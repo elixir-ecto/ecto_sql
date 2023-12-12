@@ -27,6 +27,7 @@ defmodule Ecto.Integration.Migration do
       add :intensity, :float
       add :author_id, :integer
       add :posted, :date
+      add :read_only, :string
       timestamps(null: true)
     end
 
