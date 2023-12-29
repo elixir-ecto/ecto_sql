@@ -48,6 +48,12 @@ defmodule Ecto.Adapters.SQL.Sandbox do
           :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
         end
 
+        setup tags do
+          pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Repo, shared: not tags[:async])
+          on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+          :ok
+        end
+
         test "create post" do
           # Use the repository as usual
           assert %Post{} = Repo.insert!(%Post{})
@@ -203,12 +209,35 @@ defmodule Ecto.Adapters.SQL.Sandbox do
       test "queries periodically" do
         {:ok, pid} = PeriodicServer.start_link()
         Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), pid)
-        # more tests
+        # assertions
       end
 
   Because the server is querying the database from time to time, there is
   a chance that, when the test exits, the periodic process may be querying
   the database, regardless of test success or failure.
+
+  To address this, you can tell ExUnit to manage your processes:
+
+      test "queries periodically" do
+        pid = start_supervised!(PeriodicServer)
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), pid)
+        # assertions
+      end
+
+  By using `start_supervised!/1`, ExUnit guarantess the process finishes
+  before your test (the connection owner).
+
+  In some situations, however, the dynamic processes are directly started
+  inside a `DynamicSupervisor` or a `Task.Supervisor`. You can guarantee
+  proper termination in such scenarios by adding an `on_exit` callback
+  that waits until all supervised children terminate:
+
+      on_exit(fn ->
+        for {_, pid, _, _} <- DynamicSupervisor.which_children(MyApp.DynamicSupervisor) do
+          ref = Process.monitor(pid)
+          assert_receive {:DOWN, ^ref, _, _, _}, :infinity
+        end
+      end)
 
   ### "owner timed out because it owned the connection for longer than Nms"
 
