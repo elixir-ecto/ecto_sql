@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Ecto.Load do
   end
 
   defp skip_safety_warnings? do
-    Mix.Project.config()[:start_permanent] != true
+    not Mix.Project.config()[:start_permanent]
   end
 
   defp confirm_load(repo, false) do
