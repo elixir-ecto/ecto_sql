@@ -1561,7 +1561,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp default_type(list, {:array, inner} = type) when is_list(list) do
       [
         "ARRAY[",
-        Enum.map(list, &default_type(&1, inner)) |> Enum.intersperse(?,),
+        Enum.map_intersperse(list, ?,, &default_type(&1, inner)),
         "]::",
         ecto_to_db(type)
       ]
