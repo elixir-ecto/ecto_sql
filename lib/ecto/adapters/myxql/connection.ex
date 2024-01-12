@@ -560,7 +560,7 @@ if Code.ensure_loaded?(MyXQL) do
 
       case dir do
         :asc -> str
-        :desc -> [str | " DESC"]
+        :desc -> [str | [" DESC"]]
         _ -> error!(query, "#{dir} is not supported in ORDER BY in MySQL")
       end
     end
@@ -593,7 +593,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp lock(%{lock: nil}, _sources), do: []
-    defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | binary]
+    defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | [binary]]
     defp lock(%{lock: expr} = query, sources), do: [?\s | expr(expr, sources, query)]
 
     defp boolean(_name, [], _sources, _query), do: []
@@ -676,7 +676,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr({:is_nil, _, [arg]}, sources, query) do
-      [expr(arg, sources, query) | " IS NULL"]
+      [expr(arg, sources, query) | [" IS NULL"]]
     end
 
     defp expr({:not, _, [expr]}, sources, query) do
@@ -731,7 +731,7 @@ if Code.ensure_loaded?(MyXQL) do
         "date_add(",
         expr(datetime, sources, query),
         ", ",
-        interval(count, interval, sources, query) | ")"
+        interval(count, interval, sources, query) | [")"]
       ]
     end
 
@@ -740,7 +740,7 @@ if Code.ensure_loaded?(MyXQL) do
         "CAST(date_add(",
         expr(date, sources, query),
         ", ",
-        interval(count, interval, sources, query) | ") AS date)"
+        interval(count, interval, sources, query) | [") AS date)"]
       ]
     end
 
@@ -860,7 +860,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp interval(count, "millisecond", sources, query) do
-      ["INTERVAL (", expr(count, sources, query) | " * 1000) microsecond"]
+      ["INTERVAL (", expr(count, sources, query) | [" * 1000) microsecond"]]
     end
 
     defp interval(count, interval, sources, query) do
@@ -895,17 +895,17 @@ if Code.ensure_loaded?(MyXQL) do
     defp create_name(sources, pos, as_prefix) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
-          {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
+          {nil, as_prefix ++ [?f | [Integer.to_string(pos)]], nil}
 
         {:values, _, _} ->
-          {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
+          {nil, as_prefix ++ [?v | [Integer.to_string(pos)]], nil}
 
         {table, schema, prefix} ->
-          name = as_prefix ++ [create_alias(table) | Integer.to_string(pos)]
+          name = as_prefix ++ [create_alias(table) | [Integer.to_string(pos)]]
           {quote_table(prefix, table), name, schema}
 
         %Ecto.SubQuery{} ->
-          {nil, as_prefix ++ [?s | Integer.to_string(pos)], nil}
+          {nil, as_prefix ++ [?s | [Integer.to_string(pos)]], nil}
       end
     end
 
