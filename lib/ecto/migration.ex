@@ -163,9 +163,9 @@ defmodule Ecto.Migration do
 
   ## Executing and flushing
 
-  Instructions inside of migrations are not executed immediately. Instead
-  they are performed after the relevant `up`, `change`, or `down` callback
-  terminates.
+  Most functions in this module, when executed inside of migrations,
+  are not executed immediately. Instead they are performed after the
+  relevant `up`, `change`, or `down` callback terminates.
 
   However, in some situations you may want to guarantee that all of the
   previous steps have been executed before continuing. This is useful when
