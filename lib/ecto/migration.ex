@@ -163,14 +163,16 @@ defmodule Ecto.Migration do
 
   ## Executing and flushing
 
-  Most functions in this module, when executed inside of migrations,
-  are not executed immediately. Instead they are performed after the
-  relevant `up`, `change`, or `down` callback terminates.
+  Most functions in this module, when executed inside of migrations, are not
+  executed immediately. Instead they are performed after the relevant `up`,
+  `change`, or `down` callback terminates. Any other functions, such as
+  functions provided by `Ecto.Repo`, will be executed immediately unless they
+  are called from within an anonymous function passed to `execute/1`.
 
-  However, in some situations you may want to guarantee that all of the
-  previous steps have been executed before continuing. This is useful when
-  you need to apply a set of changes to the table before continuing with the
-  migration. This can be done with `flush/0`:
+  In some situations you may want to guarantee that all of the previous steps
+  have been executed before continuing. This is useful when you need to apply a
+  set of changes to the table before continuing with the migration. This can be
+  done with `flush/0`:
 
       def up do
         ...
@@ -958,11 +960,15 @@ defmodule Ecto.Migration do
   Executes arbitrary SQL, anonymous function or a keyword command.
 
   The argument is typically a string, containing the SQL command to be executed.
-  Keyword commands exist for non-SQL adapters and are not used in most situations.
+  Keyword commands exist for non-SQL adapters and are not used in most
+  situations.
 
-  Supplying an anonymous function does allow for arbitrary code to execute as
-  part of the migration. This is most often used in combination with `repo/0`
-  by library authors who want to create high-level migration helpers.
+  You may instead run arbitrary code as part of your migration by supplying an
+  anonymous function. This defers execution of the anonymous function until
+  the migration callback has terminated (see [Executing and
+  flushing](#module-executing-and-flushing)). This is most often used in
+  combination with `repo/0` by library authors who want to create high-level
+  migration helpers.
 
   Reversible commands can be defined by calling `execute/2`.
 
