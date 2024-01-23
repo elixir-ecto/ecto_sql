@@ -760,7 +760,7 @@ defmodule Ecto.Migration do
   end
 
   def table(name, opts) when is_binary(name) and is_list(opts) do
-    struct(%Table{name: name}, opts)
+    struct!(%Table{name: name}, opts)
   end
 
   @doc ~S"""
@@ -926,7 +926,7 @@ defmodule Ecto.Migration do
 
   def index(table, columns, opts) when is_binary(table) and is_list(columns) and is_list(opts) do
     validate_index_opts!(opts)
-    index = struct(%Index{table: table, columns: columns}, opts)
+    index = struct!(%Index{table: table, columns: columns}, opts)
     %{index | name: index.name || default_index_name(index)}
   end
 
@@ -1416,21 +1416,8 @@ defmodule Ecto.Migration do
   end
 
   def references(table, opts) when is_binary(table) and is_list(opts) do
-    opts =
-      Keyword.validate!(opts, [
-        :column,
-        :name,
-        :prefix,
-        :type,
-        :on_delete,
-        :on_update,
-        :validate,
-        :with,
-        :match
-      ])
-
     opts = Keyword.merge(foreign_key_repo_opts(), opts)
-    reference = struct(%Reference{table: table}, opts)
+    reference = struct!(%Reference{table: table}, opts)
     check_on_delete!(reference.on_delete)
     check_on_update!(reference.on_update)
 
@@ -1499,7 +1486,7 @@ defmodule Ecto.Migration do
   end
 
   def constraint(table, name, opts) when is_binary(table) and is_list(opts) do
-    struct(%Constraint{table: table, name: name}, opts)
+    struct!(%Constraint{table: table, name: name}, opts)
   end
 
   @doc "Executes queue migration commands."
