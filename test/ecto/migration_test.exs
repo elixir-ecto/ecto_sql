@@ -276,7 +276,7 @@ defmodule Ecto.MigrationTest do
 
       assert result == table(:posts)
 
-      create table = table(:posts, primary_key: false, timestamps: false) do
+      create table = table(:posts, primary_key: false) do
         add :title, :string
       end
 
