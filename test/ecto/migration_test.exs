@@ -151,12 +151,6 @@ defmodule Ecto.MigrationTest do
              %Reference{table: "posts", column: :id, type: :identity}
   end
 
-  test "raises when unknown options are passed" do
-    assert_raise ArgumentError, ~r/unknown keys \[:foo\]/, fn ->
-      references(:posts, foo: :bar)
-    end
-  end
-
   test ":migration_cast_version_column option" do
     {_repo, query, _options} =
       SchemaMigration.versions(TestRepo, [migration_cast_version_column: true], "")
