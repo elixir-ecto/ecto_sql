@@ -1416,6 +1416,19 @@ defmodule Ecto.Migration do
   end
 
   def references(table, opts) when is_binary(table) and is_list(opts) do
+    opts =
+      Keyword.validate!(opts, [
+        :column,
+        :name,
+        :prefix,
+        :type,
+        :on_delete,
+        :on_update,
+        :validate,
+        :with,
+        :match
+      ])
+
     opts = Keyword.merge(foreign_key_repo_opts(), opts)
     reference = struct(%Reference{table: table}, opts)
     check_on_delete!(reference.on_delete)
