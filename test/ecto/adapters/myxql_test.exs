@@ -1661,8 +1661,8 @@ defmodule Ecto.Adapters.MyXQLTest do
          {:add, :category_3, %Reference{table: :categories, on_delete: :delete_all},
           [null: false]},
          {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
-         {:add, :category_5, %Reference{table: :categories, prefix: :foo, on_delete: :nilify_all},
-          []},
+         {:add, :category_5,
+          %Reference{table: :categories, options: [prefix: :foo], on_delete: :nilify_all}, []},
          {:add, :category_6,
           %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []}
        ]}
