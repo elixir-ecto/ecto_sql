@@ -1706,7 +1706,7 @@ if Code.ensure_loaded?(Postgrex) do
         "FOREIGN KEY (",
         quote_names(current_columns),
         ") REFERENCES ",
-        quote_name(ref.prefix || table.prefix, ref.table),
+        quote_name(Keyword.get(ref.options, :prefix, table.prefix), ref.table),
         ?(,
         quote_names(reference_columns),
         ?),
