@@ -134,7 +134,7 @@ defmodule Ecto.MigrationTest do
                table: "posts",
                column: :other,
                type: :uuid,
-               prefix: nil,
+               prefix: :blog,
                options: [prefix: :blog]
              }
   end

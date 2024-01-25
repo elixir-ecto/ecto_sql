@@ -1418,7 +1418,11 @@ defmodule Ecto.Migration do
   end
 
   def references(table, opts) when is_binary(table) and is_list(opts) do
-    {reference_options, opts} = Keyword.split(opts, [:prefix])
+    reference_options =
+      case Keyword.fetch(opts, :prefix) do
+        {:ok, prefix} -> [prefix: prefix]
+        :error -> []
+      end
 
     opts =
       foreign_key_repo_opts()
