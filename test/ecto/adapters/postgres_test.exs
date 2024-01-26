@@ -2102,8 +2102,8 @@ defmodule Ecto.Adapters.PostgresTest do
           [null: false]},
          {:add, :category_9, %Reference{table: :categories, on_delete: :restrict}, []},
          {:add, :category_10, %Reference{table: :categories, on_update: :restrict}, []},
-         {:add, :category_11, %Reference{table: :categories, prefix: "foo", on_update: :restrict},
-          []},
+         {:add, :category_11,
+          %Reference{table: :categories, options: [prefix: "foo"], on_update: :restrict}, []},
          {:add, :category_12, %Reference{table: :categories, with: [here: :there]}, []},
          {:add, :category_13,
           %Reference{

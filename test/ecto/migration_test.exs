@@ -130,7 +130,13 @@ defmodule Ecto.MigrationTest do
              %Reference{table: "posts", column: :other, type: :uuid, prefix: nil}
 
     assert references(:posts, type: :uuid, column: :other, prefix: :blog) ==
-             %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
+             %Reference{
+               table: "posts",
+               column: :other,
+               type: :uuid,
+               prefix: :blog,
+               options: [prefix: :blog]
+             }
   end
 
   @tag repo_config: [migration_foreign_key: [type: :uuid, column: :other, prefix: :blog]]

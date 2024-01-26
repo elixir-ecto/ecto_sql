@@ -1,4 +1,4 @@
-VERSION 0.5
+VERSION 0.6
 
 all:
     ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.17.4

@@ -1314,7 +1314,7 @@ if Code.ensure_loaded?(MyXQL) do
         quote_names(current_columns),
         ?),
         " REFERENCES ",
-        quote_table(ref.prefix || table.prefix, ref.table),
+        quote_table(Keyword.get(ref.options, :prefix, table.prefix), ref.table),
         ?(,
         quote_names(reference_columns),
         ?),

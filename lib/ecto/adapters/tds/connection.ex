@@ -1571,7 +1571,7 @@ if Code.ensure_loaded?(Tds) do
         reference_name(ref, table, name),
         " FOREIGN KEY (#{quote_names(current_columns)})",
         " REFERENCES ",
-        quote_table(ref.prefix || table.prefix, ref.table),
+        quote_table(Keyword.get(ref.options, :prefix, table.prefix), ref.table),
         "(#{quote_names(reference_columns)})",
         reference_on_delete(ref.on_delete),
         reference_on_update(ref.on_update)

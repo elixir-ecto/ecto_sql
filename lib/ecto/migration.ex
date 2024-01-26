@@ -443,8 +443,14 @@ defmodule Ecto.Migration do
               on_update: :nothing,
               validate: true,
               with: [],
-              match: nil
+              match: nil,
+              options: []
 
+    @typedoc """
+    The reference struct.
+
+    The `:prefix` field is deprecated and should instead be stored in the `:options` field.
+    """
     @type t :: %__MODULE__{
             table: String.t(),
             prefix: atom | nil,
@@ -454,7 +460,8 @@ defmodule Ecto.Migration do
             on_update: atom,
             validate: boolean,
             with: list,
-            match: atom | nil
+            match: atom | nil,
+            options: [{:prefix, atom | nil}]
           }
   end
 
@@ -1416,7 +1423,13 @@ defmodule Ecto.Migration do
   end
 
   def references(table, opts) when is_binary(table) and is_list(opts) do
-    opts = Keyword.merge(foreign_key_repo_opts(), opts)
+    reference_options = Keyword.take(opts, [:prefix])
+
+    opts =
+      foreign_key_repo_opts()
+      |> Keyword.merge(opts)
+      |> Keyword.put(:options, reference_options)
+
     reference = struct!(%Reference{table: table}, opts)
     check_on_delete!(reference.on_delete)
     check_on_update!(reference.on_update)
