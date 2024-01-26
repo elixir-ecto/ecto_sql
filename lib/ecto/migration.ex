@@ -446,6 +446,11 @@ defmodule Ecto.Migration do
               match: nil,
               options: []
 
+    @typedoc """
+    The reference struct.
+
+    The `:prefix` field is deprecated and should instead be stored in the `:options` field.
+    """
     @type t :: %__MODULE__{
             table: String.t(),
             prefix: atom | nil,
@@ -456,7 +461,7 @@ defmodule Ecto.Migration do
             validate: boolean,
             with: list,
             match: atom | nil,
-            options: Keyword.t()
+            options: [{:prefix, atom | nil}]
           }
   end
 
