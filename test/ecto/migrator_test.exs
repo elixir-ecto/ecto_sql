@@ -35,11 +35,11 @@ defmodule Ecto.MigratorTest do
     use Ecto.Migration
 
     def change do
-      create table(:comments, prefix: :foo) do
+      create table(:comments, prefix: "foo") do
         add :name, :string
       end
 
-      create index(:posts, [:title], prefix: :foo)
+      create index(:posts, [:title], prefix: "foo")
     end
   end
 
@@ -259,24 +259,24 @@ defmodule Ecto.MigratorTest do
 
   test "migrator prefix" do
     capture_log(fn ->
-      :ok = up(TestRepo, 10, ChangeMigration, prefix: :custom)
+      :ok = up(TestRepo, 10, ChangeMigration, prefix: "custom")
     end)
 
-    assert [{10, :custom} | _] = MigrationsAgent.get()
+    assert [{10, "custom"} | _] = MigrationsAgent.get()
 
     Process.put(:repo_default_options, prefix: nil)
 
     capture_log(fn ->
-      :ok = up(TestRepo, 11, ChangeMigration, prefix: :custom)
+      :ok = up(TestRepo, 11, ChangeMigration, prefix: "custom")
     end)
 
-    assert [{11, :custom} | _] = MigrationsAgent.get()
+    assert [{11, "custom"} | _] = MigrationsAgent.get()
 
     capture_log(fn ->
-      :already_up = up(TestRepo, 11, ChangeMigration, prefix: :custom, log: true)
+      :already_up = up(TestRepo, 11, ChangeMigration, prefix: "custom", log: true)
     end)
 
-    assert [{11, :custom} | _] = MigrationsAgent.get()
+    assert [{11, "custom"} | _] = MigrationsAgent.get()
   end
 
   test "logs migrations" do
