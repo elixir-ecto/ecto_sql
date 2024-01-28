@@ -2012,7 +2012,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "create table with prefix" do
     create =
-      {:create, table(:posts, prefix: :foo),
+      {:create, table(:posts, prefix: "foo"),
        [{:add, :category_0, %Reference{table: :categories}, []}]}
 
     assert execute_ddl(create) == [
@@ -2406,7 +2406,7 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "drop table with prefix" do
-    drop = {:drop, table(:posts, prefix: :foo), :restrict}
+    drop = {:drop, table(:posts, prefix: "foo"), :restrict}
     assert execute_ddl(drop) == [~s|DROP TABLE "foo"."posts"|]
   end
 
@@ -2414,7 +2414,7 @@ defmodule Ecto.Adapters.PostgresTest do
     drop = {:drop, table(:posts), :cascade}
     assert execute_ddl(drop) == [~s|DROP TABLE "posts" CASCADE|]
 
-    drop = {:drop, table(:posts, prefix: :foo), :cascade}
+    drop = {:drop, table(:posts, prefix: "foo"), :cascade}
     assert execute_ddl(drop) == [~s|DROP TABLE "foo"."posts" CASCADE|]
   end
 
@@ -2518,7 +2518,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "alter table with prefix" do
     alter =
-      {:alter, table(:posts, prefix: :foo),
+      {:alter, table(:posts, prefix: "foo"),
        [
          {:add, :author_id, %Reference{table: :author}, []},
          {:modify, :permalink_id, %Reference{table: :permalinks}, null: false}
@@ -2586,14 +2586,14 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "create index with prefix" do
-    create = {:create, index(:posts, [:category_id, :permalink], prefix: :foo)}
+    create = {:create, index(:posts, [:category_id, :permalink], prefix: "foo")}
 
     assert execute_ddl(create) ==
              [
                ~s|CREATE INDEX "posts_category_id_permalink_index" ON "foo"."posts" ("category_id", "permalink")|
              ]
 
-    create = {:create, index(:posts, ["lower(permalink)"], name: "posts$main", prefix: :foo)}
+    create = {:create, index(:posts, ["lower(permalink)"], name: "posts$main", prefix: "foo")}
 
     assert execute_ddl(create) ==
              [~s|CREATE INDEX "posts$main" ON "foo"."posts" (lower(permalink))|]
@@ -2601,7 +2601,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "create index with comment" do
     create =
-      {:create, index(:posts, [:category_id, :permalink], prefix: :foo, comment: "comment")}
+      {:create, index(:posts, [:category_id, :permalink], prefix: "foo", comment: "comment")}
 
     assert execute_ddl(create) == [
              remove_newlines("""
@@ -2727,7 +2727,7 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "drop index with prefix" do
-    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo), :restrict}
+    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: "foo"), :restrict}
     assert execute_ddl(drop) == [~s|DROP INDEX "foo"."posts$main"|]
   end
 
@@ -2741,7 +2741,7 @@ defmodule Ecto.Adapters.PostgresTest do
     drop = {:drop, index(:posts, [:id], name: "posts$main"), :cascade}
     assert execute_ddl(drop) == [~s|DROP INDEX "posts$main" CASCADE|]
 
-    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: :foo), :cascade}
+    drop = {:drop, index(:posts, [:id], name: "posts$main", prefix: "foo"), :cascade}
     assert execute_ddl(drop) == [~s|DROP INDEX "foo"."posts$main" CASCADE|]
   end
 
@@ -2755,7 +2755,7 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "rename index with prefix" do
     rename =
-      {:rename, index(:people, [:name], name: "persons_name_index", prefix: :foo),
+      {:rename, index(:people, [:name], name: "persons_name_index", prefix: "foo"),
        "people_name_index"}
 
     assert execute_ddl(rename) == [
@@ -2868,7 +2868,7 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "rename table with prefix" do
-    rename = {:rename, table(:posts, prefix: :foo), table(:new_posts, prefix: :foo)}
+    rename = {:rename, table(:posts, prefix: "foo"), table(:new_posts, prefix: "foo")}
     assert execute_ddl(rename) == [~s|ALTER TABLE "foo"."posts" RENAME TO "new_posts"|]
   end
 
@@ -2878,7 +2878,7 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "rename column in prefixed table" do
-    rename = {:rename, table(:posts, prefix: :foo), :given_name, :first_name}
+    rename = {:rename, table(:posts, prefix: "foo"), :given_name, :first_name}
 
     assert execute_ddl(rename) == [
              ~s|ALTER TABLE "foo"."posts" RENAME "given_name" TO "first_name"|

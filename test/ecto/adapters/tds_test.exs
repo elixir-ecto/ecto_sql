@@ -1433,7 +1433,7 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "create table with prefix" do
     create =
-      {:create, table(:posts, prefix: :foo),
+      {:create, table(:posts, prefix: "foo"),
        [{:add, :category_0, %Reference{table: :categories}, []}]}
 
     assert execute_ddl(create) == [
@@ -1458,7 +1458,7 @@ defmodule Ecto.Adapters.TdsTest do
           [null: false]},
          {:add, :category_4, %Reference{table: :categories, on_delete: :nilify_all}, []},
          {:add, :category_5,
-          %Reference{table: :categories, options: [prefix: :foo], on_delete: :nilify_all}, []},
+          %Reference{table: :categories, options: [prefix: "foo"], on_delete: :nilify_all}, []},
          {:add, :category_6,
           %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []}
        ]}
@@ -1593,7 +1593,7 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "drop table with prefixes" do
-    drop = {:drop, table(:posts, prefix: :foo), :restrict}
+    drop = {:drop, table(:posts, prefix: "foo"), :restrict}
     assert execute_ddl(drop) == ["DROP TABLE [foo].[posts]; "]
   end
 
@@ -1766,7 +1766,7 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "rename table with prefix" do
-    rename = {:rename, table(:posts, prefix: :foo), table(:new_posts, prefix: :foo)}
+    rename = {:rename, table(:posts, prefix: "foo"), table(:new_posts, prefix: "foo")}
     assert execute_ddl(rename) == [~s|EXEC sp_rename 'foo.posts', 'foo.new_posts'|]
   end
 
@@ -1778,7 +1778,7 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "rename column in table with prefixes" do
-    rename = {:rename, table(:posts, prefix: :foo), :given_name, :first_name}
+    rename = {:rename, table(:posts, prefix: "foo"), :given_name, :first_name}
 
     assert execute_ddl(rename) ==
              ["EXEC sp_rename 'foo.posts.given_name', 'first_name', 'COLUMN'"]
@@ -1803,7 +1803,7 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "create index with prefix" do
-    create = {:create, index(:posts, [:category_id, :permalink], prefix: :foo)}
+    create = {:create, index(:posts, [:category_id, :permalink], prefix: "foo")}
 
     assert execute_ddl(create) ==
              [
@@ -1812,7 +1812,7 @@ defmodule Ecto.Adapters.TdsTest do
   end
 
   test "create index with prefix if not exists" do
-    create = {:create_if_not_exists, index(:posts, [:category_id, :permalink], prefix: :foo)}
+    create = {:create_if_not_exists, index(:posts, [:category_id, :permalink], prefix: "foo")}
 
     assert execute_ddl(create) ==
              [
@@ -1839,7 +1839,7 @@ defmodule Ecto.Adapters.TdsTest do
     assert execute_ddl(create) ==
              [~s|CREATE UNIQUE INDEX [posts_permalink_index] ON [posts] ([permalink]);|]
 
-    create = {:create, index(:posts, [:permalink], unique: true, prefix: :foo)}
+    create = {:create, index(:posts, [:permalink], unique: true, prefix: "foo")}
 
     assert execute_ddl(create) ==
              [~s|CREATE UNIQUE INDEX [posts_permalink_index] ON [foo].[posts] ([permalink]);|]
@@ -1866,7 +1866,7 @@ defmodule Ecto.Adapters.TdsTest do
 
   test "drop index with prefix" do
     drop =
-      {:drop, index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo),
+      {:drop, index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: "foo"),
        :restrict}
 
     assert execute_ddl(drop) ==
@@ -1876,7 +1876,7 @@ defmodule Ecto.Adapters.TdsTest do
   test "drop index with prefix if exists" do
     drop =
       {:drop_if_exists,
-       index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), :restrict}
+       index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: "foo"), :restrict}
 
     assert execute_ddl(drop) ==
              [
@@ -1892,7 +1892,7 @@ defmodule Ecto.Adapters.TdsTest do
 
     drop_cascade =
       {:drop_if_exists,
-       index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: :foo), :cascade}
+       index(:posts, [:id], name: "posts_category_id_permalink_index", prefix: "foo"), :cascade}
 
     assert_raise ArgumentError, ~r"MSSQL does not support `CASCADE` in DROP INDEX commands", fn ->
       execute_ddl(drop_cascade)

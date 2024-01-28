@@ -129,20 +129,20 @@ defmodule Ecto.MigrationTest do
     assert references(:posts, type: :uuid, column: :other) ==
              %Reference{table: "posts", column: :other, type: :uuid, prefix: nil}
 
-    assert references(:posts, type: :uuid, column: :other, prefix: :blog) ==
+    assert references(:posts, type: :uuid, column: :other, prefix: "blog") ==
              %Reference{
                table: "posts",
                column: :other,
                type: :uuid,
-               prefix: :blog,
-               options: [prefix: :blog]
+               prefix: "blog",
+               options: [prefix: "blog"]
              }
   end
 
-  @tag repo_config: [migration_foreign_key: [type: :uuid, column: :other, prefix: :blog]]
+  @tag repo_config: [migration_foreign_key: [type: :uuid, column: :other, prefix: "blog"]]
   test "create a reference with using the foreign key repo config" do
     assert references(:posts) ==
-             %Reference{table: "posts", column: :other, type: :uuid, prefix: :blog}
+             %Reference{table: "posts", column: :other, type: :uuid, prefix: "blog"}
   end
 
   @tag repo_config: [migration_primary_key: [type: :binary_id]]
@@ -711,7 +711,7 @@ defmodule Ecto.MigrationTest do
       assert table.prefix == :foo
     end
 
-    @tag prefix: :bar
+    @tag prefix: "bar"
     test "raise error when prefixes don't match" do
       assert_raise Ecto.MigrationError,
                    "the :prefix option `foo` does not match the migrator prefix `bar`",

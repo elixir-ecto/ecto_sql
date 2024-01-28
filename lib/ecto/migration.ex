@@ -395,7 +395,7 @@ defmodule Ecto.Migration do
 
     @type t :: %__MODULE__{
             table: String.t(),
-            prefix: atom,
+            prefix: String.t() | nil,
             name: atom,
             columns: [atom | String.t()],
             unique: boolean,
@@ -420,7 +420,7 @@ defmodule Ecto.Migration do
 
     @type t :: %__MODULE__{
             name: String.t(),
-            prefix: atom | nil,
+            prefix: String.t() | nil,
             comment: String.t() | nil,
             primary_key: boolean | keyword(),
             engine: atom,
@@ -453,7 +453,7 @@ defmodule Ecto.Migration do
     """
     @type t :: %__MODULE__{
             table: String.t(),
-            prefix: atom | nil,
+            prefix: String.t() | nil,
             column: atom,
             type: atom,
             on_delete: atom,
@@ -461,7 +461,7 @@ defmodule Ecto.Migration do
             validate: boolean,
             with: list,
             match: atom | nil,
-            options: [{:prefix, atom | nil}]
+            options: [{:prefix, String.t() | nil}]
           }
   end
 
@@ -482,7 +482,7 @@ defmodule Ecto.Migration do
     @type t :: %__MODULE__{
             name: atom,
             table: String.t(),
-            prefix: atom | nil,
+            prefix: String.t() | nil,
             check: String.t() | nil,
             exclude: String.t() | nil,
             comment: String.t() | nil,
