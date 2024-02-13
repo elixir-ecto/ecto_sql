@@ -625,6 +625,14 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 WHERE (s0.`x` in (?,?,?,?,?))}
 
+    query =
+      Schema
+      |> select([r], r.x)
+      |> where([r], fragment("? in (?,?)", r.x, ^1, splice([r.x, 2, ^3])))
+      |> plan()
+
+    assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 WHERE (s0.`x` in (?,s0.`x`,2,?))}
+
     value = 13
     query = Schema |> select([r], fragment("lcase(?, ?)", r.x, ^value)) |> plan()
     assert all(query) == ~s{SELECT lcase(s0.`x`, ?) FROM `schema` AS s0}

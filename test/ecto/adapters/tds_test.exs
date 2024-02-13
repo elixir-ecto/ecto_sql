@@ -685,6 +685,14 @@ defmodule Ecto.Adapters.TdsTest do
 
     assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 WHERE (s0.[x] in (@1,@2,@3,@4,@5))}
 
+    query =
+      Schema
+      |> select([r], r.x)
+      |> where([r], fragment("? in (?,?)", r.x, ^1, splice([r.x, 2, ^3])))
+      |> plan()
+
+    assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0 WHERE (s0.[x] in (@1,s0.[x],2,@2))}
+
     value = 13
     query = Schema |> select([r], fragment("lower(?)", ^value)) |> plan()
     assert all(query) == ~s{SELECT lower(@1) FROM [schema] AS s0}

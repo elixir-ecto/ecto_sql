@@ -76,7 +76,8 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, "~> 3.11.0"}
+     # {:ecto, "~> 3.11.0"}
+      {:ecto, git: "https://github.com/greg-rychlewski/ecto.git", branch: "fragment_splice"}
     end
   end
 
