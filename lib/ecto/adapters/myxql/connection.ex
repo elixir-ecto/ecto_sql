@@ -301,18 +301,9 @@ if Code.ensure_loaded?(MyXQL) do
       -: " - ",
       *: " * ",
       /: " / ",
-      &&&: " & ",
-      |||: " | ",
-      <<<: " << ",
-      >>>: " >> ",
       and: " AND ",
       or: " OR ",
-      like: " LIKE ",
-      band: " & ",
-      bor: " | ",
-      bxor: " ^ ",
-      bsl: " << ",
-      bsr: " >> "
+      like: " LIKE "
     ]
 
     @binary_ops Keyword.keys(binary_ops)
@@ -692,10 +683,6 @@ if Code.ensure_loaded?(MyXQL) do
       ["NOT (", expr(expr, sources, query), ?)]
     end
 
-    defp expr({bnot, _, [expr]}, sources, query) when bnot in ~w(~~~ bnot)a do
-      ["~(", expr(expr, sources, query), ?)]
-    end
-
     defp expr({:filter, _, _}, _sources, query) do
       error!(query, "MySQL adapter does not support aggregate filters")
     end
@@ -881,9 +868,6 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
-      do: paren_expr(expr, sources, query)
-
-    defp op_to_binary({bnot, _, [_]} = expr, sources, query) when bnot in ~w(~~~ bnot)a,
       do: paren_expr(expr, sources, query)
 
     defp op_to_binary({:is_nil, _, [_]} = expr, sources, query),

@@ -428,19 +428,10 @@ if Code.ensure_loaded?(Postgrex) do
       -: " - ",
       *: " * ",
       /: " / ",
-      &&&: " & ",
-      |||: " | ",
-      <<<: " << ",
-      >>>: " >> ",
       and: " AND ",
       or: " OR ",
       ilike: " ILIKE ",
-      like: " LIKE ",
-      band: " & ",
-      bor: " | ",
-      bxor: " # ",
-      bsl: " << ",
-      bsr: " >> "
+      like: " LIKE "
     ]
 
     @binary_ops Keyword.keys(binary_ops)
@@ -885,10 +876,6 @@ if Code.ensure_loaded?(Postgrex) do
       ["NOT (", expr(expr, sources, query), ?)]
     end
 
-    defp expr({bnot, _, [expr]}, sources, query) when bnot in ~w(~~~ bnot)a do
-      ["~(", expr(expr, sources, query), ?)]
-    end
-
     defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
       combinations =
         Enum.map(query.combinations, fn {type, combination_query} ->
@@ -1103,9 +1090,6 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp maybe_paren({op, _, [_, _]} = expr, sources, query) when op in @binary_ops,
-      do: paren_expr(expr, sources, query)
-
-    defp maybe_paren({bnot, _, [_]} = expr, sources, query) when bnot in ~w(~~~ bnot)a,
       do: paren_expr(expr, sources, query)
 
     defp maybe_paren({:is_nil, _, [_]} = expr, sources, query),
