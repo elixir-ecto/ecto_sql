@@ -1224,6 +1224,9 @@ if Code.ensure_loaded?(MyXQL) do
     defp default_expr({:ok, literal}) when is_binary(literal),
       do: [" DEFAULT '", escape_string(literal), ?']
 
+    defp default_expr({:ok, literal}) when is_bitstring(literal),
+      do: [" DEFAULT b'", to_bit_literal(literal), ?']
+
     defp default_expr({:ok, literal}) when is_number(literal) or is_boolean(literal),
       do: [" DEFAULT ", to_string(literal)]
 
@@ -1442,6 +1445,13 @@ if Code.ensure_loaded?(MyXQL) do
       value
       |> escape_string()
       |> :binary.replace("\"", "\\\\\"", [:global])
+    end
+
+    defp to_bit_literal(value) when is_bitstring(value) do
+      size = bit_size(value)
+      <<val::size(size)>> = value
+
+      val |> Integer.to_string(2) |> String.pad_leading(size, ["0"])
     end
 
     defp ecto_cast_to_db(:id, _query), do: "unsigned"

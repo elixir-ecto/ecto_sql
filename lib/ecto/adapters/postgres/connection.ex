@@ -1580,6 +1580,13 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
+    defp default_type(literal, _type) when is_bitstring(literal) do
+      size = bit_size(literal)
+      <<val::size(size)>> = literal
+
+      "#{val}::BIT(#{size})"
+    end
+
     defp default_type(literal, _type) when is_number(literal), do: to_string(literal)
     defp default_type(literal, _type) when is_boolean(literal), do: to_string(literal)
 
