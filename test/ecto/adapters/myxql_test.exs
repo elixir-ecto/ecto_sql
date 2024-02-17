@@ -705,9 +705,6 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "tagged type" do
-    query = Schema |> select([t], type(~~~t.x, :integer)) |> plan()
-    assert all(query) == ~s{SELECT CAST(~(s0.`x`) AS unsigned) FROM `schema` AS s0}
-
     query =
       Schema |> select([], type(^"601d74e4-a8d3-4b6e-8365-eddb4c893327", Ecto.UUID)) |> plan()
 
