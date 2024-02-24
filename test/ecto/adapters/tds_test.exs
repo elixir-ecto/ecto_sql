@@ -1401,7 +1401,9 @@ defmodule Ecto.Adapters.TdsTest do
     query = from(s in "schema", select: field(s, "x")) |> plan(:all) |> all()
     assert query == ~s{SELECT s0.[x] FROM [schema] AS s0}
 
-    query = from(s in "schema", as: :schema, select: field(as(:schema), "x")) |> plan(:all) |> all()
+    query =
+      from(s in "schema", as: :schema, select: field(as(:schema), "x")) |> plan(:all) |> all()
+
     assert query == ~s{SELECT s0.[x] FROM [schema] AS s0}
   end
 
