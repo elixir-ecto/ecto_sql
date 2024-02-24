@@ -1627,6 +1627,14 @@ defmodule Ecto.Adapters.MyXQLTest do
     end)
   end
 
+  test "field/2 with string name" do
+    query = from(s in "schema", select: field(s, "x")) |> plan(:all) |> all()
+    assert query == ~s{SELECT s0.`x` FROM `schema` AS s0}
+
+    query = from(s in "schema", as: :schema, select: field(as(:schema), "x")) |> plan(:all) |> all()
+    assert query == ~s{SELECT s0.`x` FROM `schema` AS s0}
+  end
+
   # DDL
 
   import Ecto.Migration,

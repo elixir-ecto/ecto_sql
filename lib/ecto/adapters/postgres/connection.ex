@@ -916,12 +916,13 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({{:., _, [{:parent_as, _, [as]}, field]}, _, []}, _sources, query)
-         when is_atom(field) do
+         when is_atom(field) or is_binary(field) do
       {ix, sources} = get_parent_sources_ix(query, as)
       quote_qualified_name(field, sources, ix)
     end
 
-    defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query) when is_atom(field) do
+    defp expr({{:., _, [{:&, _, [idx]}, field]}, _, []}, sources, _query)
+         when is_atom(field) or is_binary(field) do
       quote_qualified_name(field, sources, idx)
     end
 
