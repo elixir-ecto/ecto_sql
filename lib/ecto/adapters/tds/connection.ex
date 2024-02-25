@@ -1737,8 +1737,6 @@ if Code.ensure_loaded?(Tds) do
     defp ecto_to_db(:float, s, _, _, _) when s in 1..53, do: "float(#{s})"
     defp ecto_to_db(:binary, nil, _, _, _), do: "varbinary(max)"
     defp ecto_to_db(:binary, s, _, _, _) when s in 1..8_000, do: "varbinary(#{s})"
-    defp ecto_to_db(:bitstring, nil, _, _, _), do: "varbinary(max)"
-    defp ecto_to_db(:bitstring, s, _, _, _) when s in 1..8_000, do: "varbinary(#{s})"
     defp ecto_to_db(:uuid, _, _, _, _), do: "uniqueidentifier"
     defp ecto_to_db(:map, nil, _, _, _), do: "nvarchar(max)"
     defp ecto_to_db(:map, s, _, _, _) when s in 0..4_000, do: "nvarchar(#{s})"
