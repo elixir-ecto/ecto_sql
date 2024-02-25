@@ -21,7 +21,6 @@ defmodule Ecto.Integration.Migration do
       add :links, {:map, :string}
       add :intensities, {:map, :float}
       add :public, :boolean
-      add :token, :bitstring, size: 3
       add :cost, :decimal, precision: 2, scale: 1
       add :visits, :integer
       add :wrapped_visits, :integer
