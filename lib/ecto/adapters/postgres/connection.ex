@@ -1015,6 +1015,11 @@ if Code.ensure_loaded?(Postgrex) do
       ["'\\x", Base.encode16(binary, case: :lower) | "'::bytea"]
     end
 
+    defp expr(%Ecto.Query.Tagged{value: bitstring, type: :binary}, _sources, _query)
+         when is_bitstring(bitstring) do
+      bitstring_literal(bitstring)
+    end
+
     defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
       [maybe_paren(other, sources, query), ?:, ?: | tagged_to_db(type)]
     end
@@ -1581,10 +1586,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp default_type(literal, _type) when is_bitstring(literal) do
-      size = bit_size(literal)
-      <<val::size(size)>> = literal
-
-      "#{val}::BIT(#{size})"
+      bitstring_literal(literal)
     end
 
     defp default_type(literal, _type) when is_number(literal), do: to_string(literal)
@@ -1830,6 +1832,13 @@ if Code.ensure_loaded?(Postgrex) do
     defp format_to_sql(:yaml), do: "FORMAT YAML"
 
     defp single_quote(value), do: [?', escape_string(value), ?']
+
+    defp bitstring_literal(value) do
+      size = bit_size(value)
+      <<val::size(size)>> = value
+
+      [Integer.to_string(val) | "::BIT(#{size})"]
+    end
 
     defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])
 
