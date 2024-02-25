@@ -1224,9 +1224,6 @@ if Code.ensure_loaded?(MyXQL) do
     defp default_expr({:ok, literal}) when is_binary(literal),
       do: [" DEFAULT '", escape_string(literal), ?']
 
-    defp default_expr({:ok, literal}) when is_bitstring(literal),
-      do: [" DEFAULT b'", to_bit_literal(literal), ?']
-
     defp default_expr({:ok, literal}) when is_number(literal) or is_boolean(literal),
       do: [" DEFAULT ", to_string(literal)]
 
@@ -1447,13 +1444,6 @@ if Code.ensure_loaded?(MyXQL) do
       |> :binary.replace("\"", "\\\\\"", [:global])
     end
 
-    defp to_bit_literal(value) when is_bitstring(value) do
-      size = bit_size(value)
-      <<val::size(size)>> = value
-
-      val |> Integer.to_string(2) |> String.pad_leading(size, ["0"])
-    end
-
     defp ecto_cast_to_db(:id, _query), do: "unsigned"
     defp ecto_cast_to_db(:integer, _query), do: "unsigned"
     defp ecto_cast_to_db(:string, _query), do: "char"
@@ -1462,7 +1452,6 @@ if Code.ensure_loaded?(MyXQL) do
     defp ecto_cast_to_db(type, query), do: ecto_to_db(type, query)
 
     defp ecto_size_to_db(:binary), do: "varbinary"
-    defp ecto_size_to_db(:bitstring), do: "bit"
     defp ecto_size_to_db(type), do: ecto_to_db(type)
 
     defp ecto_to_db(type, query \\ nil)
@@ -1484,12 +1473,6 @@ if Code.ensure_loaded?(MyXQL) do
     defp ecto_to_db(:naive_datetime, _query), do: "datetime"
     defp ecto_to_db(:naive_datetime_usec, _query), do: "datetime"
     defp ecto_to_db(atom, _query) when is_atom(atom), do: Atom.to_string(atom)
-
-    defp ecto_to_db(:bitstring, _query) do
-      raise ArgumentError,
-            "type `bitstring` without the `:size` option is unsupported." <>
-              "The type can be used with an explicit size attribute (eg. `add my_field, :bitstring, size: 42`)"
-    end
 
     defp ecto_to_db(type, _query) do
       raise ArgumentError,
