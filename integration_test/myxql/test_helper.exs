@@ -93,9 +93,10 @@ version =
   end
 
 excludes = [
-  # MySQL does not have an array and bitstring type
-  :array_type,
+  # not sure how to support this yet
   :bitstring_type,
+  # MySQL does not have an array type
+  :array_type,
   # The next two features rely on RETURNING, which MySQL does not support
   :read_after_writes,
   :returning,
