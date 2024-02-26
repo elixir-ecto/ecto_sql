@@ -1015,8 +1015,8 @@ if Code.ensure_loaded?(Postgrex) do
       ["'\\x", Base.encode16(binary, case: :lower) | "'::bytea"]
     end
 
-    defp expr(%Ecto.Query.Tagged{value: bitstring, type: :binary}, _sources, _query)
-         when is_bitstring(bitstring) do
+    defp expr(%Ecto.Query.Tagged{value: bitstring, type: type}, _sources, _query)
+         when type in ~w(bitstring binary)a and is_bitstring(bitstring) do
       bitstring_literal(bitstring)
     end
 
@@ -1837,7 +1837,7 @@ if Code.ensure_loaded?(Postgrex) do
       size = bit_size(value)
       <<val::size(size)>> = value
 
-      [Integer.to_string(val) | "::BIT(#{size})"]
+      [?b, ?', val |> Integer.to_string(2) |> String.pad_leading(size, ["0"]), ?']
     end
 
     defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])

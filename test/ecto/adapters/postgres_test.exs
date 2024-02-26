@@ -1991,7 +1991,8 @@ defmodule Ecto.Adapters.PostgresTest do
          {:add, :published_at, :"time without time zone", [null: true]},
          {:add, :is_active, :boolean, [default: true]},
          {:add, :flags, :bitstring, [null: false]},
-         {:add, :flags_with_default, :bitstring, [default: <<42::6>>]},
+         {:add, :flags_with_default, :bitstring, [default: <<42::10>>]},
+         {:add, :flags_with_size, :bitstring, [size: 10]},
          {:add, :tags, {:array, :string}, [default: []]},
          {:add, :languages, {:array, :string}, [default: ["pt", "es"]]},
          {:add, :limits, {:array, :integer}, [default: [100, 30_000]]}
@@ -2005,7 +2006,8 @@ defmodule Ecto.Adapters.PostgresTest do
              "published_at" time without time zone NULL,
              "is_active" boolean DEFAULT true,
              "flags" varbit NOT NULL,
-             "flags_with_default" varbit DEFAULT 42::BIT(6),
+             "flags_with_default" varbit DEFAULT b'0000101010',
+             "flags_with_size" varbit(10),
              "tags" varchar(255)[] DEFAULT ARRAY[]::varchar[],
              "languages" varchar(255)[] DEFAULT ARRAY['pt','es']::varchar[],
              "limits" integer[] DEFAULT ARRAY[100,30000]::integer[])
