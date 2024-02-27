@@ -76,7 +76,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, git: "https://github.com/Gigitsu/ecto.git", branch: "feature/bitstring-support"}
+      {:ecto, "~> 3.11.0"}
     end
   end
 
