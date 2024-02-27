@@ -1015,8 +1015,8 @@ if Code.ensure_loaded?(Postgrex) do
       ["'\\x", Base.encode16(binary, case: :lower) | "'::bytea"]
     end
 
-    defp expr(%Ecto.Query.Tagged{value: bitstring, type: type}, _sources, _query)
-         when type in ~w(bitstring binary)a and is_bitstring(bitstring) do
+    defp expr(%Ecto.Query.Tagged{value: bitstring, type: :bitstring}, _sources, _query)
+         when is_bitstring(bitstring) do
       bitstring_literal(bitstring)
     end
 
