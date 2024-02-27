@@ -108,6 +108,14 @@ defmodule Ecto.Integration.Migration do
       end
     end
 
+    unless :bitstring_type in ExUnit.configuration()[:exclude] do
+      create table(:bitstrings) do
+        add :bs,  :bitstring
+        add :bs_with_default, :bitstring, default: <<42::6>>
+        add :bs_with_size, :bitstring, size: 10
+      end
+    end
+
     create table(:composite_pk, primary_key: false) do
       add :a, :integer, primary_key: true
       add :b, :integer, primary_key: true

@@ -1015,6 +1015,11 @@ if Code.ensure_loaded?(Postgrex) do
       ["'\\x", Base.encode16(binary, case: :lower) | "'::bytea"]
     end
 
+    defp expr(%Ecto.Query.Tagged{value: bitstring, type: :bitstring}, _sources, _query)
+         when is_bitstring(bitstring) do
+      bitstring_literal(bitstring)
+    end
+
     defp expr(%Ecto.Query.Tagged{value: other, type: type}, sources, query) do
       [maybe_paren(other, sources, query), ?:, ?: | tagged_to_db(type)]
     end
@@ -1580,6 +1585,10 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
+    defp default_type(literal, _type) when is_bitstring(literal) do
+      bitstring_literal(literal)
+    end
+
     defp default_type(literal, _type) when is_number(literal), do: to_string(literal)
     defp default_type(literal, _type) when is_boolean(literal), do: to_string(literal)
 
@@ -1824,6 +1833,13 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp single_quote(value), do: [?', escape_string(value), ?']
 
+    defp bitstring_literal(value) do
+      size = bit_size(value)
+      <<val::size(size)>> = value
+
+      [?b, ?', val |> Integer.to_string(2) |> String.pad_leading(size, ["0"]), ?']
+    end
+
     defp intersperse_reduce(list, separator, user_acc, reducer, acc \\ [])
 
     defp intersperse_reduce([], _separator, user_acc, _reducer, acc),
@@ -1870,6 +1886,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp ecto_to_db(:bigserial), do: "bigserial"
     defp ecto_to_db(:binary_id), do: "uuid"
     defp ecto_to_db(:string), do: "varchar"
+    defp ecto_to_db(:bitstring), do: "varbit"
     defp ecto_to_db(:binary), do: "bytea"
     defp ecto_to_db(:map), do: Application.fetch_env!(:ecto_sql, :postgres_map_type)
     defp ecto_to_db({:map, _}), do: Application.fetch_env!(:ecto_sql, :postgres_map_type)
