@@ -1895,6 +1895,138 @@ defmodule Ecto.Adapters.TdsTest do
            ]
   end
 
+  describe "prepare_params/1" do
+    test "prepares string params" do
+      assert SQL.prepare_params(["string", "string" <> <<0>>]) == [
+               %Tds.Parameter{
+                 name: "@1",
+                 value: "string",
+                 type: :string
+               },
+               %Tds.Parameter{
+                 name: "@2",
+                 value: "string" <> <<0>>,
+                 type: :binary
+               }
+             ]
+    end
+
+    test "prepares integer param" do
+      assert SQL.prepare_params([6]) == [
+               %Tds.Parameter{
+                 name: "@1",
+                 value: 6
+               }
+             ]
+    end
+
+    test "prepares float param" do
+      assert SQL.prepare_params([4.2]) == [
+               %Tds.Parameter{
+                 name: "@1",
+                 value: 4.2
+               }
+             ]
+    end
+
+    test "prepares boolean params" do
+      assert SQL.prepare_params([true, false]) == [
+               %Tds.Parameter{
+                 name: "@1",
+                 value: 1,
+                 type: :boolean
+               },
+               %Tds.Parameter{
+                 name: "@2",
+                 value: 0,
+                 type: :boolean
+               }
+             ]
+    end
+
+    test "prepares Decimal param" do
+      assert SQL.prepare_params([Decimal.new(17)]) == [
+               %Tds.Parameter{
+                 name: "@1",
+                 value: Decimal.new("17"),
+                 type: :decimal
+               }
+             ]
+    end
+
+    test "prepares map param" do
+      assert SQL.prepare_params([%{}]) == [
+               %Tds.Parameter{
+                 name: "@1",
+                 value: "{}",
+                 type: :string
+               }
+             ]
+    end
+
+    test "prepares date and time params" do
+      assert SQL.prepare_params([
+               ~N[2019-01-01 00:00:00],
+               ~U[2019-01-01 00:00:00Z],
+               ~D[2019-01-01],
+               ~T[12:34:56]
+             ]) == [
+               %Tds.Parameter{
+                 name: "@1",
+                 value: ~N[2019-01-01 00:00:00],
+                 type: :datetime2
+               },
+               %Tds.Parameter{
+                 name: "@2",
+                 value: ~U[2019-01-01 00:00:00Z],
+                 type: :datetimeoffset
+               },
+               %Tds.Parameter{
+                 name: "@3",
+                 value: ~D[2019-01-01],
+                 type: :date
+               },
+               %Tds.Parameter{
+                 name: "@4",
+                 direction: :input,
+                 value: ~T[12:34:56],
+                 type: :time
+               }
+             ]
+    end
+
+    test "prepares Tds.Parameter params" do
+      params = [
+        %Tds.Parameter{name: "@IntParam", value: 17},
+        %Tds.Parameter{value: "string"},
+        %Tds.Parameter{name: "@StringIntParam", value: "17", type: :int}
+      ]
+
+      assert SQL.prepare_params(params) == [
+               %Tds.Parameter{
+                 name: "@IntParam",
+                 value: 17
+               },
+               %Tds.Parameter{
+                 name: "@1",
+                 value: "string",
+                 type: :string
+               },
+               %Tds.Parameter{
+                 name: "@StringIntParam",
+                 value: "17",
+                 type: :int
+               }
+             ]
+    end
+
+    test "params without a valid name raise an error" do
+      assert_raise ArgumentError, ~r/Tds parameter names must begin with @/, fn ->
+        SQL.prepare_params([%Tds.Parameter{name: "Param"}])
+      end
+    end
+  end
+
   defp remove_newlines(string) when is_binary(string) do
     string |> String.trim() |> String.replace("\n", " ")
   end
