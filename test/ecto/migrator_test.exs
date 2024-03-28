@@ -3,6 +3,7 @@ defmodule Ecto.MigratorTest do
 
   import Support.FileHelpers
   import Ecto.Migrator
+  import ExUnit.CaptureIO
   import ExUnit.CaptureLog
 
   alias EctoSQL.TestRepo
@@ -403,6 +404,19 @@ defmodule Ecto.MigratorTest do
     assert_raise Ecto.MigrationError, fn ->
       Ecto.Migrator.down(TestRepo, 1, InvalidMigration, log: false)
     end
+  end
+
+  test "warns for .ex files that look like migrations" do
+    in_tmp(fn path ->
+      output =
+        capture_io(:stderr, fn ->
+          create_migration("123_looks_like_migration.ex")
+          assert run(TestRepo, path, :up, all: true, log: false) == []
+        end)
+
+      assert output =~ "file looks like a migration but ends in .ex"
+      assert output =~ "123_looks_like_migration.ex"
+    end)
   end
 
   describe "lock for migrations" do

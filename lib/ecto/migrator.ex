@@ -662,7 +662,7 @@ defmodule Ecto.Migrator do
     migration_source
     |> Enum.flat_map(fn
       directory when is_binary(directory) ->
-        Path.join([directory, "**", "*.exs"])
+        Path.join([directory, "**", "*.{ex,exs}"])
         |> Path.wildcard()
         |> Enum.map(&extract_migration_info/1)
         |> Enum.filter(& &1)
@@ -677,8 +677,25 @@ defmodule Ecto.Migrator do
     base = Path.basename(file)
 
     case Integer.parse(Path.rootname(base)) do
-      {integer, "_" <> name} -> {integer, name, file}
-      _ -> nil
+      {integer, "_" <> name} ->
+        if Path.extname(base) == ".ex" do
+          # See: https://github.com/elixir-ecto/ecto_sql/issues/599
+          IO.warn(
+            """
+            file looks like a migration but ends in .ex. \
+            Migration files should end in .exs. Use "mix ecto.gen.migration" to generate \
+            migration files with the correct extension.\
+            """,
+            file: file
+          )
+
+          nil
+        else
+          {integer, name, file}
+        end
+
+      _ ->
+        nil
     end
   end
 
