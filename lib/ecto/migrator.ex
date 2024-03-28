@@ -664,7 +664,7 @@ defmodule Ecto.Migrator do
       directory when is_binary(directory) ->
         warn_for_misnamed_files(directory)
 
-        Path.join([directory, "**", "*.exs"])
+        Path.join([directory, "**", "*.{ex,exs}"])
         |> Path.wildcard()
         |> Enum.map(&extract_migration_info/1)
         |> Enum.filter(& &1)
@@ -682,11 +682,6 @@ defmodule Ecto.Migrator do
     |> Path.wildcard()
     |> Enum.each(fn path ->
       if Path.basename(path) =~ ~r/\d+_/ do
-        IO.warn("""
-        File #{Path.relative_to_cwd(path)} looks like a migration but ends in .ex. \
-        Migration files should end in .exs. Use "mix ecto.gen.migration" to generate \
-        migration files with the correct extension.\
-        """)
       end
     end)
   end
@@ -695,8 +690,21 @@ defmodule Ecto.Migrator do
     base = Path.basename(file)
 
     case Integer.parse(Path.rootname(base)) do
-      {integer, "_" <> name} -> {integer, name, file}
-      _ -> nil
+      {integer, "_" <> name} ->
+        if Path.extname(base) == ".ex" do
+          IO.warn("""
+          File #{Path.relative_to_cwd(file)} looks like a migration but ends in .ex. \
+          Migration files should end in .exs. Use "mix ecto.gen.migration" to generate \
+          migration files with the correct extension.\
+          """)
+
+          nil
+        else
+          {integer, name, file}
+        end
+
+      _ ->
+        nil
     end
   end
 
