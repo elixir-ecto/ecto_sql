@@ -414,7 +414,8 @@ defmodule Ecto.MigratorTest do
           assert run(TestRepo, path, :up, all: true, log: false) == []
         end)
 
-      assert output =~ "File 123_looks_like_migration.ex looks like a migration"
+      assert output =~ "file looks like a migration but ends in .ex"
+      assert output =~ "123_looks_like_migration.ex"
     end)
   end
 
