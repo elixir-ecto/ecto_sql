@@ -1239,7 +1239,9 @@ if Code.ensure_loaded?(Postgrex) do
       table_name = quote_name(table.prefix, table.name)
 
       query = [
-        "CREATE TABLE ",
+        "CREATE ",
+        if_do(table.unlogged, "UNLOGGED "),
+        "TABLE ",
         if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
         table_name,
         ?\s,

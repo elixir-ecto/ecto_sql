@@ -416,7 +416,13 @@ defmodule Ecto.Migration do
 
     To define a table in a migration, see `Ecto.Migration.table/2`.
     """
-    defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil
+    defstruct name: nil,
+              prefix: nil,
+              comment: nil,
+              primary_key: true,
+              engine: nil,
+              options: nil,
+              unlogged: false
 
     @type t :: %__MODULE__{
             name: String.t(),
@@ -424,7 +430,8 @@ defmodule Ecto.Migration do
             comment: String.t() | nil,
             primary_key: boolean | keyword(),
             engine: atom,
-            options: String.t()
+            options: String.t(),
+            unlogged: boolean
           }
   end
 
@@ -560,6 +567,8 @@ defmodule Ecto.Migration do
   defp expand_create(object, command, block) do
     quote do
       table = %Table{} = unquote(object)
+      unlogged = Runner.repo_config(:create_unlogged_tables, false)
+      table = %Table{table | unlogged: unlogged}
       Runner.start_command({unquote(command), Ecto.Migration.__prefix__(table)})
 
       if primary_key = Ecto.Migration.__primary_key__(table) do
@@ -623,6 +632,8 @@ defmodule Ecto.Migration do
   end
 
   def create(%Table{} = table) do
+    unlogged = Runner.repo_config(:create_unlogged_tables, table.unlogged)
+    table = %Table{table | unlogged: unlogged}
     do_create(table, :create)
     table
   end
