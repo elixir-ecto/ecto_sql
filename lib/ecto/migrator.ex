@@ -686,7 +686,7 @@ defmodule Ecto.Migrator do
             Migration files should end in .exs. Use "mix ecto.gen.migration" to generate \
             migration files with the correct extension.\
             """,
-            file: file
+            stacktrace_info(file: file)
           )
 
           nil
@@ -697,6 +697,13 @@ defmodule Ecto.Migrator do
       _ ->
         nil
     end
+  end
+
+  # TODO: Remove when we require Elixir 1.14
+  if Version.match?(System.version(), ">= 1.14.0") do
+    defp stacktrace_info(info), do: info
+  else
+    defp stacktrace_info(_info), do: []
   end
 
   defp ensure_no_duplication!([{version, name, _} | t]) do
