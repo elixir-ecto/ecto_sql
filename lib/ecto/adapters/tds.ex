@@ -172,8 +172,7 @@ defmodule Ecto.Adapters.Tds do
   @doc false
   @impl true
   def storage_up(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database)
 
     command =
       ~s(CREATE DATABASE [#{database}])
@@ -197,8 +196,7 @@ defmodule Ecto.Adapters.Tds do
   @doc false
   @impl true
   def storage_down(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database)
 
     case run_query(Keyword.put(opts, :database, "master"), "DROP DATABASE [#{database}]") do
       {:ok, _} ->
@@ -214,8 +212,7 @@ defmodule Ecto.Adapters.Tds do
 
   @impl Ecto.Adapter.Storage
   def storage_status(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database)
 
     opts = Keyword.put(opts, :database, "master")
 

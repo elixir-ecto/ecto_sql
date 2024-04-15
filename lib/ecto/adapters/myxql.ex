@@ -174,8 +174,7 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl true
   def storage_up(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database)
 
     opts = Keyword.delete(opts, :database)
     charset = opts[:charset] || "utf8mb4"
@@ -213,8 +212,7 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl true
   def storage_down(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database)
 
     opts = Keyword.delete(opts, :database)
     command = "DROP DATABASE `#{database}`"
@@ -242,8 +240,7 @@ defmodule Ecto.Adapters.MyXQL do
 
   @impl Ecto.Adapter.Storage
   def storage_status(opts) do
-    database =
-      Keyword.fetch!(opts, :database) || raise ":database is nil in repository configuration"
+    database = Keyword.fetch!(opts, :database)
 
     opts = Keyword.delete(opts, :database)
 
