@@ -78,11 +78,15 @@ if Code.ensure_loaded?(Tds) do
 
     def to_constraints(_, _opts), do: []
 
-    defp prepare_params(params) do
+    def prepare_params(params) do
       {params, _} =
         Enum.map_reduce(params, 1, fn param, acc ->
-          {value, type} = prepare_param(param)
-          {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+          case prepare_param(param) do
+            {value, type} -> {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+            %Tds.Parameter{name: ""} = param -> {%{param | name: "@#{acc}"}, acc + 1}
+            %Tds.Parameter{name: <<"@", _::binary>>} = param -> {param, acc}
+            _ -> error!(nil, "Tds parameter names must begin with @")
+          end
         end)
 
       params
@@ -107,6 +111,15 @@ if Code.ensure_loaded?(Tds) do
 
     defp prepare_param(%Time{} = value) do
       {value, :time}
+    end
+
+    defp prepare_param(%Tds.Parameter{type: nil, value: value} = param) do
+      {_value, type} = prepare_param(value)
+      %{param | type: type}
+    end
+
+    defp prepare_param(%Tds.Parameter{} = param) do
+      param
     end
 
     defp prepare_param(%{__struct__: module} = _value) do
