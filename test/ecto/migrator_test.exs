@@ -406,17 +406,20 @@ defmodule Ecto.MigratorTest do
     end
   end
 
-  test "warns for .ex files that look like migrations" do
-    in_tmp(fn path ->
-      output =
-        capture_io(:stderr, fn ->
-          create_migration("123_looks_like_migration.ex")
-          assert run(TestRepo, path, :up, all: true, log: false) == []
-        end)
+  # TODO: Remove when we require Elixir 1.14
+  if Version.match?(System.version(), ">= 1.14.0") do
+    test "warns for .ex files that look like migrations" do
+      in_tmp(fn path ->
+        output =
+          capture_io(:stderr, fn ->
+            create_migration("123_looks_like_migration.ex")
+            assert run(TestRepo, path, :up, all: true, log: false) == []
+          end)
 
-      assert output =~ "file looks like a migration but ends in .ex"
-      assert output =~ "123_looks_like_migration.ex"
-    end)
+        assert output =~ "file looks like a migration but ends in .ex"
+        assert output =~ "123_looks_like_migration.ex"
+      end)
+    end
   end
 
   describe "lock for migrations" do
