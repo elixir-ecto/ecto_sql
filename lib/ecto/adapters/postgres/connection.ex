@@ -364,13 +364,16 @@ if Code.ensure_loaded?(Postgrex) do
         )
 
       map_format? = {:format, :map} in explain_opts
-      generic_plan? = opts[:generic_plan] == true
 
       result =
-        if generic_plan? do
-          explain_query_with_generic_plan(conn, query, explain_opts, length(params), opts)
+        if opts[:generic_plan] == true do
+          generic_explain_query(
+            conn,
+            build_generic_explain_query(query, length(params), explain_opts),
+            opts
+          )
         else
-          query(conn, build_explain_query(query, 0, explain_opts, false), params, opts)
+          query(conn, build_explain_query(query, explain_opts), params, opts)
         end
 
       case result do
@@ -385,36 +388,32 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
-    defp explain_query_with_generic_plan(conn, query, explain_opts, num_params, opts) do
-      {prepare, set_plan_cache_mode, execute} =
-        build_explain_query(query, num_params, explain_opts, true)
+    defp generic_explain_query(conn, queries, opts) do
+      {prepare, set, execute, deallocate} = queries
 
       with {:ok, _} <- query(conn, prepare, [], opts),
-           {:ok, _} <- query(conn, set_plan_cache_mode, [], opts),
+           {:ok, _} <- query(conn, set, [], opts),
            {:ok, result} <- query(conn, execute, [], opts),
-           :ok <- deallocate_prepared_statement!(conn, opts) do
+           {:ok, _} <- query(conn, deallocate, [], opts) do
         {:ok, result}
+      else
+        e -> raise(e)
       end
     end
 
-    defp deallocate_prepared_statement!(conn, opts) do
-      case query(conn, "DEALLOCATE #{@explain_prepared_statement_name}", [], opts) do
-        {:ok, _} -> :ok
-        {:error, e} -> raise(e)
-      end
-    end
-
-    def build_explain_query(query, num_params, opts, true) do
+    def build_generic_explain_query(query, num_params, opts) do
       prepare =
         [
-          "PREPARE ", @explain_prepared_statement_name, "(",
+          "PREPARE ",
+          @explain_prepared_statement_name,
+          "(",
           Enum.map_intersperse(1..num_params, ", ", fn _ -> "unknown" end),
           ") AS ",
           query
         ]
         |> IO.iodata_to_binary()
 
-      plan_cache_mode = "SET LOCAL plan_cache_mode = force_generic_plan"
+      set = "SET LOCAL plan_cache_mode = force_generic_plan"
 
       execute =
         [
@@ -428,10 +427,12 @@ if Code.ensure_loaded?(Postgrex) do
         ]
         |> IO.iodata_to_binary()
 
-      {prepare, plan_cache_mode, execute}
+      deallocate = "DEALLOCATE #{@explain_prepared_statement_name}"
+
+      {prepare, set, execute, deallocate}
     end
 
-    def build_explain_query(query, _, opts, _) do
+    def build_explain_query(query, opts) do
       ["EXPLAIN ", build_explain_opts(opts), query]
       |> IO.iodata_to_binary()
     end
