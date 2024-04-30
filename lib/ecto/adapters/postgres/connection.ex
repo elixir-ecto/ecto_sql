@@ -4,6 +4,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @default_port 5432
     @behaviour Ecto.Adapters.SQL.Connection
+    @explain_prepared_statement_name "ecto_explain_statement"
 
     ## Module and Options
 
@@ -357,11 +358,22 @@ if Code.ensure_loaded?(Postgrex) do
     @impl true
     def explain_query(conn, query, params, opts) do
       {explain_opts, opts} =
-        Keyword.split(opts, ~w[analyze verbose costs settings buffers timing summary format]a)
+        Keyword.split(
+          opts,
+          ~w[analyze verbose costs settings buffers timing summary format]a
+        )
 
       map_format? = {:format, :map} in explain_opts
+      generic_plan? = opts[:generic_plan] == true
 
-      case query(conn, build_explain_query(query, explain_opts), params, opts) do
+      result =
+        if generic_plan? do
+          explain_query_with_generic_plan(conn, query, explain_opts, length(params), opts)
+        else
+          query(conn, build_explain_query(query, 0, explain_opts, false), params, opts)
+        end
+
+      case result do
         {:ok, %Postgrex.Result{rows: rows}} when map_format? ->
           {:ok, List.flatten(rows)}
 
@@ -373,12 +385,60 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
-    def build_explain_query(query, []) do
-      ["EXPLAIN ", query]
+    defp explain_query_with_generic_plan(conn, query, explain_opts, num_params, opts) do
+      {prepare, set_plan_cache_mode, execute} =
+        build_explain_query(query, num_params, explain_opts, true)
+
+      with {:ok, _} <- query(conn, prepare, [], opts),
+           {:ok, _} <- query(conn, set_plan_cache_mode, [], opts),
+           {:ok, result} <- query(conn, execute, [], opts),
+           :ok <- deallocate_prepared_statement!(conn, opts) do
+        {:ok, result}
+      end
+    end
+
+    defp deallocate_prepared_statement!(conn, opts) do
+      case query(conn, "DEALLOCATE #{@explain_prepared_statement_name}", [], opts) do
+        {:ok, _} -> :ok
+        {:error, e} -> raise(e)
+      end
+    end
+
+    def build_explain_query(query, num_params, opts, true) do
+      prepare =
+        [
+          "PREPARE ", @explain_prepared_statement_name, "(",
+          Enum.map_intersperse(1..num_params, ", ", fn _ -> "unknown" end),
+          ") AS ",
+          query
+        ]
+        |> IO.iodata_to_binary()
+
+      plan_cache_mode = "SET LOCAL plan_cache_mode = force_generic_plan"
+
+      execute =
+        [
+          "EXPLAIN ",
+          build_explain_opts(opts),
+          "EXECUTE ",
+          @explain_prepared_statement_name,
+          "(",
+          Enum.map_intersperse(1..num_params, ", ", fn _ -> "NULL" end),
+          ")"
+        ]
+        |> IO.iodata_to_binary()
+
+      {prepare, plan_cache_mode, execute}
+    end
+
+    def build_explain_query(query, _, opts, _) do
+      ["EXPLAIN ", build_explain_opts(opts), query]
       |> IO.iodata_to_binary()
     end
 
-    def build_explain_query(query, opts) do
+    defp build_explain_opts([]), do: []
+
+    defp build_explain_opts(opts) do
       {analyze, opts} = Keyword.pop(opts, :analyze)
       {verbose, opts} = Keyword.pop(opts, :verbose)
 
@@ -388,10 +448,8 @@ if Code.ensure_loaded?(Postgrex) do
       case opts do
         [] ->
           [
-            "EXPLAIN ",
             if_do(quote_boolean(analyze) == "TRUE", "ANALYZE "),
-            if_do(quote_boolean(verbose) == "TRUE", "VERBOSE "),
-            query
+            if_do(quote_boolean(verbose) == "TRUE", "VERBOSE ")
           ]
 
         opts ->
@@ -410,9 +468,8 @@ if Code.ensure_loaded?(Postgrex) do
             |> Enum.reverse()
             |> Enum.join(", ")
 
-          ["EXPLAIN ( ", opts, " ) ", query]
+          ["( ", opts, " ) "]
       end
-      |> IO.iodata_to_binary()
     end
 
     ## Query generation

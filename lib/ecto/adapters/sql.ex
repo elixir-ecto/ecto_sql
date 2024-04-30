@@ -387,7 +387,7 @@ defmodule Ecto.Adapters.SQL do
 
   Adapter          | Supported opts
   ---------------- | --------------
-  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`, `format`
+  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`, `format`, `generic_plan`
   MyXQL            | `format`
 
   All options except `format` are boolean valued and default to `false`.
@@ -399,6 +399,10 @@ defmodule Ecto.Adapters.SQL do
   The built-in adapters support the following formats:
     * Postgrex: `:map`, `:yaml` and `:text`
     * MyXQL: `:map` and `:text`
+
+  When `generic_plan` is set to `true` in Postgres, the explain plan generated will ignore the supplied
+  query parameters. See `plan_cache_mode` in the [Postgres docs](https://www.postgresql.org/docs/current/runtime-config-query.html#GUC-PLAN-CACHE-MODE)
+  for more information.
 
   Any other value passed to `opts` will be forwarded to the underlying adapter query function, including
   shared Repo options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
