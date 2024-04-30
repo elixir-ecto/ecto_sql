@@ -109,7 +109,7 @@ cond do
   Version.match?(version, "< 9.6.0") ->
     ExUnit.configure(exclude: exclude_list ++ excludes_below_9_6 ++ excludes_below_15_0)
 
-  Version.match?(version, "< 11.0.0") ->
+  Version.match?(version, "< 12.0.0") ->
     ExUnit.configure(exclude: exclude_list ++ excludes_below_1510)
 
   Version.match?(version, "< 15.0.0") ->
