@@ -397,7 +397,7 @@ if Code.ensure_loaded?(Postgrex) do
            {:ok, _} <- query(conn, deallocate, [], opts) do
         {:ok, result}
       else
-        e -> raise(e)
+        {:error, e} -> raise(e)
       end
     end
 
