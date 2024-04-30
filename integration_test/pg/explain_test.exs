@@ -27,6 +27,7 @@ defmodule Ecto.Integration.ExplainTest do
     end)
   end
 
+  @tag :plan_cache_mode
   test "explain with generic plan" do
     # when true, placeholders are used instead of values. i.e. $1 instead of 1
     query = from p in Post, where: p.visits == ^1 and p.title == ^"title"
