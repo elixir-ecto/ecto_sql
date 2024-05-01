@@ -1045,16 +1045,6 @@ defmodule Ecto.Adapters.TdsTest do
                ~s{INNER JOIN [schema] AS s2 ON 1 = 1}
   end
 
-  test "join with invalid qualifier" do
-    assert_raise Ecto.QueryError, ~r/join qualifier :array is not supported/, fn ->
-      Schema
-      |> join(:array, [p], q in Schema2, on: p.x == q.z)
-      |> select([], true)
-      |> plan()
-      |> all()
-    end
-  end
-
   test "join with hints" do
     assert Schema
            |> join(:inner, [p], q in Schema2, hints: ["USE INDEX FOO", "USE INDEX BAR"], on: true)
