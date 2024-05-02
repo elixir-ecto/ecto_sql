@@ -46,14 +46,6 @@ integration-test-postgres:
         # and in the 3.4 version, it is not included in postgresql-client but rather in postgresql
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
         RUN apk add postgresql=9.5.13-r0
-    ELSE IF [ "$POSTGRES" = "16.0" ]
-        # for 16.0 we need an upgraded version of pg_dump;
-        # alpine 3.19 does not come with the postgres 16 client by default;
-        # we must first update the public keys for the packages because they
-        # might have been rotated since our image was built
-        RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.19/main -u alpine-keys
-        RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.19/main' >> /etc/apk/repositories
-        RUN apk add postgresql16-client
     ELSE
         RUN apk add postgresql-client
     END
