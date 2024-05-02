@@ -3,7 +3,7 @@ VERSION 0.6
 all:
     ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
     BUILD \
-        --build-arg POSTGRES=16.0 \
+        --build-arg POSTGRES=15.0 \
         --build-arg POSTGRES=11.11 \
         --build-arg POSTGRES=9.6 \
         --build-arg POSTGRES=9.5 \
