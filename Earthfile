@@ -1,7 +1,7 @@
 VERSION 0.6
 
 all:
-    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
+    ARG ELIXIR_BASE=1.15.7-erlang-25.3.2.11-alpine-3.19.1
     BUILD \
         --build-arg POSTGRES=16.0 \
         --build-arg POSTGRES=11.11 \
@@ -20,7 +20,7 @@ all:
         +integration-test-mssql
 
 setup-base:
-    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
+    ARG ELIXIR_BASE=1.15.7-erlang-25.3.2.11-alpine-3.19.1
     FROM hexpm/elixir:$ELIXIR_BASE
     RUN apk add --no-progress --update git build-base
     ENV ELIXIR_ASSERT_TIMEOUT=10000
@@ -48,11 +48,11 @@ integration-test-postgres:
         RUN apk add postgresql=9.5.13-r0
     ELSE IF [ "$POSTGRES" = "16.0" ]
         # for 16.0 we need an upgraded version of pg_dump;
-        # alpine 3.17 does not come with the postgres 16 client by default;
+        # alpine 3.19 does not come with the postgres 16 client by default;
         # we must first update the public keys for the packages because they
         # might have been rotated since our image was built
-        RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.17/main -u alpine-keys
-        RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/main' >> /etc/apk/repositories
+        RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.19/main -u alpine-keys
+        RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.19/main' >> /etc/apk/repositories
         RUN apk add postgresql16-client
     ELSE
         RUN apk add postgresql-client
