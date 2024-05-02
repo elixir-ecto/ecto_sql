@@ -360,21 +360,26 @@ if Code.ensure_loaded?(Postgrex) do
       {explain_opts, opts} =
         Keyword.split(
           opts,
-          ~w[analyze verbose costs settings buffers timing summary format]a
+          ~w[analyze verbose costs settings buffers timing summary format plan]a
         )
 
-      map_format? = {:format, :map} in explain_opts
-
       result =
-        if opts[:generic_plan] == true do
-          generic_explain_query(
-            conn,
-            build_generic_explain_query(query, length(params), explain_opts),
-            opts
-          )
+        if explain_opts[:plan] == :fallback_generic do
+          if explain_opts[:analyze] do
+            raise ArgumentError,
+                  "analyze cannot be used with a `:fallback_generic` explain plan " <>
+                    "as the actual parameter values are ignored under this plan type." <>
+                    "You may either change the plan type to `:custom` or remove the `:analyze` option."
+          end
+
+          explain_opts = Keyword.delete(explain_opts, :plan)
+          explain_queries = build_fallback_generic_queries(query, length(params), explain_opts)
+          fallback_generic_query(conn, explain_queries, opts)
         else
           query(conn, build_explain_query(query, explain_opts), params, opts)
         end
+
+      map_format? = explain_opts[:format] == :map
 
       case result do
         {:ok, %Postgrex.Result{rows: rows}} when map_format? ->
@@ -388,20 +393,7 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
-    defp generic_explain_query(conn, queries, opts) do
-      {prepare, set, execute, deallocate} = queries
-
-      with {:ok, _} <- query(conn, prepare, [], opts),
-           {:ok, _} <- query(conn, set, [], opts),
-           {:ok, result} <- query(conn, execute, [], opts),
-           {:ok, _} <- query(conn, deallocate, [], opts) do
-        {:ok, result}
-      else
-        {:error, e} -> raise(e)
-      end
-    end
-
-    def build_generic_explain_query(query, num_params, opts) do
+    def build_fallback_generic_queries(query, num_params, opts) do
       prepare =
         [
           "PREPARE ",
@@ -463,6 +455,12 @@ if Code.ensure_loaded?(Postgrex) do
               {:format, value}, acc ->
                 [String.upcase("#{format_to_sql(value)}") | acc]
 
+              {:plan, :generic}, acc ->
+                ["GENERIC" | acc]
+
+              {:plan, _}, acc ->
+                acc
+
               {opt, value}, acc ->
                 [String.upcase("#{opt} #{quote_boolean(value)}") | acc]
             end)
@@ -470,6 +468,17 @@ if Code.ensure_loaded?(Postgrex) do
             |> Enum.join(", ")
 
           ["( ", opts, " ) "]
+      end
+    end
+
+    defp fallback_generic_query(conn, queries, opts) do
+      {prepare, set, execute, deallocate} = queries
+
+      with {:ok, _} <- query(conn, prepare, [], opts),
+           {:ok, _} <- query(conn, set, [], opts),
+           {:ok, result} <- query(conn, execute, [], opts),
+           {:ok, _} <- query(conn, deallocate, [], opts) do
+        {:ok, result}
       end
     end
 

@@ -3,7 +3,7 @@ VERSION 0.6
 all:
     ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
     BUILD \
-        --build-arg POSTGRES=15.0 \
+        --build-arg POSTGRES=16.0 \
         --build-arg POSTGRES=11.11 \
         --build-arg POSTGRES=9.6 \
         --build-arg POSTGRES=9.5 \
@@ -46,9 +46,9 @@ integration-test-postgres:
         # and in the 3.4 version, it is not included in postgresql-client but rather in postgresql
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
         RUN apk add postgresql=9.5.13-r0
-    ELSE IF [ "$POSTGRES" = "15.0" ]
-        # for 15.0 we need an upgraded version of pg_dump;
-        # alpine 3.17 does not come with the postgres 15 client by default;
+    ELSE IF [ "$POSTGRES" = "16.0" ]
+        # for 16.0 we need an upgraded version of pg_dump;
+        # alpine 3.17 does not come with the postgres 16 client by default;
         # we must first update the public keys for the packages because they
         # might have been rotated since our image was built
         RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.17/main -u alpine-keys
@@ -103,7 +103,7 @@ integration-test-mysql:
 
 
 integration-test-mssql:
-    ARG TARGETARCH 
+    ARG TARGETARCH
     FROM +setup-base
 
     RUN apk add --no-cache curl gnupg --virtual .build-dependencies -- && \
