@@ -363,20 +363,23 @@ if Code.ensure_loaded?(Postgrex) do
           ~w[analyze verbose costs settings buffers timing summary format plan]a
         )
 
+      fallback_generic? = explain_opts[:plan] == :fallback_generic
+
       result =
-        if explain_opts[:plan] == :fallback_generic do
-          if explain_opts[:analyze] do
+        cond do
+          fallback_generic? and explain_opts[:analyze] ->
             raise ArgumentError,
                   "analyze cannot be used with a `:fallback_generic` explain plan " <>
                     "as the actual parameter values are ignored under this plan type." <>
                     "You may either change the plan type to `:custom` or remove the `:analyze` option."
-          end
 
-          explain_opts = Keyword.delete(explain_opts, :plan)
-          explain_queries = build_fallback_generic_queries(query, length(params), explain_opts)
-          fallback_generic_query(conn, explain_queries, opts)
-        else
-          query(conn, build_explain_query(query, explain_opts), params, opts)
+          fallback_generic? ->
+            explain_opts = Keyword.delete(explain_opts, :plan)
+            explain_queries = build_fallback_generic_queries(query, length(params), explain_opts)
+            fallback_generic_query(conn, explain_queries, opts)
+
+          true ->
+            query(conn, build_explain_query(query, explain_opts), params, opts)
         end
 
       map_format? = explain_opts[:format] == :map
