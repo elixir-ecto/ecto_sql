@@ -103,7 +103,7 @@ integration-test-mysql:
 
 
 integration-test-mssql:
-    ARG TARGETARCH 
+    ARG TARGETARCH
     FROM +setup-base
 
     RUN apk add --no-cache curl gnupg --virtual .build-dependencies -- && \

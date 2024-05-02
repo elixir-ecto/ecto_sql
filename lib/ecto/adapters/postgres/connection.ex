@@ -4,6 +4,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @default_port 5432
     @behaviour Ecto.Adapters.SQL.Connection
+    @explain_prepared_statement_name "ecto_explain_statement"
 
     ## Module and Options
 
@@ -357,11 +358,33 @@ if Code.ensure_loaded?(Postgrex) do
     @impl true
     def explain_query(conn, query, params, opts) do
       {explain_opts, opts} =
-        Keyword.split(opts, ~w[analyze verbose costs settings buffers timing summary format]a)
+        Keyword.split(
+          opts,
+          ~w[analyze verbose costs settings buffers timing summary format plan]a
+        )
 
-      map_format? = {:format, :map} in explain_opts
+      fallback_generic? = explain_opts[:plan] == :fallback_generic
 
-      case query(conn, build_explain_query(query, explain_opts), params, opts) do
+      result =
+        cond do
+          fallback_generic? and explain_opts[:analyze] ->
+            raise ArgumentError,
+                  "analyze cannot be used with a `:fallback_generic` explain plan " <>
+                    "as the actual parameter values are ignored under this plan type." <>
+                    "You may either change the plan type to `:custom` or remove the `:analyze` option."
+
+          fallback_generic? ->
+            explain_opts = Keyword.delete(explain_opts, :plan)
+            explain_queries = build_fallback_generic_queries(query, length(params), explain_opts)
+            fallback_generic_query(conn, explain_queries, opts)
+
+          true ->
+            query(conn, build_explain_query(query, explain_opts), params, opts)
+        end
+
+      map_format? = explain_opts[:format] == :map
+
+      case result do
         {:ok, %Postgrex.Result{rows: rows}} when map_format? ->
           {:ok, List.flatten(rows)}
 
@@ -373,12 +396,45 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
-    def build_explain_query(query, []) do
-      ["EXPLAIN ", query]
-      |> IO.iodata_to_binary()
+    def build_fallback_generic_queries(query, num_params, opts) do
+      prepare =
+        [
+          "PREPARE ",
+          @explain_prepared_statement_name,
+          "(",
+          Enum.map_intersperse(1..num_params, ", ", fn _ -> "unknown" end),
+          ") AS ",
+          query
+        ]
+        |> IO.iodata_to_binary()
+
+      set = "SET LOCAL plan_cache_mode = force_generic_plan"
+
+      execute =
+        [
+          "EXPLAIN ",
+          build_explain_opts(opts),
+          "EXECUTE ",
+          @explain_prepared_statement_name,
+          "(",
+          Enum.map_intersperse(1..num_params, ", ", fn _ -> "NULL" end),
+          ")"
+        ]
+        |> IO.iodata_to_binary()
+
+      deallocate = "DEALLOCATE #{@explain_prepared_statement_name}"
+
+      {prepare, set, execute, deallocate}
     end
 
     def build_explain_query(query, opts) do
+      ["EXPLAIN ", build_explain_opts(opts), query]
+      |> IO.iodata_to_binary()
+    end
+
+    defp build_explain_opts([]), do: []
+
+    defp build_explain_opts(opts) do
       {analyze, opts} = Keyword.pop(opts, :analyze)
       {verbose, opts} = Keyword.pop(opts, :verbose)
 
@@ -388,10 +444,8 @@ if Code.ensure_loaded?(Postgrex) do
       case opts do
         [] ->
           [
-            "EXPLAIN ",
             if_do(quote_boolean(analyze) == "TRUE", "ANALYZE "),
-            if_do(quote_boolean(verbose) == "TRUE", "VERBOSE "),
-            query
+            if_do(quote_boolean(verbose) == "TRUE", "VERBOSE ")
           ]
 
         opts ->
@@ -404,15 +458,31 @@ if Code.ensure_loaded?(Postgrex) do
               {:format, value}, acc ->
                 [String.upcase("#{format_to_sql(value)}") | acc]
 
+              {:plan, :generic}, acc ->
+                ["GENERIC" | acc]
+
+              {:plan, _}, acc ->
+                acc
+
               {opt, value}, acc ->
                 [String.upcase("#{opt} #{quote_boolean(value)}") | acc]
             end)
             |> Enum.reverse()
             |> Enum.join(", ")
 
-          ["EXPLAIN ( ", opts, " ) ", query]
+          ["( ", opts, " ) "]
       end
-      |> IO.iodata_to_binary()
+    end
+
+    defp fallback_generic_query(conn, queries, opts) do
+      {prepare, set, execute, deallocate} = queries
+
+      with {:ok, _} <- query(conn, prepare, [], opts),
+           {:ok, _} <- query(conn, set, [], opts),
+           {:ok, result} <- query(conn, execute, [], opts),
+           {:ok, _} <- query(conn, deallocate, [], opts) do
+        {:ok, result}
+      end
     end
 
     ## Query generation
