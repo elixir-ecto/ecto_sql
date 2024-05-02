@@ -62,16 +62,14 @@ defmodule Ecto.Integration.ExplainTest do
 
   @tag :explain_generic
   test "explain with generic plan" do
-    # when using generic plan, values are used instead of placeholders. i.e. 1 instead of $1
+    # when using generic plan, placeholders are used instead of values. i.e. $1 instead of 1
     query = from p in Post, where: p.visits == ^1 and p.title == ^"title"
 
     explain =
       TestRepo.explain(:all, query, plan: :generic, analyze: true, verbose: true, timeout: 20000)
 
-    refute explain =~ "$1"
-    refute explain =~ "$2"
-    assert explain =~ "p0.visits = 1"
-    assert explain =~ "(p0.title)::text = 'title'"
+    assert explain =~ "p0.visits = $1"
+    assert explain =~ "(p0.title)::text = $2"
   end
 
   test "explain MAP format" do
