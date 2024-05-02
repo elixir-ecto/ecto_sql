@@ -53,7 +53,7 @@ integration-test-postgres:
         # might have been rotated since our image was built
         RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.17/main -u alpine-keys
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/main' >> /etc/apk/repositories
-        RUN apk add postgresql15-client
+        RUN apk add postgresql16-client
     ELSE
         RUN apk add postgresql-client
     END
