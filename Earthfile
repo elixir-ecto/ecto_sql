@@ -67,7 +67,7 @@ integration-test-postgres:
             timeout=$(expr $(date +%s) + 30); \
             docker run --name pg --network=host -d -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres "postgres:$POSTGRES"; \
             # wait for postgres to start
-            while ! pg_isready --host=127.0.0.1 --port=5432 do \
+            while ! pg_isready --host=127.0.0.1 --port=5432; do \
                 test "$(date +%s)" -le "$timeout" || (echo "timed out waiting for postgres"; exit 1); \
                 echo "waiting for postgres"; \
                 sleep 1; \
