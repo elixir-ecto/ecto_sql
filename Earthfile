@@ -1,7 +1,7 @@
 VERSION 0.6
 
 all:
-    ARG ELIXIR_BASE=1.15.7-erlang-25.3.2.11-alpine-3.19.1
+    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
     BUILD \
         --build-arg POSTGRES=16.0 \
         --build-arg POSTGRES=11.11 \
@@ -20,7 +20,7 @@ all:
         +integration-test-mssql
 
 setup-base:
-    ARG ELIXIR_BASE=1.15.7-erlang-25.3.2.11-alpine-3.19.1
+    ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
     FROM hexpm/elixir:$ELIXIR_BASE
     RUN apk add --no-progress --update git build-base
     ENV ELIXIR_ASSERT_TIMEOUT=10000
@@ -46,6 +46,14 @@ integration-test-postgres:
         # and in the 3.4 version, it is not included in postgresql-client but rather in postgresql
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
         RUN apk add postgresql=9.5.13-r0
+    ELSE IF [ "$POSTGRES" = "15.0" ]
+        # for 15.0 we need an upgraded version of pg_dump;
+        # alpine 3.17 does not come with the postgres 15 client by default;
+        # we must first update the public keys for the packages because they
+        # might have been rotated since our image was built
+        RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.17/main -u alpine-keys
+        RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/main' >> /etc/apk/repositories
+        RUN apk add postgresql15-client
     ELSE
         RUN apk add postgresql-client
     END
@@ -59,7 +67,7 @@ integration-test-postgres:
             timeout=$(expr $(date +%s) + 30); \
             docker run --name pg --network=host -d -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres "postgres:$POSTGRES"; \
             # wait for postgres to start
-            while ! pg_isready --host=127.0.0.1 --port=5432; do \
+            while ! pg_isready --host=127.0.0.1 --port=5432 --quiet; do \
                 test "$(date +%s)" -le "$timeout" || (echo "timed out waiting for postgres"; exit 1); \
                 echo "waiting for postgres"; \
                 sleep 1; \
