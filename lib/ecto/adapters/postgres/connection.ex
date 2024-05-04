@@ -397,7 +397,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     def build_fallback_generic_queries(query, num_params, opts) do
-      prepare_opts =
+      prepare_args =
         if num_params > 0,
           do: ["( ", Enum.map_intersperse(1..num_params, ", ", fn _ -> "unknown" end), " )"],
           else: []
@@ -406,7 +406,7 @@ if Code.ensure_loaded?(Postgrex) do
         [
           "PREPARE ",
           @explain_prepared_statement_name,
-          prepare_opts,
+          prepare_args,
           " AS ",
           query
         ]
@@ -414,7 +414,7 @@ if Code.ensure_loaded?(Postgrex) do
 
       set = "SET LOCAL plan_cache_mode = force_generic_plan"
 
-      execute_opts =
+      execute_args =
         if num_params > 0,
           do: ["( ", Enum.map_intersperse(1..num_params, ", ", fn _ -> "NULL" end), " )"],
           else: []
@@ -425,7 +425,7 @@ if Code.ensure_loaded?(Postgrex) do
           build_explain_opts(opts),
           "EXECUTE ",
           @explain_prepared_statement_name,
-          execute_opts
+          execute_args
         ]
         |> IO.iodata_to_binary()
 
