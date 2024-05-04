@@ -37,6 +37,9 @@ defmodule Ecto.Integration.ExplainTest do
 
     assert explain =~ "p0.visits = $1"
     assert explain =~ "(p0.title)::text = $2"
+
+    # Works when no parameters are given
+    TestRepo.explain(:all, Post, plan: :fallback_generic, verbose: true, timeout: 20000)
   end
 
   test "explain with fallback generic plan cannot use analyze" do
