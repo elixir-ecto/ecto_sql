@@ -363,7 +363,8 @@ if Code.ensure_loaded?(Postgrex) do
           ~w[analyze verbose costs settings buffers timing summary format plan]a
         )
 
-      fallback_generic? = explain_opts[:plan] == :fallback_generic
+      {plan_type, explain_opts} = Keyword.pop(explain_opts, :plan)
+      fallback_generic? = plan_type == :fallback_generic
 
       result =
         cond do
@@ -374,7 +375,6 @@ if Code.ensure_loaded?(Postgrex) do
                     "You may either change the plan type to `:custom` or remove the `:analyze` option."
 
           fallback_generic? ->
-            explain_opts = Keyword.delete(explain_opts, :plan)
             explain_queries = build_fallback_generic_queries(query, length(params), explain_opts)
             fallback_generic_query(conn, explain_queries, opts)
 
@@ -464,12 +464,6 @@ if Code.ensure_loaded?(Postgrex) do
 
               {:format, value}, acc ->
                 [String.upcase("#{format_to_sql(value)}") | acc]
-
-              {:plan, :generic}, acc ->
-                ["GENERIC" | acc]
-
-              {:plan, _}, acc ->
-                acc
 
               {opt, value}, acc ->
                 [String.upcase("#{opt} #{quote_boolean(value)}") | acc]

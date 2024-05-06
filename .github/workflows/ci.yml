@@ -54,10 +54,10 @@ jobs:
         elixirbase:
           - "1.11.4-erlang-21.3.8.24-alpine-3.13.3"
         postgres:
-          - "15.0"
-          - "11.11"
-          - "9.6"
-          - "9.5"
+          - "16.2-alpine"
+          - "11.11-alpine"
+          - "9.6-alpine"
+          - "9.5-alpine"
     steps:
       - uses: earthly/actions-setup@v1
       - uses: actions/checkout@v3

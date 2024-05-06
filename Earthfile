@@ -3,10 +3,10 @@ VERSION 0.6
 all:
     ARG ELIXIR_BASE=1.15.6-erlang-25.3.2.6-alpine-3.18.4
     BUILD \
-        --build-arg POSTGRES=15.0 \
-        --build-arg POSTGRES=11.11 \
-        --build-arg POSTGRES=9.6 \
-        --build-arg POSTGRES=9.5 \
+        --build-arg POSTGRES=16.2-alpine \
+        --build-arg POSTGRES=11.11-alpine \
+        --build-arg POSTGRES=9.6-alpine \
+        --build-arg POSTGRES=9.5-alpine \
         +integration-test-postgres
 
     BUILD \
@@ -41,19 +41,19 @@ integration-test-postgres:
     FROM +setup-base
     ARG POSTGRES="11.11"
 
-    IF [ "$POSTGRES" = "9.5" ]
+    IF [ "$POSTGRES" = "9.5-alpine" ]
         # for 9.5 we require a downgraded version of pg_dump;
         # and in the 3.4 version, it is not included in postgresql-client but rather in postgresql
         RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
         RUN apk add postgresql=9.5.13-r0
-    ELSE IF [ "$POSTGRES" = "15.0" ]
-        # for 15.0 we need an upgraded version of pg_dump;
-        # alpine 3.17 does not come with the postgres 15 client by default;
+    ELSE IF [ "$POSTGRES" = "16.2-alpine" ]
+        # for 16 we need an upgraded version of pg_dump;
+        # alpine 3.16 does not come with the postgres 16 client by default;
         # we must first update the public keys for the packages because they
         # might have been rotated since our image was built
-        RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.17/main -u alpine-keys
-        RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/main' >> /etc/apk/repositories
-        RUN apk add postgresql15-client
+        RUN apk add -X https://dl-cdn.alpinelinux.org/alpine/v3.19/main -u alpine-keys
+        RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.19/main' >> /etc/apk/repositories
+        RUN apk add postgresql16-client
     ELSE
         RUN apk add postgresql-client
     END
