@@ -402,10 +402,10 @@ defmodule Ecto.Adapters.SQL do
 
   The `:plan` option in Postgrex can take the values `:custom` or `:fallback_generic`. When `:custom`
   is specified, the explain plan generated will consider the specific values of the query parameters
-  that are supplied. When using :fallback_generic`, the specific values of the query parameters will
+  that are supplied. When using `:fallback_generic`, the specific values of the query parameters will
   be ignored. `:fallback_generic` does not use PostgreSQL's built-in support for a generic explain
-  plan (available as of PostgreSQL 16), but instead uses a special implmentation that works for PostgreSQL
-  versions 12 and above.
+  plan (available as of PostgreSQL 16), but instead uses a special implementation that works for PostgreSQL
+  versions 12 and above. Defaults to `:custom`.
 
   Any other value passed to `opts` will be forwarded to the underlying adapter query function, including
   shared Repo options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
