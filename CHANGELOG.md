@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.11.2 (2024-05-18)
+
+### Enhancements
+
+  * [postgres] Relax `postgrex` dependency
+
 ## v3.11.1 (2023-12-07)
 
 ### Enhancements
