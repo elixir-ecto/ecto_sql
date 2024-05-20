@@ -1445,7 +1445,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp ecto_cast_to_db(:id, _query), do: "unsigned"
-    defp ecto_cast_to_db(:integer, _query), do: "unsigned"
+    defp ecto_cast_to_db(:integer, _query), do: "signed"
     defp ecto_cast_to_db(:string, _query), do: "char"
     defp ecto_cast_to_db(:utc_datetime_usec, _query), do: "datetime(6)"
     defp ecto_cast_to_db(:naive_datetime_usec, _query), do: "datetime(6)"
