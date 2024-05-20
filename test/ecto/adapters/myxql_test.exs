@@ -161,7 +161,7 @@ defmodule Ecto.Adapters.MyXQLTest do
                ~s{UNION ALL } <>
                ~s{(SELECT sc0.`id`, st1.`depth` + 1 FROM `categories` AS sc0 } <>
                ~s{INNER JOIN `tree` AS st1 ON st1.`id` = sc0.`parent_id`)) } <>
-               ~s{SELECT s0.`x`, t1.`id`, CAST(t1.`depth` AS unsigned) } <>
+               ~s{SELECT s0.`x`, t1.`id`, CAST(t1.`depth` AS signed) } <>
                ~s{FROM `schema` AS s0 } <>
                ~s{INNER JOIN `tree` AS t1 ON t1.`id` = s0.`category_id`}
   end
@@ -1475,7 +1475,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan()
       |> all()
 
-    cast_types = %{bid: "binary(16)", num: "unsigned"}
+    cast_types = %{bid: "binary(16)", num: "signed"}
     from_values_text = values_text(values, cast_types)
     join_values_text = values_text(values, cast_types)
     select_fields = Enum.map_join(types, ", ", fn {field, _} -> "v1.`#{field}`" end)
@@ -1498,7 +1498,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan(:delete_all)
       |> delete_all()
 
-    cast_types = %{bid: "binary(16)", num: "unsigned"}
+    cast_types = %{bid: "binary(16)", num: "signed"}
     values_text = values_text(values, cast_types)
     fields = Enum.map_join(types, ",", fn {field, _} -> "`#{field}`" end)
 
@@ -1523,7 +1523,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan(:update_all)
       |> update_all()
 
-    cast_types = %{bid: "binary(16)", num: "unsigned"}
+    cast_types = %{bid: "binary(16)", num: "signed"}
     values_text = values_text(values, cast_types)
     fields = Enum.map_join(types, ",", fn {field, _} -> "`#{field}`" end)
 

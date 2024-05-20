@@ -21,6 +21,11 @@ defmodule Ecto.Integration.SQLTest do
     assert [123] = TestRepo.all(from p in "posts", select: type(fragment("visits"), :integer))
   end
 
+  test "type casting negative integers" do
+    TestRepo.insert!(%Post{visits: -42})
+    assert [-42] = TestRepo.all(from(p in Post, select: type(p.visits, :integer)))
+  end
+
   @tag :array_type
   test "fragment array types" do
     text1 = "foo"
