@@ -1261,7 +1261,7 @@ defmodule Ecto.Migration do
   the corresponding foreign key constraints before modifying the type.
   Generally speaking, you want to pass the type and each option
   you are modifying to `:from`, so the column can be rolled back properly.
-  However, note that `:from` cannot be be used to modify primary keys,
+  However, note that `:from` cannot be used to modify primary keys,
   as those are generally trickier to revert.
 
   See `add/3` for more information on supported types.
