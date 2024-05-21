@@ -10,7 +10,7 @@ defmodule Ecto.Migrator do
 
   Those tasks are built on top of the functions in this module.
   While the tasks above cover most use cases, it may be necessary
-  from time to time to jump into the lower level API. For example,
+  from time to jump into the lower level API. For example,
   if you are assembling an Elixir release, Mix is not available,
   so this module provides a nice complement to still migrate your
   system.

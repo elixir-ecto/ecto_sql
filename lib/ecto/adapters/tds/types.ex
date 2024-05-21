@@ -1,7 +1,7 @@
 if Code.ensure_loaded?(Tds) do
   defmodule Tds.Ecto.UUID do
     @moduledoc """
-    An TDS adapter type for UUIDs strings.
+    A TDS adapter type for UUIDs strings.
 
     If you are using Tds adapter and UUIDs in your project, instead of `Ecto.UUID`
     you should use Tds.Ecto.UUID to generate correct bytes that should be stored
@@ -213,7 +213,7 @@ if Code.ensure_loaded?(Tds) do
 
   defmodule Tds.Ecto.VarChar do
     @moduledoc """
-    An Tds adapter Ecto Type that wraps erlang string into tuple so TDS driver
+    A Tds adapter Ecto Type that wraps erlang string into tuple so TDS driver
     can understand if erlang string should be encoded as NVarChar or Varchar.
 
     Due to some limitations in Ecto and Tds driver, it is not possible to
