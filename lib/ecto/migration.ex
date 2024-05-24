@@ -822,7 +822,7 @@ defmodule Ecto.Migration do
 
   If the database adapter supports several migration lock strategies, such as
   Postgrex, then review those strategies and consider using a strategy that
-  utilizes advisory locks to faciliate running migrations one at a time even
+  utilizes advisory locks to facilitate running migrations one at a time even
   across multiple nodes. For example:
 
   ### Config file (PostgreSQL)
