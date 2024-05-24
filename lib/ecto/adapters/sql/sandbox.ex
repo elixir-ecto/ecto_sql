@@ -224,7 +224,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         # assertions
       end
 
-  By using `start_supervised!/1`, ExUnit guarantess the process finishes
+  By using `start_supervised!/1`, ExUnit guarantees the process finishes
   before your test (the connection owner).
 
   In some situations, however, the dynamic processes are directly started

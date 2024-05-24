@@ -1442,7 +1442,7 @@ defmodule Ecto.Adapters.PostgresTest do
                ~s{SELECT s0."x" FROM "schema" AS s0 WINDOW "w" AS (PARTITION BY s0."x", s0."z" ORDER BY s0."x")}
     end
 
-    test "partition by ond order by over" do
+    test "partition by one order by over" do
       query =
         Schema
         |> select([r], count(r.x) |> over(partition_by: [r.x, r.z], order_by: r.x))

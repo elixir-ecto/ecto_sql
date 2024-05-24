@@ -411,7 +411,7 @@ defmodule Ecto.Adapters.SQL do
   shared Repo options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
   consult their documentation for more details.
 
-  For version compatiblity, please check your database's documentation:
+  For version compatibility, please check your database's documentation:
 
     * _Postgrex_: [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html).
     * _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
