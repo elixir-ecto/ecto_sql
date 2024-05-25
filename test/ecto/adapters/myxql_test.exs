@@ -392,6 +392,22 @@ defmodule Ecto.Adapters.MyXQLTest do
 
                    all(query)
                  end
+
+    assert_raise Ecto.QueryError,
+      ~r"DISTINCT with multiple columns is not supported by MySQL", fn ->
+        query =
+          from(row in Schema, as: :r, select: row.x)
+          |> distinct(
+            exists(
+              from other_schema in "schema",
+                where: other_schema.x == parent_as(:r).x,
+                select: [other_schema.x]
+            )
+          )
+          |> plan()
+
+        all(query)
+    end
   end
 
   test "coalesce" do
@@ -446,6 +462,23 @@ defmodule Ecto.Adapters.MyXQLTest do
         Schema |> order_by([r], [{^dir, r.x}]) |> select([r], r.x) |> plan() |> all()
       end
     end
+
+    query =
+      from(row in Schema, as: :r)
+      |> order_by(
+        asc:
+          exists(
+            from other_schema in "schema",
+              where: other_schema.x == parent_as(:r).x,
+              select: [other_schema.x]
+          )
+      )
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.`x` FROM `schema` AS s0 ORDER BY (SELECT exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
+
   end
 
   test "union and union all" do
@@ -835,6 +868,21 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = Schema |> group_by([r], []) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0}
+
+    query =
+      from(row in Schema, as: :r, select: row.x)
+      |> group_by(
+        [r],
+        exists(
+          from other_schema in "schema",
+            where: other_schema.x == parent_as(:r).x,
+            select: [other_schema.x]
+        )
+      )
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.`x` FROM `schema` AS s0 GROUP BY (SELECT exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
   end
 
   test "interpolated values" do
@@ -1022,6 +1070,26 @@ defmodule Ecto.Adapters.MyXQLTest do
 
       assert all(query) ==
                ~s{SELECT s0.`x` FROM `schema` AS s0 WINDOW `w` AS (PARTITION BY s0.`x`)}
+    end
+
+    test "window with subquery" do
+      query =
+        from(row in Schema, as: :r)
+        |> select([r], r.x)
+        |> windows([r],
+          w: [
+            order_by:
+              exists(
+                from other_schema in "schema",
+                  where: other_schema.x == parent_as(:r).x,
+                  select: [other_schema.x]
+              )
+          ]
+        )
+        |> plan
+
+      assert all(query) ==
+               ~s{SELECT s0.`x` FROM `schema` AS s0 WINDOW `w` AS (ORDER BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
     end
 
     test "two windows" do

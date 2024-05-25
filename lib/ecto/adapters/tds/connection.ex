@@ -149,7 +149,7 @@ if Code.ensure_loaded?(Tds) do
 
     @parent_as __MODULE__
     alias Ecto.Query
-    alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
+    alias Ecto.Query.{BooleanExpr, ByExpr, JoinExpr, QueryExpr, WithExpr}
 
     @impl true
     def all(query, as_prefix \\ []) do
@@ -390,10 +390,10 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp distinct(nil, _sources, _query), do: []
-    defp distinct(%QueryExpr{expr: true}, _sources, _query), do: "DISTINCT "
-    defp distinct(%QueryExpr{expr: false}, _sources, _query), do: []
+    defp distinct(%ByExpr{expr: true}, _sources, _query), do: "DISTINCT "
+    defp distinct(%ByExpr{expr: false}, _sources, _query), do: []
 
-    defp distinct(%QueryExpr{expr: exprs}, _sources, query) when is_list(exprs) do
+    defp distinct(%ByExpr{expr: exprs}, _sources, query) when is_list(exprs) do
       error!(
         query,
         "DISTINCT with multiple columns is not supported by MsSQL. " <>
@@ -584,7 +584,7 @@ if Code.ensure_loaded?(Tds) do
     defp group_by(%{group_bys: group_bys} = query, sources) do
       [
         " GROUP BY "
-        | Enum.map_intersperse(group_bys, ", ", fn %QueryExpr{expr: expr} ->
+        | Enum.map_intersperse(group_bys, ", ", fn %ByExpr{expr: expr} ->
             Enum.map_intersperse(expr, ", ", &expr(&1, sources, query))
           end)
       ]
@@ -595,7 +595,7 @@ if Code.ensure_loaded?(Tds) do
     defp order_by(%{order_bys: order_bys} = query, sources) do
       [
         " ORDER BY "
-        | Enum.map_intersperse(order_bys, ", ", fn %QueryExpr{expr: expr} ->
+        | Enum.map_intersperse(order_bys, ", ", fn %ByExpr{expr: expr} ->
             Enum.map_intersperse(expr, ", ", &order_by_expr(&1, sources, query))
           end)
       ]

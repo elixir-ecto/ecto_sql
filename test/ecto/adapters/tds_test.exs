@@ -463,6 +463,22 @@ defmodule Ecto.Adapters.TdsTest do
 
                    all(query)
                  end
+
+    assert_raise Ecto.QueryError,
+      ~r"DISTINCT with multiple columns is not supported by MsSQL", fn ->
+        query =
+          from(row in Schema, as: :r, select: row.x)
+          |> distinct(
+            exists(
+              from other_schema in "schema",
+                where: other_schema.x == parent_as(:r).x,
+                select: [other_schema.x]
+            )
+          )
+          |> plan()
+
+        all(query)
+    end
   end
 
   test "select with operation" do
@@ -498,6 +514,22 @@ defmodule Ecto.Adapters.TdsTest do
 
     query = Schema |> order_by([r], []) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0}
+
+    query =
+      from(row in Schema, as: :r)
+      |> order_by(
+        asc:
+          exists(
+            from other_schema in "schema",
+              where: other_schema.x == parent_as(:r).x,
+              select: [other_schema.x]
+          )
+      )
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 ORDER BY exists((SELECT ss0.[x] AS [result] FROM [schema] AS ss0 WHERE (ss0.[x] = s0.[x])))}
 
     for dir <- [:asc_nulls_first, :asc_nulls_last, :desc_nulls_first, :desc_nulls_last] do
       assert_raise Ecto.QueryError, ~r"#{dir} is not supported in ORDER BY in MSSQL", fn ->
@@ -854,6 +886,21 @@ defmodule Ecto.Adapters.TdsTest do
 
     query = Schema |> group_by([r], []) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT s0.[x] FROM [schema] AS s0}
+
+    query =
+      from(row in Schema, as: :r, select: row.x)
+      |> group_by(
+        [r],
+        exists(
+          from other_schema in "schema",
+            where: other_schema.x == parent_as(:r).x,
+            select: [other_schema.x]
+        )
+      )
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0.[x] FROM [schema] AS s0 GROUP BY exists((SELECT ss0.[x] AS [result] FROM [schema] AS ss0 WHERE (ss0.[x] = s0.[x])))}
   end
 
   test "interpolated values" do

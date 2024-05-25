@@ -76,7 +76,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, github: "elixir-ecto/ecto"}
+      {:ecto, github: "zachdaniel/ecto", branch: "subqueries-in-order-by"}
     end
   end
 
