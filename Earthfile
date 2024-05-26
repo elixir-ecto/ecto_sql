@@ -92,7 +92,6 @@ integration-test-mysql:
             # the default authentication plugin for MySQL 8 is sha 256 but it doesn't come with the docker image. falling back to the 5.7 way
             --default-authentication-plugin=mysql_native_password; \
             # wait for mysql to start
-
             while ! mysqladmin ping --host=127.0.0.1 --port=3306 --protocol=TCP --silent; do \
                 test "$(date +%s)" -le "$timeout" || (echo "timed out waiting for mysql"; exit 1); \
                 echo "waiting for mysql"; \
