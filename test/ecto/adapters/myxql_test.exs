@@ -394,20 +394,21 @@ defmodule Ecto.Adapters.MyXQLTest do
                  end
 
     assert_raise Ecto.QueryError,
-      ~r"DISTINCT with multiple columns is not supported by MySQL", fn ->
-        query =
-          from(row in Schema, as: :r, select: row.x)
-          |> distinct(
-            exists(
-              from other_schema in "schema",
-                where: other_schema.x == parent_as(:r).x,
-                select: [other_schema.x]
-            )
-          )
-          |> plan()
+                 ~r"DISTINCT with multiple columns is not supported by MySQL",
+                 fn ->
+                   query =
+                     from(row in Schema, as: :r, select: row.x)
+                     |> distinct(
+                       exists(
+                         from other_schema in "schema",
+                           where: other_schema.x == parent_as(:r).x,
+                           select: [other_schema.x]
+                       )
+                     )
+                     |> plan()
 
-        all(query)
-    end
+                   all(query)
+                 end
   end
 
   test "coalesce" do
@@ -478,7 +479,6 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert all(query) ==
              ~s{SELECT s0.`x` FROM `schema` AS s0 ORDER BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`))}
-
   end
 
   test "union and union all" do

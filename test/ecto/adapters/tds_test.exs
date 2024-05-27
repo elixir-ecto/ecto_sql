@@ -465,20 +465,21 @@ defmodule Ecto.Adapters.TdsTest do
                  end
 
     assert_raise Ecto.QueryError,
-      ~r"DISTINCT with multiple columns is not supported by MsSQL", fn ->
-        query =
-          from(row in Schema, as: :r, select: row.x)
-          |> distinct(
-            exists(
-              from other_schema in "schema",
-                where: other_schema.x == parent_as(:r).x,
-                select: [other_schema.x]
-            )
-          )
-          |> plan()
+                 ~r"DISTINCT with multiple columns is not supported by MsSQL",
+                 fn ->
+                   query =
+                     from(row in Schema, as: :r, select: row.x)
+                     |> distinct(
+                       exists(
+                         from other_schema in "schema",
+                           where: other_schema.x == parent_as(:r).x,
+                           select: [other_schema.x]
+                       )
+                     )
+                     |> plan()
 
-        all(query)
-    end
+                   all(query)
+                 end
   end
 
   test "select with operation" do
