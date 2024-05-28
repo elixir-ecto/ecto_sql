@@ -530,7 +530,7 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.[x] FROM [schema] AS s0 ORDER BY exists((SELECT ss0.[x] AS [result] FROM [schema] AS ss0 WHERE (ss0.[x] = s0.[x])))}
+             ~s{SELECT s0.[x] FROM [schema] AS s0 ORDER BY exists(SELECT ss0.[x] AS [result] FROM [schema] AS ss0 WHERE (ss0.[x] = s0.[x]))}
 
     for dir <- [:asc_nulls_first, :asc_nulls_last, :desc_nulls_first, :desc_nulls_last] do
       assert_raise Ecto.QueryError, ~r"#{dir} is not supported in ORDER BY in MSSQL", fn ->
@@ -901,7 +901,7 @@ defmodule Ecto.Adapters.TdsTest do
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.[x] FROM [schema] AS s0 GROUP BY exists((SELECT ss0.[x] AS [result] FROM [schema] AS ss0 WHERE (ss0.[x] = s0.[x])))}
+             ~s{SELECT s0.[x] FROM [schema] AS s0 GROUP BY exists(SELECT ss0.[x] AS [result] FROM [schema] AS ss0 WHERE (ss0.[x] = s0.[x]))}
   end
 
   test "interpolated values" do

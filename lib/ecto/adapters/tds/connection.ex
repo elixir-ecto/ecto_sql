@@ -585,7 +585,7 @@ if Code.ensure_loaded?(Tds) do
       [
         " GROUP BY "
         | Enum.map_intersperse(group_bys, ", ", fn %ByExpr{expr: expr} ->
-            Enum.map_intersperse(expr, ", ", &expr(&1, sources, query))
+            Enum.map_intersperse(expr, ", ", &top_level_expr(&1, sources, query))
           end)
       ]
     end
@@ -602,7 +602,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp order_by_expr({dir, expr}, sources, query) do
-      str = expr(expr, sources, query)
+      str = top_level_expr(expr, sources, query)
 
       case dir do
         :asc -> str
@@ -708,6 +708,21 @@ if Code.ensure_loaded?(Tds) do
       [?(, expr(expr, sources, query), ?)]
     end
 
+    defp top_level_expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
+      combinations =
+        Enum.map(query.combinations, fn {type, combination_query} ->
+          {type, put_in(combination_query.aliases[@parent_as], {parent_query, sources})}
+        end)
+
+      query = put_in(query.combinations, combinations)
+      query = put_in(query.aliases[@parent_as], {parent_query, sources})
+      [all(query, subquery_as_prefix(sources))]
+    end
+
+    defp top_level_expr(other, sources, parent_query) do
+      expr(other, sources, parent_query)
+    end
+
     # :^ - represents parameter ix is index number
     defp expr({:^, [], [idx]}, _sources, _query) do
       "@#{idx + 1}"
@@ -787,15 +802,8 @@ if Code.ensure_loaded?(Tds) do
       error!(query, "Tds adapter does not support aggregate filters")
     end
 
-    defp expr(%Ecto.SubQuery{query: query}, sources, parent_query) do
-      combinations =
-        Enum.map(query.combinations, fn {type, combination_query} ->
-          {type, put_in(combination_query.aliases[@parent_as], {parent_query, sources})}
-        end)
-
-      query = put_in(query.combinations, combinations)
-      query = put_in(query.aliases[@parent_as], {parent_query, sources})
-      [?(, all(query, subquery_as_prefix(sources)), ?)]
+    defp expr(%Ecto.SubQuery{} = subquery, sources, parent_query) do
+      [?(, top_level_expr(subquery, sources, parent_query), ?)]
     end
 
     defp expr({:fragment, _, [kw]}, _sources, query) when is_list(kw) or tuple_size(kw) == 3 do
@@ -873,7 +881,7 @@ if Code.ensure_loaded?(Tds) do
           [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
 
         {:fun, fun} ->
-          [fun, ?(, modifier, Enum.map_intersperse(args, ", ", &expr(&1, sources, query)), ?)]
+          [fun, ?(, modifier, Enum.map_intersperse(args, ", ", &top_level_expr(&1, sources, query)), ?)]
       end
     end
 
