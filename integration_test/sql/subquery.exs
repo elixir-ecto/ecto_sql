@@ -113,6 +113,7 @@ defmodule Ecto.Integration.SubQueryTest do
     assert [12, 12] = TestRepo.all(query)
   end
 
+  @tag :subquery_in_order_by
   test "subqueries in order by" do
     TestRepo.insert!(%Post{visits: 10, title: "hello"})
     TestRepo.insert!(%Post{visits: 11, title: "hello"})
@@ -123,6 +124,7 @@ defmodule Ecto.Integration.SubQueryTest do
   end
 
   @tag :multicolumn_distinct
+  @tag :subquery_in_distinct
   test "subqueries in distinct" do
     TestRepo.insert!(%Post{visits: 10, title: "hello1"})
     TestRepo.insert!(%Post{visits: 10, title: "hello2"})
@@ -133,6 +135,7 @@ defmodule Ecto.Integration.SubQueryTest do
     assert [%{title: "hello"}, %{title: "hello1"}] = TestRepo.all(query)
   end
 
+  @tag :subquery_in_group_by
   test "subqueries in group by" do
     TestRepo.insert!(%Post{visits: 10, title: "hello1"})
     TestRepo.insert!(%Post{visits: 10, title: "hello2"})
