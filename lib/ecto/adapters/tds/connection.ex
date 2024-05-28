@@ -881,7 +881,13 @@ if Code.ensure_loaded?(Tds) do
           [op_to_binary(left, sources, query), op | op_to_binary(right, sources, query)]
 
         {:fun, fun} ->
-          [fun, ?(, modifier, Enum.map_intersperse(args, ", ", &top_level_expr(&1, sources, query)), ?)]
+          [
+            fun,
+            ?(,
+            modifier,
+            Enum.map_intersperse(args, ", ", &top_level_expr(&1, sources, query)),
+            ?)
+          ]
       end
     end
 
