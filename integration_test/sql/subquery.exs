@@ -140,6 +140,11 @@ defmodule Ecto.Integration.SubQueryTest do
 
     query = from p in Post, as: :p, select: sum(p.visits), group_by: exists(from p in Post, where: p.visits > parent_as(:p).visits), order_by: [sum(p.visits)]
 
-    assert [11, 20] = TestRepo.all(query)
+    query
+    |> TestRepo.all()
+    |> Enum.map(&Decimal.new/1)
+    |> Enum.zip([Decimal.new(11), Decimal.new(20)])
+    |> Enum.all?(fn {a, b} -> Decimal.eq?(a, b) end)
+    |> assert()
   end
 end
