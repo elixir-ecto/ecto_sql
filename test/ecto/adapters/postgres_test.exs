@@ -530,6 +530,20 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = Schema |> distinct(false) |> select([r], {r.x, r.y}) |> plan()
     assert all(query) == ~s{SELECT s0."x", s0."y" FROM "schema" AS s0}
+
+    query =
+      from(row in Schema, as: :r, select: row.x)
+      |> distinct(
+        exists(
+          from other_schema in "schema",
+            where: other_schema.x == parent_as(:r).x,
+            select: [other_schema.x]
+        )
+      )
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT DISTINCT ON (exists((SELECT ss0."x" AS "result" FROM "schema" AS ss0 WHERE (ss0."x" = s0."x")))) s0."x" FROM "schema" AS s0}
   end
 
   test "distinct with order by" do
@@ -617,6 +631,22 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert all(query) ==
              ~s{SELECT s0."x" FROM "schema" AS s0 ORDER BY s0."x" ASC NULLS FIRST, s0."y" DESC NULLS FIRST}
+
+    query =
+      from(row in Schema, as: :r)
+      |> order_by(
+        asc:
+          exists(
+            from other_schema in "schema",
+              where: other_schema.x == parent_as(:r).x,
+              select: [other_schema.x]
+          )
+      )
+      |> select([r], r.x)
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0."x" FROM "schema" AS s0 ORDER BY exists((SELECT ss0."x" AS "result" FROM "schema" AS ss0 WHERE (ss0."x" = s0."x")))}
 
     query =
       Schema
@@ -1057,6 +1087,21 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = Schema |> group_by([r], []) |> select([r], r.x) |> plan()
     assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0}
+
+    query =
+      from(row in Schema, as: :r, select: row.x)
+      |> group_by(
+        [r],
+        exists(
+          from other_schema in "schema",
+            where: other_schema.x == parent_as(:r).x,
+            select: [other_schema.x]
+        )
+      )
+      |> plan()
+
+    assert all(query) ==
+             ~s{SELECT s0."x" FROM "schema" AS s0 GROUP BY exists((SELECT ss0."x" AS "result" FROM "schema" AS ss0 WHERE (ss0."x" = s0."x")))}
   end
 
   test "arrays and sigils" do
@@ -1362,6 +1407,26 @@ defmodule Ecto.Adapters.PostgresTest do
 
       assert all(query) ==
                ~s{SELECT s0."x" FROM "schema" AS s0 WINDOW "w" AS (PARTITION BY s0."x")}
+    end
+
+    test "window with subquery" do
+      query =
+        from(row in Schema, as: :r)
+        |> select([r], r.x)
+        |> windows([r],
+          w: [
+            order_by:
+              exists(
+                from other_schema in "schema",
+                  where: other_schema.x == parent_as(:r).x,
+                  select: [other_schema.x]
+              )
+          ]
+        )
+        |> plan
+
+      assert all(query) ==
+               ~s{SELECT s0."x" FROM "schema" AS s0 WINDOW "w" AS (ORDER BY exists((SELECT ss0."x" AS "result" FROM "schema" AS ss0 WHERE (ss0."x" = s0."x"))))}
     end
 
     test "two windows" do

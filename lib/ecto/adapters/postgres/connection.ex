@@ -155,7 +155,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @parent_as __MODULE__
-    alias Ecto.Query.{BooleanExpr, JoinExpr, QueryExpr, WithExpr}
+    alias Ecto.Query.{BooleanExpr, ByExpr, JoinExpr, QueryExpr, WithExpr}
 
     @impl true
     def all(query, as_prefix \\ []) do
@@ -551,11 +551,11 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp distinct(nil, _, _), do: {[], []}
-    defp distinct(%QueryExpr{expr: []}, _, _), do: {[], []}
-    defp distinct(%QueryExpr{expr: true}, _, _), do: {" DISTINCT", []}
-    defp distinct(%QueryExpr{expr: false}, _, _), do: {[], []}
+    defp distinct(%ByExpr{expr: []}, _, _), do: {[], []}
+    defp distinct(%ByExpr{expr: true}, _, _), do: {" DISTINCT", []}
+    defp distinct(%ByExpr{expr: false}, _, _), do: {[], []}
 
-    defp distinct(%QueryExpr{expr: exprs}, sources, query) do
+    defp distinct(%ByExpr{expr: exprs}, sources, query) do
       {[
          " DISTINCT ON (",
          Enum.map_intersperse(exprs, ", ", fn {_, expr} -> expr(expr, sources, query) end),
@@ -772,7 +772,7 @@ if Code.ensure_loaded?(Postgrex) do
       [
         " GROUP BY "
         | Enum.map_intersperse(group_bys, ", ", fn
-            %QueryExpr{expr: expr} ->
+            %ByExpr{expr: expr} ->
               Enum.map_intersperse(expr, ", ", &expr(&1, sources, query))
           end)
       ]

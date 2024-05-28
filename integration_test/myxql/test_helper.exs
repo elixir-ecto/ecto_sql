@@ -113,7 +113,9 @@ excludes = [
   # MySQL doesn't support indexed parameters
   :placeholders,
   # MySQL doesn't support specifying columns for ON DELETE SET NULL
-  :on_delete_nilify_column_list
+  :on_delete_nilify_column_list,
+  # MySQL doesnt' support anything except a single column in DISTINCT
+  :multicolumn_distinct
 ]
 
 if Version.match?(version, ">= 8.0.0") do

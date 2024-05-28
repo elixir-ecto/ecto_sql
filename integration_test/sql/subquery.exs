@@ -112,4 +112,42 @@ defmodule Ecto.Integration.SubQueryTest do
               select: fragment("? + ?", p.visits, ^1)
     assert [12, 12] = TestRepo.all(query)
   end
+
+  @tag :subquery_in_order_by
+  test "subqueries in order by" do
+    TestRepo.insert!(%Post{visits: 10, title: "hello"})
+    TestRepo.insert!(%Post{visits: 11, title: "hello"})
+
+    query = from p in Post, as: :p, order_by: [asc: exists(from p in Post, where: p.visits > parent_as(:p).visits)]
+
+    assert [%{visits: 11}, %{visits: 10}] = TestRepo.all(query)
+  end
+
+  @tag :multicolumn_distinct
+  @tag :subquery_in_distinct
+  test "subqueries in distinct" do
+    TestRepo.insert!(%Post{visits: 10, title: "hello1"})
+    TestRepo.insert!(%Post{visits: 10, title: "hello2"})
+    TestRepo.insert!(%Post{visits: 11, title: "hello"})
+
+    query = from p in Post, as: :p, distinct: exists(from p in Post, where: p.visits > parent_as(:p).visits), order_by: [asc: :title]
+
+    assert [%{title: "hello"}, %{title: "hello1"}] = TestRepo.all(query)
+  end
+
+  @tag :subquery_in_group_by
+  test "subqueries in group by" do
+    TestRepo.insert!(%Post{visits: 10, title: "hello1"})
+    TestRepo.insert!(%Post{visits: 10, title: "hello2"})
+    TestRepo.insert!(%Post{visits: 11, title: "hello"})
+
+    query = from p in Post, as: :p, select: sum(p.visits), group_by: exists(from p in Post, where: p.visits > parent_as(:p).visits), order_by: [sum(p.visits)]
+
+    query
+    |> TestRepo.all()
+    |> Enum.map(&Decimal.new/1)
+    |> Enum.zip([Decimal.new(11), Decimal.new(20)])
+    |> Enum.all?(fn {a, b} -> Decimal.eq?(a, b) end)
+    |> assert()
+  end
 end
