@@ -100,7 +100,8 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("TDS_PATH") do
       {:tds, path: path}
     else
-      {:tds, "~> 2.1.1 or ~> 2.2", optional: true}
+      {:tds, "~> 2.1.1 or ~> 2.2",
+       optional: true, github: "elixir-ecto/tds", branch: "wm-nil-as-type-string"}
     end
   end
 
