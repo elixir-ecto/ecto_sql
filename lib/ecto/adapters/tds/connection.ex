@@ -19,7 +19,7 @@ if Code.ensure_loaded?(Tds) do
     @impl true
     def prepare_execute(pid, _name, statement, params, opts \\ []) do
       query = %Query{statement: statement}
-      params = prepare_params(params)
+      params = prepare_params(params, opts)
 
       opts = Keyword.put(opts, :parameters, params)
       DBConnection.prepare_execute(pid, query, params, opts)
@@ -28,7 +28,7 @@ if Code.ensure_loaded?(Tds) do
     @impl true
     def execute(pid, statement, params, opts) when is_binary(statement) or is_list(statement) do
       query = %Query{statement: statement}
-      params = prepare_params(params)
+      params = prepare_params(params, opts)
       opts = Keyword.put(opts, :parameters, params)
 
       case DBConnection.prepare_execute(pid, query, params, opts) do
@@ -46,7 +46,7 @@ if Code.ensure_loaded?(Tds) do
 
     def execute(pid, %{} = query, params, opts) do
       opts = Keyword.put_new(opts, :parameters, params)
-      params = prepare_params(params)
+      params = prepare_params(params, opts)
       opts = Keyword.put(opts, :parameters, params)
 
       case DBConnection.prepare_execute(pid, query, params, opts) do
@@ -62,7 +62,7 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def query(conn, sql, params, opts) do
-      params = prepare_params(params)
+      params = prepare_params(params, opts)
       Tds.query(conn, sql, params, opts)
     end
 
@@ -78,14 +78,23 @@ if Code.ensure_loaded?(Tds) do
 
     def to_constraints(_, _opts), do: []
 
-    def prepare_params(params) do
+    def prepare_params(params, opts) do
       {params, _} =
         Enum.map_reduce(params, 1, fn param, acc ->
           case prepare_param(param) do
-            {value, type} -> {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
-            %Tds.Parameter{name: ""} = param -> {%{param | name: "@#{acc}"}, acc + 1}
-            %Tds.Parameter{name: <<"@", _::binary>>} = param -> {param, acc}
-            _ -> error!(nil, "Tds parameter names must begin with @")
+            {value, type} ->
+              type = type || (opts[:types] && Enum.at(opts[:types], acc - 1))
+              dbg({type, value})
+              {%Tds.Parameter{name: "@#{acc}", value: value, type: type}, acc + 1}
+
+            %Tds.Parameter{name: ""} = param ->
+              {%{param | name: "@#{acc}"}, acc + 1}
+
+            %Tds.Parameter{name: <<"@", _::binary>>} = param ->
+              {param, acc}
+
+            _ ->
+              error!(nil, "Tds parameter names must begin with @")
           end
         end)
 
@@ -330,7 +339,7 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def explain_query(conn, query, params, opts) do
-      params = prepare_params(params)
+      params = prepare_params(params, opts)
 
       case Tds.query_multi(conn, build_explain_query(query), params, opts) do
         {:ok, [_, %Tds.Result{} = result, _]} ->
