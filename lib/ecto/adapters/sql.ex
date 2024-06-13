@@ -1196,7 +1196,8 @@ defmodule Ecto.Adapters.SQL do
 
   ## Log
 
-  defp with_log(telemetry, params, opts) do
+  @doc false
+  def with_log(telemetry, params, opts) do
     [log: &log(telemetry, params, &1, opts)] ++ opts
   end
 
