@@ -2,7 +2,7 @@ defmodule EctoSQL.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/elixir-ecto/ecto_sql"
-  @version "3.11.2"
+  @version "3.11.3"
   @adapters ~w(pg myxql tds)
 
   def project do

@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.11.3 (2024-06-13)
+
+### Enhancements
+
+  * [mysql] Relax `myxql` dependency
+
 ## v3.11.2 (2024-05-18)
 
 ### Enhancements
