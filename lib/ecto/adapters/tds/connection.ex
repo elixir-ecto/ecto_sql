@@ -79,6 +79,10 @@ if Code.ensure_loaded?(Tds) do
     def to_constraints(_, _opts), do: []
 
     def prepare_params(params) do
+      unless is_list(params) do
+        raise ArgumentError, "expected params to be a list, got: #{inspect(params)}"
+      end
+
       {params, _} =
         Enum.map_reduce(params, 1, fn param, acc ->
           case prepare_param(param) do

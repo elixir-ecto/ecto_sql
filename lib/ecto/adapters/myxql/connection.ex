@@ -16,23 +16,28 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     def prepare_execute(conn, name, sql, params, opts) do
+      ensure_list_params!(params)
       MyXQL.prepare_execute(conn, name, sql, params, opts)
     end
 
     @impl true
     def query(conn, sql, params, opts) do
+      ensure_list_params!(params)
       opts = Keyword.put_new(opts, :query_type, :binary_then_text)
       MyXQL.query(conn, sql, params, opts)
     end
 
     @impl true
     def query_many(conn, sql, params, opts) do
+      ensure_list_params!(params)
       opts = Keyword.put_new(opts, :query_type, :text)
       MyXQL.query_many(conn, sql, params, opts)
     end
 
     @impl true
     def execute(conn, query, params, opts) do
+      ensure_list_params!(params)
+
       case MyXQL.execute(conn, query, params, opts) do
         {:ok, _, result} -> {:ok, result}
         {:error, _} = error -> error
@@ -41,7 +46,14 @@ if Code.ensure_loaded?(MyXQL) do
 
     @impl true
     def stream(conn, sql, params, opts) do
+      ensure_list_params!(params)
       MyXQL.stream(conn, sql, params, opts)
+    end
+
+    defp ensure_list_params!(params) do
+      unless is_list(params) do
+        raise ArgumentError, "expected params to be a list, got: #{inspect(params)}"
+      end
     end
 
     @quotes ~w(" ' `)
