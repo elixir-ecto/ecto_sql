@@ -102,7 +102,7 @@ defmodule Ecto.Adapters.SQL do
           optional(atom) => any
         }
 
-  @type query_params :: [term] | %{String.t() => term}
+  @type query_params :: [term] | %{(atom | String.t()) => term}
 
   @doc false
   defmacro __using__(opts) do
