@@ -99,6 +99,8 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def prepare_execute(conn, name, sql, params, opts) do
+      ensure_list_params!(params)
+
       case Postgrex.prepare_execute(conn, name, sql, params, opts) do
         {:error, %Postgrex.Error{postgres: %{pg_code: "22P02", message: message}} = error} ->
           context = """
@@ -121,6 +123,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def query(conn, sql, params, opts) do
+      ensure_list_params!(params)
       Postgrex.query(conn, sql, params, opts)
     end
 
@@ -131,6 +134,8 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def execute(conn, %{ref: ref} = query, params, opts) do
+      ensure_list_params!(params)
+
       case Postgrex.execute(conn, query, params, opts) do
         {:ok, %{ref: ^ref}, result} ->
           {:ok, result}
@@ -151,7 +156,14 @@ if Code.ensure_loaded?(Postgrex) do
 
     @impl true
     def stream(conn, sql, params, opts) do
+      ensure_list_params!(params)
       Postgrex.stream(conn, sql, params, opts)
+    end
+
+    defp ensure_list_params!(params) do
+      unless is_list(params) do
+        raise ArgumentError, "expected params to be a list, got: #{inspect(params)}"
+      end
     end
 
     @parent_as __MODULE__

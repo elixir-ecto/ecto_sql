@@ -102,6 +102,8 @@ defmodule Ecto.Adapters.SQL do
           optional(atom) => any
         }
 
+  @type query_params :: [term] | %{(atom | String.t()) => term}
+
   @doc false
   defmacro __using__(opts) do
     quote do
@@ -335,7 +337,7 @@ defmodule Ecto.Adapters.SQL do
 
   """
   @spec to_sql(:all | :update_all | :delete_all, Ecto.Repo.t(), Ecto.Queryable.t()) ::
-          {String.t(), [term]}
+          {String.t(), query_params}
   def to_sql(kind, repo, queryable) do
     case Ecto.Adapter.Queryable.prepare_query(kind, repo, queryable) do
       {{:cached, _update, _reset, {_id, cached}}, params} ->
@@ -510,7 +512,7 @@ defmodule Ecto.Adapters.SQL do
       [%{rows: [[42]], num_rows: 1}]
 
   """
-  @spec stream(Ecto.Repo.t(), String.t(), [term], Keyword.t()) :: Enum.t()
+  @spec stream(Ecto.Repo.t(), String.t(), query_params, Keyword.t()) :: Enum.t()
   def stream(repo, sql, params \\ [], opts \\ []) do
     repo
     |> Ecto.Adapter.lookup_meta()
@@ -520,7 +522,12 @@ defmodule Ecto.Adapters.SQL do
   @doc """
   Same as `query/4` but raises on invalid queries.
   """
-  @spec query!(pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(), iodata, [term], Keyword.t()) ::
+  @spec query!(
+          pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          iodata,
+          query_params,
+          Keyword.t()
+        ) ::
           query_result
   def query!(repo, sql, params \\ [], opts \\ []) do
     case query(repo, sql, params, opts) do
@@ -558,7 +565,12 @@ defmodule Ecto.Adapters.SQL do
       {:ok, %{rows: [[42]], num_rows: 1}}
 
   """
-  @spec query(pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(), iodata, [term], Keyword.t()) ::
+  @spec query(
+          pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          iodata,
+          query_params,
+          Keyword.t()
+        ) ::
           {:ok, query_result} | {:error, Exception.t()}
   def query(repo, sql, params \\ [], opts \\ [])
 
@@ -573,7 +585,12 @@ defmodule Ecto.Adapters.SQL do
   @doc """
   Same as `query_many/4` but raises on invalid queries.
   """
-  @spec query_many!(Ecto.Repo.t() | Ecto.Adapter.adapter_meta(), iodata, [term], Keyword.t()) ::
+  @spec query_many!(
+          Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          iodata,
+          query_params,
+          Keyword.t()
+        ) ::
           [query_result]
   def query_many!(repo, sql, params \\ [], opts \\ []) do
     case query_many(repo, sql, params, opts) do
@@ -614,7 +631,7 @@ defmodule Ecto.Adapters.SQL do
   @spec query_many(
           pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
           iodata,
-          [term],
+          query_params,
           Keyword.t()
         ) :: {:ok, [query_result]} | {:error, Exception.t()}
   def query_many(repo, sql, params \\ [], opts \\ [])
