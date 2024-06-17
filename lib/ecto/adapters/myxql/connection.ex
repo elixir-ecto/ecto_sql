@@ -50,6 +50,8 @@ if Code.ensure_loaded?(MyXQL) do
       MyXQL.stream(conn, sql, params, opts)
     end
 
+    @compile {:inline, ensure_list_params: 1}
+
     defp ensure_list_params!(params) do
       unless is_list(params) do
         raise ArgumentError, "expected params to be a list, got: #{inspect(params)}"
