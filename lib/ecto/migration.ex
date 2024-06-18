@@ -920,6 +920,9 @@ defmodule Ecto.Migration do
       # Create a tsvector GIN index on PostgreSQL
       create index("products", ["(to_tsvector('english', name))"],
                    name: :products_name_vector, using: "GIN")
+
+  If the expression is a column name it will not be quoted. This may cause issues
+  when the column is named after a reserved word. Consider using an atom instead.
   """
   def index(table, columns, opts \\ [])
 
