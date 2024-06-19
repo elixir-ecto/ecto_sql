@@ -923,6 +923,8 @@ defmodule Ecto.Migration do
 
   If the expression is a column name, it will not be quoted. This may cause issues
   when the column is named after a reserved word. Consider using an atom instead.
+  For example, the name `offset` is reserved in many databases so the following
+  could produce an error: `create index("products", ["offset"])`
   """
   def index(table, columns, opts \\ [])
 
