@@ -432,11 +432,21 @@ defmodule Ecto.Migration.Runner do
   defp command(ddl) when is_binary(ddl) or is_list(ddl),
     do: "execute #{inspect(ddl)}"
 
-  defp command({:create, %Table{} = table, _}),
-    do: "create table #{quote_name(table.prefix, table.name)}"
+  defp command({:create, %Table{} = table, _}) do
+    if repo_config(:create_unlogged_tables, false) do
+      "create unlogged table #{quote_name(table.prefix, table.name)}"
+    else
+      "create table #{quote_name(table.prefix, table.name)}"
+    end
+  end
 
-  defp command({:create_if_not_exists, %Table{} = table, _}),
-    do: "create table if not exists #{quote_name(table.prefix, table.name)}"
+  defp command({:create_if_not_exists, %Table{} = table, _}) do
+    if repo_config(:create_unlogged_tables, false) do
+      "create unlogged table if not exists #{quote_name(table.prefix, table.name)}"
+    else
+      "create table if not exists #{quote_name(table.prefix, table.name)}"
+    end
+  end
 
   defp command({:alter, %Table{} = table, _}),
     do: "alter table #{quote_name(table.prefix, table.name)}"

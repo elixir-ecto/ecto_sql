@@ -461,6 +461,16 @@ defmodule Ecto.MigrationTest do
                {:create, table, [{:add, :id, :bigserial, [primary_key: true]}]}
     end
 
+    @tag repo_config: [create_unlogged_tables: true]
+    test "create unlogged table" do
+      create table = table(:posts)
+      flush()
+
+      assert last_command() ==
+               {:create, %Table{table | unlogged: true},
+                [{:add, :id, :bigserial, [primary_key: true]}]}
+    end
+
     test "alters a table" do
       alter table(:posts) do
         add :summary, :text
@@ -719,6 +729,15 @@ defmodule Ecto.MigrationTest do
                      create(table(:posts, prefix: "foo"))
                      flush()
                    end
+    end
+
+    @tag repo_config: [create_unlogged_tables: true]
+    test "creates unlogged table" do
+      create(table(:posts))
+      flush()
+
+      {_, table, _} = last_command()
+      assert table.unlogged == true
     end
 
     test "drops a table with prefix from migration" do
