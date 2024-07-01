@@ -78,6 +78,15 @@ if Code.ensure_loaded?(MyXQL) do
       end
     end
 
+    def to_constraints(%MyXQL.Error{mysql: %{name: :ER_CHECK_CONSTRAINT_VIOLATED}, message: message}, _opts) do
+      with [_, quoted] <- :binary.split(message, ["Check constraint "]),
+           [_, constraint | _] <- :binary.split(quoted, @quotes, [:global]) do
+        [check: constraint]
+      else
+        _ -> []
+      end
+    end
+
     def to_constraints(_, _),
       do: []
 
