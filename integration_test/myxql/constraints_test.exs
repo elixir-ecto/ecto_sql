@@ -16,17 +16,8 @@ defmodule Ecto.Integration.ConstraintsTest do
         add :to, :integer
       end
 
-      execute(&positive_price_up/0, &positive_price_down/0)
-    end
-
-    defp positive_price_up do
       # Only valid after MySQL 8.0.19
-      repo().query!("ALTER TABLE #{@table.name} ADD CONSTRAINT positive_price CHECK (price > 0);", [], [log: :info])
-    end
-
-    defp positive_price_down do
-      # Only valid after MySQL 8.0.19
-      repo().query!("ALTER TABLE #{@table.name} DROP CONSTRAINT positive_price;", [], [log: :info])
+      create constraint(@table.name, :positive_price, check: "price > 0")
     end
   end
 

@@ -1038,11 +1038,30 @@ if Code.ensure_loaded?(MyXQL) do
     def execute_ddl({:create_if_not_exists, %Index{}}),
       do: error!(nil, "MySQL adapter does not support create if not exists for index")
 
-    def execute_ddl({:create, %Constraint{check: check}}) when is_binary(check),
-      do: error!(nil, "MySQL adapter does not support check constraints")
+    def execute_ddl({:create, %Constraint{check: check} = constraint}) when is_binary(check) do
+      table_name = quote_name(constraint.prefix, constraint.table)
+      [["ALTER TABLE ", table_name, " ADD ", new_constraint_expr(constraint)]]
+    end
 
     def execute_ddl({:create, %Constraint{exclude: exclude}}) when is_binary(exclude),
       do: error!(nil, "MySQL adapter does not support exclusion constraints")
+
+    def execute_ddl({:drop, %Constraint{}, :cascade}),
+      do: error!(nil, "MySQL does not support `CASCADE` in `DROP CONSTRAINT` commands")
+
+    def execute_ddl({:drop, %Constraint{} = constraint, _}) do
+      [
+        [
+          "ALTER TABLE ",
+          quote_name(constraint.prefix, constraint.table),
+          " DROP CONSTRAINT ",
+          quote_name(constraint.name)
+        ]
+      ]
+    end
+
+    def execute_ddl({:drop_if_exists, %Constraint{}, _}),
+      do: error!(nil, "MySQL adapter does not support `drop_if_exists` for constraints")
 
     def execute_ddl({:drop, %Index{}, :cascade}),
       do: error!(nil, "MySQL adapter does not support cascade in drop index")
@@ -1058,12 +1077,6 @@ if Code.ensure_loaded?(MyXQL) do
         ]
       ]
     end
-
-    def execute_ddl({:drop, %Constraint{}, _}),
-      do: error!(nil, "MySQL adapter does not support constraints")
-
-    def execute_ddl({:drop_if_exists, %Constraint{}, _}),
-      do: error!(nil, "MySQL adapter does not support constraints")
 
     def execute_ddl({:drop_if_exists, %Index{}, _}),
       do: error!(nil, "MySQL adapter does not support drop if exists for index")
@@ -1256,6 +1269,17 @@ if Code.ensure_loaded?(MyXQL) do
     defp null_expr(true), do: " NULL"
     defp null_expr(_), do: []
 
+    defp new_constraint_expr(%Constraint{check: check} = constraint) when is_binary(check) do
+      [
+        "CONSTRAINT ",
+        quote_name(constraint.name),
+        " CHECK (",
+        check,
+        ")",
+        validate(constraint.validate)
+      ]
+    end
+
     defp default_expr({:ok, nil}),
       do: " DEFAULT NULL"
 
@@ -1413,6 +1437,9 @@ if Code.ensure_loaded?(MyXQL) do
     defp reference_on_update(:restrict), do: " ON UPDATE RESTRICT"
     defp reference_on_update(_), do: []
 
+    defp validate(false), do: " NOT ENFORCED"
+    defp validate(_), do: []
+
     ## Helpers
 
     defp get_source(query, sources, ix, source) do
@@ -1434,6 +1461,10 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp maybe_add_column_names(_, name), do: name
+
+    defp quote_name(nil, name), do: quote_name(name)
+
+    defp quote_name(prefix, name), do: [quote_name(prefix), ?., quote_name(name)]
 
     defp quote_name(name) when is_atom(name) do
       quote_name(Atom.to_string(name))

@@ -1621,7 +1621,8 @@ defmodule Ecto.Adapters.MyXQLTest do
 
   # DDL
 
-  import Ecto.Migration, only: [table: 1, table: 2, index: 2, index: 3, constraint: 3]
+  import Ecto.Migration,
+    only: [table: 1, table: 2, index: 2, index: 3, constraint: 2, constraint: 3]
 
   test "executing a string during migration" do
     assert execute_ddl("example") == ["example"]
@@ -1963,23 +1964,6 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert execute_ddl(drop) == [~s|DROP TABLE `foo`.`posts`|]
   end
 
-  test "drop constraint" do
-    assert_raise ArgumentError, ~r/MySQL adapter does not support constraints/, fn ->
-      execute_ddl(
-        {:drop, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
-      )
-    end
-  end
-
-  test "drop_if_exists constraint" do
-    assert_raise ArgumentError, ~r/MySQL adapter does not support constraints/, fn ->
-      execute_ddl(
-        {:drop_if_exists, constraint(:products, "price_must_be_positive", prefix: "foo"),
-         :restrict}
-      )
-    end
-  end
-
   test "alter table" do
     alter =
       {:alter, table(:posts),
@@ -2152,15 +2136,34 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "create constraints" do
-    assert_raise ArgumentError, "MySQL adapter does not support check constraints", fn ->
-      create = {:create, constraint(:products, "foo", check: "price")}
-      assert execute_ddl(create)
-    end
+    create = {:create, constraint(:products, "price_must_be_positive", check: "price > 0")}
 
-    assert_raise ArgumentError, "MySQL adapter does not support check constraints", fn ->
-      create = {:create, constraint(:products, "foo", check: "price", validate: false)}
-      assert execute_ddl(create)
-    end
+    assert execute_ddl(create) ==
+             [
+               ~s|ALTER TABLE `products` ADD CONSTRAINT `price_must_be_positive` CHECK (price > 0)|
+             ]
+
+    create =
+      {:create,
+       constraint(:products, "price_must_be_positive", check: "price > 0", prefix: "foo")}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|ALTER TABLE `foo`.`products` ADD CONSTRAINT `price_must_be_positive` CHECK (price > 0)|
+             ]
+
+    create =
+      {:create,
+       constraint(:products, "price_must_be_positive",
+         check: "price > 0",
+         prefix: "foo",
+         validate: false
+       )}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|ALTER TABLE `foo`.`products` ADD CONSTRAINT `price_must_be_positive` CHECK (price > 0) NOT ENFORCED|
+             ]
 
     assert_raise ArgumentError, "MySQL adapter does not support exclusion constraints", fn ->
       create = {:create, constraint(:products, "bar", exclude: "price")}
@@ -2171,6 +2174,37 @@ defmodule Ecto.Adapters.MyXQLTest do
       create = {:create, constraint(:products, "bar", exclude: "price", validate: false)}
       assert execute_ddl(create)
     end
+  end
+
+  test "drop constraint" do
+    drop = {:drop, constraint(:products, "price_must_be_positive"), :restrict}
+
+    assert execute_ddl(drop) ==
+             [~s|ALTER TABLE `products` DROP CONSTRAINT `price_must_be_positive`|]
+
+    drop = {:drop, constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
+
+    assert execute_ddl(drop) ==
+             [~s|ALTER TABLE `foo`.`products` DROP CONSTRAINT `price_must_be_positive`|]
+
+    drop_cascade = {:drop, constraint(:products, "price_must_be_positive"), :cascade}
+
+    assert_raise ArgumentError,
+                 ~r/MySQL does not support `CASCADE` in `DROP CONSTRAINT` commands/,
+                 fn ->
+                   execute_ddl(drop_cascade)
+                 end
+  end
+
+  test "drop_if_exists constraint" do
+    assert_raise ArgumentError,
+                 ~r/MySQL adapter does not support `drop_if_exists` for constraints/,
+                 fn ->
+                   execute_ddl(
+                     {:drop_if_exists,
+                      constraint(:products, "price_must_be_positive", prefix: "foo"), :restrict}
+                   )
+                 end
   end
 
   test "create an index using a different type" do
