@@ -1491,11 +1491,34 @@ defmodule Ecto.Migration do
     * `:check` - A check constraint expression. Required when creating a check constraint.
     * `:exclude` - An exclusion constraint expression. Required when creating an exclusion constraint.
     * `:prefix` - The prefix for the table.
-    * `:validate` - Whether or not to validate the constraint on creation (true by default). Only
-       available in PostgreSQL, and should be followed by a command to validate the new constraint in
-       a following migration if false.
+    * `:validate` - Whether or not to validate the constraint on creation (true by default). See the section below for more information
     * `:comment` - adds a comment to the constraint.
 
+
+  ## Using `validate: false`
+
+  Validation/Enforcement of a constraint is enabled by default, but disabling on constraint
+  creation is supported by PostgreSQL, and MySQL, and can be done by setting `validate: false`.
+
+  Setting `validate: false` as an option can be useful, as the creation of a constraint will cause
+  a full table scan to check existing rows. The constraint will still be enforced for subesequent
+  inserts and updates, but should then be updated in a following command or migration to enforce
+  the new constraint.
+
+  Validating / Enforcing the constraint in a later command, or migration, can be done like so:
+
+  ```
+    def change do
+      # PostgreSQL
+      execute "ALTER TABLE products VALIDATE CONSTRAINT price_must_be_positive", ""
+
+      # MySQL
+      execute "ALTER TABLE products ALTER CONSTRAINT price_must_be_positive ENFORCED", ""
+    end
+  ```
+
+  See the [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/) for an
+  in-depth explanation of the benefits of this approach.
   """
   def constraint(table, name, opts \\ [])
 
