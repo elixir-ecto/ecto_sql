@@ -42,6 +42,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     :ok
   end
 
+  @tag :create_constraint
   test "check constraint" do
     # When the changeset doesn't expect the db error
     changeset = Ecto.Changeset.change(%Constraint{}, price: -10)

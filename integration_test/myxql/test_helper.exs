@@ -121,7 +121,7 @@ excludes = [
 if Version.match?(version, ">= 8.0.0") do
   ExUnit.configure(exclude: excludes)
 else
-  ExUnit.configure(exclude: [:values_list, :rename_column | excludes])
+  ExUnit.configure(exclude: [:create_constraint, :values_list, :rename_column | excludes])
 end
 
 :ok = Ecto.Migrator.up(TestRepo, 0, Ecto.Integration.Migration, log: false)
