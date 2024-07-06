@@ -1501,7 +1501,7 @@ defmodule Ecto.Migration do
   creation is supported by PostgreSQL, and MySQL, and can be done by setting `validate: false`.
 
   Setting `validate: false` as an option can be useful, as the creation of a constraint will cause
-  a full table scan to check existing rows. The constraint will still be enforced for subesequent
+  a full table scan to check existing rows. The constraint will still be enforced for subsequent
   inserts and updates, but should then be updated in a following command or migration to enforce
   the new constraint.
 
