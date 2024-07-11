@@ -341,7 +341,7 @@ defmodule Ecto.Adapters.MyXQL do
         {:ok, last_insert_id(key, last_insert_id)}
 
       {:error, err} ->
-        case @conn.to_constraints(err, source: source) do
+        case Ecto.Adapters.SQL.to_constraints(adapter_meta, opts, err, source: source) do
           [] -> raise err
           constraints -> {:invalid, constraints}
         end
