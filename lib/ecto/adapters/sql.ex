@@ -673,6 +673,12 @@ defmodule Ecto.Adapters.SQL do
     sql_call(adapter_meta, :query_many, [sql], params, opts)
   end
 
+  def to_constraints(adapter_meta, opts, err, err_opts) do
+    %{constraint_handler: constraint_handler} = adapter_meta
+    constraint_handler = Keyword.get(opts, :constraint_handler) || constraint_handler
+    constraint_handler.to_constraints(err, err_opts)
+  end
+
   defp sql_call(adapter_meta, callback, args, params, opts) do
     %{
       pid: pool,
@@ -888,6 +894,7 @@ defmodule Ecto.Adapters.SQL do
       """
     end
 
+    constraint_handler = Keyword.get(config, :constraint_handler, connection)
     stacktrace = Keyword.get(config, :stacktrace)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
@@ -900,6 +907,7 @@ defmodule Ecto.Adapters.SQL do
     meta = %{
       telemetry: telemetry,
       sql: connection,
+      constraint_handler: constraint_handler,
       stacktrace: stacktrace,
       log_stacktrace_mfa: log_stacktrace_mfa,
       opts: Keyword.take(config, @pool_opts)
@@ -1161,7 +1169,7 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def struct(
         adapter_meta,
-        conn,
+        _conn,
         sql,
         operation,
         source,
@@ -1196,7 +1204,7 @@ defmodule Ecto.Adapters.SQL do
           operation: operation
 
       {:error, err} ->
-        case conn.to_constraints(err, source: source) do
+        case to_constraints(adapter_meta, opts, err, source: source) do
           [] -> raise_sql_call_error(err)
           constraints -> {:invalid, constraints}
         end
