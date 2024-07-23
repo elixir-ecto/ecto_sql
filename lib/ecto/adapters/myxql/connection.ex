@@ -1239,9 +1239,11 @@ if Code.ensure_loaded?(MyXQL) do
       [drop_constraint_if_exists_expr(ref, table, name), "DROP IF EXISTS ", quote_name(name)]
     end
 
-    defp column_change(table, {:remove_if_exists, name, _type}), do: column_change(table, {:remove_if_exists, name})
+    defp column_change(table, {:remove_if_exists, name, _type}),
+      do: column_change(table, {:remove_if_exists, name})
 
-    defp column_change(_table, {:remove_if_exists, name}), do: ["DROP IF EXISTS ", quote_name(name)]
+    defp column_change(_table, {:remove_if_exists, name}),
+      do: ["DROP IF EXISTS ", quote_name(name)]
 
     defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
