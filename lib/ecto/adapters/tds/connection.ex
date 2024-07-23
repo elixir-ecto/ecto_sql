@@ -1470,10 +1470,13 @@ if Code.ensure_loaded?(Tds) do
     defp column_change(statement_prefix, _table, {:remove, name, _type, _opts}),
       do: [statement_prefix, "DROP COLUMN ", quote_name(name)]
 
+    defp column_change(statement_prefix, table, {:remove_if_exists, column_name, _}),
+      do: column_change(statement_prefix, table, {:remove_if_exists, column_name})
+
     defp column_change(
            statement_prefix,
            %{name: table, prefix: prefix},
-           {:remove_if_exists, column_name, _}
+           {:remove_if_exists, column_name}
          ) do
       [
         [

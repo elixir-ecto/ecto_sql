@@ -1987,6 +1987,7 @@ defmodule Ecto.Adapters.MyXQLTest do
          {:remove, :body, :text, []},
          {:remove, :space_id, %Reference{table: :author}, []},
          {:remove_if_exists, :body, :text},
+         {:remove_if_exists, :body},
          {:remove_if_exists, :space_id, %Reference{table: :author}}
        ]}
 
@@ -2014,6 +2015,7 @@ defmodule Ecto.Adapters.MyXQLTest do
              DROP `body`,
              DROP FOREIGN KEY `posts_space_id_fkey`,
              DROP `space_id`,
+             DROP IF EXISTS `body`,
              DROP IF EXISTS `body`,
              DROP FOREIGN KEY IF EXISTS `posts_space_id_fkey`,
              DROP IF EXISTS `space_id`
