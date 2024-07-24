@@ -19,6 +19,7 @@ locals_without_parens = [
   remove: 1,
   remove: 2,
   remove: 3,
+  remove_if_exists: 1,
   remove_if_exists: 2,
   rename: 2,
   rename: 3,

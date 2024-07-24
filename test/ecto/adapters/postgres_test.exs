@@ -2503,6 +2503,7 @@ defmodule Ecto.Adapters.PostgresTest do
          {:remove, :body, :text, []},
          {:remove, :space_id, %Reference{table: :author}, []},
          {:remove_if_exists, :body, :text},
+         {:remove_if_exists, :body},
          {:remove_if_exists, :space_id, %Reference{table: :author}}
        ]}
 
@@ -2540,6 +2541,7 @@ defmodule Ecto.Adapters.PostgresTest do
              DROP COLUMN "body",
              DROP CONSTRAINT "posts_space_id_fkey",
              DROP COLUMN "space_id",
+             DROP COLUMN IF EXISTS "body",
              DROP COLUMN IF EXISTS "body",
              DROP CONSTRAINT IF EXISTS "posts_space_id_fkey",
              DROP COLUMN IF EXISTS "space_id"

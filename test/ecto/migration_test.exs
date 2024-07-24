@@ -469,6 +469,7 @@ defmodule Ecto.MigrationTest do
         remove :views
         remove :status, :string
         remove_if_exists :status, :string
+        remove_if_exists :status
       end
 
       flush()
@@ -481,7 +482,8 @@ defmodule Ecto.MigrationTest do
                   {:modify, :title, :text, []},
                   {:remove, :views},
                   {:remove, :status, :string, []},
-                  {:remove_if_exists, :status, :string}
+                  {:remove_if_exists, :status, :string},
+                  {:remove_if_exists, :status}
                 ]}
     end
 

@@ -39,7 +39,8 @@ defmodule Ecto.Adapter.Migration do
           | {:remove, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary(),
              Keyword.t()}
           | {:remove, field :: atom}
-          | {:remove_if_exists, type :: Ecto.Type.t() | Reference.t() | binary()}
+          | {:remove_if_exists, field :: atom, type :: Ecto.Type.t() | Reference.t() | binary()}
+          | {:remove_if_exists, field :: atom}
 
   @typedoc """
   A struct that represents a table or index in a database schema.
