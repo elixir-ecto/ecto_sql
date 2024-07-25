@@ -49,12 +49,12 @@ defmodule Ecto.Adapter.Structure do
 
   Returns `{output, exit_status}` where `output` is a string of the stdout
   (as long as no option `into` is provided, see `System.cmd/3`) and `exit_status`
-  is the exit status of the invoation. (`0` for success)
+  is the exit status of the invocation. (`0` for success)
 
   ## Examples
 
       iex> dump_cmd(["--data-only", "--table", "table_name"], [stdout_to_stderr: true], Acme.Repo.config())
-      "--\n-- PostgreSQL database dump\n--\n" <> _rest
+      {"--\n-- PostgreSQL database dump\n--\n" <> _rest, 0}
 
   """
   @callback dump_cmd(args :: [String.t()], opts :: Keyword.t(), config :: Keyword.t()) ::
