@@ -27,7 +27,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     defp strip_source(name, source), do: String.trim_leading(name, "#{source}.")
   end
 
-  defmodule ConstraintMigration do
+  defmodule ConstraintTableMigration do
     use Ecto.Migration
 
     @table table(:constraints_test)
@@ -38,7 +38,15 @@ defmodule Ecto.Integration.ConstraintsTest do
         add :from, :integer
         add :to, :integer
       end
+    end
+  end
 
+  defmodule ConstraintMigration do
+    use Ecto.Migration
+
+    @table table(:constraints_test)
+
+    def change do
       # Only valid after MySQL 8.0.19
       create constraint(@table.name, :positive_price, check: "price > 0")
     end
@@ -113,7 +121,7 @@ defmodule Ecto.Integration.ConstraintsTest do
   setup_all do
     ExUnit.CaptureLog.capture_log(fn ->
       num = @base_migration + System.unique_integer([:positive])
-      up(PoolRepo, num, ConstraintMigration, log: false)
+      up(PoolRepo, num, ConstraintTableMigration, log: false)
       up(PoolRepo, num + 1, ProcedureEmulatingConstraintMigration, log: false)
     end)
 
@@ -122,6 +130,11 @@ defmodule Ecto.Integration.ConstraintsTest do
 
   @tag :create_constraint
   test "check constraint" do
+    num = @base_migration + System.unique_integer([:positive])
+    ExUnit.CaptureLog.capture_log(fn ->
+      :ok = up(PoolRepo, num, ConstraintMigration, log: false)
+    end)
+
     # When the changeset doesn't expect the db error
     changeset = Ecto.Changeset.change(%Constraint{}, price: -10)
 
