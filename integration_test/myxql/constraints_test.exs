@@ -5,8 +5,11 @@ defmodule Ecto.Integration.ConstraintsTest do
   alias Ecto.Integration.PoolRepo
 
   defmodule CustomConstraintHandler do
+    @behaviour Ecto.Adapters.SQL.Constraint
+
     @quotes ~w(" ' `)
 
+    @impl Ecto.Adapters.SQL.Constraint
     # An example of a custom handler a user might write
     def to_constraints(%MyXQL.Error{mysql: %{name: :ER_SIGNAL_EXCEPTION}, message: message}, opts) do
       # Assumes this is the only use-case of `ER_SIGNAL_EXCEPTION` the user has implemented custom errors for
@@ -194,6 +197,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     assert is_integer(result.id)
   end
 
+  @tag :constraint_handler
   test "custom handled constraint" do
     changeset = Ecto.Changeset.change(%Constraint{}, from: 0, to: 10)
     {:ok, item} = PoolRepo.insert(changeset)
