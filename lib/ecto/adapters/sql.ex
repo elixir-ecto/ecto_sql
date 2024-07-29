@@ -668,6 +668,7 @@ defmodule Ecto.Adapters.SQL do
     sql_call(adapter_meta, :query_many, [sql], params, opts)
   end
 
+  @doc false
   def to_constraints(adapter_meta, opts, err, err_opts) do
     %{constraint_handler: constraint_handler} = adapter_meta
     constraint_handler = Keyword.get(opts, :constraint_handler) || constraint_handler
