@@ -1231,7 +1231,7 @@ defmodule Ecto.Adapters.SQL do
     query = String.Chars.to_string(query)
     result = with {:ok, _query, res} <- result, do: {:ok, res}
     stacktrace = Keyword.get(opts, :stacktrace)
-    log_params = opts[:cast_params] || params
+    cast_params = opts[:cast_params] || params
 
     acc = if idle_time, do: [idle_time: idle_time], else: []
 
@@ -1247,7 +1247,7 @@ defmodule Ecto.Adapters.SQL do
       repo: repo,
       result: result,
       params: params,
-      cast_params: log_params,
+      cast_params: cast_params,
       query: query,
       source: source,
       stacktrace: stacktrace,
@@ -1268,14 +1268,18 @@ defmodule Ecto.Adapters.SQL do
       {true, level} ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace) end,
+          fn ->
+            log_iodata(measurements, repo, source, query, cast_params, result, stacktrace)
+          end,
           ansi_color: sql_color(query)
         )
 
       {opts_level, args_level} ->
         Logger.log(
           opts_level || args_level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace) end,
+          fn ->
+            log_iodata(measurements, repo, source, query, cast_params, result, stacktrace)
+          end,
           ansi_color: sql_color(query)
         )
     end
