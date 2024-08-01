@@ -1247,7 +1247,7 @@ defmodule Ecto.Adapters.SQL do
       repo: repo,
       result: result,
       params: params,
-      cast_params: opts[:cast_params],
+      cast_params: log_params,
       query: query,
       source: source,
       stacktrace: stacktrace,
