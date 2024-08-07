@@ -888,6 +888,9 @@ defmodule Ecto.Adapters.SQL do
       IO.warn(message)
     end
 
+    # TODO: warn if :create_unlogged_tables and not in tests
+    # TODO: warn if :create_unlogged_tables and adapter other than Postgrex
+
     config
     |> Keyword.delete(:name)
     |> Keyword.update(:pool, DBConnection.ConnectionPool, &normalize_pool/1)
