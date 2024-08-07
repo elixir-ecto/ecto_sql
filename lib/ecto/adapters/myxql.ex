@@ -21,7 +21,6 @@ defmodule Ecto.Adapters.MyXQL do
     * `:password` - User password
     * `:database` - the database to connect to
     * `:pool` - The connection pool module, may be set to `Ecto.Adapters.SQL.Sandbox`
-    * `:ssl` - Set to true if ssl should be used (default: false)
     * `:ssl` - Accepts a list of options to enable TLS for the client connection,
       or `false` to disable it. See the documentation for [Erlang's `ssl` module](`e:ssl:ssl`)
       for a list of options (default: false)
