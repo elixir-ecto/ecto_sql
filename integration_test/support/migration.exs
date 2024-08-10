@@ -123,7 +123,7 @@ defmodule Ecto.Integration.Migration do
           add :dur_with_fields, :duration, fields: "MONTH"
           add :dur_with_precision, :duration, precision: 4
           add :dur_with_fields_and_precision, :duration, fields: "HOUR TO SECOND", precision: 1
-          add :dur_with_default, :duration, default: "'10' MONTH"
+          add :dur_with_default, :duration, default: "10 MONTH"
         end
       end
     end
