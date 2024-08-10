@@ -1762,6 +1762,23 @@ if Code.ensure_loaded?(Postgrex) do
       end
     end
 
+    defp column_type(:duration, opts) do
+      precision = Keyword.get(opts, :precision)
+      fields = Keyword.get(opts, :fields)
+      generated = Keyword.get(opts, :generated)
+      type_name = ecto_to_db(:duration)
+
+      type =
+        cond do
+          fields && precision -> [type_name, " ", fields, ?(, to_string(precision), ?)]
+          precision -> [type_name, ?(, to_string(precision), ?)]
+          fields -> [type_name, " ", fields]
+          true -> [type_name]
+        end
+
+      [type, generated_expr(generated)]
+    end
+
     defp column_type(type, opts) do
       size = Keyword.get(opts, :size)
       precision = Keyword.get(opts, :precision)
@@ -1981,6 +1998,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp ecto_to_db(:utc_datetime_usec), do: "timestamp"
     defp ecto_to_db(:naive_datetime), do: "timestamp"
     defp ecto_to_db(:naive_datetime_usec), do: "timestamp"
+    defp ecto_to_db(:duration), do: "interval"
     defp ecto_to_db(atom) when is_atom(atom), do: Atom.to_string(atom)
 
     defp ecto_to_db(type) do

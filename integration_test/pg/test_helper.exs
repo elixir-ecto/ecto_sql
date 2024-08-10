@@ -12,6 +12,10 @@ Application.put_env(:ecto_sql, :pg_test_url,
 
 Code.require_file "../support/repo.exs", __DIR__
 
+# Define type module
+opts = if Code.ensure_loaded?(Duration), do: [interval_decode_type: Duration], else: []
+Postgrex.Types.define(Postgrex.EctoTypes, [], opts)
+
 # Pool repo for async, safe tests
 alias Ecto.Integration.TestRepo
 
@@ -19,7 +23,8 @@ Application.put_env(:ecto_sql, TestRepo,
   url: Application.get_env(:ecto_sql, :pg_test_url) <> "/ecto_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   show_sensitive_data_on_connection_error: true,
-  log: false
+  log: false,
+  types: Postgrex.EctoTypes
 )
 
 defmodule Ecto.Integration.TestRepo do

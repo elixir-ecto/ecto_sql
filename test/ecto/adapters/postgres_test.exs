@@ -2048,6 +2048,7 @@ defmodule Ecto.Adapters.PostgresTest do
          {:add, :flags, :bitstring, [null: false]},
          {:add, :flags_with_default, :bitstring, [default: <<42::10>>]},
          {:add, :flags_with_size, :bitstring, [size: 10]},
+         {:add, :dur, :duration, [fields: "YEAR TO MONTH", precision: 2, default: "1 MONTH"]},
          {:add, :tags, {:array, :string}, [default: []]},
          {:add, :languages, {:array, :string}, [default: ["pt", "es"]]},
          {:add, :limits, {:array, :integer}, [default: [100, 30_000]]}
@@ -2063,6 +2064,7 @@ defmodule Ecto.Adapters.PostgresTest do
              "flags" varbit NOT NULL,
              "flags_with_default" varbit DEFAULT b'0000101010',
              "flags_with_size" varbit(10),
+             "dur" interval YEAR TO MONTH(2) DEFAULT '1 MONTH',
              "tags" varchar(255)[] DEFAULT ARRAY[]::varchar[],
              "languages" varchar(255)[] DEFAULT ARRAY['pt','es']::varchar[],
              "limits" integer[] DEFAULT ARRAY[100,30000]::integer[])
