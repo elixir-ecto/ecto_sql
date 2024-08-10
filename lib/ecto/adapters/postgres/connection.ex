@@ -1770,8 +1770,8 @@ if Code.ensure_loaded?(Postgrex) do
 
       type =
         cond do
-          fields && precision -> [type_name, " ", fields, ?(, to_string(precision), ?) ]
-          precision -> [type_name, ?(, to_string(precision), ?) ]
+          fields && precision -> [type_name, " ", fields, ?(, to_string(precision), ?)]
+          precision -> [type_name, ?(, to_string(precision), ?)]
           fields -> [type_name, " ", fields]
           true -> [type_name]
         end
