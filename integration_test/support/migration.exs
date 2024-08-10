@@ -116,6 +116,18 @@ defmodule Ecto.Integration.Migration do
       end
     end
 
+    if Code.ensure_loaded?(Duration) do
+      unless :duration_type in ExUnit.configuration()[:exclude] do
+        create table(:durations) do
+          add :dur, :duration
+          add :dur_with_fields, :duration, fields: "MONTH"
+          add :dur_with_precision, :duration, precision: 4
+          add :dur_with_fields_and_precision, :duration, fields: "HOUR TO SECOND", precision: 1
+          add :dur_with_default, :duration, default: "'10' MONTH"
+        end
+      end
+    end
+
     create table(:composite_pk, primary_key: false) do
       add :a, :integer, primary_key: true
       add :b, :integer, primary_key: true

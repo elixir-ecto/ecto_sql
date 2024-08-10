@@ -5,6 +5,7 @@ ExUnit.start(
     # not sure how to support this yet
     :aggregate_filters,
     :bitstring_type,
+    :duration_type,
     # subquery contains ORDER BY and that is not supported
     :subquery_aggregates,
     # sql don't have array type

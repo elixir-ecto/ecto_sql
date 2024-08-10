@@ -95,6 +95,7 @@ version =
 excludes = [
   # not sure how to support this yet
   :bitstring_type,
+  :duration_type,
   # MySQL does not have an array type
   :array_type,
   # The next two features rely on RETURNING, which MySQL does not support

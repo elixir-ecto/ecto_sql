@@ -1145,6 +1145,8 @@ defmodule Ecto.Migration do
       generation. Default is defined by the database.
     * `:increment` - option for `:identity` key, represents increment value for
       sequence generation. Default is defined by the database.
+    * `:fields` - option for `:duration` type. Restricts the set of stored interval fields
+      in the database.
 
   """
   def add(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
