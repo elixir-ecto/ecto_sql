@@ -1551,6 +1551,7 @@ defmodule Ecto.Migration do
 
   @doc """
   Execute all changes specified by the migration so far.
+
   See [Executing and flushing](#module-executing-and-flushing).
   """
   defmacro flush do
