@@ -1549,7 +1549,11 @@ defmodule Ecto.Migration do
     struct!(%Constraint{table: table, name: name}, opts)
   end
 
-  @doc "Executes queue migration commands."
+  @doc """
+  Execute all changes specified by the migration so far.
+
+  See [Executing and flushing](#module-executing-and-flushing).
+  """
   defmacro flush do
     quote do
       if direction() == :down and not function_exported?(__MODULE__, :down, 0) do
