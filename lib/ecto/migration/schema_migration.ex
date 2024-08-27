@@ -17,7 +17,7 @@ defmodule Ecto.Migration.SchemaMigration do
   @default_opts [
     timeout: :infinity,
     log: false,
-    schema_migration: true,
+    ecto_query: :schema_migration,
     telemetry_options: [schema_migration: true]
   ]
 
