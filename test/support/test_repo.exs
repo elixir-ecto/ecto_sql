@@ -55,7 +55,7 @@ defmodule EctoSQL.TestAdapter do
 
   def execute(_, _, {:nocache, {:all, query}}, _, opts) do
     %{from: %{source: {"schema_migrations", _}}} = query
-    true = opts[:schema_migration]
+    :schema_migrations = opts[:ecto_query]
     versions = MigrationsAgent.get()
     {length(versions), Enum.map(versions, &[elem(&1, 0)])}
   end
@@ -63,13 +63,13 @@ defmodule EctoSQL.TestAdapter do
   def execute(_, _, {:nocache, {:delete_all, query}}, params, opts) do
     %{from: %{source: {"schema_migrations", _}}} = query
     [version] = params
-    true = opts[:schema_migration]
+    :schema_migrations = opts[:ecto_query]
     MigrationsAgent.down(version, opts)
     {1, nil}
   end
 
   def insert(_, %{source: "schema_migrations"}, val, _, _, opts) do
-    true = opts[:schema_migration]
+    :schema_migrations = opts[:ecto_query]
     version = Keyword.fetch!(val, :version)
     MigrationsAgent.up(version, opts)
     {:ok, []}
