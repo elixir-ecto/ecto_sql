@@ -111,7 +111,7 @@ integration-test-mssql:
         curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.6.1.1-1_${TARGETARCH}.apk && \
         echo y | apk add --allow-untrusted msodbcsql17_17.6.1.1-1_${TARGETARCH}.apk mssql-tools17_17.6.1.1-1_${TARGETARCH}.apk && \
         apk del .build-dependencies && rm -f msodbcsql*.sig mssql-tools*.apk
-    ENV PATH="/opt/mssql-tools18/bin:${PATH}"
+    ENV PATH="/opt/mssql-tools17/bin:${PATH}"
 
     DO +COMMON_SETUP_AND_MIX
 
