@@ -122,7 +122,7 @@ integration-test-mssql:
             timeout=$(expr $(date +%s) + 30); \
             docker run -d -p 1433:1433 --name mssql -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=some!Password' "mcr.microsoft.com/mssql/server:$MSSQL-latest"; \
             # wait for mssql to start
-            while ! sqlcmd -C -S tcp:127.0.0.1,1433 -U sa -P 'some!Password' -Q "SELECT 1" ; do \
+            while ! sqlcmd -C -S tcp:127.0.0.1,1433 -U sa -P 'some!Password' -Q "SELECT 1" >/dev/null 2>&1; do \
                 test "$(date +%s)" -le "$timeout" || (echo "timed out waiting for mssql"; exit 1); \
                 echo "waiting for mssql"; \
                 sleep 1; \
