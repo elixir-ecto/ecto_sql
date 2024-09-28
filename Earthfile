@@ -107,9 +107,9 @@ integration-test-mssql:
     FROM +setup-base
 
     RUN apk add --no-cache curl gnupg --virtual .build-dependencies -- && \
-        curl -O https://download.microsoft.com/download/3/5/5/355d7943-a338-41a7-858d-53b259ea33f5/msodbcsql18_18.3.2.1-1_${TARGETARCH}.apk && \
-        curl -O https://download.microsoft.com/download/3/5/5/355d7943-a338-41a7-858d-53b259ea33f5/mssql-tools18_18.3.1.1-1_${TARGETARCH}.apk && \
-        echo y | apk add --allow-untrusted msodbcsql18_18.3.2.1-1_${TARGETARCH}.apk mssql-tools18_18.3.1.1-1_${TARGETARCH}.apk && \
+        curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.6.1.1-1_${TARGETARCH}.apk && \
+        curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.6.1.1-1_${TARGETARCH}.apk && \
+        echo y | apk add --allow-untrusted msodbcsql17_17.6.1.1-1_${TARGETARCH}.apk mssql-tools17_17.6.1.1-1_${TARGETARCH}.apk && \
         apk del .build-dependencies && rm -f msodbcsql*.sig mssql-tools*.apk
     ENV PATH="/opt/mssql-tools18/bin:${PATH}"
 
