@@ -888,9 +888,13 @@ defmodule Ecto.Adapters.SQL do
       opts: Keyword.take(config, @pool_opts)
     }
 
-    if pool_count > 1 and pool != DBConnection.Ownership do
+    if pool_count > 1 do
       if name == nil do
         raise ArgumentError, "the option :pool_count requires a :name"
+      end
+
+      if pool == DBConnection.Ownership do
+        raise ArgumentError, "the option :pool_count does not work with the SQL sandbox"
       end
 
       name = Module.concat(name, PartitionSupervisor)
