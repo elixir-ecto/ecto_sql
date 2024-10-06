@@ -13,7 +13,9 @@ defmodule Support.FileHelpers do
   tailored for this test case and test.
   """
   defmacro in_tmp(fun) do
-    path = Path.join([tmp_path(), "#{__CALLER__.module}", "#{elem(__CALLER__.function, 0)}"])
+    {name, _arity} = __CALLER__.function || raise "in_tmp must be called inside a function"
+    path = Path.join([tmp_path(), "#{__CALLER__.module}", "#{name}"])
+
     quote do
       path = unquote(path)
       File.rm_rf!(path)
@@ -38,6 +40,6 @@ defmodule Support.FileHelpers do
   end
 
   def assert_file(file, match) do
-    assert_file file, &(assert &1 =~  match)
+    assert_file(file, &assert(&1 =~ match))
   end
 end
