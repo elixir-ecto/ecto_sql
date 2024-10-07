@@ -58,6 +58,8 @@ jobs:
           - "11.11-alpine"
           - "9.6-alpine"
           - "9.5-alpine"
+        pool_count:
+          - "1"
         include:
           - elixirbase: "1.11.4-erlang-23.3.4.9-alpine-3.16.9"
             postgres: "16.2-alpine"
