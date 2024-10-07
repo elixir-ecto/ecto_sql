@@ -58,10 +58,16 @@ jobs:
           - "11.11-alpine"
           - "9.6-alpine"
           - "9.5-alpine"
+        include:
+          - elixirbase: "1.11.4-erlang-23.3.4.9-alpine-3.16.9"
+            postgres: "16.2-alpine"
+            pool_count: "4"
     steps:
       - uses: earthly/actions-setup@v1
       - uses: actions/checkout@v3
       - name: test ecto_sql
+        env:
+          POOL_COUNT: ${{ matrix.pool_count || '1' }}
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-postgres
 
   test-mysql:
