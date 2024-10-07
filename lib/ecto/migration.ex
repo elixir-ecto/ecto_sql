@@ -396,7 +396,7 @@ defmodule Ecto.Migration do
     @type t :: %__MODULE__{
             table: String.t(),
             prefix: String.t() | nil,
-            name: atom,
+            name: String.t() | atom,
             columns: [atom | String.t()],
             unique: boolean,
             concurrently: boolean,
@@ -779,7 +779,8 @@ defmodule Ecto.Migration do
 
   ## Options
 
-    * `:name` - the name of the index. Defaults to "#{table}_#{column}_index".
+    * `:name` - the name of the index. Can be provided as a string or an atom.
+    Defaults to "#{table}_#{column}_index".
     * `:prefix` - specify an optional prefix for the index.
     * `:unique` - indicates whether the index should be unique. Defaults to `false`.
     * `:comment` - adds a comment to the index.
