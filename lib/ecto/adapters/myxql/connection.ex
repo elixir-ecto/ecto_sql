@@ -881,7 +881,7 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp values_list(types, num_rows, query) do
-      rows = Enum.to_list(1..num_rows)
+      rows = :lists.seq(1, num_rows, 1)
 
       [
         "VALUES ",
