@@ -981,7 +981,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp values_list(types, idx, num_rows) do
-      rows = Enum.to_list(1..num_rows//1)
+      rows = :lists.seq(1, num_rows, 1)
 
       [
         "VALUES ",
