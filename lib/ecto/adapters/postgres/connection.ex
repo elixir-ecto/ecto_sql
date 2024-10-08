@@ -1137,7 +1137,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp values_list(types, idx, num_rows) do
-      rows = Enum.to_list(1..num_rows)
+      rows = Enum.to_list(1..num_rows//1)
 
       [
         "VALUES ",
