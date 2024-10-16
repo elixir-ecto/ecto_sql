@@ -826,7 +826,7 @@ if Code.ensure_loaded?(MyXQL) do
             fun,
             ?(,
             modifier,
-            Enum.map_intersperse(args, ", ", &top_level_expr(&1, sources, query)),
+            Enum.map_intersperse(args, ", ", &expr(&1, sources, query)),
             ?)
           ]
       end
