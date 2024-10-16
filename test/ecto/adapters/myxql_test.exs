@@ -478,7 +478,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.`x` FROM `schema` AS s0 ORDER BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`))}
+             ~s{SELECT s0.`x` FROM `schema` AS s0 ORDER BY exists((SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
   end
 
   test "union and union all" do
@@ -882,7 +882,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.`x` FROM `schema` AS s0 GROUP BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`))}
+             ~s{SELECT s0.`x` FROM `schema` AS s0 GROUP BY exists((SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
   end
 
   test "interpolated values" do
@@ -1089,7 +1089,7 @@ defmodule Ecto.Adapters.MyXQLTest do
         |> plan
 
       assert all(query) ==
-               ~s{SELECT s0.`x` FROM `schema` AS s0 WINDOW `w` AS (ORDER BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
+               ~s{SELECT s0.`x` FROM `schema` AS s0 WINDOW `w` AS (ORDER BY exists((SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`))))}
     end
 
     test "two windows" do
