@@ -1556,15 +1556,33 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_change(table, {:modify, name, type, opts}) do
-      [
-        drop_reference_expr(opts[:from], table, name),
-        "ALTER COLUMN ",
-        quote_name(name),
-        " TYPE ",
-        column_type(type, opts),
-        modify_null(name, opts),
-        modify_default(name, type, opts)
-      ]
+      column_type = column_type(type, opts)
+
+      extract_type = fn
+        {type, _} when is_atom(type) -> type
+        type when is_atom(type) -> type
+        _ -> nil
+      end
+
+      from_type = extract_type.(opts[:from])
+
+      if column_type == column_type(from_type, opts) do
+        [
+          drop_reference_expr(opts[:from], table, name),
+          modify_null(name, Keyword.put(opts, :prefix_with_comma, false)),
+          modify_default(name, type, opts)
+        ]
+      else
+        [
+          drop_reference_expr(opts[:from], table, name),
+          "ALTER COLUMN ",
+          quote_name(name),
+          " TYPE ",
+          column_type,
+          modify_null(name, opts),
+          modify_default(name, type, opts)
+        ]
+      end
     end
 
     defp column_change(_table, {:remove, name}), do: ["DROP COLUMN ", quote_name(name)]
@@ -1591,9 +1609,12 @@ if Code.ensure_loaded?(Postgrex) do
       do: ["DROP COLUMN IF EXISTS ", quote_name(name)]
 
     defp modify_null(name, opts) do
+      prefix_with_comma = Keyword.get(opts, :prefix_with_comma, true)
+      prefix = if prefix_with_comma, do: ", ", else: ""
+
       case Keyword.get(opts, :null) do
-        true -> [", ALTER COLUMN ", quote_name(name), " DROP NOT NULL"]
-        false -> [", ALTER COLUMN ", quote_name(name), " SET NOT NULL"]
+        true -> [prefix, "ALTER COLUMN ", quote_name(name), " DROP NOT NULL"]
+        false -> [prefix, "ALTER COLUMN ", quote_name(name), " SET NOT NULL"]
         nil -> []
       end
     end
