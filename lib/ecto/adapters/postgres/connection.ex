@@ -1548,11 +1548,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
       [
         drop_reference_expr(opts[:from], table, name),
-        "ALTER COLUMN ",
-        quote_name(name),
-        " TYPE ",
-        reference_column_type(ref.type, opts),
-        ", ADD ",
+        "ADD ",
         reference_expr(ref, table, name),
         modify_null(name, opts),
         modify_default(name, ref.type, opts)
