@@ -134,12 +134,21 @@ defmodule Ecto.Integration.MigrationTest do
         add :alter_fk_user_id, :id
       end
 
+      create table(:alter_fk_comments) do
+        add :alter_fk_user_id, references(:alter_fk_users)
+      end
+
       alter table(:alter_fk_posts) do
-        modify :alter_fk_user_id, references(:alter_fk_users, on_delete: :nilify_all)
+        modify :alter_fk_user_id, references(:alter_fk_users, on_delete: :nilify_all), from: {:id, null: true}
+      end
+
+      alter table(:alter_fk_comments) do
+        modify :alter_fk_user_id, references(:alter_fk_users, on_delete: :delete_all), from: references(:alter_fk_users, on_delete: :nothing)
       end
     end
 
     def down do
+      drop table(:alter_fk_comments)
       drop table(:alter_fk_posts)
       drop table(:alter_fk_users)
     end

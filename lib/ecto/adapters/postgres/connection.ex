@@ -1546,35 +1546,54 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
-      [
-        drop_reference_expr(opts[:from], table, name),
-        "ADD ",
-        reference_expr(ref, table, name),
-        modify_null(name, opts),
-        modify_default(name, ref.type, opts)
-      ]
+      reference_column_type = reference_column_type(ref.type, opts)
+      from_column_type = extract_column_type(opts[:from])
+
+      drop_reference_expr = drop_reference_expr(opts[:from], table, name)
+      prefix_with_comma = (drop_reference_expr != [] && ", ") || ""
+
+      if reference_column_type == column_type(from_column_type, opts) do
+        [
+          drop_reference_expr,
+          prefix_with_comma,
+          "ADD ",
+          reference_expr(ref, table, name),
+          modify_null(name, opts),
+          modify_default(name, ref.type, opts)
+        ]
+      else
+        [
+          drop_reference_expr,
+          prefix_with_comma,
+          "ALTER COLUMN ",
+          quote_name(name),
+          " TYPE ",
+          reference_column_type,
+          ", ADD ",
+          reference_expr(ref, table, name),
+          modify_null(name, opts),
+          modify_default(name, ref.type, opts)
+        ]
+      end
     end
 
     defp column_change(table, {:modify, name, type, opts}) do
       column_type = column_type(type, opts)
+      from_column_type = extract_column_type(opts[:from])
 
-      extract_type = fn
-        {type, _} when is_atom(type) -> type
-        type when is_atom(type) -> type
-        _ -> nil
-      end
+      drop_reference_expr = drop_reference_expr(opts[:from], table, name)
+      prefix_with_comma? = drop_reference_expr != []
 
-      from_type = extract_type.(opts[:from])
-
-      if column_type == column_type(from_type, opts) do
+      if column_type == column_type(from_column_type, opts) do
         [
-          drop_reference_expr(opts[:from], table, name),
-          modify_null(name, Keyword.put(opts, :prefix_with_comma, false)),
+          drop_reference_expr,
+          modify_null(name, Keyword.put(opts, :prefix_with_comma, prefix_with_comma?)),
           modify_default(name, type, opts)
         ]
       else
         [
-          drop_reference_expr(opts[:from], table, name),
+          drop_reference_expr,
+          (prefix_with_comma? && ", ") || "",
           "ALTER COLUMN ",
           quote_name(name),
           " TYPE ",
@@ -1588,7 +1607,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_change(_table, {:remove, name}), do: ["DROP COLUMN ", quote_name(name)]
 
     defp column_change(table, {:remove, name, %Reference{} = ref, _opts}) do
-      [drop_reference_expr(ref, table, name), "DROP COLUMN ", quote_name(name)]
+      drop_reference_expr = drop_reference_expr(ref, table, name)
+      prefix_with_comma = (drop_reference_expr != [] && ", ") || ""
+      [drop_reference_expr, prefix_with_comma, "DROP COLUMN ", quote_name(name)]
     end
 
     defp column_change(_table, {:remove, name, _type, _opts}),
@@ -1620,9 +1641,12 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp modify_default(name, type, opts) do
+      prefix_with_comma = Keyword.get(opts, :prefix_with_comma, true)
+      prefix = if prefix_with_comma, do: ", ", else: ""
+
       case Keyword.fetch(opts, :default) do
         {:ok, val} ->
-          [", ALTER COLUMN ", quote_name(name), " SET", default_expr({:ok, val}, type)]
+          [prefix, "ALTER COLUMN ", quote_name(name), " SET", default_expr({:ok, val}, type)]
 
         :error ->
           []
@@ -1814,6 +1838,11 @@ if Code.ensure_loaded?(Postgrex) do
       [type, generated_expr(generated)]
     end
 
+    defp extract_column_type({type, _}) when is_atom(type), do: type
+    defp extract_column_type(type) when is_atom(type), do: type
+    defp extract_column_type(%Reference{type: type}), do: type
+    defp extract_column_type(_), do: nil
+
     defp generated_expr(nil), do: []
 
     defp generated_expr(expr) when is_binary(expr) do
@@ -1850,7 +1879,7 @@ if Code.ensure_loaded?(Postgrex) do
       do: drop_reference_expr(ref, table, name)
 
     defp drop_reference_expr(%Reference{} = ref, table, name),
-      do: ["DROP CONSTRAINT ", reference_name(ref, table, name), ", "]
+      do: ["DROP CONSTRAINT ", reference_name(ref, table, name)]
 
     defp drop_reference_expr(_, _, _),
       do: []
