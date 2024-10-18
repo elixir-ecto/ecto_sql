@@ -48,6 +48,7 @@ defmodule Ecto.Integration.MigrationTest do
     def up do
       create table(:alter_col_migration) do
         add :from_null_to_not_null, :integer
+        add :another_from_null_to_not_null, :string
         add :from_not_null_to_null, :integer, null: false
 
         add :from_default_to_no_default, :integer, default: 0
@@ -56,13 +57,14 @@ defmodule Ecto.Integration.MigrationTest do
 
       alter table(:alter_col_migration) do
         modify :from_null_to_not_null, :string, null: false
+        modify :another_from_null_to_not_null, :string, null: false, from: {:string, null: true}
         modify :from_not_null_to_null, :string, null: true
 
         modify :from_default_to_no_default, :integer, default: nil
         modify :from_no_default_to_default, :integer, default: 0
       end
 
-      execute "INSERT INTO alter_col_migration (from_null_to_not_null) VALUES ('foo')"
+      execute "INSERT INTO alter_col_migration (from_null_to_not_null, another_from_null_to_not_null) VALUES ('foo', 'baz')"
     end
 
     def down do
@@ -132,12 +134,21 @@ defmodule Ecto.Integration.MigrationTest do
         add :alter_fk_user_id, :id
       end
 
+      create table(:alter_fk_comments) do
+        add :alter_fk_user_id, references(:alter_fk_users)
+      end
+
       alter table(:alter_fk_posts) do
-        modify :alter_fk_user_id, references(:alter_fk_users, on_delete: :nilify_all)
+        modify :alter_fk_user_id, references(:alter_fk_users, on_delete: :nilify_all), from: {:id, null: true}
+      end
+
+      alter table(:alter_fk_comments) do
+        modify :alter_fk_user_id, references(:alter_fk_users, on_delete: :delete_all), from: references(:alter_fk_users, on_delete: :nothing)
       end
     end
 
     def down do
+      drop table(:alter_fk_comments)
       drop table(:alter_fk_posts)
       drop table(:alter_fk_users)
     end
