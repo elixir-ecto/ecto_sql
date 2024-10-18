@@ -416,6 +416,14 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT coalesce(s0.`x`, 5) FROM `schema` AS s0}
   end
 
+  test "coalesce with subquery" do
+    squery = from s in Schema, select: s.x
+    query = Schema |> select([s], coalesce(subquery(squery), 5)) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT coalesce((SELECT ss0.`x` AS `x` FROM `schema` AS ss0), 5) FROM `schema` AS s0}
+  end
+
   test "where" do
     query = Schema |> where([r], r.x == 42) |> where([r], r.y != 43) |> select([r], r.x) |> plan()
 
@@ -478,7 +486,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.`x` FROM `schema` AS s0 ORDER BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`))}
+             ~s{SELECT s0.`x` FROM `schema` AS s0 ORDER BY exists((SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
   end
 
   test "union and union all" do
@@ -882,7 +890,7 @@ defmodule Ecto.Adapters.MyXQLTest do
       |> plan()
 
     assert all(query) ==
-             ~s{SELECT s0.`x` FROM `schema` AS s0 GROUP BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`))}
+             ~s{SELECT s0.`x` FROM `schema` AS s0 GROUP BY exists((SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
   end
 
   test "interpolated values" do
@@ -1089,7 +1097,7 @@ defmodule Ecto.Adapters.MyXQLTest do
         |> plan
 
       assert all(query) ==
-               ~s{SELECT s0.`x` FROM `schema` AS s0 WINDOW `w` AS (ORDER BY exists(SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`)))}
+               ~s{SELECT s0.`x` FROM `schema` AS s0 WINDOW `w` AS (ORDER BY exists((SELECT ss0.`x` AS `result` FROM `schema` AS ss0 WHERE (ss0.`x` = s0.`x`))))}
     end
 
     test "two windows" do
