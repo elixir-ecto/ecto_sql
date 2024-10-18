@@ -80,6 +80,51 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0}
   end
 
+  test "with comments" do
+    variable = "variable"
+
+    query =
+      Schema
+      |> select([r], r.x)
+      |> comment("comptime")
+      |> comment(^variable)
+      |> comment(^"inter#{"polated"}")
+      |> plan()
+
+    assert all(query) =~ "/*comptime*/ /*'variable'*/ /*'interpolated'*/"
+  end
+
+  test "with comments in subquery" do
+    subquery =
+      Schema
+      |> select([r], r.x)
+      |> comment("subquery")
+
+    query =
+      subquery(subquery)
+      |> select([r], r.x)
+      |> comment("query")
+      |> plan()
+
+    assert all(query) ==
+             ~s'/*query*/ SELECT s0."x" FROM ' <>
+               ~s'(/*subquery*/ SELECT ss0."x" AS "x" FROM "schema" AS ss0) AS s0'
+  end
+
+  test "comments before by default" do
+    query = Schema |> select([r], r.x) |> comment("before") |> plan()
+
+    assert all(query) == ~s'/*before*/ SELECT s0."x" FROM "schema" AS s0'
+  end
+
+  test "comments after query with settings" do
+    query = Schema |> select([r], r.x) |> comment("after") |> plan()
+
+    Application.put_env(:ecto_sql, :comments_position, :after)
+    assert all(query) == ~s'SELECT s0."x" FROM "schema" AS s0 /*after*/'
+    Application.delete_env(:ecto_sql, :comments_position)
+  end
+
   test "from with hints list" do
     query =
       Schema

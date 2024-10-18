@@ -167,12 +167,13 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @parent_as __MODULE__
-    alias Ecto.Query.{BooleanExpr, ByExpr, JoinExpr, QueryExpr, WithExpr}
+    alias Ecto.Query.{BooleanExpr, ByExpr, JoinExpr, QueryExpr, WithExpr, CommentExpr}
 
     @impl true
     def all(query, as_prefix \\ []) do
       sources = create_names(query, as_prefix)
       {select_distinct, order_by_distinct} = distinct(query.distinct, sources, query)
+      {comment_before, comment_after} = comment(query, sources)
 
       cte = cte(query, sources)
       from = from(query, sources)
@@ -189,6 +190,7 @@ if Code.ensure_loaded?(Postgrex) do
       lock = lock(query, sources)
 
       [
+        comment_before,
         cte,
         select,
         from,
@@ -200,7 +202,9 @@ if Code.ensure_loaded?(Postgrex) do
         combinations,
         order_by,
         limit,
-        offset | lock
+        offset,
+        lock
+        | comment_after
       ]
     end
 
@@ -879,6 +883,29 @@ if Code.ensure_loaded?(Postgrex) do
     defp lock(%{lock: nil}, _sources), do: []
     defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | binary]
     defp lock(%{lock: expr} = query, sources), do: [?\s | expr(expr, sources, query)]
+
+    defp comments_position, do: Application.get_env(:ecto_sql, :comments_position, :before)
+    defp get_comment_delimiters(:before), do: {"/*", "*/ "}
+    defp get_comment_delimiters(:after), do: {" /*", "*/"}
+
+    defp comment(%{comments: comments}, sources) do
+      comments_position = comments_position()
+      {opening_delimiter, closinig_delimiter} = get_comment_delimiters(comments_position)
+
+      {comments, _} =
+        Enum.map_reduce(comments, _safe = true, fn
+          comment, acc when is_binary(comment) ->
+            {[opening_delimiter, comment, closinig_delimiter], acc}
+
+          %CommentExpr{expr: expr} = query, _acc ->
+            {[opening_delimiter, expr(expr, sources, query), closinig_delimiter], false}
+        end)
+
+      case comments_position do
+        :after -> {_comments_before = [], comments}
+        :before -> {comments, _comments_after = []}
+      end
+    end
 
     defp boolean(_name, [], _sources, _query), do: []
 
