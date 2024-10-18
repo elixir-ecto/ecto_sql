@@ -419,7 +419,9 @@ defmodule Ecto.Adapters.MyXQLTest do
   test "coalesce with subquery" do
     squery = from s in Schema, select: s.x
     query = Schema |> select([s], coalesce(subquery(squery), 5)) |> plan()
-    assert all(query) == ~s{SELECT coalesce((SELECT ss0.`x` AS `x` FROM `schema` AS ss0), 5) FROM `schema` AS s0}
+
+    assert all(query) ==
+             ~s{SELECT coalesce((SELECT ss0.`x` AS `x` FROM `schema` AS ss0), 5) FROM `schema` AS s0}
   end
 
   test "where" do
