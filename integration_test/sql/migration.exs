@@ -581,6 +581,8 @@ defmodule Ecto.Integration.MigrationTest do
     assert [nil] ==
            PoolRepo.all from p in "alter_col_migration", select: p.another_from_default_to_no_default
     assert [0] ==
+           PoolRepo.all from p in "alter_col_migration", select: p.from_no_default_to_default
+    assert [0] ==
            PoolRepo.all from p in "alter_col_migration", select: p.another_from_no_default_to_default
 
     query = "INSERT INTO `alter_col_migration` (\"from_not_null_to_null\") VALUES ('foo')"

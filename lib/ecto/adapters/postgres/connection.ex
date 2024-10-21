@@ -1552,14 +1552,17 @@ if Code.ensure_loaded?(Postgrex) do
       drop_reference_expr = drop_reference_expr(opts[:from], table, name)
       prefix_with_comma = (drop_reference_expr != [] && ", ") || ""
 
+      common_suffix = [
+        reference_expr(ref, table, name),
+        modify_null(name, opts),
+        modify_default(name, ref.type, opts)
+      ]
+
       if reference_column_type == column_type(from_column_type, opts) do
         [
           drop_reference_expr,
           prefix_with_comma,
-          "ADD ",
-          reference_expr(ref, table, name),
-          modify_null(name, opts),
-          modify_default(name, ref.type, opts)
+          "ADD " | common_suffix
         ]
       else
         [
@@ -1569,10 +1572,7 @@ if Code.ensure_loaded?(Postgrex) do
           quote_name(name),
           " TYPE ",
           reference_column_type,
-          ", ADD ",
-          reference_expr(ref, table, name),
-          modify_null(name, opts),
-          modify_default(name, ref.type, opts)
+          ", ADD " | common_suffix
         ]
       end
     end
@@ -1588,15 +1588,14 @@ if Code.ensure_loaded?(Postgrex) do
         modify_null = modify_null(name, Keyword.put(opts, :prefix_with_comma, any_drop_ref?))
         any_modify_null? = modify_null != []
 
-        [
-          drop_reference_expr,
-          modify_null,
+        modify_default =
           modify_default(
             name,
             type,
             Keyword.put(opts, :prefix_with_comma, any_drop_ref? or any_modify_null?)
           )
-        ]
+
+        [drop_reference_expr, modify_null, modify_default]
       else
         [
           drop_reference_expr,
