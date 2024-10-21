@@ -1582,18 +1582,25 @@ if Code.ensure_loaded?(Postgrex) do
       from_column_type = extract_column_type(opts[:from])
 
       drop_reference_expr = drop_reference_expr(opts[:from], table, name)
-      prefix_with_comma? = drop_reference_expr != []
+      any_drop_ref? = drop_reference_expr != []
 
       if column_type == column_type(from_column_type, opts) do
+        modify_null = modify_null(name, Keyword.put(opts, :prefix_with_comma, any_drop_ref?))
+        any_modify_null? = modify_null != []
+
         [
           drop_reference_expr,
-          modify_null(name, Keyword.put(opts, :prefix_with_comma, prefix_with_comma?)),
-          modify_default(name, type, opts)
+          modify_null,
+          modify_default(
+            name,
+            type,
+            Keyword.put(opts, :prefix_with_comma, any_drop_ref? or any_modify_null?)
+          )
         ]
       else
         [
           drop_reference_expr,
-          (prefix_with_comma? && ", ") || "",
+          (any_drop_ref? && ", ") || "",
           "ALTER COLUMN ",
           quote_name(name),
           " TYPE ",
