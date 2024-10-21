@@ -1285,8 +1285,8 @@ defmodule Ecto.Migration do
   >
   > We have considered changing the column type even when it is not needed
   > could lead to undesirable locks, that's why, at least in the PostgreSQL
-  > adapter, if you provide the option `:from`, and the type matches, we
-  > will avoid changing the type.
+  > adapter, if you provide the option `:from`, and the column type matches,
+  > we will skip updating it.
   >
   > Examples
   >
@@ -1297,7 +1297,7 @@ defmodule Ecto.Migration do
   >
   >     # adding a new foreign key constraint
   >     alter table("posts") do
-  >       modify :author_id, references(:authors, type: :id), from: :id
+  >       modify :author_id, references(:authors, type: :id, validate: false), from: :id
   >     end
   >
   >     # Modify the :on_delete option of an existing foreign key
@@ -1306,11 +1306,9 @@ defmodule Ecto.Migration do
   >         from: references(:posts, on_delete: :nothing)
   >     end
   >
-  >
-  > The previous syntax will offer two benefits, at least in the PostgreSQL adapter,
-  > the migration is reversible and if the column type remains the same, the column
+  > The previous syntax will offer two benefits, apart from being a reversible migration,
+  > at least in the PostgreSQL adapter, if the column type remains the same, the column
   > type update will be skipped.
-
 
   ## Examples
 
