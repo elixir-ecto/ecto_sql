@@ -2535,7 +2535,6 @@ defmodule Ecto.Adapters.PostgresTest do
              ALTER COLUMN "space_id" TYPE integer,
              ALTER COLUMN "space_id" DROP NOT NULL,
              DROP CONSTRAINT "posts_group_id_fkey",
-             ALTER COLUMN "group_id" TYPE bigint,
              ADD CONSTRAINT "posts_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "groups"("gid"),
              ALTER COLUMN "status" TYPE varchar(100),
              ALTER COLUMN "status" SET NOT NULL,
