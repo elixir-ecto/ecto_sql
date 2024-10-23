@@ -1558,7 +1558,7 @@ if Code.ensure_loaded?(Postgrex) do
         modify_default(name, ref.type, opts)
       ]
 
-      if reference_column_type == column_type(from_column_type, opts) do
+      if reference_column_type == reference_column_type(from_column_type, opts) do
         [
           drop_reference_expr,
           prefix_with_comma,

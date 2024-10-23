@@ -40,6 +40,47 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
+  defmodule AlterColumnMigrationViaModify do
+    use Ecto.Migration
+
+    def up do
+      create table(:my_users) do
+        add :from_null_to_not_null, :integer
+
+        add :from_default_to_no_default, :integer, default: 0
+        add :from_no_default_to_default, :integer
+      end
+
+      create table(:my_comments) do
+        add :user_id, references(:users)
+      end
+
+      create table(:my_posts) do
+        add :user_id, :bigserial
+      end
+
+      alter table(:my_users) do
+        modify :from_null_to_not_null, :string, null: false, from: {:string, null: true}
+        modify :from_default_to_no_default, :integer, default: nil, from: {:integer, default: 0}
+        modify :from_no_default_to_default, :integer, default: 0, from: {:integer, default: nil}
+      end
+
+      alter table(:my_comments) do
+        modify :user_id, references(:my_users, on_delete: :nilify_all), from: references(:my_users, on_delete: :nothing)
+      end
+
+      alter table(:my_posts) do
+        modify :user_id, references(:my_users), from: :bigserial
+      end
+    end
+
+    def down do
+      drop table(:my_posts)
+      drop table(:my_comments)
+      drop table(:my_users)
+    end
+  end
+
   test "logs Postgres notice messages" do
     log =
       capture_log(fn ->
@@ -87,6 +128,47 @@ defmodule Ecto.Integration.MigrationsTest do
       assert down_log =~ @drop_table_sql
       assert down_log =~ @drop_table_log
       assert down_log =~ @version_delete
+      assert down_log =~ "commit []"
+    end
+
+    test "does not alter column type when enough info is provided to modify/3" do
+      num = @base_migration + System.unique_integer([:positive])
+      up_log =
+        capture_log(fn ->
+          Ecto.Migrator.up(PoolRepo, num, AlterColumnMigrationViaModify, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+        end)
+
+
+
+      assert Regex.scan(~r/(begin \[\])/, up_log) |> length() == 2
+      assert up_log =~ ~s(ALTER TABLE "my_users")
+      refute up_log =~ ~s(ALTER COLUMN "from_null_to_not_null" TYPE) 
+      assert up_log =~ ~s(ALTER COLUMN "from_null_to_not_null" SET NOT NULL,)
+      refute up_log =~ ~s(ALTER COLUMN "from_default_to_no_default" TYPE)
+      assert up_log =~ ~s(ALTER COLUMN "from_default_to_no_default" SET DEFAULT NULL,)
+      refute up_log =~ ~s(ALTER COLUMN "from_no_default_to_default" TYPE)
+      assert up_log =~ ~s(ALTER COLUMN "from_no_default_to_default" SET DEFAULT 0)
+
+      assert up_log =~ ~s(ALTER TABLE "my_comments")
+      assert up_log =~ ~s(DROP CONSTRAINT "my_comments_user_id_fkey",)
+      refute up_log =~ ~s(ALTER COLUMN "user_id" TYPE)
+      assert up_log =~ ~s/ADD CONSTRAINT "my_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "my_users"("id") ON DELETE SET NULL/
+      assert up_log =~ ~s{ALTER TABLE "my_comments" DROP CONSTRAINT "my_comments_user_id_fkey", ADD CONSTRAINT "my_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "my_users"("id") ON DELETE SET NULL}
+
+      assert up_log =~ ~s(ALTER TABLE "my_posts")
+      refute up_log =~ ~s(ALTER COLUMN "user_id" TYPE)
+      assert up_log =~ ~s/ADD CONSTRAINT "my_posts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "my_users"("id")/
+      assert Regex.scan(~r/(commit \[\])/, up_log) |> length() == 2
+
+      down_log =
+        capture_log(fn ->
+          Ecto.Migrator.down(PoolRepo, num, AlterColumnMigrationViaModify, log_migrator_sql: :info, log_migrations_sql: :info, log: :info)
+        end)
+
+      assert down_log =~ "begin []"
+      assert down_log =~ ~s(DROP TABLE "my_comments")
+      assert down_log =~ ~s(DROP TABLE "my_posts")
+      assert down_log =~ ~s(DROP TABLE "my_users")
       assert down_log =~ "commit []"
     end
 
