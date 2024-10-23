@@ -1283,10 +1283,9 @@ defmodule Ecto.Migration do
   > type update can lock the table, even if the type actually
   > doesn't change.
   >
-  > We have considered changing the column type even when it is not needed
-  > could lead to undesirable locks, that's why, at least in the PostgreSQL
-  > adapter, if you provide the option `:from`, and the column type matches,
-  > we will skip updating it.
+  > These undesired locks can be avoided when using the PostgreSQL adapter by
+  > providing the `:from` option and ensuring its type matches the type provided
+  > to `modify/3`. In that scenario, the type change part of the migration is omitted.
   >
   > Examples:
   >

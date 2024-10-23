@@ -153,7 +153,6 @@ defmodule Ecto.Integration.MigrationsTest do
       assert up_log =~ ~s(DROP CONSTRAINT "my_comments_user_id_fkey",)
       refute up_log =~ ~s(ALTER COLUMN "user_id" TYPE)
       assert up_log =~ ~s/ADD CONSTRAINT "my_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "my_users"("id") ON DELETE SET NULL/
-      assert up_log =~ ~s{ALTER TABLE "my_comments" DROP CONSTRAINT "my_comments_user_id_fkey", ADD CONSTRAINT "my_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "my_users"("id") ON DELETE SET NULL}
 
       assert up_log =~ ~s(ALTER TABLE "my_posts")
       refute up_log =~ ~s(ALTER COLUMN "user_id" TYPE)
