@@ -1276,7 +1276,7 @@ defmodule Ecto.Migration do
   > #### Modifying a column without changing its type {: .warning}
   >
   > If you want to modify a column without changing its type,
-  > such as adding or dropping a null constraints, consider using
+  > such as adding or dropping a null constraint, consider using
   > the `execute/2` command with the relevant SQL command instead
   > of `modify/3`, if supported by your database. This may avoid
   > redundant type updates and be more efficient, as an unnecessary
@@ -1288,7 +1288,7 @@ defmodule Ecto.Migration do
   > adapter, if you provide the option `:from`, and the column type matches,
   > we will skip updating it.
   >
-  > Examples
+  > Examples:
   >
   >     # modify column with rollback options
   >     alter table("posts") do
@@ -1306,9 +1306,9 @@ defmodule Ecto.Migration do
   >         from: references(:posts, on_delete: :nothing)
   >     end
   >
-  > The previous syntax will offer two benefits, apart from being a reversible migration,
-  > at least in the PostgreSQL adapter, if the column type remains the same, the column
-  > type update will be skipped.
+  > The previous syntax offers two benefits:
+  > 1. the migrations are reversible
+  > 2. the PostgreSQL adapter will skip the type update, due to the `:from` type matching the modify type
 
   ## Examples
 
