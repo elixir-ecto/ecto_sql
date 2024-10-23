@@ -1274,13 +1274,41 @@ defmodule Ecto.Migration do
 
   See `add/3` for more information on supported types.
 
-  If you want to modify a column without changing its type,
-  such as adding or dropping a null constraints, consider using
-  the `execute/2` command with the relevant SQL command instead
-  of `modify/3`, if supported by your database. This may avoid
-  redundant type updates and be more efficient, as an unnecessary
-  type update can lock the table, even if the type actually
-  doesn't change.
+  > #### Modifying a column without changing its type {: .warning}
+  >
+  > If you want to modify a column without changing its type,
+  > such as adding or dropping a null constraint, consider using
+  > the `execute/2` command with the relevant SQL command instead
+  > of `modify/3`, if supported by your database. This may avoid
+  > redundant type updates and be more efficient, as an unnecessary
+  > type update can lock the table, even if the type actually
+  > doesn't change.
+  >
+  > These undesired locks can be avoided when using the PostgreSQL adapter by
+  > providing the `:from` option and ensuring its type matches the type provided
+  > to `modify/3`. In that scenario, the type change part of the migration is omitted.
+  >
+  > Examples:
+  >
+  >     # modify column with rollback options
+  >     alter table("posts") do
+  >       modify :title, :text, null: false, from: {:text, null: true}
+  >     end
+  >
+  >     # adding a new foreign key constraint
+  >     alter table("posts") do
+  >       modify :author_id, references(:authors, type: :id, validate: false), from: :id
+  >     end
+  >
+  >     # Modify the :on_delete option of an existing foreign key
+  >     alter table("comments") do
+  >       modify :post_id, references(:posts, on_delete: :delete_all),
+  >         from: references(:posts, on_delete: :nothing)
+  >     end
+  >
+  > The previous syntax offers two benefits:
+  > 1. the migrations are reversible
+  > 2. the PostgreSQL adapter will skip the type update, due to the `:from` type matching the modify type
 
   ## Examples
 

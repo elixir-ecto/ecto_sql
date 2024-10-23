@@ -2543,7 +2543,6 @@ defmodule Ecto.Adapters.PostgresTest do
              ALTER COLUMN "space_id" TYPE integer,
              ALTER COLUMN "space_id" DROP NOT NULL,
              DROP CONSTRAINT "posts_group_id_fkey",
-             ALTER COLUMN "group_id" TYPE bigint,
              ADD CONSTRAINT "posts_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "groups"("gid"),
              ALTER COLUMN "status" TYPE varchar(100),
              ALTER COLUMN "status" SET NOT NULL,
@@ -2642,6 +2641,26 @@ defmodule Ecto.Adapters.PostgresTest do
     assert execute_ddl(alter) == [
              "ALTER TABLE \"posts\" DROP COLUMN \"my_pk\"" |> remove_newlines
            ]
+  end
+
+  test "alter table without updating column type via modify/3" do
+    alter =
+      {:alter, table(:posts),
+       [
+         {:modify, :category_id, %Reference{table: :categories, type: :id}, from: :id},
+         {:modify, :author_id, %Reference{table: :authors, type: :id, on_delete: :delete_all},
+          from: %Reference{table: :authors, type: :id, on_delete: :nothing}}
+       ]}
+
+    assert execute_ddl(alter) ==
+             [
+               remove_newlines("""
+               ALTER TABLE "posts"
+               ADD CONSTRAINT "posts_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "categories"("id"),
+               DROP CONSTRAINT "posts_author_id_fkey",
+               ADD CONSTRAINT "posts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "authors"("id") ON DELETE CASCADE
+               """)
+             ]
   end
 
   test "create index" do
