@@ -1580,11 +1580,12 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_change(table, {:modify, name, type, opts}) do
       column_type = column_type(type, opts)
       from_column_type = extract_column_type(opts[:from])
+      from_opts = extract_opts(opts)
 
       drop_reference_expr = drop_reference_expr(opts[:from], table, name)
       any_drop_ref? = drop_reference_expr != []
 
-      if column_type == column_type(from_column_type, opts) do
+      if column_type == column_type(from_column_type, from_opts) do
         modify_null = modify_null(name, Keyword.put(opts, :prefix_with_comma, any_drop_ref?))
         any_modify_null? = modify_null != []
 
@@ -1842,6 +1843,15 @@ if Code.ensure_loaded?(Postgrex) do
         end
 
       [type, generated_expr(generated)]
+    end
+
+    defp extract_opts(opts) do
+      with {:ok, from} <- Keyword.fetch(opts, :from),
+           {_type, from_opts} <- from do
+        from_opts
+      else
+        _ -> opts
+      end
     end
 
     defp extract_column_type({type, _}) when is_atom(type), do: type
