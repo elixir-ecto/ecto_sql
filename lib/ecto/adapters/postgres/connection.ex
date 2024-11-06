@@ -1548,6 +1548,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
       reference_column_type = reference_column_type(ref.type, opts)
       from_column_type = extract_column_type(opts[:from])
+      from_opts = extract_opts(opts[:from])
 
       drop_reference_expr = drop_reference_expr(opts[:from], table, name)
       prefix_with_comma = (drop_reference_expr != [] && ", ") || ""
@@ -1558,7 +1559,7 @@ if Code.ensure_loaded?(Postgrex) do
         modify_default(name, ref.type, opts)
       ]
 
-      if reference_column_type == reference_column_type(from_column_type, opts) do
+      if reference_column_type == reference_column_type(from_column_type, from_opts) do
         [
           drop_reference_expr,
           prefix_with_comma,
@@ -1580,7 +1581,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_change(table, {:modify, name, type, opts}) do
       column_type = column_type(type, opts)
       from_column_type = extract_column_type(opts[:from])
-      from_opts = extract_opts(opts)
+      from_opts = extract_opts(opts[:from])
 
       drop_reference_expr = drop_reference_expr(opts[:from], table, name)
       any_drop_ref? = drop_reference_expr != []
@@ -1845,14 +1846,8 @@ if Code.ensure_loaded?(Postgrex) do
       [type, generated_expr(generated)]
     end
 
-    defp extract_opts(opts) do
-      with {:ok, from} <- Keyword.fetch(opts, :from),
-           {_type, from_opts} <- from do
-        from_opts
-      else
-        _ -> opts
-      end
-    end
+    defp extract_opts({_type, opts}), do: opts
+    defp extract_opts(_opts), do: []
 
     defp extract_column_type({type, _}) when is_atom(type), do: type
     defp extract_column_type(type) when is_atom(type), do: type
