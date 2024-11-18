@@ -1547,8 +1547,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
       reference_column_type = reference_column_type(ref.type, opts)
-      from_column_type = extract_column_type(opts[:from])
-      from_opts = extract_opts(opts[:from])
+      {from_column_type, from_opts} = from_column_type_and_opts(opts[:from])
 
       drop_reference_expr = drop_reference_expr(opts[:from], table, name)
       prefix_with_comma = (drop_reference_expr != [] && ", ") || ""
@@ -1580,8 +1579,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp column_change(table, {:modify, name, type, opts}) do
       column_type = column_type(type, opts)
-      from_column_type = extract_column_type(opts[:from])
-      from_opts = extract_opts(opts[:from])
+      {from_column_type, from_opts} = from_column_type_and_opts(opts[:from])
 
       drop_reference_expr = drop_reference_expr(opts[:from], table, name)
       any_drop_ref? = drop_reference_expr != []
@@ -1846,13 +1844,11 @@ if Code.ensure_loaded?(Postgrex) do
       [type, generated_expr(generated)]
     end
 
-    defp extract_opts({_type, opts}), do: opts
-    defp extract_opts(_opts), do: []
-
-    defp extract_column_type({type, _}) when is_atom(type), do: type
-    defp extract_column_type(type) when is_atom(type), do: type
-    defp extract_column_type(%Reference{type: type}), do: type
-    defp extract_column_type(_), do: nil
+    defp from_column_type_and_opts({type, opts}) when is_atom(type), do: {type, opts}
+    defp from_column_type_and_opts({%Reference{type: type}, opts}), do: {type, opts}
+    defp from_column_type_and_opts(type) when is_atom(type), do: {type, []}
+    defp from_column_type_and_opts(%Reference{type: type}), do: {type, []}
+    defp from_column_type_and_opts(_), do: {nil, []}
 
     defp generated_expr(nil), do: []
 
