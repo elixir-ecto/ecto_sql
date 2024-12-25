@@ -733,7 +733,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({{:., _, [{:parent_as, _, [as]}, field]}, _, []}, _sources, query)
-         when is_atom(field) do
+         when is_atom(field) or is_binary(field) do
       {ix, sources} = get_parent_sources_ix(query, as)
       {_, name, _} = elem(sources, ix)
       [name, ?. | quote_name(field)]
