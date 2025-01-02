@@ -147,6 +147,8 @@ defmodule Ecto.Adapters.MyXQL do
   @behaviour Ecto.Adapter.Storage
   @behaviour Ecto.Adapter.Structure
 
+  @default_prepare_opt :named
+
   ## Custom MySQL types
 
   @impl true
@@ -170,6 +172,23 @@ defmodule Ecto.Adapters.MyXQL do
 
   defp json_decode(x) when is_binary(x), do: {:ok, MyXQL.json_library().decode!(x)}
   defp json_decode(x), do: {:ok, x}
+
+  ## Query API
+
+  @impl Ecto.Adapter.Queryable
+  def execute(adapter_meta, query_meta, query, params, opts) do
+    prepare = Keyword.get(opts, :prepare, @default_prepare_opt)
+
+    unless valid_prepare?(prepare) do
+      raise ArgumentError,
+            "expected option `:prepare` to be either `:named` or `:unnamed`, got: #{inspect(prepare)}"
+    end
+
+    Ecto.Adapters.SQL.execute(prepare, adapter_meta, query_meta, query, params, opts)
+  end
+
+  defp valid_prepare?(prepare) when prepare in [:named, :unnamed], do: true
+  defp valid_prepare?(_), do: false
 
   ## Storage API
 
