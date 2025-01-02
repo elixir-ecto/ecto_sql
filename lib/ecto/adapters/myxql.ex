@@ -10,6 +10,13 @@ defmodule Ecto.Adapters.MyXQL do
   below. All options can be given via the repository
   configuration:
 
+      config :your_app, YourApp.Repo,
+        ...
+
+  The `:prepare` option may be specified per operation:
+
+      YourApp.Repo.all(Queryable, prepare: :unnamed)
+
   ### Connection options
 
     * `:protocol` - Set to `:socket` for using UNIX domain socket, or `:tcp` for TCP
