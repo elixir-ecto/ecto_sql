@@ -1,6 +1,8 @@
 defmodule Ecto.Integration.PrepareTest do
   use Ecto.Integration.Case, async: false
 
+  import Ecto.Query, only: [from: 2]
+
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Post
 
