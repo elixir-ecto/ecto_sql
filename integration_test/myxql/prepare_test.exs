@@ -1,5 +1,5 @@
 defmodule Ecto.Integration.PrepareTest do
-  use Ecto.Integration.Case, async: true
+  use Ecto.Integration.Case, async: false
 
   alias Ecto.Integration.TestRepo
   alias Ecto.Integration.Post
@@ -9,17 +9,22 @@ defmodule Ecto.Integration.PrepareTest do
     two = TestRepo.insert!(%Post{title: "two"})
 
     stmt_count_query = "SHOW GLOBAL STATUS LIKE '%prepared_stmt_count%'"
+    assert %{rows: [[orig_count]]} = TestRepo.query(stmt_count_query, [])
 
     # Uncached
     assert TestRepo.all(Post, prepare: :unnamed) == [one, two]
-    assert %{rows: [[0]]} = TestRepo.query(stmt_count_query, [])
+    %{rows: [[new_count]]} = TestRepo.query(stmt_count_query, [])
+    assert new_count == orig_count
     assert TestRepo.all(Post, prepare: :named) == [one, two]
-    assert %{rows: [[1]]} = TestRepo.query(stmt_count_query, [])
+    assert %{rows: [[new_count]]} = TestRepo.query(stmt_count_query, [])
+    assert new_count == orig_count + 1
 
     # Cached
     assert TestRepo.all(Post, prepare: :unnamed) == [one, two]
-    assert %{rows: [[1]]} = TestRepo.query(stmt_count_query, [])
+    assert %{rows: [[new_count]]} = TestRepo.query(stmt_count_query, [])
+    assert new_count == orig_count + 1
     assert TestRepo.all(Post, prepare: :named) == [one, two]
-    assert %{rows: [[1]]} = TestRepo.query(stmt_count_query, [])
+    assert %{rows: [[new_count]]} = TestRepo.query(stmt_count_query, [])
+    assert new_count == orig_count + 1
   end
 end
