@@ -7,8 +7,7 @@ defmodule Ecto.Integration.PrepareTest do
   alias Ecto.Integration.Post
 
   test "prepare option" do
-    one = TestRepo.insert!(%Post{title: "one"})
-    two = TestRepo.insert!(%Post{title: "two"})
+    TestRepo.insert!(%Post{title: "one"})
 
     stmt_count_query = "SHOW GLOBAL STATUS LIKE '%prepared_stmt_count%'"
     assert %{rows: [[_, orig_count]]} = TestRepo.query!(stmt_count_query, [])
@@ -17,20 +16,20 @@ defmodule Ecto.Integration.PrepareTest do
     query = from p in Post, select: fragment("'mxql test prepare option'")
 
     # Uncached
-    assert TestRepo.all(query, prepare: :unnamed) == [one, two]
+    assert TestRepo.all(query, prepare: :unnamed) == ["mxql test prepare option"]
     %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count
 
-    assert TestRepo.all(query, prepare: :named) == [one, two]
+    assert TestRepo.all(query, prepare: :named) == ["mxql test prepare option"]
     assert %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count + 1
 
     # Cached
-    assert TestRepo.all(query, prepare: :unnamed) == [one, two]
+    assert TestRepo.all(query, prepare: :unnamed) == ["mxql test prepare option"]
     assert %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count + 1
 
-    assert TestRepo.all(query, prepare: :named) == [one, two]
+    assert TestRepo.all(query, prepare: :named) == ["mxql test prepare option"]
     assert %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count + 1
   end
