@@ -9,11 +9,11 @@ defmodule Ecto.Integration.PrepareTest do
   test "prepare option" do
     TestRepo.insert!(%Post{title: "one"})
 
-    stmt_count_query = "SHOW GLOBAL STATUS LIKE '%prepared_stmt_count%'"
-    assert %{rows: [[_, orig_count]]} = TestRepo.query!(stmt_count_query, [])
-    orig_count = String.to_integer(orig_count)
-
     query = from p in Post, select: fragment("'mxql test prepare option'")
+    stmt_count_query = "SHOW GLOBAL STATUS LIKE '%prepared_stmt_count%'"
+
+    %{rows: [[_, orig_count]]} = TestRepo.query!(stmt_count_query, [])
+    orig_count = String.to_integer(orig_count)
 
     # Uncached
     assert TestRepo.all(query, prepare: :unnamed) == ["mxql test prepare option"]
