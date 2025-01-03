@@ -12,19 +12,23 @@ defmodule Ecto.Integration.PrepareTest do
     assert %{rows: [[_, orig_count]]} = TestRepo.query!(stmt_count_query, [])
     orig_count = String.to_integer(orig_count)
 
+    query = from p in Post, select: fragment("'mxql test prepare option'")
+
     # Uncached
-    assert TestRepo.all(Post, prepare: :unnamed) == [one, two]
+    assert TestRepo.all(query, prepare: :unnamed) == [one, two]
     %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count
-    assert TestRepo.all(Post, prepare: :named) == [one, two]
+
+    assert TestRepo.all(query, prepare: :named) == [one, two]
     assert %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count + 1
 
     # Cached
-    assert TestRepo.all(Post, prepare: :unnamed) == [one, two]
+    assert TestRepo.all(query, prepare: :unnamed) == [one, two]
     assert %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count + 1
-    assert TestRepo.all(Post, prepare: :named) == [one, two]
+
+    assert TestRepo.all(query, prepare: :named) == [one, two]
     assert %{rows: [[_, new_count]]} = TestRepo.query!(stmt_count_query, [])
     assert String.to_integer(new_count) == orig_count + 1
   end
