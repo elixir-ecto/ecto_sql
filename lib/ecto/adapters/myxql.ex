@@ -10,6 +10,13 @@ defmodule Ecto.Adapters.MyXQL do
   below. All options can be given via the repository
   configuration:
 
+      config :your_app, YourApp.Repo,
+        ...
+
+  The `:prepare` option may be specified per operation:
+
+      YourApp.Repo.all(Queryable, prepare: :unnamed)
+
   ### Connection options
 
     * `:protocol` - Set to `:socket` for using UNIX domain socket, or `:tcp` for TCP
@@ -147,6 +154,8 @@ defmodule Ecto.Adapters.MyXQL do
   @behaviour Ecto.Adapter.Storage
   @behaviour Ecto.Adapter.Structure
 
+  @default_prepare_opt :named
+
   ## Custom MySQL types
 
   @impl true
@@ -170,6 +179,23 @@ defmodule Ecto.Adapters.MyXQL do
 
   defp json_decode(x) when is_binary(x), do: {:ok, MyXQL.json_library().decode!(x)}
   defp json_decode(x), do: {:ok, x}
+
+  ## Query API
+
+  @impl Ecto.Adapter.Queryable
+  def execute(adapter_meta, query_meta, query, params, opts) do
+    prepare = Keyword.get(opts, :prepare, @default_prepare_opt)
+
+    unless valid_prepare?(prepare) do
+      raise ArgumentError,
+            "expected option `:prepare` to be either `:named` or `:unnamed`, got: #{inspect(prepare)}"
+    end
+
+    Ecto.Adapters.SQL.execute(prepare, adapter_meta, query_meta, query, params, opts)
+  end
+
+  defp valid_prepare?(prepare) when prepare in [:named, :unnamed], do: true
+  defp valid_prepare?(_), do: false
 
   ## Storage API
 
