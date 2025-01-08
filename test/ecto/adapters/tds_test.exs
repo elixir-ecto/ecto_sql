@@ -694,6 +694,9 @@ defmodule Ecto.Adapters.TdsTest do
     query = Schema |> select([r], fragment("? COLLATE ?", r.x, literal(^"es_ES"))) |> plan()
     assert all(query) == ~s{SELECT s0.[x] COLLATE [es_ES] FROM [schema] AS s0}
 
+    query = Schema |> select([r], r.x) |> limit(fragment("?", literal(^1))) |> plan()
+    assert all(query) == ~s{SELECT TOP(1) s0.[x] FROM [schema] AS s0}
+
     query =
       Schema
       |> select([r], r.x)
