@@ -826,12 +826,8 @@ if Code.ensure_loaded?(Tds) do
       [?(, values_list(types, idx + 1, num_rows), ?)]
     end
 
-    defp expr({:literal, _, [literal]}, _sources, _query) when is_binary(literal) do
+    defp expr({:literal, _, [literal]}, _sources, _query) do
       quote_name(literal)
-    end
-
-    defp expr({:literal, _, [literal]}, _sources, _query) when is_number(literal) do
-      [to_string(literal)]
     end
 
     defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
