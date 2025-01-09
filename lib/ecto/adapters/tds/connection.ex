@@ -830,6 +830,18 @@ if Code.ensure_loaded?(Tds) do
       quote_name(literal)
     end
 
+    defp expr({:identifier, _, [literal]}, _sources, _query) do
+      quote_name(literal)
+    end
+
+    defp expr({:constant, _, [literal]}, _sources, _query) when is_binary(literal) do
+      [?', escape_string(literal), ?']
+    end
+
+    defp expr({:constant, _, [literal]}, _sources, _query) when is_number(literal) do
+      [to_string(literal)]
+    end
+
     defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
       list_param_to_args(idx, length)
     end
