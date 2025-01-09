@@ -746,10 +746,6 @@ if Code.ensure_loaded?(MyXQL) do
       [?(, values_list(types, num_rows, query), ?)]
     end
 
-    defp expr({:literal, _, [literal]}, _sources, _query) do
-      quote_name(literal)
-    end
-
     defp expr({:identifier, _, [literal]}, _sources, _query) do
       quote_name(literal)
     end

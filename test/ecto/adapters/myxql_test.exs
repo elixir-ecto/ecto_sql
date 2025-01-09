@@ -655,9 +655,6 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = Schema |> select([r], r.x) |> where([], fragment("? = \"query\\?\"", ^10)) |> plan()
     assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 WHERE (? = \"query?\")}
 
-    query = Schema |> select([r], fragment("? COLLATE ?", r.x, literal(^"es_ES"))) |> plan()
-    assert all(query) == ~s{SELECT s0.`x` COLLATE `es_ES` FROM `schema` AS s0}
-
     query = Schema |> select([r], fragment("? COLLATE ?", r.x, identifier(^"es_ES"))) |> plan()
     assert all(query) == ~s{SELECT s0.`x` COLLATE `es_ES` FROM `schema` AS s0}
 

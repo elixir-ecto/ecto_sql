@@ -987,10 +987,6 @@ if Code.ensure_loaded?(Postgrex) do
       [?(, values_list(types, idx + 1, num_rows), ?)]
     end
 
-    defp expr({:literal, _, [literal]}, _sources, _query) do
-      quote_name(literal)
-    end
-
     defp expr({:identifier, _, [literal]}, _sources, _query) do
       quote_name(literal)
     end
