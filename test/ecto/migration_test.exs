@@ -821,6 +821,23 @@ defmodule Ecto.MigrationTest do
       assert index.prefix == "baz"
     end
 
+    test "renames an index" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, new_name} = last_command()
+      assert new_name == "person_names_idx"
+      assert is_nil(index.prefix)
+    end
+
+    @tag prefix: "foo"
+    test "renames an index with a prefix" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, new_name} = last_command()
+      assert new_name == "person_names_idx"
+      assert index.prefix == "foo"
+    end
+
     test "executes a command" do
       execute "SELECT 1", "SELECT 2"
       flush()
