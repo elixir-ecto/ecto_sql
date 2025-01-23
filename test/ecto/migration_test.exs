@@ -821,6 +821,23 @@ defmodule Ecto.MigrationTest do
       assert index.prefix == "baz"
     end
 
+    test "renames an index" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, new_name} = last_command()
+      assert new_name == "person_names_idx"
+      assert is_nil(index.prefix)
+    end
+
+    @tag prefix: "foo"
+    test "renames an index with a prefix" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, new_name} = last_command()
+      assert new_name == "person_names_idx"
+      assert index.prefix == "foo"
+    end
+
     test "executes a command" do
       execute "SELECT 1", "SELECT 2"
       flush()
@@ -1002,6 +1019,23 @@ defmodule Ecto.MigrationTest do
       drop index(:posts, [:title])
       flush()
       assert {:create, %Index{}} = last_command()
+    end
+
+    test "renames an index" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, old_name} = last_command()
+      assert old_name == :people_name_index
+      assert is_nil(index.prefix)
+    end
+
+    @tag prefix: "foo"
+    test "renames an index with a prefix" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, old_name} = last_command()
+      assert old_name == :people_name_index
+      assert index.prefix == "foo"
     end
 
     test "drops a constraint" do

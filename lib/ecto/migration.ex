@@ -1195,7 +1195,7 @@ defmodule Ecto.Migration do
   end
 
   def rename(%Index{} = current_index, to: new_name) do
-    Runner.execute({:rename, current_index, new_name})
+    Runner.execute({:rename, __prefix__(current_index), new_name})
     %{current_index | name: new_name}
   end
 
