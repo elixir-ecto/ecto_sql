@@ -1021,6 +1021,23 @@ defmodule Ecto.MigrationTest do
       assert {:create, %Index{}} = last_command()
     end
 
+    test "renames an index" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, old_name} = last_command()
+      assert old_name == :people_name_index
+      assert is_nil(index.prefix)
+    end
+
+    @tag prefix: "foo"
+    test "renames an index with a prefix" do
+      rename index(:people, [:name]), to: "person_names_idx"
+      flush()
+      {_, index, old_name} = last_command()
+      assert old_name == :people_name_index
+      assert index.prefix == "foo"
+    end
+
     test "drops a constraint" do
       assert_raise Ecto.MigrationError, ~r/cannot reverse migration command/, fn ->
         drop_if_exists constraint(:posts, :price)
