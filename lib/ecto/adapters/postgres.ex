@@ -142,6 +142,13 @@ defmodule Ecto.Adapters.Postgres do
 
   @doc """
   All Ecto extensions for Postgrex.
+
+  Currently Ecto does not define any of its own extensions for Postgrex.
+  If this changes in a future release, you will need to call this function
+  when defining your own custom extensions:
+
+      Postgrex.Types.define(MyApp.PostgresTypes,
+                            [MyExtension.Foo, MyExtensionBar] ++ Ecto.Adapters.Postgres.extensions())
   """
   def extensions do
     []
