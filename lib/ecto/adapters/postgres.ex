@@ -140,7 +140,9 @@ defmodule Ecto.Adapters.Postgres do
   @default_maintenance_database "postgres"
   @default_prepare_opt :named
 
-  @doc false
+  @doc """
+  All Ecto extensions for Postgrex.
+  """
   def extensions do
     []
   end
