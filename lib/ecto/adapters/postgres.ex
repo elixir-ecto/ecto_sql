@@ -120,8 +120,7 @@ defmodule Ecto.Adapters.Postgres do
   alongside Ecto, you must define a type module with your extensions.
   Create a new file anywhere in your application with the following:
 
-      Postgrex.Types.define(MyApp.PostgresTypes,
-                            [MyExtension.Foo, MyExtensionBar] ++ Ecto.Adapters.Postgres.extensions())
+      Postgrex.Types.define(MyApp.PostgresTypes, [MyExtension.Foo, MyExtensionBar])
 
   Once your type module is defined, you can configure the repository to use it:
 
@@ -143,6 +142,13 @@ defmodule Ecto.Adapters.Postgres do
 
   @doc """
   All Ecto extensions for Postgrex.
+
+  Currently Ecto does not define any of its own extensions for Postgrex.
+  If this changes in a future release, you will need to call this function
+  when defining your own custom extensions:
+
+      Postgrex.Types.define(MyApp.PostgresTypes,
+                            [MyExtension.Foo, MyExtensionBar] ++ Ecto.Adapters.Postgres.extensions())
   """
   def extensions do
     []
