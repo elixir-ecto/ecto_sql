@@ -19,25 +19,29 @@ Clone the repo and fetch its dependencies:
     $ git clone https://github.com/elixir-ecto/ecto_sql.git
     $ cd ecto_sql
     $ mix deps.get
-    $ mix test.all
+    $ mix test
 
-Note that `mix test.all` runs the tests in `test/` and the `integration_test`s for each adapter: `pg`, `myxql` and `tds`.
-
-You can also use a local Ecto checkout if desired:
+In case you are modifying Ecto and EctoSQL at the same time, you can configure EctoSQL to use an Ecto version from your machine by running:
 
     $ ECTO_PATH=../ecto mix test.all
 
-You can run tests against a specific Ecto adapter by using the `ECTO_ADAPTER` environment variable:
+### Running integration tests
 
-    $ ECTO_ADAPTER=pg mix test
-
-MySQL and PostgreSQL can be installed directly on most systems. For MSSQL, you may need to run it as a Docker image:
+The command above will run unit tests. EctoSQL also has a suite of integration tests for its built-in adapters: `pg`, `myxql` and `tds`. If you are changing logic specific to a database, we recommend running its respective integration test suite as well. Doing so requires you to have the database available locally. MySQL and PostgreSQL can be installed directly on most systems. For MSSQL, you may need to run it as a Docker image:
 
     docker run -d -p 1433:1433 --name mssql -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=some!Password' mcr.microsoft.com/mssql/server:2017-latest
 
+Once the database is running, you can run tests against a specific Ecto adapter by using the `ECTO_ADAPTER` environment variable:
+
+    $ ECTO_ADAPTER=pg mix test
+
+You may also run `mix test.all` to run the unit tests and all integration tests. You can also use a local Ecto checkout if desired:
+
+    $ ECTO_PATH=../ecto mix test.all
+
 ### Running containerized tests
 
-It is also possible to run the integration tests under a containerized environment using [earthly](https://earthly.dev/get-earthly):
+It is also possible to run the integration tests under a containerized environment using [earthly](https://earthly.dev/get-earthly). You will also need Docker installed on your system. Then you can run:
 
     $ earthly -P +all
 
