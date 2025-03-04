@@ -533,6 +533,22 @@ if Code.ensure_loaded?(Postgrex) do
       do: "TRUE"
 
     defp select_fields(fields, sources, query) do
+      # NB: append order_by fields if distinct: true specified
+      fields =
+        case query.distinct do
+          %Ecto.Query.ByExpr{expr: true} ->
+            order_by_fields =
+              Enum.map(query.order_bys, &Keyword.values(&1.expr)) |> List.flatten()
+
+            Enum.reduce(order_by_fields, fields, fn
+              {{:., _, [{:&, [], [idx]}, _]}, _, _} = field, acc when idx > 0 -> acc ++ [field]
+              _field, acc -> acc
+            end)
+
+          _ ->
+            fields
+        end
+
       Enum.map_intersperse(fields, ", ", fn
         {:&, _, [idx]} ->
           case elem(sources, idx) do
