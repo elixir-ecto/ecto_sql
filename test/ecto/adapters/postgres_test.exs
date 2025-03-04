@@ -579,6 +579,20 @@ defmodule Ecto.Adapters.PostgresTest do
              ~s{SELECT DISTINCT ON (s0."x") s0."x" FROM "schema" AS s0 ORDER BY s0."x" DESC}
   end
 
+  test "distinct true with assocs" do
+    query =
+      Schema |> join(:inner, [r], assoc(r, :permalink)) |> order_by([r, p], [p.id]) |> distinct([r], true) |> select([r], r.x) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT DISTINCT s0."x", s1."id" FROM "schema" AS s0 INNER JOIN "schema3" AS s1 ON s1."id" = s0."y" ORDER BY s1."id"}
+
+    query =
+      Schema |> join(:inner, [r], assoc(r, :permalink)) |> order_by([r], [r.id]) |> distinct([r], true) |> select([r], r.x) |> plan()
+
+    assert all(query) ==
+             ~s{SELECT DISTINCT s0."x" FROM "schema" AS s0 INNER JOIN "schema3" AS s1 ON s1."id" = s0."y" ORDER BY s0."id"}
+  end
+
   test "coalesce" do
     query = Schema |> select([s], coalesce(s.x, 5)) |> plan()
     assert all(query) == ~s{SELECT coalesce(s0."x", 5) FROM "schema" AS s0}
