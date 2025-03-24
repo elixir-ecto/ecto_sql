@@ -1305,7 +1305,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     def execute_ddl({command, %Index{} = index}) when command in @creates do
       fields = Enum.map_intersperse(index.columns, ", ", &index_expr/1)
-      include_fields = Enum.map_intersperse(index.include, ", ", &index_expr/1)
+      include_fields = Enum.map_intersperse(index.include, ", ", &include_expr/1)
 
       maybe_nulls_distinct =
         case index.nulls_distinct do
@@ -1704,10 +1704,41 @@ if Code.ensure_loaded?(Postgrex) do
             ":default may be a string, number, boolean, list of strings, list of integers, map (when type is Map), or a fragment(...)"
         )
 
+    defp index_expr({dir, literal}) when is_binary(literal),
+      do: index_dir(dir, literal)
+
+    defp index_expr({dir, literal}),
+      do: index_dir(dir, quote_name(literal))
+
     defp index_expr(literal) when is_binary(literal),
       do: literal
 
     defp index_expr(literal),
+      do: quote_name(literal)
+
+    defp index_dir(dir, str)
+         when dir in [
+                :asc,
+                :asc_nulls_first,
+                :asc_nulls_last,
+                :desc,
+                :desc_nulls_first,
+                :desc_nulls_last
+              ] do
+      case dir do
+        :asc -> [str | " ASC"]
+        :asc_nulls_first -> [str | " ASC NULLS FIRST"]
+        :asc_nulls_last -> [str | " ASC NULLS LAST"]
+        :desc -> [str | " DESC"]
+        :desc_nulls_first -> [str | " DESC NULLS FIRST"]
+        :desc_nulls_last -> [str | " DESC NULLS LAST"]
+      end
+    end
+
+    defp include_expr(literal) when is_binary(literal),
+      do: literal
+
+    defp include_expr(literal),
       do: quote_name(literal)
 
     defp options_expr(nil),

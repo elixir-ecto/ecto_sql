@@ -1196,7 +1196,7 @@ if Code.ensure_loaded?(Tds) do
       include =
         index.include
         |> List.wrap()
-        |> Enum.map_intersperse(", ", &index_expr/1)
+        |> Enum.map_intersperse(", ", &include_expr/1)
 
       [
         [
@@ -1570,8 +1570,34 @@ if Code.ensure_loaded?(Tds) do
     defp constraint_name(type, table, name),
       do: quote_name("#{type}_#{table.prefix}_#{table.name}_#{name}")
 
+    defp index_expr({dir, literal})
+         when is_binary(literal),
+         do: index_dir(dir, literal)
+
+    defp index_expr({dir, literal}),
+      do: index_dir(dir, quote_name(literal))
+
     defp index_expr(literal) when is_binary(literal), do: literal
     defp index_expr(literal), do: quote_name(literal)
+
+    defp index_dir(dir, str)
+         when dir in [
+                :asc,
+                :asc_nulls_first,
+                :asc_nulls_last,
+                :desc,
+                :desc_nulls_first,
+                :desc_nulls_last
+              ] do
+      case dir do
+        :asc -> [str | " ASC"]
+        :desc -> [str | " DESC"]
+        _ -> error!(nil, "#{dir} is not supported in indexes in Tds adapter")
+      end
+    end
+
+    defp include_expr(literal) when is_binary(literal), do: literal
+    defp include_expr(literal), do: quote_name(literal)
 
     defp engine_expr(_storage_engine), do: [""]
 

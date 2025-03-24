@@ -2700,6 +2700,16 @@ defmodule Ecto.Adapters.PostgresTest do
            ]
   end
 
+  test "create index with direction" do
+    create =
+      {:create, index(:posts, [:category_id, desc_nulls_last: :permalink])}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE INDEX "posts_category_id_permalink_index" ON "posts" ("category_id", "permalink" DESC NULLS LAST)|
+             ]
+  end
+
   test "create unique index" do
     create = {:create, index(:posts, [:permalink], unique: true)}
 
