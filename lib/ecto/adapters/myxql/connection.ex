@@ -1312,10 +1312,33 @@ if Code.ensure_loaded?(MyXQL) do
     defp default_expr(:error),
       do: []
 
+    defp index_expr({dir, literal})
+         when is_binary(literal),
+         do: index_dir(dir, literal)
+
+    defp index_expr({dir, literal}),
+      do: index_dir(dir, quote_name(literal))
+
     defp index_expr(literal) when is_binary(literal),
       do: literal
 
     defp index_expr(literal), do: quote_name(literal)
+
+    defp index_dir(dir, str)
+         when dir in [
+                :asc,
+                :asc_nulls_first,
+                :asc_nulls_last,
+                :desc,
+                :desc_nulls_first,
+                :desc_nulls_last
+              ] do
+      case dir do
+        :asc -> [str | " ASC"]
+        :desc -> [str | " DESC"]
+        _ -> error!(nil, "#{dir} is not supported in indexes in MySQL")
+      end
+    end
 
     defp engine_expr(storage_engine),
       do: [" ENGINE = ", String.upcase(to_string(storage_engine || "INNODB"))]

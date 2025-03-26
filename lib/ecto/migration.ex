@@ -393,11 +393,21 @@ defmodule Ecto.Migration do
               comment: nil,
               options: nil
 
+    @type column :: atom | String.t() | {index_dir(), atom | String.t()}
+
+    @type index_dir ::
+            :asc
+            | :asc_nulls_first
+            | :asc_nulls_last
+            | :desc
+            | :desc_nulls_first
+            | :desc_nulls_last
+
     @type t :: %__MODULE__{
             table: String.t(),
             prefix: String.t() | nil,
             name: String.t() | atom,
-            columns: [atom | String.t()],
+            columns: [column()],
             unique: boolean,
             concurrently: boolean,
             using: atom | String.t(),
@@ -891,6 +901,24 @@ defmodule Ecto.Migration do
       create index("products", [:sku, :category_id], unique: true)
       create index("products", [:sku], unique: true, where: "category_id IS NULL")
 
+  ## Sorting direction
+
+  You can specify the sorting direction of the index by using a keyword list:
+
+      create index("products", [desc: sku])
+
+  The following keywords are supported:
+
+    * `:asc`
+    * `:asc_nulls_last`
+    * `:asc_nulls_first`
+    * `:desc`
+    * `:desc_nulls_last`
+    * `:desc_nulls_first`
+
+  The `*_nulls_first` and `*_nulls_last` variants are not supported by all
+  databases.
+
   ## Examples
 
       # With no name provided, the name of the below index defaults to
@@ -957,16 +985,17 @@ defmodule Ecto.Migration do
   defp default_index_name(index) do
     [index.table, index.columns, "index"]
     |> List.flatten()
-    |> Enum.map_join(
-      "_",
-      fn item ->
-        item
-        |> to_string()
-        |> String.replace(~r"[^\w]", "_")
-        |> String.replace_trailing("_", "")
-      end
-    )
+    |> Enum.map_join("_", &column_name/1)
     |> String.to_atom()
+  end
+
+  defp column_name({_dir, column}), do: column_name(column)
+
+  defp column_name(column) do
+    column
+    |> to_string()
+    |> String.replace(~r"[^\w]", "_")
+    |> String.replace_trailing("_", "")
   end
 
   @doc """

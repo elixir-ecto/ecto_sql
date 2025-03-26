@@ -1856,6 +1856,27 @@ defmodule Ecto.Adapters.TdsTest do
              [~s|CREATE INDEX [posts$main] ON [posts] ([permalink]) WITH(ONLINE=ON);|]
   end
 
+  test "create index with direction" do
+    create =
+      {:create, index(:posts, [:category_id, desc: :permalink])}
+
+    assert execute_ddl(create) ==
+             [
+               ~s|CREATE INDEX [posts_category_id_permalink_index] ON [posts] ([category_id], [permalink] DESC);|
+             ]
+  end
+
+  test "create index with invalid direction" do
+    create =
+      {:create, index(:posts, [:category_id, asc_nulls_first: :permalink])}
+
+    assert_raise ArgumentError,
+                 "asc_nulls_first is not supported in indexes in Tds adapter",
+                 fn ->
+                   execute_ddl(create)
+                 end
+  end
+
   test "create unique index" do
     create = {:create, index(:posts, [:permalink], unique: true)}
 

@@ -592,6 +592,12 @@ defmodule Ecto.MigrationTest do
       assert {:create, %Index{}} = last_command()
     end
 
+    test "creates an index with desc_nulls_last" do
+      create index(:posts, desc_nulls_last: :title)
+      flush()
+      assert {:create, %Index{}} = last_command()
+    end
+
     test "creates a check constraint" do
       create constraint(:posts, :price, check: "price > 0")
       flush()
