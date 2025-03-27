@@ -1355,9 +1355,7 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp log_stacktrace([], _, _), do: []
-
-  defp log_stacktrace(stacktrace, repo, size) do
+  defp log_stacktrace([_ | _] = stacktrace, repo, size) do
     for {{module, function, arity, info}, idx} <- Enum.with_index(last_non_ecto(Enum.reverse(stacktrace), repo, size)) do
       [
         ?\n,
@@ -1370,6 +1368,8 @@ defmodule Ecto.Adapters.SQL do
       ]
     end
   end
+
+  defp log_stacktrace(_, _, _), do: []
 
   defp log_stacktrace_info([file: file, line: line] ++ _) do
     [", at: ", file, ?:, Integer.to_string(line)]

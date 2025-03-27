@@ -201,6 +201,8 @@ defmodule Ecto.Integration.LoggingTest do
           TestRepo.insert_all(Logging, source_query, log: :info)
         end)
 
+      IO.inspect(log, label: :log)
+
       param_regex = ~r/\[(?<int>.+), \"(?<uuid>.+)\"\]/
       param_logs = Regex.named_captures(param_regex, log)
 
