@@ -137,6 +137,18 @@ defmodule Ecto.Integration.LoggingTest do
 
                :ok
              end) =~ stacktrace_entry(__ENV__.line)
+
+      # Bigger stacktrace size
+      # This fails because we don't receive per-query :stacktrace ecto-sql side,
+      # only the global config from adapter_meta
+      out = capture_log(fn ->
+               TestRepo.all(Post, Keyword.put(@stacktrace_opts, :stacktrace, 2))
+
+               :ok
+             end)
+
+      assert out =~ stacktrace_entry(__ENV__.line - 2)
+      assert out =~ ~r/  ↳ ExUnit.CaptureLog.with_log\/2, at: lib\/ex_unit\/capture_log.ex:113/
     end
 
     test "with custom log level" do

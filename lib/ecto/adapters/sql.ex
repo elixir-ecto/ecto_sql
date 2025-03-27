@@ -658,10 +658,11 @@ defmodule Ecto.Adapters.SQL do
     sql_call(adapter_meta, :query_many, [sql], params, opts)
   end
 
+
   defp sql_call(adapter_meta, callback, args, params, opts) do
-    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
+    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, stacktrace: stacktrace_config} = adapter_meta
     conn = get_conn_or_pool(pool, adapter_meta)
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    opts = with_log(telemetry, stacktrace_config, params, opts ++ default_opts)
     args = args ++ [params, opts]
     apply(sql, callback, [conn | args])
   end
@@ -872,7 +873,7 @@ defmodule Ecto.Adapters.SQL do
       """
     end
 
-    stacktrace = Keyword.get(config, :stacktrace, nil)
+    stacktrace = Keyword.get(config, :stacktrace)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
 
@@ -1097,8 +1098,8 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def reduce(adapter_meta, statement, params, opts, acc, fun) do
-    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    %{pid: pool, telemetry: telemetry, sql: sql, stacktrace: stacktrace_config, opts: default_opts} = adapter_meta
+    opts = with_log(telemetry, stacktrace_config, params, opts ++ default_opts)
 
     case get_conn(pool) do
       %DBConnection{conn_mode: :transaction} = conn ->
@@ -1113,8 +1114,8 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def into(adapter_meta, statement, params, opts) do
-    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, params, opts ++ default_opts)
+    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, stacktrace: stacktrace_config} = adapter_meta
+    opts = with_log(telemetry, stacktrace_config, params, opts ++ default_opts)
 
     case get_conn(pool) do
       %DBConnection{conn_mode: :transaction} = conn ->
@@ -1231,11 +1232,11 @@ defmodule Ecto.Adapters.SQL do
 
   ## Log
 
-  defp with_log(telemetry, params, opts) do
-    [log: &log(telemetry, params, &1, opts)] ++ opts
+  defp with_log(telemetry, stacktrace_config, params, opts) do
+    [log: &log(telemetry, stacktrace_config, params, &1, opts)] ++ opts
   end
 
-  defp log({repo, log, event_name}, params, entry, opts) do
+  defp log({repo, log, event_name}, stacktrace_config, params, entry, opts) do
     %{
       connection_time: query_time,
       decode_time: decode_time,
@@ -1286,20 +1287,23 @@ defmodule Ecto.Adapters.SQL do
       {true, level} ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace) end,
+          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_size(stacktrace_config)) end,
           ansi_color: sql_color(query)
         )
 
       {opts_level, args_level} ->
         Logger.log(
           opts_level || args_level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace) end,
+          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_size(stacktrace_config)) end,
           ansi_color: sql_color(query)
         )
     end
 
     :ok
   end
+
+  defp stacktrace_size(val) when is_integer(val), do: val
+  defp stacktrace_size(_), do: 1
 
   defp log_measurements([{_, nil} | rest], total, acc),
     do: log_measurements(rest, total, acc)
@@ -1310,7 +1314,7 @@ defmodule Ecto.Adapters.SQL do
   defp log_measurements([], total, acc),
     do: Map.new([total_time: total] ++ acc)
 
-  defp log_iodata(measurements, repo, source, query, params, result, stacktrace) do
+  defp log_iodata(measurements, repo, source, query, params, result, stacktrace, stacktrace_size) do
     [
       "QUERY",
       ?\s,
@@ -1324,7 +1328,7 @@ defmodule Ecto.Adapters.SQL do
       query,
       ?\s,
       inspect(params, charlists: false),
-      log_stacktrace(stacktrace, repo)
+      log_stacktrace(stacktrace, repo, stacktrace_size)
     ]
   end
 
@@ -1351,19 +1355,19 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp log_stacktrace(stacktrace, repo) do
-    with [_ | _] <- stacktrace,
-         {module, function, arity, info} <- last_non_ecto(Enum.reverse(stacktrace), repo, nil) do
+  defp log_stacktrace([], _, _), do: []
+
+  defp log_stacktrace(stacktrace, repo, size) do
+    for {{module, function, arity, info}, idx} <- Enum.with_index(last_non_ecto(Enum.reverse(stacktrace), repo, size)) do
       [
         ?\n,
         IO.ANSI.light_black(),
+        List.duplicate(?\s, 2 * idx),
         "↳ ",
         Exception.format_mfa(module, function, arity),
         log_stacktrace_info(info),
         IO.ANSI.reset()
       ]
-    else
-      _ -> []
     end
   end
 
@@ -1377,21 +1381,21 @@ defmodule Ecto.Adapters.SQL do
 
   @repo_modules [Ecto.Repo.Queryable, Ecto.Repo.Schema, Ecto.Repo.Transaction]
 
-  defp last_non_ecto([{mod, _, _, _} | _stacktrace], repo, last)
-       when mod == repo or mod in @repo_modules,
-       do: last
+  defp last_non_ecto(stacktrace, repo, size) do
+    stacktrace
+    |> last_non_ecto_entries(repo, [])
+    |> Enum.take(size)
+  end
 
-  defp last_non_ecto([last | stacktrace], repo, _last),
-    do: last_non_ecto(stacktrace, repo, last)
-
-  defp last_non_ecto([], _repo, last),
-    do: last
+  defp last_non_ecto_entries([{mod, _, _, _} | _], repo, acc) when mod == repo or mod in @repo_modules, do: acc
+  defp last_non_ecto_entries([entry | rest], repo, acc), do: last_non_ecto_entries(rest, repo, [entry | acc])
+  defp last_non_ecto_entries([], _, acc), do: acc
 
   ## Connection helpers
 
   defp checkout_or_transaction(fun, adapter_meta, opts, callback) do
-    %{pid: pool, telemetry: telemetry, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, [], opts ++ default_opts)
+    %{pid: pool, telemetry: telemetry, opts: default_opts, stacktrace: stacktrace_config} = adapter_meta
+    opts = with_log(telemetry, stacktrace_config, [], opts ++ default_opts)
 
     callback = fn conn ->
       previous_conn = put_conn(pool, conn)
