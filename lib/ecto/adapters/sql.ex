@@ -861,7 +861,7 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
-    log_stacktrace_mfa = Keyword.get(config, :log_stacktrace_mfa, {__MODULE__, :last_non_ecto, [1]})
+    log_stacktrace_mfa = Keyword.get(config, :log_stacktrace_mfa, {__MODULE__, :last_non_ecto_stacktrace, [1]})
 
     if log not in @valid_log_levels do
       raise """
@@ -1392,7 +1392,7 @@ defmodule Ecto.Adapters.SQL do
 
   @repo_modules [Ecto.Repo.Queryable, Ecto.Repo.Schema, Ecto.Repo.Transaction]
 
-  def last_non_ecto(size, stacktrace, repo) do
+  def last_non_ecto_stacktrace(size, stacktrace, repo) do
     stacktrace
     |> last_non_ecto_entries(repo, [])
     |> Enum.take(size)
