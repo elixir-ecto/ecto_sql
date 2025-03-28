@@ -138,11 +138,9 @@ defmodule Ecto.Integration.LoggingTest do
                :ok
              end) =~ stacktrace_entry(__ENV__.line)
 
-      # Bigger stacktrace size
-      # This fails because we don't receive per-query :stacktrace ecto-sql side,
-      # only the global config from adapter_meta
+      # Requires upstream change in Ecto to pass
       out = capture_log(fn ->
-               TestRepo.all(Post, Keyword.put(@stacktrace_opts, :stacktrace, 2))
+               TestRepo.all(Post, Keyword.put(@stacktrace_opts, :stacktrace, {Ecto.Adapters.SQL, :last_non_ecto, [2]}))
 
                :ok
              end)
@@ -200,8 +198,6 @@ defmodule Ecto.Integration.LoggingTest do
         capture_log(fn ->
           TestRepo.insert_all(Logging, source_query, log: :info)
         end)
-
-      IO.inspect(log, label: :log)
 
       param_regex = ~r/\[(?<int>.+), \"(?<uuid>.+)\"\]/
       param_logs = Regex.named_captures(param_regex, log)

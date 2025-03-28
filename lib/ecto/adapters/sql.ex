@@ -1287,14 +1287,14 @@ defmodule Ecto.Adapters.SQL do
       {true, level} ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_size(stacktrace_config)) end,
+          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(stacktrace_config, opts)) end,
           ansi_color: sql_color(query)
         )
 
       {opts_level, args_level} ->
         Logger.log(
           opts_level || args_level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_size(stacktrace_config)) end,
+          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(stacktrace_config, opts)) end,
           ansi_color: sql_color(query)
         )
     end
@@ -1302,8 +1302,18 @@ defmodule Ecto.Adapters.SQL do
     :ok
   end
 
-  defp stacktrace_size(val) when is_integer(val), do: val
-  defp stacktrace_size(_), do: 1
+  defp stacktrace_mfa(stacktrace_config, opts) do
+    case Keyword.get(opts, :log_stacktrace_mfa) do
+      {_, _, _} = mfa ->
+        mfa
+
+      _ ->
+        case stacktrace_config do
+          {_, _, _} = mfa -> mfa
+          _ -> {__MODULE__, :last_non_ecto, [1]}
+        end
+    end
+  end
 
   defp log_measurements([{_, nil} | rest], total, acc),
     do: log_measurements(rest, total, acc)
@@ -1355,8 +1365,10 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  defp log_stacktrace([_ | _] = stacktrace, repo, size) do
-    for {{module, function, arity, info}, idx} <- Enum.with_index(last_non_ecto(Enum.reverse(stacktrace), repo, size)) do
+  defp log_stacktrace([_ | _] = stacktrace, repo, {module, function, args}) do
+    entries = apply(module, function, args ++ [Enum.reverse(stacktrace), repo])
+
+    for {{module, function, arity, info}, idx} <- Enum.with_index(entries) do
       [
         ?\n,
         IO.ANSI.light_black(),
@@ -1381,7 +1393,7 @@ defmodule Ecto.Adapters.SQL do
 
   @repo_modules [Ecto.Repo.Queryable, Ecto.Repo.Schema, Ecto.Repo.Transaction]
 
-  defp last_non_ecto(stacktrace, repo, size) do
+  def last_non_ecto(size, stacktrace, repo) do
     stacktrace
     |> last_non_ecto_entries(repo, [])
     |> Enum.take(size)
