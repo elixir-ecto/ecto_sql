@@ -138,7 +138,6 @@ defmodule Ecto.Integration.LoggingTest do
                :ok
              end) =~ stacktrace_entry(__ENV__.line)
 
-      # Requires upstream change in Ecto to pass
       out = capture_log(fn ->
                TestRepo.all(Post, Keyword.put(@stacktrace_opts, :log_stacktrace_mfa, {Ecto.Adapters.SQL, :last_non_ecto_stacktrace, [2]}))
 
