@@ -1320,7 +1320,7 @@ defmodule Ecto.Adapters.SQL do
               log_params,
               result,
               stacktrace,
-              stacktrace_mfa(log_stacktrace_mfa, opts)
+              opts[:log_stacktrace_mfa] || log_stacktrace_mfa
             )
           end,
           ansi_color: sql_color(query)
@@ -1338,7 +1338,7 @@ defmodule Ecto.Adapters.SQL do
               log_params,
               result,
               stacktrace,
-              stacktrace_mfa(log_stacktrace_mfa, opts)
+              opts[:log_stacktrace_mfa] || log_stacktrace_mfa
             )
           end,
           ansi_color: sql_color(query)
@@ -1346,16 +1346,6 @@ defmodule Ecto.Adapters.SQL do
     end
 
     :ok
-  end
-
-  defp stacktrace_mfa(log_stacktrace_mfa, opts) do
-    case Keyword.get(opts, :log_stacktrace_mfa) do
-      {_, _, _} = mfa ->
-        mfa
-
-      _ ->
-        log_stacktrace_mfa
-    end
   end
 
   defp log_measurements([{_, nil} | rest], total, acc),
