@@ -658,9 +658,15 @@ defmodule Ecto.Adapters.SQL do
     sql_call(adapter_meta, :query_many, [sql], params, opts)
   end
 
-
   defp sql_call(adapter_meta, callback, args, params, opts) do
-    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, log_stacktrace_mfa: log_stacktrace_mfa} = adapter_meta
+    %{
+      pid: pool,
+      telemetry: telemetry,
+      sql: sql,
+      opts: default_opts,
+      log_stacktrace_mfa: log_stacktrace_mfa
+    } = adapter_meta
+
     conn = get_conn_or_pool(pool, adapter_meta)
     opts = with_log(telemetry, log_stacktrace_mfa, params, opts ++ default_opts)
     args = args ++ [params, opts]
@@ -861,7 +867,9 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
-    log_stacktrace_mfa = Keyword.get(config, :log_stacktrace_mfa, {__MODULE__, :last_non_ecto_stacktrace, [1]})
+
+    log_stacktrace_mfa =
+      Keyword.get(config, :log_stacktrace_mfa, {__MODULE__, :last_non_ecto_stacktrace, [1]})
 
     if log not in @valid_log_levels do
       raise """
@@ -1100,7 +1108,14 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def reduce(adapter_meta, statement, params, opts, acc, fun) do
-    %{pid: pool, telemetry: telemetry, sql: sql, log_stacktrace_mfa: log_stacktrace_mfa, opts: default_opts} = adapter_meta
+    %{
+      pid: pool,
+      telemetry: telemetry,
+      sql: sql,
+      log_stacktrace_mfa: log_stacktrace_mfa,
+      opts: default_opts
+    } = adapter_meta
+
     opts = with_log(telemetry, log_stacktrace_mfa, params, opts ++ default_opts)
 
     case get_conn(pool) do
@@ -1116,7 +1131,14 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def into(adapter_meta, statement, params, opts) do
-    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, log_stacktrace_mfa: log_stacktrace_mfa} = adapter_meta
+    %{
+      pid: pool,
+      telemetry: telemetry,
+      sql: sql,
+      opts: default_opts,
+      log_stacktrace_mfa: log_stacktrace_mfa
+    } = adapter_meta
+
     opts = with_log(telemetry, log_stacktrace_mfa, params, opts ++ default_opts)
 
     case get_conn(pool) do
@@ -1289,14 +1311,36 @@ defmodule Ecto.Adapters.SQL do
       {true, level} ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(log_stacktrace_mfa, opts)) end,
+          fn ->
+            log_iodata(
+              measurements,
+              repo,
+              source,
+              query,
+              log_params,
+              result,
+              stacktrace,
+              stacktrace_mfa(log_stacktrace_mfa, opts)
+            )
+          end,
           ansi_color: sql_color(query)
         )
 
       {opts_level, args_level} ->
         Logger.log(
           opts_level || args_level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(log_stacktrace_mfa, opts)) end,
+          fn ->
+            log_iodata(
+              measurements,
+              repo,
+              source,
+              query,
+              log_params,
+              result,
+              stacktrace,
+              stacktrace_mfa(log_stacktrace_mfa, opts)
+            )
+          end,
           ansi_color: sql_color(query)
         )
     end
@@ -1398,14 +1442,21 @@ defmodule Ecto.Adapters.SQL do
     |> Enum.take(size)
   end
 
-  defp last_non_ecto_entries([{mod, _, _, _} | _], repo, acc) when mod == repo or mod in @repo_modules, do: acc
-  defp last_non_ecto_entries([entry | rest], repo, acc), do: last_non_ecto_entries(rest, repo, [entry | acc])
+  defp last_non_ecto_entries([{mod, _, _, _} | _], repo, acc)
+       when mod == repo or mod in @repo_modules,
+       do: acc
+
+  defp last_non_ecto_entries([entry | rest], repo, acc),
+    do: last_non_ecto_entries(rest, repo, [entry | acc])
+
   defp last_non_ecto_entries([], _, acc), do: acc
 
   ## Connection helpers
 
   defp checkout_or_transaction(fun, adapter_meta, opts, callback) do
-    %{pid: pool, telemetry: telemetry, opts: default_opts, log_stacktrace_mfa: log_stacktrace_mfa} = adapter_meta
+    %{pid: pool, telemetry: telemetry, opts: default_opts, log_stacktrace_mfa: log_stacktrace_mfa} =
+      adapter_meta
+
     opts = with_log(telemetry, log_stacktrace_mfa, [], opts ++ default_opts)
 
     callback = fn conn ->
