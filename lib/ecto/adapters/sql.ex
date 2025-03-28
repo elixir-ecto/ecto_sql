@@ -660,9 +660,9 @@ defmodule Ecto.Adapters.SQL do
 
 
   defp sql_call(adapter_meta, callback, args, params, opts) do
-    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, stacktrace: stacktrace_config} = adapter_meta
+    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, log_stacktrace_mfa: log_stacktrace_mfa} = adapter_meta
     conn = get_conn_or_pool(pool, adapter_meta)
-    opts = with_log(telemetry, stacktrace_config, params, opts ++ default_opts)
+    opts = with_log(telemetry, log_stacktrace_mfa, params, opts ++ default_opts)
     args = args ++ [params, opts]
     apply(sql, callback, [conn | args])
   end
@@ -861,6 +861,7 @@ defmodule Ecto.Adapters.SQL do
     end
 
     log = Keyword.get(config, :log, :debug)
+    log_stacktrace_mfa = Keyword.get(config, :log_stacktrace_mfa, {__MODULE__, :last_non_ecto, [1]})
 
     if log not in @valid_log_levels do
       raise """
@@ -886,6 +887,7 @@ defmodule Ecto.Adapters.SQL do
       telemetry: telemetry,
       sql: connection,
       stacktrace: stacktrace,
+      log_stacktrace_mfa: log_stacktrace_mfa,
       opts: Keyword.take(config, @pool_opts)
     }
 
@@ -1098,8 +1100,8 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def reduce(adapter_meta, statement, params, opts, acc, fun) do
-    %{pid: pool, telemetry: telemetry, sql: sql, stacktrace: stacktrace_config, opts: default_opts} = adapter_meta
-    opts = with_log(telemetry, stacktrace_config, params, opts ++ default_opts)
+    %{pid: pool, telemetry: telemetry, sql: sql, log_stacktrace_mfa: log_stacktrace_mfa, opts: default_opts} = adapter_meta
+    opts = with_log(telemetry, log_stacktrace_mfa, params, opts ++ default_opts)
 
     case get_conn(pool) do
       %DBConnection{conn_mode: :transaction} = conn ->
@@ -1114,8 +1116,8 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def into(adapter_meta, statement, params, opts) do
-    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, stacktrace: stacktrace_config} = adapter_meta
-    opts = with_log(telemetry, stacktrace_config, params, opts ++ default_opts)
+    %{pid: pool, telemetry: telemetry, sql: sql, opts: default_opts, log_stacktrace_mfa: log_stacktrace_mfa} = adapter_meta
+    opts = with_log(telemetry, log_stacktrace_mfa, params, opts ++ default_opts)
 
     case get_conn(pool) do
       %DBConnection{conn_mode: :transaction} = conn ->
@@ -1232,11 +1234,11 @@ defmodule Ecto.Adapters.SQL do
 
   ## Log
 
-  defp with_log(telemetry, stacktrace_config, params, opts) do
-    [log: &log(telemetry, stacktrace_config, params, &1, opts)] ++ opts
+  defp with_log(telemetry, log_stacktrace_mfa, params, opts) do
+    [log: &log(telemetry, log_stacktrace_mfa, params, &1, opts)] ++ opts
   end
 
-  defp log({repo, log, event_name}, stacktrace_config, params, entry, opts) do
+  defp log({repo, log, event_name}, log_stacktrace_mfa, params, entry, opts) do
     %{
       connection_time: query_time,
       decode_time: decode_time,
@@ -1287,14 +1289,14 @@ defmodule Ecto.Adapters.SQL do
       {true, level} ->
         Logger.log(
           level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(stacktrace_config, opts)) end,
+          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(log_stacktrace_mfa, opts)) end,
           ansi_color: sql_color(query)
         )
 
       {opts_level, args_level} ->
         Logger.log(
           opts_level || args_level,
-          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(stacktrace_config, opts)) end,
+          fn -> log_iodata(measurements, repo, source, query, log_params, result, stacktrace, stacktrace_mfa(log_stacktrace_mfa, opts)) end,
           ansi_color: sql_color(query)
         )
     end
@@ -1302,16 +1304,13 @@ defmodule Ecto.Adapters.SQL do
     :ok
   end
 
-  defp stacktrace_mfa(stacktrace_config, opts) do
+  defp stacktrace_mfa(log_stacktrace_mfa, opts) do
     case Keyword.get(opts, :log_stacktrace_mfa) do
       {_, _, _} = mfa ->
         mfa
 
       _ ->
-        case stacktrace_config do
-          {_, _, _} = mfa -> mfa
-          _ -> {__MODULE__, :last_non_ecto, [1]}
-        end
+        log_stacktrace_mfa
     end
   end
 
@@ -1406,8 +1405,8 @@ defmodule Ecto.Adapters.SQL do
   ## Connection helpers
 
   defp checkout_or_transaction(fun, adapter_meta, opts, callback) do
-    %{pid: pool, telemetry: telemetry, opts: default_opts, stacktrace: stacktrace_config} = adapter_meta
-    opts = with_log(telemetry, stacktrace_config, [], opts ++ default_opts)
+    %{pid: pool, telemetry: telemetry, opts: default_opts, log_stacktrace_mfa: log_stacktrace_mfa} = adapter_meta
+    opts = with_log(telemetry, log_stacktrace_mfa, [], opts ++ default_opts)
 
     callback = fn conn ->
       previous_conn = put_conn(pool, conn)
