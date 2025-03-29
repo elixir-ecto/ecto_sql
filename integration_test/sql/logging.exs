@@ -147,7 +147,7 @@ defmodule Ecto.Integration.LoggingTest do
       assert out =~ stacktrace_entry(__ENV__.line - 2)
 
       # We are a bit liberal with what we expect as we don't want to tie to internal ExUnit code
-      assert out =~ ~r/  ↳ ExUnit.CaptureLog.*/
+      assert out =~ ~r/  ExUnit.CaptureLog.*/
     end
 
     test "with custom log level" do
