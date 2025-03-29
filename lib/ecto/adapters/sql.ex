@@ -869,7 +869,7 @@ defmodule Ecto.Adapters.SQL do
     log = Keyword.get(config, :log, :debug)
 
     log_stacktrace_mfa =
-      Keyword.get(config, :log_stacktrace_mfa, {__MODULE__, :last_non_ecto_stacktrace, [1]})
+      Keyword.get(config, :log_stacktrace_mfa, {__MODULE__, :first_non_ecto_stacktrace, [1]})
 
     if log not in @valid_log_levels do
       raise """
@@ -1399,9 +1399,9 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp log_stacktrace([_ | _] = stacktrace, repo, {module, function, args}) do
-    entries = apply(module, function, args ++ [Enum.reverse(stacktrace), repo])
+    entries = apply(module, function, [stacktrace, repo | args])
 
-    for {{module, function, arity, info}, idx} <- Enum.with_index(entries) do
+    Enum.with_index(entries, fn {module, function, arity, info}, idx ->
       [
         ?\n,
         IO.ANSI.light_black(),
@@ -1411,7 +1411,7 @@ defmodule Ecto.Adapters.SQL do
         log_stacktrace_info(info),
         IO.ANSI.reset()
       ]
-    end
+    end)
   end
 
   defp log_stacktrace(_, _, _), do: []
@@ -1426,8 +1426,9 @@ defmodule Ecto.Adapters.SQL do
 
   @repo_modules [Ecto.Repo.Queryable, Ecto.Repo.Schema, Ecto.Repo.Transaction]
 
-  def last_non_ecto_stacktrace(size, stacktrace, repo) do
+  def first_non_ecto_stacktrace(stacktrace, repo, size) do
     stacktrace
+    |> Enum.reverse()
     |> last_non_ecto_entries(repo, [])
     |> Enum.take(size)
   end
