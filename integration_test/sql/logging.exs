@@ -137,6 +137,17 @@ defmodule Ecto.Integration.LoggingTest do
 
                :ok
              end) =~ stacktrace_entry(__ENV__.line)
+
+      out = capture_log(fn ->
+               TestRepo.all(Post, Keyword.put(@stacktrace_opts, :log_stacktrace_mfa, {Ecto.Adapters.SQL, :first_non_ecto_stacktrace, [2]}))
+
+               :ok
+             end)
+
+      assert out =~ stacktrace_entry(__ENV__.line - 2)
+
+      # We are a bit liberal with what we expect as we don't want to tie to internal ExUnit code
+      assert out =~ ~r/  ExUnit.CaptureLog.*/
     end
 
     test "with custom log level" do
