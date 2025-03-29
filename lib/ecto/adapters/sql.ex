@@ -1405,8 +1405,7 @@ defmodule Ecto.Adapters.SQL do
       [
         ?\n,
         IO.ANSI.light_black(),
-        List.duplicate(?\s, 2 * idx),
-        "↳ ",
+        if(idx == 0, do: "↳ ", else: "  "),
         Exception.format_mfa(module, function, arity),
         log_stacktrace_info(info),
         IO.ANSI.reset()
