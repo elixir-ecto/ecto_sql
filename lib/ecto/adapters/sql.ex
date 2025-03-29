@@ -1357,7 +1357,7 @@ defmodule Ecto.Adapters.SQL do
   defp log_measurements([], total, acc),
     do: Map.new([total_time: total] ++ acc)
 
-  defp log_iodata(measurements, repo, source, query, params, result, stacktrace, stacktrace_size) do
+  defp log_iodata(measurements, repo, source, query, params, result, stacktrace, stacktrace_mfa) do
     [
       "QUERY",
       ?\s,
@@ -1371,7 +1371,7 @@ defmodule Ecto.Adapters.SQL do
       query,
       ?\s,
       inspect(params, charlists: false),
-      log_stacktrace(stacktrace, repo, stacktrace_size)
+      log_stacktrace(stacktrace, repo, stacktrace_mfa)
     ]
   end
 
