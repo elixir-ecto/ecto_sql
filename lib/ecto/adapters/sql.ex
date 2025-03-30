@@ -1425,6 +1425,14 @@ defmodule Ecto.Adapters.SQL do
 
   @repo_modules [Ecto.Repo.Queryable, Ecto.Repo.Schema, Ecto.Repo.Transaction]
 
+  @doc """
+  Receives a stacktrace, and return the first N items before Ecto entries
+
+  This function is used by default in the `:log_stacktrace_info` config, with
+  a size of 1.
+  """
+  @spec first_non_ecto_stacktrace(Exception.stacktrace(), Ecto.Repo.t(), non_neg_integer()) ::
+          Exception.stacktrace()
   def first_non_ecto_stacktrace(stacktrace, repo, size) do
     stacktrace
     |> Enum.reverse()
