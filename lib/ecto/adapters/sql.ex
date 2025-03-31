@@ -1428,7 +1428,7 @@ defmodule Ecto.Adapters.SQL do
   @doc """
   Receives a stacktrace, and return the first N items before Ecto entries
 
-  This function is used by default in the `:log_stacktrace_info` config, with
+  This function is used by default in the `:log_stacktrace_mfa` config, with
   a size of 1.
   """
   @spec first_non_ecto_stacktrace(Exception.stacktrace(), Ecto.Repo.t(), non_neg_integer()) ::
