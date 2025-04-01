@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         elixirbase:
-          - "1.11.4-erlang-23.3.4.9-alpine-3.16.9"
+          - "1.14.5-erlang-23.3.4.9-alpine-3.16.9"
         postgres:
           - "16.2-alpine"
           - "11.11-alpine"
@@ -61,7 +61,7 @@ jobs:
         pool_count:
           - "1"
         include:
-          - elixirbase: "1.11.4-erlang-23.3.4.9-alpine-3.16.9"
+          - elixirbase: "1.14.5-erlang-23.3.4.9-alpine-3.16.9"
             postgres: "16.2-alpine"
             pool_count: "4"
     steps:
@@ -79,7 +79,7 @@ jobs:
       fail-fast: false
       matrix:
         elixirbase:
-          - "1.11.4-erlang-23.3.4.9-alpine-3.16.9"
+          - "1.14.5-erlang-23.3.4.9-alpine-3.16.9"
         mysql:
           - "5.7"
           - "8.0"
@@ -96,7 +96,7 @@ jobs:
       fail-fast: false
       matrix:
         elixirbase:
-          - "1.11.4-erlang-23.3.4.9-alpine-3.16.9"
+          - "1.14.5-erlang-23.3.4.9-alpine-3.16.9"
         mssql:
           - "2017"
           - "2019"
