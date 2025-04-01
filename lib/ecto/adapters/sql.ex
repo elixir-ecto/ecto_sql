@@ -1399,7 +1399,7 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp log_stacktrace([_ | _] = stacktrace, repo, {module, function, args}) do
-    entries = apply(module, function, [stacktrace, repo | args])
+    entries = apply(module, function, [stacktrace, %{repo: repo} | args])
 
     Enum.with_index(entries, fn {module, function, arity, info}, idx ->
       [
@@ -1431,9 +1431,12 @@ defmodule Ecto.Adapters.SQL do
   This function is used by default in the `:log_stacktrace_mfa` config, with
   a size of 1.
   """
-  @spec first_non_ecto_stacktrace(Exception.stacktrace(), Ecto.Repo.t(), non_neg_integer()) ::
-          Exception.stacktrace()
-  def first_non_ecto_stacktrace(stacktrace, repo, size) do
+  @spec first_non_ecto_stacktrace(
+          Exception.stacktrace(),
+          %{repo: Ecto.Repo.t()},
+          non_neg_integer()
+        ) :: Exception.stacktrace()
+  def first_non_ecto_stacktrace(stacktrace, %{repo: repo}, size) do
     stacktrace
     |> Enum.reverse()
     |> last_non_ecto_entries(repo, [])
