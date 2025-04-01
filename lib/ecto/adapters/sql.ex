@@ -1438,21 +1438,19 @@ defmodule Ecto.Adapters.SQL do
         ) :: Exception.stacktrace()
   def first_non_ecto_stacktrace(stacktrace, %{repo: repo}, size) do
     stacktrace
-    |> first_non_ecto_entries(repo, size, size, [])
     |> Enum.reverse()
+    |> last_non_ecto_entries(repo, [])
+    |> Enum.take(size)
   end
 
-  defp first_non_ecto_entries([{mod, _, _, _} | rest], repo, size, _, _)
+  defp last_non_ecto_entries([{mod, _, _, _} | _], repo, acc)
        when mod == repo or mod in @repo_modules,
-       do: first_non_ecto_entries(rest, repo, size, size, [])
+       do: acc
 
-  defp first_non_ecto_entries([_ | rest], repo, size, 0, acc),
-    do: first_non_ecto_entries(rest, repo, size, 0, acc)
+  defp last_non_ecto_entries([entry | rest], repo, acc),
+    do: last_non_ecto_entries(rest, repo, [entry | acc])
 
-  defp first_non_ecto_entries([], _, _, _, acc), do: acc
-
-  defp first_non_ecto_entries([entry | rest], repo, size, pending, acc),
-    do: first_non_ecto_entries(rest, repo, size, pending - 1, [entry | acc])
+  defp last_non_ecto_entries([], _, acc), do: acc
 
   ## Connection helpers
 
