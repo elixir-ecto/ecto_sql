@@ -1141,8 +1141,8 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp json_extract_path(expr, path, sources, query) do
-      path = Enum.map_intersperse(path, ?,, &escape_json/1)
-      [?(, expr(expr, sources, query), "#>'{", path, "}')"]
+      path = Enum.map_intersperse(path, ?,, &escape_json(&1, sources, query))
+      [?(, expr(expr, sources, query), "#>array[", path, "]::text[])"]
     end
 
     defp values_list(types, idx, num_rows) do
@@ -2021,6 +2021,25 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp escape_json(true), do: ["true"]
     defp escape_json(false), do: ["false"]
+
+    # For unoptimized json_extract_path we allow columns to be
+    # a part of the path. To allow this, we use the array[...] syntax
+    # which requires special handling for strings and column references
+    defp escape_json(value, _, _) when is_binary(value) do
+      [?', escape_string(value), ?']
+    end
+
+    defp escape_json({{:., _, [{:&, _, [_]}, _]}, _, []} = expr, sources, query) do
+      expr(expr, sources, query)
+    end
+
+    defp escape_json({{:., _, [{:parent_as, _, [_]}, _]}, _, []} = expr, sources, query) do
+      expr(expr, sources, query)
+    end
+
+    defp escape_json(other, _, _) do
+      escape_json(other)
+    end
 
     defp ecto_to_db({:array, t}), do: [ecto_to_db(t), ?[, ?]]
     defp ecto_to_db(:id), do: "integer"

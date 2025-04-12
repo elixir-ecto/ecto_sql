@@ -963,16 +963,36 @@ defmodule Ecto.Adapters.PostgresTest do
 
   test "json_extract_path" do
     query = Schema |> select([s], json_extract_path(s.meta, [0, 1])) |> plan()
-    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{0,1}') FROM "schema" AS s0|
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>array[0,1]::text[]) FROM "schema" AS s0|
 
     query = Schema |> select([s], json_extract_path(s.meta, ["a", "b"])) |> plan()
-    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"a","b"}') FROM "schema" AS s0|
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>array['a','b']::text[]) FROM "schema" AS s0|
 
     query = Schema |> select([s], json_extract_path(s.meta, ["'a"])) |> plan()
-    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"''a"}') FROM "schema" AS s0|
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>array['''a']::text[]) FROM "schema" AS s0|
 
     query = Schema |> select([s], json_extract_path(s.meta, ["\"a"])) |> plan()
-    assert all(query) == ~s|SELECT (s0.\"meta\"#>'{"\\"a"}') FROM "schema" AS s0|
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>array['\"a']::text[]) FROM "schema" AS s0|
+
+    query = Schema |> select([s], json_extract_path(s.meta, [s.x])) |> plan()
+    assert all(query) == ~s|SELECT (s0.\"meta\"#>array[s0.\"x\"]::text[]) FROM "schema" AS s0|
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["a", s.x, 0])) |> plan()
+
+    assert all(query) ==
+             ~s|SELECT (s0.\"meta\"#>array['a',s0.\"x\",0]::text[]) FROM "schema" AS s0|
+
+    squery =
+      Schema
+      |> where([s], is_nil(json_extract_path(s.meta, [parent_as(:s).x])))
+      |> select([s], s.x)
+
+    query =
+      Schema |> from(as: :s) |> where([s], s.x in subquery(squery)) |> select([s], s.x) |> plan()
+
+    assert all(query) ==
+             ~s|SELECT s0.\"x\" FROM "schema" AS s0 WHERE (s0.\"x\" IN | <>
+               ~s|(SELECT ss0.\"x\" FROM \"schema\" AS ss0 WHERE ((ss0.\"meta\"#>array[s0.\"x\"]::text[]) IS NULL)))|
   end
 
   test "optimized json_extract_path" do
@@ -985,10 +1005,12 @@ defmodule Ecto.Adapters.PostgresTest do
     query = Schema |> where([s], s.meta["tags"][0]["name"] == "123") |> select(true) |> plan()
 
     assert all(query) ==
-             ~s|SELECT TRUE FROM "schema" AS s0 WHERE (((s0."meta"#>'{"tags",0}')@>'{"name": "123"}'))|
+             ~s|SELECT TRUE FROM "schema" AS s0 WHERE (((s0."meta"#>array['tags',0]::text[])@>'{"name": "123"}'))|
 
     query = Schema |> where([s], s.meta[0] == "123") |> select(true) |> plan()
-    assert all(query) == ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0.\"meta\"#>'{0}') = '123')|
+
+    assert all(query) ==
+             ~s|SELECT TRUE FROM "schema" AS s0 WHERE ((s0.\"meta\"#>array[0]::text[]) = '123')|
 
     query = Schema |> where([s], s.meta["enabled"] == true) |> select(true) |> plan()
 
@@ -998,7 +1020,12 @@ defmodule Ecto.Adapters.PostgresTest do
     query = Schema |> where([s], s.meta["extra"][0]["enabled"] == false) |> select(true) |> plan()
 
     assert all(query) ==
-             ~s|SELECT TRUE FROM "schema" AS s0 WHERE (((s0."meta"#>'{"extra",0}')@>'{"enabled": false}'))|
+             ~s|SELECT TRUE FROM "schema" AS s0 WHERE (((s0."meta"#>array['extra',0]::text[])@>'{"enabled": false}'))|
+
+    query = Schema |> where([s], s.meta[s.x][0]["name"] == "123") |> select(true) |> plan()
+
+    assert all(query) ==
+             ~s|SELECT TRUE FROM "schema" AS s0 WHERE (((s0."meta"#>array[s0.\"x\",0]::text[])@>'{"name": "123"}'))|
   end
 
   test "nested expressions" do

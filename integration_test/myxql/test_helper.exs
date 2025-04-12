@@ -119,7 +119,9 @@ excludes = [
   # MySQL doesn't support specifying columns for ON DELETE SET NULL
   :on_delete_nilify_column_list,
   # MySQL doesnt' support anything except a single column in DISTINCT
-  :multicolumn_distinct
+  :multicolumn_distinct,
+  # need to update adapter to accept fields in paths from Ecto
+  :json_extract_path_with_field
 ]
 
 if Version.match?(version, ">= 8.0.0") do
