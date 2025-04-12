@@ -2022,9 +2022,10 @@ if Code.ensure_loaded?(Postgrex) do
     defp escape_json(true), do: ["true"]
     defp escape_json(false), do: ["false"]
 
-    # For unoptimized json_extract_path we allow columns to be
-    # a part of the path. To allow this, we use the array[...] syntax
-    # which requires special handling for strings and column references
+    # To allow columns in json paths, we use the array[...] syntax
+    # which requires special handling for strings and column references.
+    # We still keep the escape_json/1 variant for strings because it is
+    # needed for the queries using @>
     defp escape_json(value, _, _) when is_binary(value) do
       [?', escape_string(value), ?']
     end
