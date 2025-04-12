@@ -120,7 +120,7 @@ excludes = [
   :on_delete_nilify_column_list,
   # MySQL doesnt' support anything except a single column in DISTINCT
   :multicolumn_distinct,
-  # need to update adapter to accept fields in paths from Ecto
+  # uncertain whether we can support this. needs more exploring
   :json_extract_path_with_field
 ]
 
