@@ -812,6 +812,12 @@ if Code.ensure_loaded?(MyXQL) do
 
           integer when is_integer(integer) ->
             "[#{integer}]"
+
+          _ ->
+            error!(
+              query,
+              "MySQL adapter does not support references to source fields inside of `json_extract_path`"
+            )
         end)
 
       ["json_extract(", expr(expr, sources, query), ", '$", path, "')"]
