@@ -1750,8 +1750,10 @@ if Code.ensure_loaded?(Postgrex) do
     defp options_expr(options),
       do: [?\s, options]
 
-    defp column_type({:array, type}, opts),
-      do: [column_type(type, opts), "[]"]
+    defp column_type({:array, type}, opts) do
+      [type, opts] = column_type(type, opts)
+      [type, "[]", opts]
+    end
 
     defp column_type(type, opts) when type in ~w(time utc_datetime naive_datetime)a do
       generated = Keyword.get(opts, :generated)
