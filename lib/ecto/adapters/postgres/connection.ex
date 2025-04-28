@@ -1555,6 +1555,8 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
+      collation = Keyword.fetch(opts, :collation)
+
       [
         drop_reference_expr(opts[:from], table, name),
         "ALTER COLUMN ",
@@ -1564,11 +1566,14 @@ if Code.ensure_loaded?(Postgrex) do
         ", ADD ",
         reference_expr(ref, table, name),
         modify_null(name, opts),
-        modify_default(name, ref.type, opts)
+        modify_default(name, ref.type, opts),
+        collation_expr(collation, ref.type)
       ]
     end
 
     defp column_change(table, {:modify, name, type, opts}) do
+      collation = Keyword.fetch(opts, :collation)
+
       [
         drop_reference_expr(opts[:from], table, name),
         "ALTER COLUMN ",
@@ -1576,7 +1581,8 @@ if Code.ensure_loaded?(Postgrex) do
         " TYPE ",
         column_type(type, opts),
         modify_null(name, opts),
-        modify_default(name, type, opts)
+        modify_default(name, type, opts),
+        collation_expr(collation, type)
       ]
     end
 
@@ -1624,13 +1630,21 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_options(type, opts) do
       default = Keyword.fetch(opts, :default)
       null = Keyword.get(opts, :null)
+      collation = Keyword.fetch(opts, :collation)
 
-      [default_expr(default, type), null_expr(null)]
+      [default_expr(default, type), null_expr(null), collation_expr(collation, type)]
     end
 
     defp null_expr(false), do: " NOT NULL"
     defp null_expr(true), do: " NULL"
     defp null_expr(_), do: []
+
+    defp collation_expr({:ok, collation_name}, text_type)
+         when text_type in ~w/string text char varchar/a do
+      " COLLATE \"#{collation_name}\""
+    end
+
+    defp collation_expr(_, _), do: []
 
     defp new_constraint_expr(%Constraint{check: check} = constraint) when is_binary(check) do
       [

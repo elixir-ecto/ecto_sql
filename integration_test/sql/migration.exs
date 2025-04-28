@@ -463,6 +463,7 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
+  
   import Ecto.Query, only: [from: 2]
   import Ecto.Migrator, only: [up: 4, down: 4]
 
