@@ -1369,13 +1369,13 @@ if Code.ensure_loaded?(Tds) do
         quote_name(name),
         " ",
         reference_column_type(ref.type, opts),
-        column_options(table, name, opts),
+        column_options(table, name, ref.type, opts),
         reference_expr(ref, table, name)
       ]
     end
 
     defp column_definition(table, {:add, name, type, opts}) do
-      [quote_name(name), " ", column_type(type, opts), column_options(table, name, opts)]
+      [quote_name(name), " ", column_type(type, opts), column_options(table, name, type, opts)]
     end
 
     defp column_changes(statement, table, columns) do
@@ -1396,7 +1396,7 @@ if Code.ensure_loaded?(Tds) do
           quote_name(name),
           " ",
           reference_column_type(ref.type, opts),
-          column_options(table, name, opts),
+          column_options(table, name, ref.type, opts),
           "; "
         ],
         [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "]
@@ -1411,7 +1411,7 @@ if Code.ensure_loaded?(Tds) do
           quote_name(name),
           " ",
           column_type(type, opts),
-          column_options(table, name, opts),
+          column_options(table, name, type, opts),
           "; "
         ]
       ]
@@ -1430,7 +1430,7 @@ if Code.ensure_loaded?(Tds) do
           quote_name(column_name),
           " ",
           column_type(type, opts),
-          column_options(table, column_name, opts),
+          column_options(table, column_name, type, opts),
           "; "
         ]
       ]
@@ -1446,7 +1446,7 @@ if Code.ensure_loaded?(Tds) do
           quote_name(name),
           " ",
           reference_column_type(ref.type, opts),
-          column_options(table, name, opts),
+          column_options(table, name, ref.type, opts),
           "; "
         ],
         [statement_prefix, "ADD", constraint_expr(ref, table, name), "; "],
@@ -1455,6 +1455,8 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_change(statement_prefix, table, {:modify, name, type, opts}) do
+      collation = Keyword.fetch(opts, :collation)
+
       [
         drop_constraint_from_expr(opts[:from], table, name, statement_prefix),
         maybe_drop_default_expr(statement_prefix, table, name, opts),
@@ -1465,6 +1467,7 @@ if Code.ensure_loaded?(Tds) do
           " ",
           column_type(type, opts),
           null_expr(Keyword.get(opts, :null)),
+          collation_expr(collation, type),
           "; "
         ],
         [column_default_value(statement_prefix, table, name, opts)]
@@ -1497,10 +1500,14 @@ if Code.ensure_loaded?(Tds) do
       ]
     end
 
-    defp column_options(table, name, opts) do
+    defp column_options(table, name, type, opts) do
       default = Keyword.fetch(opts, :default)
       null = Keyword.get(opts, :null)
-      [null_expr(null), default_expr(table, name, default)]
+
+      collation =
+        Keyword.fetch(opts, :collation)
+
+      [null_expr(null), default_expr(table, name, default), collation_expr(collation, type)]
     end
 
     defp column_default_value(statement_prefix, table, name, opts) do
@@ -1515,6 +1522,13 @@ if Code.ensure_loaded?(Tds) do
     defp null_expr(false), do: [" NOT NULL"]
     defp null_expr(true), do: [" NULL"]
     defp null_expr(_), do: []
+
+    defp collation_expr({:ok, collation_name}, text_type)
+         when text_type in ~w/string char varchar nchar nvarchar text ntext/a do
+      " COLLATE #{collation_name}"
+    end
+
+    defp collation_expr(_, _), do: []
 
     defp default_expr(_table, _name, {:ok, nil}),
       do: []

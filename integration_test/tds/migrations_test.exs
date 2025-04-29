@@ -15,6 +15,38 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
+  collation = "Latin1_General_CS_AS"
+  @collation collation
+
+  defmodule CollateMigration do
+    use Ecto.Migration
+    @collation collation
+
+    def change do
+      create table(:collate_reference) do
+        add :name, :string, collation: @collation
+      end
+
+      create unique_index(:collate_reference, :name)
+
+      create table(:collate) do
+        add :string, :string, collation: @collation
+        add :char, :char, size: 255, collation: @collation
+        add :nchar, :nchar, size: 255, collation: @collation
+        add :varchar, :varchar, size: 255, collation: @collation
+        add :nvarchar, :nvarchar, size: 255, collation: @collation
+        add :text, :text,  collation: @collation
+        add :ntext, :ntext, collation: @collation
+        add :integer, :integer, collation: @collation
+        add :name_string, references(:collate_reference, type: :string, column: :name), collation: @collation
+      end
+
+      alter table(:collate) do
+        modify :string, :string,  collation: "Japanese_Bushu_Kakusu_100_CS_AS_KS_WS"
+      end
+    end
+  end
+
   describe "Migrator" do
     @get_lock_command ~s(sp_getapplock @Resource = 'ecto_Ecto.Integration.PoolRepo', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = -1)
     @create_table_sql ~s(CREATE TABLE [log_mode_table])
@@ -76,6 +108,32 @@ defmodule Ecto.Integration.MigrationsTest do
       assert down_log =~ @drop_table_log
       refute down_log =~ @version_delete
       refute down_log =~ "commit []"
+    end
+
+    test "collation can be set on a column" do
+      num = @base_migration + System.unique_integer([:positive])
+      assert :ok = Ecto.Migrator.up(PoolRepo, num, CollateMigration, log: :info)
+
+      query = fn column -> """
+        SELECT collation_name
+        FROM information_schema.columns
+        WHERE table_name = 'collate' AND column_name = '#{column}';
+      """
+      end
+
+      assert %{
+        rows: [["Japanese_Bushu_Kakusu_100_CS_AS_KS_WS"]]
+      } = Ecto.Adapters.SQL.query!(PoolRepo, query.("string"), [])
+
+      for type <- ~w/char varchar nchar nvarchar text ntext/ do
+        assert %{
+          rows: [[@collation]]
+        } = Ecto.Adapters.SQL.query!(PoolRepo, query.(type), [])
+      end
+
+      assert %{
+        rows: [[nil]]
+      } = Ecto.Adapters.SQL.query!(PoolRepo, query.("integer"), [])
     end
   end
 end
