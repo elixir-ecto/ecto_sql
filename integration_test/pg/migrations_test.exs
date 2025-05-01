@@ -65,7 +65,6 @@ defmodule Ecto.Integration.MigrationsTest do
           add type, type, collation: @collation
         end
 
-        add :integer, :integer, collation: @collation
         add :name_string, references(:collate_reference, type: :string, column: :name),  collation: @collation
       end
 
@@ -202,10 +201,6 @@ defmodule Ecto.Integration.MigrationsTest do
           rows: [[@collation]]
         } = Ecto.Adapters.SQL.query!(PoolRepo, query.(type), [])
       end
-     
-      assert %{
-        rows: [[nil]]
-      } = Ecto.Adapters.SQL.query!(PoolRepo, query.("integer"), [])
     end
   end
 end

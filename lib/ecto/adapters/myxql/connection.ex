@@ -1171,13 +1171,13 @@ if Code.ensure_loaded?(MyXQL) do
         quote_name(name),
         ?\s,
         reference_column_type(ref.type, opts),
-        column_options(ref.type, opts),
+        column_options(opts),
         reference_expr(ref, table, name)
       ]
     end
 
     defp column_definition(_table, {:add, name, type, opts}) do
-      [quote_name(name), ?\s, column_type(type, opts), column_options(type, opts)]
+      [quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
     end
 
     defp column_changes(table, columns) do
@@ -1194,13 +1194,13 @@ if Code.ensure_loaded?(MyXQL) do
         quote_name(name),
         ?\s,
         reference_column_type(ref.type, opts),
-        column_options(ref.type, opts),
+        column_options(opts),
         constraint_expr(ref, table, name)
       ]
     end
 
     defp column_change(_table, {:add, name, type, opts}) do
-      ["ADD ", quote_name(name), ?\s, column_type(type, opts), column_options(type, opts)]
+      ["ADD ", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
     end
 
     defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
@@ -1209,7 +1209,7 @@ if Code.ensure_loaded?(MyXQL) do
         quote_name(name),
         ?\s,
         reference_column_type(ref.type, opts),
-        column_options(ref.type, opts),
+        column_options(opts),
         constraint_if_not_exists_expr(ref, table, name)
       ]
     end
@@ -1220,7 +1220,7 @@ if Code.ensure_loaded?(MyXQL) do
         quote_name(name),
         ?\s,
         column_type(type, opts),
-        column_options(type, opts)
+        column_options(opts)
       ]
     end
 
@@ -1231,7 +1231,7 @@ if Code.ensure_loaded?(MyXQL) do
         quote_name(name),
         ?\s,
         reference_column_type(ref.type, opts),
-        column_options(ref.type, opts),
+        column_options(opts),
         constraint_expr(ref, table, name)
       ]
     end
@@ -1243,7 +1243,7 @@ if Code.ensure_loaded?(MyXQL) do
         quote_name(name),
         ?\s,
         column_type(type, opts),
-        column_options(type, opts)
+        column_options(opts)
       ]
     end
 
@@ -1265,7 +1265,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp column_change(_table, {:remove_if_exists, name}),
       do: ["DROP IF EXISTS ", quote_name(name)]
 
-    defp column_options(type, opts) do
+    defp column_options(opts) do
       default = Keyword.fetch(opts, :default)
       null = Keyword.get(opts, :null)
       after_column = Keyword.get(opts, :after)
@@ -1274,7 +1274,7 @@ if Code.ensure_loaded?(MyXQL) do
 
       [
         default_expr(default),
-        collation_expr(collation, type),
+        collation_expr(collation),
         null_expr(null),
         comment_expr(comment),
         after_expr(after_column)
@@ -1299,12 +1299,8 @@ if Code.ensure_loaded?(MyXQL) do
     defp null_expr(true), do: " NULL"
     defp null_expr(_), do: []
 
-    defp collation_expr({:ok, collation_name}, text_type)
-         when text_type in ~w/string char varchar text tinytext mediumtext longtext/a do
-      " COLLATE \"#{collation_name}\""
-    end
-
-    defp collation_expr(_, _), do: []
+    defp collation_expr({:ok, collation_name}), do: " COLLATE \"#{collation_name}\""
+    defp collation_expr(_), do: []
 
     defp new_constraint_expr(%Constraint{check: check} = constraint) when is_binary(check) do
       [
