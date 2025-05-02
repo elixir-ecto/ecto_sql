@@ -278,7 +278,7 @@ defmodule Ecto.Migration do
 
   Collations can be set on a column with the option `:collation`. This can be
   useful when relying on ASCII sorting of characters when using a fractional index
-  for example. All supported collations and types that suuport setting a collocation
+  for example. All supported collations and types that support setting a collocation
   are not known by `ecto_sql` and specifying an incorrect collation or a collation on
   an unsupported type might cause a migration to fail. Be sure to match the collation
   on any column that references another column.
