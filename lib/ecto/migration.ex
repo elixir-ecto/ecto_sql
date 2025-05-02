@@ -274,6 +274,26 @@ defmodule Ecto.Migration do
 
           config :app, App.Repo, migration_default_prefix: "my_prefix"
 
+  ## Collations
+
+  Collations can be set on a column with the option `:collation`. This can be
+  useful when relying on ASCII sorting of characters when using a fractional index
+  for example. All supported collations and types that support setting a collocation
+  are not known by `ecto_sql` and specifying an incorrect collation or a collation on
+  an unsupported type might cause a migration to fail. Be sure to match the collation
+  on any column that references another column.
+
+      def change do
+        create table(:collate_reference) do
+          add :name, :string, collation: "POSIX"
+        end
+
+        create table(:collate) do
+          add :string, :string, collation: "POSIX"
+          add :name_ref, references(:collate_reference, type: :string, column: :name), collation: "POSIX"
+        end
+      end
+
   ## Comments
 
   Migrations where you create or alter a table support specifying table
@@ -1166,6 +1186,7 @@ defmodule Ecto.Migration do
       specified.
     * `:scale` - the scale of a numeric type. Defaults to `0`.
     * `:comment` - adds a comment to the added column.
+    * `:collation` - the collation of the text type.
     * `:after` - positions field after the specified one. Only supported on MySQL,
       it is ignored by other databases.
     * `:generated` - a string representing the expression for a generated column. See
@@ -1345,6 +1366,7 @@ defmodule Ecto.Migration do
       specified.
     * `:scale` - the scale of a numeric type. Defaults to `0`.
     * `:comment` - adds a comment to the modified column.
+    * `:collation` - the collation of the text type.
   """
   def modify(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
     validate_precision_opts!(opts, column)

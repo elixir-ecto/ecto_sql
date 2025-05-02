@@ -29,6 +29,41 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
+  text_variants = ~w/tinytext text mediumtext longtext/a
+  @text_variants text_variants
+
+  collation = "utf8mb4_bin"
+  @collation collation
+
+  defmodule CollateMigration do
+    use Ecto.Migration
+
+    @text_variants text_variants
+    @collation collation
+
+    def change do
+      create table(:collate_reference) do
+        add :name, :string, collation: @collation
+      end
+
+      create unique_index(:collate_reference, :name)
+
+      create table(:collate) do
+        add :string, :string, collation: @collation
+        add :varchar, :varchar, size: 255, collation: @collation
+        add :name_string, references(:collate_reference, type: :string, column: :name), collation: @collation
+
+        for type <- @text_variants do
+          add type, type, collation: @collation
+        end
+      end
+
+      alter table(:collate) do
+        modify :string, :string, collation: "utf8mb4_general_ci"
+      end
+    end
+  end
+
   describe "Migrator" do
     @get_lock_command ~s[SELECT GET_LOCK('ecto_Ecto.Integration.PoolRepo', -1)]
     @release_lock_command ~s[SELECT RELEASE_LOCK('ecto_Ecto.Integration.PoolRepo')]
@@ -106,6 +141,27 @@ defmodule Ecto.Integration.MigrationsTest do
         end)
 
       assert log =~ "ALTER TABLE `alter_table` ADD `column2` varchar(255) COMMENT 'second column' AFTER `column1`"
+    end
+
+    test "collation can be set on a column" do
+      num = @base_migration + System.unique_integer([:positive])
+      assert :ok = Ecto.Migrator.up(PoolRepo, num, CollateMigration, log: false)
+      query = fn column -> """
+        SELECT collation_name
+        FROM information_schema.columns
+        WHERE table_name = 'collate' AND column_name = '#{column}';
+      """
+      end
+
+      assert %{
+        rows: [["utf8mb4_general_ci"]]
+      } = Ecto.Adapters.SQL.query!(PoolRepo, query.("string"), [])
+
+      for type <- ~w/text name_string/ ++ @text_variants do
+        assert %{
+          rows: [[@collation]]
+        } = Ecto.Adapters.SQL.query!(PoolRepo, query.(type), [])
+      end
     end
   end
 end

@@ -1455,6 +1455,8 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp column_change(statement_prefix, table, {:modify, name, type, opts}) do
+      collation = Keyword.fetch(opts, :collation)
+
       [
         drop_constraint_from_expr(opts[:from], table, name, statement_prefix),
         maybe_drop_default_expr(statement_prefix, table, name, opts),
@@ -1465,6 +1467,7 @@ if Code.ensure_loaded?(Tds) do
           " ",
           column_type(type, opts),
           null_expr(Keyword.get(opts, :null)),
+          collation_expr(collation),
           "; "
         ],
         [column_default_value(statement_prefix, table, name, opts)]
@@ -1500,7 +1503,9 @@ if Code.ensure_loaded?(Tds) do
     defp column_options(table, name, opts) do
       default = Keyword.fetch(opts, :default)
       null = Keyword.get(opts, :null)
-      [null_expr(null), default_expr(table, name, default)]
+      collation = Keyword.fetch(opts, :collation)
+
+      [null_expr(null), default_expr(table, name, default), collation_expr(collation)]
     end
 
     defp column_default_value(statement_prefix, table, name, opts) do
@@ -1515,6 +1520,9 @@ if Code.ensure_loaded?(Tds) do
     defp null_expr(false), do: [" NOT NULL"]
     defp null_expr(true), do: [" NULL"]
     defp null_expr(_), do: []
+
+    defp collation_expr({:ok, collation_name}), do: " COLLATE #{collation_name}"
+    defp collation_expr(_), do: []
 
     defp default_expr(_table, _name, {:ok, nil}),
       do: []

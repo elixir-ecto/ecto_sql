@@ -40,6 +40,40 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
+  collation = "POSIX"
+  @collation collation
+
+  text_types = ~w/char varchar text/a
+  @text_types text_types
+
+  defmodule CollateMigration do
+    use Ecto.Migration
+
+    @collation collation
+    @text_types text_types
+
+    def change do
+      create table(:collate_reference) do
+        add :name, :string, primary_key: true, collation: @collation
+      end
+
+      create unique_index(:collate_reference, :name)
+
+      create table(:collate) do
+        add :string, :string, collation: @collation
+        for type <- @text_types do
+          add type, type, collation: @collation
+        end
+
+        add :name_string, references(:collate_reference, type: :string, column: :name),  collation: @collation
+      end
+
+      alter table(:collate) do
+        modify :string, :string, collation: "C"
+      end
+    end
+  end
+
   test "logs Postgres notice messages" do
     log =
       capture_log(fn ->
@@ -144,6 +178,29 @@ defmodule Ecto.Integration.MigrationsTest do
       assert down_log =~ @drop_table_log
       refute down_log =~ @version_delete
       refute down_log =~ "commit []"
+    end
+
+    test "collation can be set on a column" do
+      num = @base_migration + System.unique_integer([:positive])
+
+      assert :ok = Ecto.Migrator.up(PoolRepo, num, CollateMigration, log: :info)
+
+      query = fn column -> """
+        SELECT collation_name
+        FROM information_schema.columns
+        WHERE table_name = 'collate' AND column_name = '#{column}';
+      """
+      end
+
+      assert %{
+        rows: [["C"]]
+      } = Ecto.Adapters.SQL.query!(PoolRepo, query.("string"), [])
+
+      for type <- @text_types do
+        assert %{
+          rows: [[@collation]]
+        } = Ecto.Adapters.SQL.query!(PoolRepo, query.(type), [])
+      end
     end
   end
 end

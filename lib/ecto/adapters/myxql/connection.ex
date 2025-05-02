@@ -1215,7 +1215,13 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp column_change(_table, {:add_if_not_exists, name, type, opts}) do
-      ["ADD IF NOT EXISTS ", quote_name(name), ?\s, column_type(type, opts), column_options(opts)]
+      [
+        "ADD IF NOT EXISTS ",
+        quote_name(name),
+        ?\s,
+        column_type(type, opts),
+        column_options(opts)
+      ]
     end
 
     defp column_change(table, {:modify, name, %Reference{} = ref, opts}) do
@@ -1264,8 +1270,15 @@ if Code.ensure_loaded?(MyXQL) do
       null = Keyword.get(opts, :null)
       after_column = Keyword.get(opts, :after)
       comment = Keyword.get(opts, :comment)
+      collation = Keyword.fetch(opts, :collation)
 
-      [default_expr(default), null_expr(null), comment_expr(comment), after_expr(after_column)]
+      [
+        default_expr(default),
+        collation_expr(collation),
+        null_expr(null),
+        comment_expr(comment),
+        after_expr(after_column)
+      ]
     end
 
     defp comment_expr(comment, create_table? \\ false)
@@ -1285,6 +1298,9 @@ if Code.ensure_loaded?(MyXQL) do
     defp null_expr(false), do: " NOT NULL"
     defp null_expr(true), do: " NULL"
     defp null_expr(_), do: []
+
+    defp collation_expr({:ok, collation_name}), do: " COLLATE \"#{collation_name}\""
+    defp collation_expr(_), do: []
 
     defp new_constraint_expr(%Constraint{check: check} = constraint) when is_binary(check) do
       [
