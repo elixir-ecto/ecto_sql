@@ -718,7 +718,11 @@ defmodule Ecto.Migration do
   end
 
   @doc """
-  Drops a table or index if it exists.
+  Drops one of the following if it exists:
+
+    * an index
+    * a table
+    * a constraint
 
   Does not raise an error if the specified table or index does not exist.
 
@@ -726,6 +730,7 @@ defmodule Ecto.Migration do
 
       drop_if_exists index("posts", [:name])
       drop_if_exists table("posts")
+      drop_if_exists constraint("products", "price_must_be_positive")
       drop_if_exists index("posts", [:name]), mode: :cascade
       drop_if_exists table("posts"), mode: :cascade
 
@@ -736,12 +741,12 @@ defmodule Ecto.Migration do
       on the table. Default is `:restrict`
 
   """
-  def drop_if_exists(%{} = index_or_table, opts \\ []) when is_list(opts) do
+  def drop_if_exists(%{} = index_or_table_or_constraint, opts \\ []) when is_list(opts) do
     Runner.execute(
-      {:drop_if_exists, __prefix__(index_or_table), Keyword.get(opts, :mode, :restrict)}
+      {:drop_if_exists, __prefix__(index_or_table_or_constraint), Keyword.get(opts, :mode, :restrict)}
     )
 
-    index_or_table
+    index_or_table_or_constraint
   end
 
   @doc """
