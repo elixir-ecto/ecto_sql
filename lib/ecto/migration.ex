@@ -742,10 +742,8 @@ defmodule Ecto.Migration do
 
   """
   def drop_if_exists(%{} = index_or_table_or_constraint, opts \\ []) when is_list(opts) do
-    Runner.execute(
-      {:drop_if_exists, __prefix__(index_or_table_or_constraint), Keyword.get(opts, :mode, :restrict)}
-    )
-
+    mode = Keyword.get(opts, :mode, :restrict)
+    Runner.execute({:drop_if_exists, __prefix__(index_or_table_or_constraint), mode})
     index_or_table_or_constraint
   end
 
