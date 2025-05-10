@@ -48,12 +48,6 @@ defmodule Ecto.Adapters.SQL.Sandbox do
           :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
         end
 
-        setup tags do
-          pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Repo, shared: not tags[:async])
-          on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
-          :ok
-        end
-
         test "create post" do
           # Use the repository as usual
           assert %Post{} = Repo.insert!(%Post{})
@@ -417,17 +411,26 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   end
 
   @doc """
-  Starts a process that owns the connection and returns its pid.
+  Starts a process that will check out and own a connection, then returns that process's pid.
 
-  The owner process is not linked to the caller, it is your responsibility to
-  ensure it will be stopped. In tests, this is done by terminating the pool
-  in an `ExUnit.Callbacks.on_exit/2` callback:
+  The process is not linked to the caller, so it is your responsibility to ensure that it will be
+  stopped with `stop_owner/1`. In tests, this is done in  an `ExUnit.Callbacks.on_exit/2` callback:
 
       setup tags do
         pid = Ecto.Adapters.SQL.Sandbox.start_owner!(MyApp.Repo, shared: not tags[:async])
         on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
         :ok
       end
+
+  ## `start_owner!/2` vs `checkout/2`
+
+  `start_owner!/2` should be used in place of `checkout/2`.
+
+  `start_owner!/2` solves the problem of unlinked processes started in a test outliving the test process and causing ownership errors.
+  For example, `LiveView`'s `live(...)` test helper starts a process linked to the LiveView supervisor, not the test process.
+  These errors can be eliminated by having the owner of the connection be a separate process from the test process.
+
+  Outside of that scenario, `checkout/2` involves less overhead than this function and so can be preferable.
 
   ## Options
 
