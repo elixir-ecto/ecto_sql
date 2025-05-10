@@ -498,7 +498,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   process set the ownership mode to `{:shared, _}` and is still alive.
   """
   @spec mode(Ecto.Repo.t() | pid(), :auto | :manual | {:shared, pid()}) ::
-          :ok | :already_shared | :now_owner | :not_found
+          :ok | :already_shared | :not_owner | :not_found
   def mode(repo, mode)
       when (is_atom(repo) or is_pid(repo)) and mode in [:auto, :manual]
       when (is_atom(repo) or is_pid(repo)) and elem(mode, 0) == :shared and is_pid(elem(mode, 1)) do
