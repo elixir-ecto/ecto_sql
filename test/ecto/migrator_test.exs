@@ -1,5 +1,6 @@
 defmodule Ecto.MigratorTest do
-  use ExUnit.Case
+  # We use in_tmp which uses File.cd!
+  use ExUnit.Case, async: false
 
   import Support.FileHelpers
   import Ecto.Migrator
