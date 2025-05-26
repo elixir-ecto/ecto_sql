@@ -771,69 +771,229 @@ defmodule Ecto.Adapters.SQL do
   ## Callbacks
 
   @doc false
-  def __before_compile__(_driver, _env) do
-    quote do
-      @doc """
-      A convenience function for SQL-based repositories that executes the given query.
+  def __before_compile__(driver, _env) do
+    default_timeout = @timeout
 
-      See `Ecto.Adapters.SQL.query/4` for more information.
+    quote bind_quoted: [driver: driver, default_timeout: default_timeout] do
+      @doc """
+      Runs a custom SQL query.
+
+      If the query was successful, it will return an `:ok` tuple containing
+      a map with at least two keys:
+        * `:num_rows` - the number of rows affected
+        * `:rows` - the result set as a list. `nil` may be returned
+          instead of the list if the command does not yield any row
+          as result (but still yields the number of affected rows,
+          like a `delete` command without returning would)
+
+      ## Options
+        * `:log` - When false, does not log the query
+        * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{default_timeout}`);
+
+      ## Examples
+          iex> MyRepo.query("SELECT $1::integer + $2", [40, 2])
+          {:ok, %{rows: [[42]], num_rows: 1}}
       """
+      @spec query(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+        {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
       def query(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
-      A convenience function for SQL-based repositories that executes the given query.
+      Runs a custom SQL query.
 
-      See `Ecto.Adapters.SQL.query!/4` for more information.
+      Same as `query/3` but raises on invalid queries.
       """
+      @spec query(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+        {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
       def query!(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query!(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
-      A convenience function for SQL-based repositories that executes the given multi-result query.
+      Runs a custom SQL query that returns multiple results on the given repo.
 
-      See `Ecto.Adapters.SQL.query_many/4` for more information.
+      In case of success, it must return an `:ok` tuple containing
+      a list of maps with at least two keys:
+
+        * `:num_rows` - the number of rows affected
+
+        * `:rows` - the result set as a list. `nil` may be returned
+          instead of the list if the command does not yield any row
+          as result (but still yields the number of affected rows,
+          like a `delete` command without returning would)
+
+      ## Options
+
+        * `:log` - When false, does not log the query
+        * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{default_timeout}`);
+
+      ## Examples
+
+          iex> MyRepo.query_many("SELECT $1; SELECT $2;", [40, 2])
+          {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
       """
+
+      @spec query_many(iodata, Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+        {:ok, [Ecto.Adapters.SQL.query_result]} | {:error, Exception.t()}
       def query_many(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query_many(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
-      A convenience function for SQL-based repositories that executes the given multi-result query.
-
-      See `Ecto.Adapters.SQL.query_many!/4` for more information.
+      Same as `query_many/4` but raises on invalid queries.
       """
+      @spec query_many!(iodata, Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+        [Ecto.Adapters.SQL.query_result]
       def query_many!(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query_many!(get_dynamic_repo(), sql, params, opts)
       end
 
       @doc """
-      A convenience function for SQL-based repositories that translates the given query to SQL.
+      Converts the given query to SQL according to its kind and the
+      adapter in the given repository.
 
-      See `Ecto.Adapters.SQL.to_sql/3` for more information.
+      ## Examples
+
+      The examples below are meant for reference. Each adapter will
+      return a different result:
+
+          iex> MyRepo.to_sql(:all, Post)
+          {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
+
+          iex> MyRepo.to_sql(:update_all, from(p in Post, update: [set: [title: ^"hello"]]))
+          {"UPDATE posts AS p SET title = $1", ["hello"]}
+
       """
+      @spec to_sql(:all | :update_all | :delete_all, Ecto.Queryable.t()) ::
+        {String.t(), Ecto.Adapters.SQL.query_params()}
       def to_sql(operation, queryable) do
         Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
       end
 
-      @doc """
-      A convenience function for SQL-based repositories that executes an EXPLAIN statement or similar
-      depending on the adapter to obtain statistics for the given query.
+      case driver do
+        :postgrex ->
+          @doc """
+          Executes an EXPLAIN statement or similar for the given query according to its kind and the
+          adapter in the given repository.
 
-      See `Ecto.Adapters.SQL.explain/4` for more information.
-      """
+          ## Examples
+
+              iex> MyRepo.explain(:all, Post)
+              "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
+
+              # Shared opts
+              iex> MyRepo.explain(:all, Post, analyze: true, timeout: 20_000)
+              "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
+
+          It's safe to execute it for updates and deletes, no data change will be committed:
+
+              iex> MyRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+              "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
+
+          ### Options
+
+          The built-in Postgrex adapter supports passing `opts` to the EXPLAIN statement according to the following:
+              `:analyze`, `:verbose`, `:costs`, `:settings`, `:buffers`, `:timing`, `:summary`, `:format`, `:plan`
+
+          All options except `format` are boolean valued and default to `false`.
+
+          The allowed `format` values are `:map`, `:yaml`, and `:text`:
+            * `:map` is the deserialized JSON encoding.
+            * `:yaml` and `:text` return the result as a string.
+
+          The Postgrex adapter supports the following formats: `:map`, `:yaml` and `:text`
+
+          The `:plan` option in Postgrex can take the values `:custom` or `:fallback_generic`. When `:custom`
+          is specified, the explain plan generated will consider the specific values of the query parameters
+          that are supplied. When using `:fallback_generic`, the specific values of the query parameters will
+          be ignored. `:fallback_generic` does not use PostgreSQL's built-in support for a generic explain
+          plan (available as of PostgreSQL 16), but instead uses a special implementation that works for PostgreSQL
+          versions 12 and above. Defaults to `:custom`.
+
+          Any other value passed to `opts` will be forwarded to the underlying adapter query function, including
+          shared Repo options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
+          consult their documentation for more details.
+
+          For version compatibility, please check your database's documentation:
+
+            * _Postgrex_: [PostgreSQL doc](https://www.postgresql.org/docs/current/sql-explain.html).
+
+          """
+
+        :myxql ->
+          @doc """
+          Executes an EXPLAIN statement or similar for the given query according to its kind and the
+          adapter in the given repository.
+
+          ## Examples
+
+              # MySQL
+              iex> MyRepo.explain(:all, from(p in Post, where: p.title == "title")) |> IO.puts()
+              +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+              | id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
+              +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+              |  1 | SIMPLE      | p0    | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    1 |    100.0 | Using where |
+              +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
+
+              # Shared opts
+              iex> MyRepo.explain(:all, Post, analyze: true, timeout: 20_000)
+              "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
+
+          It's safe to execute it for updates and deletes, no data change will be committed:
+
+              iex> MyRepo(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+              "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
+
+          ### Options
+
+          The MyXQL adapter supports passing `opts` to the EXPLAIN statement according to the following:
+
+            * `:format`
+
+          The allowed `format` values are `:map`, `:yaml`, and `:text`:
+            * `:map` is the deserialized JSON encoding.
+            * `:yaml` and `:text` return the result as a string.
+
+          The built-in adapters support the following formats: `:map` and `:text`
+
+          Any other value passed to `opts` will be forwarded to the underlying adapter query function, including
+          shared Repo options such as `:timeout`. Non built-in adapters may have specific behaviour and you should
+          consult their documentation for more details.
+
+          For version compatibility, please check your database's documentation:
+
+            * _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
+
+          """
+
+        _ ->
+          :ok
+      end
+      @spec explain(:all | :update_all | :delete_all, Ecto.Queryable.t(), opts :: Keyword.t()) ::
+        String.t() | Exception.t() | list(map)
       def explain(operation, queryable, opts \\ []) do
         Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
       end
 
       @doc """
-      A convenience function for SQL-based repositories that forces all connections in the
-      pool to disconnect within the given interval.
+      Forces all connections in the repo pool to disconnect within the given interval.
 
-      See `Ecto.Adapters.SQL.disconnect_all/3` for more information.
+      Once this function is called, the pool will disconnect all of its connections
+      as they are checked in or as they are pinged. Checked in connections will be
+      randomly disconnected within the given time interval. Pinged connections are
+      immediately disconnected - as they are idle (according to `:idle_interval`).
+
+      If the connection has a backoff configured (which is the case by default),
+      disconnecting means an attempt at a new connection will be done immediately
+      after, without starting a new process for each connection. However, if backoff
+      has been disabled, the connection process will terminate. In such cases,
+      disconnecting all connections may cause the pool supervisor to restart
+      depending on the max_restarts/max_seconds configuration of the pool,
+      so you will want to set those carefully.
       """
+      @spec disconnect_all(non_neg_integer, opts :: Keyword.t()) :: :ok
       def disconnect_all(interval, opts \\ []) do
         Ecto.Adapters.SQL.disconnect_all(get_dynamic_repo(), interval, opts)
       end
