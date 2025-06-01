@@ -795,7 +795,7 @@ defmodule Ecto.Adapters.SQL do
           {:ok, %{rows: [[42]], num_rows: 1}}
       """
       @spec query(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
-        {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
+              {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
       def query(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query(get_dynamic_repo(), sql, params, opts)
       end
@@ -806,7 +806,7 @@ defmodule Ecto.Adapters.SQL do
       Same as `query/3` but raises on invalid queries.
       """
       @spec query(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
-        {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
+              {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
       def query!(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query!(get_dynamic_repo(), sql, params, opts)
       end
@@ -836,7 +836,7 @@ defmodule Ecto.Adapters.SQL do
       """
 
       @spec query_many(iodata, Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
-        {:ok, [Ecto.Adapters.SQL.query_result]} | {:error, Exception.t()}
+              {:ok, [Ecto.Adapters.SQL.query_result()]} | {:error, Exception.t()}
       def query_many(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query_many(get_dynamic_repo(), sql, params, opts)
       end
@@ -845,7 +845,7 @@ defmodule Ecto.Adapters.SQL do
       Same as `query_many/4` but raises on invalid queries.
       """
       @spec query_many!(iodata, Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
-        [Ecto.Adapters.SQL.query_result]
+              [Ecto.Adapters.SQL.query_result()]
       def query_many!(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query_many!(get_dynamic_repo(), sql, params, opts)
       end
@@ -867,7 +867,7 @@ defmodule Ecto.Adapters.SQL do
 
       """
       @spec to_sql(:all | :update_all | :delete_all, Ecto.Queryable.t()) ::
-        {String.t(), Ecto.Adapters.SQL.query_params()}
+              {String.t(), Ecto.Adapters.SQL.query_params()}
       def to_sql(operation, queryable) do
         Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
       end
@@ -971,8 +971,9 @@ defmodule Ecto.Adapters.SQL do
         _ ->
           :ok
       end
+
       @spec explain(:all | :update_all | :delete_all, Ecto.Queryable.t(), opts :: Keyword.t()) ::
-        String.t() | Exception.t() | list(map)
+              String.t() | Exception.t() | list(map)
       def explain(operation, queryable, opts \\ []) do
         Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
       end
