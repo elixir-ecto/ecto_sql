@@ -184,6 +184,39 @@ defmodule Ecto.Migration do
   To avoid that we recommend to use `execute/2` with anonymous functions instead.
   For more information and example usage please take a look at `execute/2` function.
 
+  ## Formatter configuration
+
+  To enable Ecto's custom `mix format` rules in your migrations, you can create a new formatter
+  config file in your project called `priv/[your_repo]/migrations/.formatter.exs` with the
+  following content:
+
+  ```elixir
+  [
+    import_deps: [:ecto_sql],
+    inputs: ["*.exs"]
+  ]
+  ```
+
+  You will also need to add a line or two to your project's main formatter config so that the
+  formatter knows where to find the new config file. Update (or create) your project's main
+  `.formatter.exs` file:
+
+  ```elixir
+  [
+    # Add this line to enable Ecto formatter rules
+    import_deps: [:ecto, :ecto_sql],
+
+    # Add this line to enable Ecto's formatter rules in your migrations directory
+    subdirectories: ["priv/*/migrations"],
+
+    # Default Elixir project rules
+    inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
+  ]
+  ```
+
+  Now, when you run `mix format`, the formatter should apply Ecto's custom rules when formatting
+  your migrations (e.g. no brackets are automatically added when creating columns with `add/3`). 
+
   ## Repo configuration
 
   ### Migrator configuration
