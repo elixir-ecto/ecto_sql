@@ -204,7 +204,7 @@ defmodule Ecto.Migration do
   ```elixir
   [
     # Add this line to enable Ecto formatter rules
-    import_deps: [:ecto, :ecto_sql],
+    import_deps: [:ecto],
 
     # Add this line to enable Ecto's formatter rules in your migrations directory
     subdirectories: ["priv/*/migrations"],
