@@ -126,6 +126,30 @@ defmodule Ecto.Adapters.Postgres do
 
       config :my_app, MyApp.Repo, types: MyApp.PostgresTypes
 
+  ## Unix socket connection
+
+  You may desire to communicate with Postgres via Unix sockets.
+  If your PG server is started on the same machine as your code, you could check that:
+
+  ```bash
+  % sudo grep unix_socket_directories /var/lib/postgres/data/postgresql.conf
+  unix_socket_directories = '/run/postgresql'
+  ```
+
+  ```bash
+  % ls -lah /run/postgresql
+  итого 4,0K
+  drwxr-xr-x  2 postgres postgres  80 июн  4 10:58 .
+  drwxr-xr-x 35 root     root     840 июн  4 21:02 ..
+  srwxrwxrwx  1 postgres postgres   0 июн  5 07:41 .s.PGSQL.5432
+  -rw-------  1 postgres postgres  61 июн  5 07:41 .s.PGSQL.5432.lock
+  ```
+
+  So you have postgresql started and listening on the socket.
+  Then you may use it as follows:
+
+      config :your_app, YourApp.Repo,
+        socket_dir: "/run/postgresql"
   """
 
   # Inherit all behaviour from Ecto.Adapters.SQL
