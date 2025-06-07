@@ -314,7 +314,67 @@ defmodule Ecto.Adapters.SQL do
 
   @timeout 15_000
 
-  @doc """
+  @query_doc """
+  Runs a custom SQL query.
+
+  If the query was successful, it will return an `:ok` tuple containing
+  a map with at least two keys:
+    * `:num_rows` - the number of rows affected
+    * `:rows` - the result set as a list. `nil` may be returned
+      instead of the list if the command does not yield any row
+      as result (but still yields the number of affected rows,
+      like a `delete` command without returning would)
+
+  ## Options
+    * `:log` - When false, does not log the query
+    * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{@timeout}`);
+
+  ## Examples
+      iex> MyRepo.query("SELECT $1::integer + $2", [40, 2])
+      {:ok, %{rows: [[42]], num_rows: 1}}
+
+      iex> Ecto.Adapters.SQL.query(MyRepo, "SELECT $1::integer + $2", [40, 2])
+      {:ok, %{rows: [[42]], num_rows: 1}}
+  """
+
+  @query_bang_doc """
+  Same as `query/3` but returns result directly without `:ok` tuple
+  and raises on invalid queries
+  """
+
+  @query_many_doc """
+  Runs a custom SQL query that returns multiple results on the given repo.
+
+  In case of success, it must return an `:ok` tuple containing a list of
+  maps with at least two keys:
+
+    * `:num_rows` - the number of rows affected
+
+    * `:rows` - the result set as a list. `nil` may be returned
+      instead of the list if the command does not yield any row
+      as result (but still yields the number of affected rows,
+      like a `delete` command without returning would)
+
+  ## Options
+
+    * `:log` - When false, does not log the query
+    * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{@timeout}`);
+
+  ## Examples
+
+      iex> MyRepo.query_many("SELECT $1; SELECT $2;", [40, 2])
+      {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
+
+      iex> Ecto.Adapters.SQL.query_many(MyRepo, "SELECT $1; SELECT $2;", [40, 2])
+      {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
+  """
+
+  @query_many_bang_doc """
+  Same as `query_many/4` but returns result directly without `:ok` tuple
+  and raises on invalid queries
+  """
+
+  @to_sql_doc """
   Converts the given query to SQL according to its kind and the
   adapter in the given repository.
 
@@ -323,46 +383,31 @@ defmodule Ecto.Adapters.SQL do
   The examples below are meant for reference. Each adapter will
   return a different result:
 
-      iex> Ecto.Adapters.SQL.to_sql(:all, Repo, Post)
+      iex> MyRepo.to_sql(:all, Post)
       {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
 
-      iex> Ecto.Adapters.SQL.to_sql(:update_all, Repo,
-                                    from(p in Post, update: [set: [title: ^"hello"]]))
+      iex> MyRepo.to_sql(:update_all, from(p in Post, update: [set: [title: ^"hello"]]))
       {"UPDATE posts AS p SET title = $1", ["hello"]}
 
-  This function is also available under the repository with name `to_sql`:
-
-      iex> Repo.to_sql(:all, Post)
+      iex> Ecto.Adapters.SQL.to_sql(:all, MyRepo, Post)
       {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
-
   """
-  @spec to_sql(:all | :update_all | :delete_all, Ecto.Repo.t(), Ecto.Queryable.t()) ::
-          {String.t(), query_params}
-  def to_sql(kind, repo, queryable) do
-    case Ecto.Adapter.Queryable.prepare_query(kind, repo, queryable) do
-      {{:cached, _update, _reset, {_id, cached}}, params} ->
-        {String.Chars.to_string(cached), params}
 
-      {{:cache, _update, {_id, prepared}}, params} ->
-        {prepared, params}
-
-      {{:nocache, {_id, prepared}}, params} ->
-        {prepared, params}
-    end
-  end
-
-  @doc """
+  @explain_doc """
   Executes an EXPLAIN statement or similar for the given query according to its kind and the
   adapter in the given repository.
 
   ## Examples
 
       # Postgres
+      iex> MyRepo.explain(:all, Post)
+      "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
+
       iex> Ecto.Adapters.SQL.explain(Repo, :all, Post)
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)"
 
       # MySQL
-      iex> Ecto.Adapters.SQL.explain(Repo, :all, from(p in Post, where: p.title == "title")) |> IO.puts()
+      iex> MyRepo.explain(:all, from(p in Post, where: p.title == "title")) |> IO.puts()
       +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
       | id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra       |
       +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
@@ -370,17 +415,17 @@ defmodule Ecto.Adapters.SQL do
       +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+-------------+
 
       # Shared opts
-      iex> Ecto.Adapters.SQL.explain(Repo, :all, Post, analyze: true, timeout: 20_000)
+      iex> MyRepo.explain(:all, Post, analyze: true, timeout: 20_000)
       "Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=443) (actual time=0.013..0.013 rows=0 loops=1)\\nPlanning Time: 0.031 ms\\nExecution Time: 0.021 ms"
 
   It's safe to execute it for updates and deletes, no data change will be committed:
 
-      iex> Ecto.Adapters.SQL.explain(Repo, :update_all, from(p in Post, update: [set: [title: "new title"]]))
+      iex> MyRepo.explain(Repo, :update_all, from(p in Post, update: [set: [title: "new title"]]))
       "Update on posts p0  (cost=0.00..11.70 rows=170 width=449)\\n  ->  Seq Scan on posts p0  (cost=0.00..11.70 rows=170 width=449)"
 
   This function is also available under the repository with name `explain`:
 
-      iex> Repo.explain(:all, from(p in Post, where: p.title == "title"))
+      iex> MyRepo.explain(:all, from(p in Post, where: p.title == "title"))
       "Seq Scan on posts p0  (cost=0.00..12.12 rows=1 width=443)\\n  Filter: ((title)::text = 'title'::text)"
 
   ### Options
@@ -419,6 +464,41 @@ defmodule Ecto.Adapters.SQL do
     * _MyXQL_: [MySQL doc](https://dev.mysql.com/doc/refman/8.0/en/explain.html).
 
   """
+
+  @disconnect_all_doc """
+  Forces all connections in the repo pool to disconnect within the given interval.
+
+  Once this function is called, the pool will disconnect all of its connections
+  as they are checked in or as they are pinged. Checked in connections will be
+  randomly disconnected within the given time interval. Pinged connections are
+  immediately disconnected - as they are idle (according to `:idle_interval`).
+
+  If the connection has a backoff configured (which is the case by default),
+  disconnecting means an attempt at a new connection will be done immediately
+  after, without starting a new process for each connection. However, if backoff
+  has been disabled, the connection process will terminate. In such cases,
+  disconnecting all connections may cause the pool supervisor to restart
+  depending on the max_restarts/max_seconds configuration of the pool,
+  so you will want to set those carefully.
+  """
+
+  @doc @to_sql_doc
+  @spec to_sql(:all | :update_all | :delete_all, Ecto.Repo.t(), Ecto.Queryable.t()) ::
+          {String.t(), query_params}
+  def to_sql(kind, repo, queryable) do
+    case Ecto.Adapter.Queryable.prepare_query(kind, repo, queryable) do
+      {{:cached, _update, _reset, {_id, cached}}, params} ->
+        {String.Chars.to_string(cached), params}
+
+      {{:cache, _update, {_id, prepared}}, params} ->
+        {prepared, params}
+
+      {{:nocache, {_id, prepared}}, params} ->
+        {prepared, params}
+    end
+  end
+
+  @doc @explain_doc
   @spec explain(
           pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
           :all | :update_all | :delete_all,
@@ -448,27 +528,7 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  @doc """
-  Forces all connections in the repo pool to disconnect within the given interval.
-
-  Once this function is called, the pool will disconnect all of its connections
-  as they are checked in or as they are pinged. Checked in connections will be
-  randomly disconnected within the given time interval. Pinged connections are
-  immediately disconnected - as they are idle (according to `:idle_interval`).
-
-  If the connection has a backoff configured (which is the case by default),
-  disconnecting means an attempt at a new connection will be done immediately
-  after, without starting a new process for each connection. However, if backoff
-  has been disabled, the connection process will terminate. In such cases,
-  disconnecting all connections may cause the pool supervisor to restart
-  depending on the max_restarts/max_seconds configuration of the pool,
-  so you will want to set those carefully.
-
-  For convenience, this function is also available in the repository:
-
-      iex> MyRepo.disconnect_all(60_000)
-      :ok
-  """
+  @doc @disconnect_all_doc
   @spec disconnect_all(
           pid | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
           non_neg_integer,
@@ -533,9 +593,7 @@ defmodule Ecto.Adapters.SQL do
     |> Ecto.Adapters.SQL.Stream.build(sql, params, opts)
   end
 
-  @doc """
-  Same as `query/4` but raises on invalid queries.
-  """
+  @doc @query_bang_doc
   @spec query!(
           pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
           iodata,
@@ -550,35 +608,7 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  @doc """
-  Runs a custom SQL query on the given repo.
-
-  In case of success, it must return an `:ok` tuple containing
-  a map with at least two keys:
-
-    * `:num_rows` - the number of rows affected
-
-    * `:rows` - the result set as a list. `nil` may be returned
-      instead of the list if the command does not yield any row
-      as result (but still yields the number of affected rows,
-      like a `delete` command without returning would)
-
-  ## Options
-
-    * `:log` - When false, does not log the query
-    * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{@timeout}`);
-
-  ## Examples
-
-      iex> Ecto.Adapters.SQL.query(MyRepo, "SELECT $1::integer + $2", [40, 2])
-      {:ok, %{rows: [[42]], num_rows: 1}}
-
-  For convenience, this function is also available under the repository:
-
-      iex> MyRepo.query("SELECT $1::integer + $2", [40, 2])
-      {:ok, %{rows: [[42]], num_rows: 1}}
-
-  """
+  @doc @query_doc
   @spec query(
           pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
           iodata,
@@ -596,9 +626,7 @@ defmodule Ecto.Adapters.SQL do
     sql_call(adapter_meta, :query, [sql], params, opts)
   end
 
-  @doc """
-  Same as `query_many/4` but raises on invalid queries.
-  """
+  @doc @query_many_bang_doc
   @spec query_many!(
           Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
           iodata,
@@ -613,35 +641,7 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  @doc """
-  Runs a custom SQL query that returns multiple results on the given repo.
-
-  In case of success, it must return an `:ok` tuple containing
-  a list of maps with at least two keys:
-
-    * `:num_rows` - the number of rows affected
-
-    * `:rows` - the result set as a list. `nil` may be returned
-      instead of the list if the command does not yield any row
-      as result (but still yields the number of affected rows,
-      like a `delete` command without returning would)
-
-  ## Options
-
-    * `:log` - When false, does not log the query
-    * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{@timeout}`);
-
-  ## Examples
-
-      iex> Ecto.Adapters.SQL.query_many(MyRepo, "SELECT $1; SELECT $2;", [40, 2])
-      {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
-
-  For convenience, this function is also available under the repository:
-
-      iex> MyRepo.query_many("SELECT $1; SELECT $2;", [40, 2])
-      {:ok, [%{rows: [[40]], num_rows: 1}, %{rows: [[2]], num_rows: 1}]}
-
-  """
+  @doc @query_many_doc
   @spec query_many(
           pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
           iodata,
@@ -772,68 +772,59 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def __before_compile__(_driver, _env) do
-    quote do
-      @doc """
-      A convenience function for SQL-based repositories that executes the given query.
+    query_doc = @query_doc
+    query_bang_doc = @query_bang_doc
+    query_many_doc = @query_many_doc
+    query_many_bang_doc = @query_many_bang_doc
+    to_sql_doc = @to_sql_doc
+    explain_doc = @explain_doc
+    disconnect_all_doc = @disconnect_all_doc
 
-      See `Ecto.Adapters.SQL.query/4` for more information.
-      """
+    quote do
+      @doc unquote(query_doc)
+      @spec query(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+              {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
       def query(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query(get_dynamic_repo(), sql, params, opts)
       end
 
-      @doc """
-      A convenience function for SQL-based repositories that executes the given query.
-
-      See `Ecto.Adapters.SQL.query!/4` for more information.
-      """
+      @doc unquote(query_bang_doc)
+      @spec query!(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+              Ecto.Adapters.SQL.query_result()
       def query!(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query!(get_dynamic_repo(), sql, params, opts)
       end
 
-      @doc """
-      A convenience function for SQL-based repositories that executes the given multi-result query.
-
-      See `Ecto.Adapters.SQL.query_many/4` for more information.
-      """
+      @doc unquote(query_many_doc)
+      @spec query_many(iodata, Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+              {:ok, [Ecto.Adapters.SQL.query_result()]} | {:error, Exception.t()}
       def query_many(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query_many(get_dynamic_repo(), sql, params, opts)
       end
 
-      @doc """
-      A convenience function for SQL-based repositories that executes the given multi-result query.
-
-      See `Ecto.Adapters.SQL.query_many!/4` for more information.
-      """
+      @doc unquote(query_many_bang_doc)
+      @spec query_many!(iodata, Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
+              [Ecto.Adapters.SQL.query_result()]
       def query_many!(sql, params \\ [], opts \\ []) do
         Ecto.Adapters.SQL.query_many!(get_dynamic_repo(), sql, params, opts)
       end
 
-      @doc """
-      A convenience function for SQL-based repositories that translates the given query to SQL.
-
-      See `Ecto.Adapters.SQL.to_sql/3` for more information.
-      """
+      @doc unquote(to_sql_doc)
+      @spec to_sql(:all | :update_all | :delete_all, Ecto.Queryable.t()) ::
+              {String.t(), Ecto.Adapters.SQL.query_params()}
       def to_sql(operation, queryable) do
         Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
       end
 
-      @doc """
-      A convenience function for SQL-based repositories that executes an EXPLAIN statement or similar
-      depending on the adapter to obtain statistics for the given query.
-
-      See `Ecto.Adapters.SQL.explain/4` for more information.
-      """
+      @doc unquote(explain_doc)
+      @spec explain(:all | :update_all | :delete_all, Ecto.Queryable.t(), opts :: Keyword.t()) ::
+              String.t() | Exception.t() | list(map)
       def explain(operation, queryable, opts \\ []) do
         Ecto.Adapters.SQL.explain(get_dynamic_repo(), operation, queryable, opts)
       end
 
-      @doc """
-      A convenience function for SQL-based repositories that forces all connections in the
-      pool to disconnect within the given interval.
-
-      See `Ecto.Adapters.SQL.disconnect_all/3` for more information.
-      """
+      @doc unquote(disconnect_all_doc)
+      @spec disconnect_all(non_neg_integer, opts :: Keyword.t()) :: :ok
       def disconnect_all(interval, opts \\ []) do
         Ecto.Adapters.SQL.disconnect_all(get_dynamic_repo(), interval, opts)
       end
