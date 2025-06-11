@@ -246,7 +246,7 @@ if Code.ensure_loaded?(Postgrex) do
         quote_name(prefix, table),
         insert_as(on_conflict),
         values,
-        on_conflict(on_conflict, header) | returning(returning)
+        on_conflict(on_conflict) | returning(returning)
       ]
     end
 
@@ -259,16 +259,16 @@ if Code.ensure_loaded?(Postgrex) do
       []
     end
 
-    defp on_conflict({:raise, _, []}, _header),
+    defp on_conflict({:raise, _, []}),
       do: []
 
-    defp on_conflict({:nothing, _, targets}, _header),
+    defp on_conflict({:nothing, _, targets}),
       do: [" ON CONFLICT ", conflict_target(targets) | "DO NOTHING"]
 
-    defp on_conflict({fields, _, targets}, _header) when is_list(fields),
+    defp on_conflict({fields, _, targets}) when is_list(fields),
       do: [" ON CONFLICT ", conflict_target!(targets), "DO " | replace(fields)]
 
-    defp on_conflict({query, _, targets}, _header),
+    defp on_conflict({query, _, targets}),
       do: [" ON CONFLICT ", conflict_target!(targets), "DO " | update_all(query, "UPDATE SET ")]
 
     defp conflict_target!([]),
