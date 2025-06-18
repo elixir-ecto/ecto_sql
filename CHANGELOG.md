@@ -1,5 +1,16 @@
 # Changelog for v3.x
 
+## v3.13.0 (2025-06-18)
+
+### Enhancements
+
+  * [Ecto.Migration] Add support for index directions
+  * [sql] Support `:log_stacktrace_mfa` for filtering or modifying stacktrace-derived info in query logs
+  * [mysql] Support arrays using JSON for MariaDB
+  * [mysql] Allow to specify `:prepare` per operation
+  * [postgres] Add support for collations in Postgres
+  * [postgres] Allow source fields in `json_extract_path`
+
 ## v3.12.1 (2024-10-07)
 
 ### Enhancements
