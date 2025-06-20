@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.13.1 (2025-06-20)
+
+### Bug fixes
+
+  * [postgres] Fix nested array generated columns
+
 ## v3.13.0 (2025-06-18)
 
 ### Enhancements
