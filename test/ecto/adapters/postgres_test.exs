@@ -2331,13 +2331,41 @@ defmodule Ecto.Adapters.PostgresTest do
             primary_key: true,
             generated: "ALWAYS AS IDENTITY (MINVALUE  0 START WITH 0 INCREMENT BY 1)"
           ]},
-         {:add, :id_str, :string, [generated: ~s|ALWAYS AS (id) STORED|]},
-         {:add, :tags, {:array, :text}, [generated: ~s|ALWAYS AS (ARRAY['foo','bar']) STORED|]}
+         {:add, :id_str, :string, [generated: ~s|ALWAYS AS (id) STORED|]}
        ]}
 
     assert execute_ddl(create) == [
              """
-             CREATE TABLE "posts" ("id" integer GENERATED ALWAYS AS IDENTITY (MINVALUE  0 START WITH 0 INCREMENT BY 1), "id_str" varchar(255) GENERATED ALWAYS AS (id) STORED, \"tags\" text[] GENERATED ALWAYS AS (ARRAY['foo','bar']) STORED, PRIMARY KEY ("id"))
+             CREATE TABLE "posts" ("id" integer GENERATED ALWAYS AS IDENTITY (MINVALUE  0 START WITH 0 INCREMENT BY 1), "id_str" varchar(255) GENERATED ALWAYS AS (id) STORED, PRIMARY KEY ("id"))
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create table with generated array column" do
+    create =
+      {:create, table(:posts),
+       [{:add, :tags, {:array, :text}, [generated: ~s|ALWAYS AS (ARRAY['foo','bar']) STORED|]}]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE "posts" ("tags" text[] GENERATED ALWAYS AS (ARRAY['foo','bar']) STORED)
+             """
+             |> remove_newlines
+           ]
+  end
+
+  test "create table with generated nested array column" do
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :tags, {:array, {:array, :text}},
+          [generated: ~s|ALWAYS AS (ARRAY['foo','bar']) STORED|]}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TABLE "posts" ("tags" text[][] GENERATED ALWAYS AS (ARRAY['foo','bar']) STORED)
              """
              |> remove_newlines
            ]
