@@ -1761,7 +1761,7 @@ if Code.ensure_loaded?(Postgrex) do
       do: [?\s, options]
 
     defp column_type({:array, type}, opts) do
-      [type, opts] =  column_type(type, opts)
+      [type, opts] = column_type(type, opts)
       [[type, "[]"], opts]
     end
 
