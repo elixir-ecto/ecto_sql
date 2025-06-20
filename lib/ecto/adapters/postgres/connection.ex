@@ -1761,10 +1761,8 @@ if Code.ensure_loaded?(Postgrex) do
       do: [?\s, options]
 
     defp column_type({:array, type}, opts) do
-      case column_type(type, opts) do
-        [type, opts] -> [type, "[]", opts]
-        [type, "[]", opts] -> [[type, "[]"], "[]", opts]
-      end
+      [type, opts] =  column_type(type, opts)
+      [[type, "[]"], opts]
     end
 
     defp column_type(type, opts) when type in ~w(time utc_datetime naive_datetime)a do
