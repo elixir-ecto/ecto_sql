@@ -1484,6 +1484,20 @@ if Code.ensure_loaded?(MyXQL) do
       )
     end
 
+    defp reference_on_delete(:default_all) do
+      error!(
+        nil,
+        "MySQL adapter does not support the `:default_all` action for `:on_delete`"
+      )
+    end
+
+    defp reference_on_delete({:default, _columns}) do
+      error!(
+        nil,
+        "MySQL adapter does not support the `{:default, columns}` action for `:on_delete`"
+      )
+    end
+
     defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
     defp reference_on_delete(:restrict), do: " ON DELETE RESTRICT"
     defp reference_on_delete(_), do: []

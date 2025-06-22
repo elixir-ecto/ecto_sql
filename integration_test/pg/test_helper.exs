@@ -115,7 +115,7 @@ excludes = [:selected_as_with_having, :selected_as_with_order_by_expression]
 excludes_above_9_5 = [:without_conflict_target]
 excludes_below_9_6 = [:add_column_if_not_exists, :no_error_on_conditional_column_migration]
 excludes_below_12_0 = [:plan_cache_mode]
-excludes_below_15_0 = [:on_delete_nilify_column_list]
+excludes_below_15_0 = [:on_delete_nilify_column_list, :on_delete_default_column_list]
 
 exclude_list = excludes ++ excludes_above_9_5
 

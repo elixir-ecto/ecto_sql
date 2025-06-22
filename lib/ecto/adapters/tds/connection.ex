@@ -1674,6 +1674,15 @@ if Code.ensure_loaded?(Tds) do
       error!(nil, "Tds adapter does not support the `{:nilify, columns}` action for `:on_delete`")
     end
 
+    defp reference_on_delete(:default_all), do: " ON DELETE SET DEFAULT"
+
+    defp reference_on_delete({:default, _columns}) do
+      error!(
+        nil,
+        "Tds adapter does not support the `{:default, columns}` action for `:on_delete`"
+      )
+    end
+
     defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
     defp reference_on_delete(:nothing), do: " ON DELETE NO ACTION"
     defp reference_on_delete(_), do: []

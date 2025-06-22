@@ -1515,8 +1515,8 @@ defmodule Ecto.Migration do
       the example above), or `nil`.
     * `:type` - The foreign key type, which defaults to `:bigserial`.
     * `:on_delete` - What to do if the referenced entry is deleted. May be
-      `:nothing` (default), `:delete_all`, `:nilify_all`, `{:nilify, columns}`,
-      or `:restrict`. `{:nilify, columns}` expects a list of atoms for `columns`
+      `:nothing` (default), `:delete_all`, `:nilify_all`, `{:nilify, columns}`, `:default_all`, `{:default, columns}`
+      or `:restrict`. `{:nilify, columns}` and `{:default, columns}` expect a list of atoms for `columns`
       and is not supported by all databases.
     * `:on_update` - What to do if the referenced entry is updated. May be
       `:nothing` (default), `:update_all`, `:nilify_all`, or `:restrict`.
@@ -1561,13 +1561,14 @@ defmodule Ecto.Migration do
   end
 
   defp check_on_delete!(on_delete)
-       when on_delete in [:nothing, :delete_all, :nilify_all, :restrict],
+       when on_delete in [:nothing, :delete_all, :nilify_all, :default_all, :restrict],
        do: :ok
 
-  defp check_on_delete!({:nilify, columns}) when is_list(columns) do
+  defp check_on_delete!({option, columns})
+       when option in [:nilify, :default] and is_list(columns) do
     unless Enum.all?(columns, &is_atom/1) do
       raise ArgumentError,
-            "expected `columns` in `{:nilify, columns}` to be a list of atoms, got: #{inspect(columns)}"
+            "expected `columns` in `{#{inspect(option)}, columns}` to be a list of atoms, got: #{inspect(columns)}"
     end
 
     :ok
