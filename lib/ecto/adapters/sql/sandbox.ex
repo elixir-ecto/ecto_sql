@@ -597,10 +597,11 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   """
   @spec allow(Ecto.Repo.t() | pid(), pid(), term()) ::
           :ok | {:already, :owner | :allowed} | :not_found
-  def allow(repo, parent, allow, _opts \\ []) when is_atom(repo) or is_pid(repo) do
+  def allow(repo, parent, allow, opts \\ []) when is_atom(repo) or is_pid(repo) do
     case GenServer.whereis(allow) do
       pid when is_pid(pid) ->
-        %{pid: pool, opts: opts} = lookup_meta!(repo)
+        %{pid: pool, opts: meta_opts} = lookup_meta!(repo)
+        opts = Keyword.merge(meta_opts, opts)
         DBConnection.Ownership.ownership_allow(pool, parent, pid, opts)
 
       other ->
