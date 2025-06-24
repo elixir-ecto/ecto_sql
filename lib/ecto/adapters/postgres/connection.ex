@@ -1767,7 +1767,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp column_type(type, opts) when type in ~w(time utc_datetime naive_datetime)a do
       generated = Keyword.get(opts, :generated)
-      [ecto_to_db(type), "(0)", generated_expr(generated)]
+      [[ecto_to_db(type), "(0)"], generated_expr(generated)]
     end
 
     defp column_type(type, opts)

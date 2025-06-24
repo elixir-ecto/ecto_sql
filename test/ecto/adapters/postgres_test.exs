@@ -2376,12 +2376,14 @@ defmodule Ecto.Adapters.PostgresTest do
       {:create, table(:posts),
        [
          {:add, :tags, {:array, {:array, :text}},
-          [generated: ~s|ALWAYS AS (ARRAY['foo','bar']) STORED|]}
+          [generated: ~s|ALWAYS AS (ARRAY['foo','bar']) STORED|]},
+         {:add, :times, {:array, {:array, :time}},
+          [generated: ~s|ALWAYS AS (ARRAY['08:00:00','09:00:00']) STORED|]}
        ]}
 
     assert execute_ddl(create) == [
              """
-             CREATE TABLE "posts" ("tags" text[][] GENERATED ALWAYS AS (ARRAY['foo','bar']) STORED)
+             CREATE TABLE "posts" ("tags" text[][] GENERATED ALWAYS AS (ARRAY['foo','bar']) STORED, "times" time(0)[][] GENERATED ALWAYS AS (ARRAY['08:00:00','09:00:00']) STORED)
              """
              |> remove_newlines
            ]
