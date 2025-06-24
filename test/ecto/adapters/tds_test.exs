@@ -1483,7 +1483,10 @@ defmodule Ecto.Adapters.TdsTest do
          {:add, :category_5,
           %Reference{table: :categories, options: [prefix: "foo"], on_delete: :nilify_all}, []},
          {:add, :category_6,
-          %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []}
+          %Reference{table: :categories, with: [here: :there], on_delete: :nilify_all}, []},
+         {:add, :category_7, %Reference{table: :categories, on_delete: :default_all}, []},
+         {:add, :category_8,
+          %Reference{table: :categories, with: [here: :there], on_delete: :default_all}, []}
        ]}
 
     assert execute_ddl(create) == [
@@ -1503,6 +1506,10 @@ defmodule Ecto.Adapters.TdsTest do
              CONSTRAINT [posts_category_5_fkey] FOREIGN KEY ([category_5]) REFERENCES [foo].[categories]([id]) ON DELETE SET NULL ON UPDATE NO ACTION,
              [category_6] BIGINT,
              CONSTRAINT [posts_category_6_fkey] FOREIGN KEY ([category_6],[here]) REFERENCES [categories]([id],[there]) ON DELETE SET NULL ON UPDATE NO ACTION,
+             [category_7] BIGINT,
+             CONSTRAINT [posts_category_7_fkey] FOREIGN KEY ([category_7]) REFERENCES [categories]([id]) ON DELETE SET DEFAULT ON UPDATE NO ACTION,
+             [category_8] BIGINT,
+             CONSTRAINT [posts_category_8_fkey] FOREIGN KEY ([category_8],[here]) REFERENCES [categories]([id],[there]) ON DELETE SET DEFAULT ON UPDATE NO ACTION,
              CONSTRAINT [posts_pkey] PRIMARY KEY CLUSTERED ([id]));
              """
              |> remove_newlines
@@ -1517,6 +1524,16 @@ defmodule Ecto.Adapters.TdsTest do
        ]}
 
     msg = "Tds adapter does not support the `{:nilify, columns}` action for `:on_delete`"
+    assert_raise ArgumentError, msg, fn -> execute_ddl(create) end
+
+    create =
+      {:create, table(:posts),
+       [
+         {:add, :category_1, %Reference{table: :categories, on_delete: {:default, [:category_1]}},
+          []}
+       ]}
+
+    msg = "Tds adapter does not support the `{:default, columns}` action for `:on_delete`"
     assert_raise ArgumentError, msg, fn -> execute_ddl(create) end
   end
 

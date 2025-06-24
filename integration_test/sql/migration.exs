@@ -254,6 +254,64 @@ defmodule Ecto.Integration.MigrationTest do
     end
   end
 
+  defmodule OnDeleteDefaultAllMigration do
+    use Ecto.Migration
+
+    def up do
+      create table(:parent, primary_key: [type: :bigint]) do
+        add :col1, :integer
+        add :col2, :integer
+      end
+
+      create unique_index(:parent, [:id, :col1, :col2])
+
+      create table(:ref) do
+        add :col1, :integer, default: 2
+        add :col2, :integer, default: 3
+
+        add :parent_id,
+            references(:parent,
+              with: [col1: :col1, col2: :col2],
+              on_delete: :default_all
+            ), default: 1
+      end
+    end
+
+    def down do
+      drop table(:ref)
+      drop table(:parent)
+    end
+  end
+
+  defmodule OnDeleteDefaultColumnsMigration do
+    use Ecto.Migration
+
+    def up do
+      create table(:parent, primary_key: [type: :bigint]) do
+        add :col1, :integer
+        add :col2, :integer
+      end
+
+      create unique_index(:parent, [:id, :col1, :col2])
+
+      create table(:ref) do
+        add :col1, :integer, default: 2
+        add :col2, :integer, default: 3
+
+        add :parent_id,
+            references(:parent,
+              with: [col1: :col1, col2: :col2],
+              on_delete: {:default, [:parent_id, :col2]}
+            ), default: 1
+      end
+    end
+
+    def down do
+      drop table(:ref)
+      drop table(:parent)
+    end
+  end
+
   defmodule CompositeForeignKeyMigration do
     use Ecto.Migration
 
@@ -682,5 +740,36 @@ defmodule Ecto.Integration.MigrationTest do
     assert [{nil, col1, nil}] == PoolRepo.all from r in "ref", select: {r.parent_id, r.col1, r.col2}
 
     :ok = down(PoolRepo, num, OnDeleteNilifyColumnsMigration, log: false)
+  end
+
+  @tag :on_delete_default_all
+  test "default all on_delete constraint", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, OnDeleteDefaultAllMigration, log: false)
+
+    PoolRepo.insert_all("parent", [%{id: 1, col1: 2, col2: 3}])
+    {id, col1, col2} = {Enum.random(10..1000), Enum.random(10..1000), Enum.random(10..1000)}
+
+    PoolRepo.insert_all("parent", [%{id: id, col1: col1, col2: col2}])
+    PoolRepo.insert_all("ref", [%{parent_id: id, col1: col1, col2: col2}])
+    PoolRepo.delete_all(from p in "parent", where: p.id == ^id)
+    assert [{1, 2, 3}] == PoolRepo.all from r in "ref", select: {r.parent_id, r.col1, r.col2}
+
+    :ok = down(PoolRepo, num, OnDeleteDefaultAllMigration, log: false)
+  end
+
+  @tag :on_delete_default_column_list
+  test "default list of columns on_delete constraint", %{migration_number: num} do
+    assert :ok == up(PoolRepo, num, OnDeleteDefaultColumnsMigration, log: false)
+
+    PoolRepo.insert_all("parent", [%{id: 1, col1: 20, col2: 3}])
+
+    {id, col2} = {Enum.random(10..1000), Enum.random(10..1000)}
+
+    PoolRepo.insert_all("parent", [%{id: id, col1: 20, col2: col2}])
+    PoolRepo.insert_all("ref", [%{parent_id: id, col1: 20, col2: col2}])
+    PoolRepo.delete_all(from p in "parent", where: p.id == ^id)
+    assert [{1, 20, 3}] == PoolRepo.all from r in "ref", select: {r.parent_id, r.col1, r.col2}
+
+    :ok = down(PoolRepo, num, OnDeleteDefaultColumnsMigration, log: false)
   end
 end

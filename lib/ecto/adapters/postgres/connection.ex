@@ -1912,6 +1912,11 @@ if Code.ensure_loaded?(Postgrex) do
     defp reference_on_delete({:nilify, columns}),
       do: [" ON DELETE SET NULL (", quote_names(columns), ")"]
 
+    defp reference_on_delete(:default_all), do: " ON DELETE SET DEFAULT"
+
+    defp reference_on_delete({:default, columns}),
+      do: [" ON DELETE SET DEFAULT (", quote_names(columns), ")"]
+
     defp reference_on_delete(:delete_all), do: " ON DELETE CASCADE"
     defp reference_on_delete(:restrict), do: " ON DELETE RESTRICT"
     defp reference_on_delete(_), do: []

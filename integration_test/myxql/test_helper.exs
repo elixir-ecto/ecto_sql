@@ -116,8 +116,11 @@ excludes = [
   :map_boolean_in_expression,
   # MySQL doesn't support indexed parameters
   :placeholders,
-  # MySQL doesn't support specifying columns for ON DELETE SET NULL
+  # MySQL doesn't support ON DELETE SET DEFAULT
+  :on_delete_default_all,
+  # MySQL doesn't support specifying columns for ON DELETE SET NULL or ON DELETE SET DEFAULT
   :on_delete_nilify_column_list,
+  :on_delete_default_column_list,
   # MySQL doesnt' support anything except a single column in DISTINCT
   :multicolumn_distinct,
   # uncertain whether we can support this. needs more exploring
