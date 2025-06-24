@@ -1,5 +1,16 @@
 # Changelog for v3.x
 
+## v3.13.2 (2025-06-24)
+
+### Enhancements
+
+  * [sandbox] Allow passing through opts in `Ecto.Adapters.SQL.Sandbox.allow/4` calls
+  * [sql] Add support for `ON DELETE SET DEFAULT`
+
+### Bug fixes
+
+  * [postgres] Fix nested array generated time columns
+
 ## v3.13.1 (2025-06-20)
 
 ### Bug fixes
