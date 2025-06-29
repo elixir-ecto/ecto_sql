@@ -65,10 +65,12 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
     Enum.map(repos, fn repo ->
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
-        {opts, [name]} ->
+        {opts, [name | rest]} ->
           ensure_repo(repo, args)
           path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
-          base_name = "#{underscore(name)}.exs"
+          full_name = Enum.join([name | rest], " ")
+          normalized_name = normalize_migration_name(full_name)
+          base_name = "#{underscore(normalized_name)}.exs"
           file = Path.join(path, "#{timestamp()}_#{base_name}")
           unless File.dir?(path), do: create_directory(path)
 
@@ -76,13 +78,13 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
           if Path.wildcard(fuzzy_path) != [] do
             Mix.raise(
-              "migration can't be created, there is already a migration file with name #{name}."
+              "migration can't be created, there is already a migration file with name #{normalized_name}."
             )
           end
 
           # The :change option may be used by other tasks but not the CLI
           assigns = [
-            mod: Module.concat([repo, Migrations, camelize(name)]),
+            mod: Module.concat([repo, Migrations, camelize(normalized_name)]),
             change: opts[:change]
           ]
 
@@ -116,6 +118,12 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
       migration_module when is_atom(migration_module) -> migration_module
       other -> Mix.raise("Expected :migration_module to be a module, got: #{inspect(other)}")
     end
+  end
+
+  defp normalize_migration_name(name) do
+    name
+    |> String.replace(~r/\s+/, "_")
+    |> String.trim("_")
   end
 
   embed_template(:migration, """
