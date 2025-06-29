@@ -65,10 +65,11 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
 
     Enum.map(repos, fn repo ->
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
-        {opts, [name]} ->
+        {opts, [name | rest]} ->
           ensure_repo(repo, args)
           path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
-          normalized_name = normalize_migration_name(name)
+          full_name = Enum.join([name | rest], " ")
+          normalized_name = normalize_migration_name(full_name)
           base_name = "#{underscore(normalized_name)}.exs"
           file = Path.join(path, "#{timestamp()}_#{base_name}")
           unless File.dir?(path), do: create_directory(path)

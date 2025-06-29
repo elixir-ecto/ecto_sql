@@ -57,7 +57,7 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
   end
 
   test "converts spaces to underscores in migration name" do
-    [path] = run(["-r", to_string(Repo), "add posts table"])
+    [path] = run(["-r", to_string(Repo), "add", "posts", "table"])
     assert Path.basename(path) =~ ~r/^\d{14}_add_posts_table\.exs$/
 
     assert_file(path, fn file ->
@@ -65,20 +65,30 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
     end)
   end
 
-  test "handles multiple spaces and edge cases in migration names" do
-    [path1] = run(["-r", to_string(Repo), "  add   posts   table  "])
-    assert Path.basename(path1) =~ ~r/^\d{14}_add_posts_table\.exs$/
+  test "handles multiple arguments as migration name components" do
+    [path1] = run(["-r", to_string(Repo), "add", "posts", "table", "with", "index"])
+    assert Path.basename(path1) =~ ~r/^\d{14}_add_posts_table_with_index\.exs$/
 
-    [path2] = run(["-r", to_string(Repo), "create user accounts"])
+    [path2] = run(["-r", to_string(Repo), "create", "user", "accounts"])
     assert Path.basename(path2) =~ ~r/^\d{14}_create_user_accounts\.exs$/
 
     assert_file(path1, fn file ->
-      assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.AddPostsTable do"
+      assert file =~
+               "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.AddPostsTableWithIndex do"
     end)
 
     assert_file(path2, fn file ->
       assert file =~
                "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.CreateUserAccounts do"
+    end)
+  end
+
+  test "handles edge cases in migration name normalization" do
+    [path] = run(["-r", to_string(Repo), "  add   posts   table  "])
+    assert Path.basename(path) =~ ~r/^\d{14}_add_posts_table\.exs$/
+
+    assert_file(path, fn file ->
+      assert file =~ "defmodule Mix.Tasks.Ecto.Gen.MigrationTest.Repo.Migrations.AddPostsTable do"
     end)
   end
 
