@@ -7,7 +7,9 @@ defmodule Ecto.Integration.ExplainTest do
 
   describe "explain" do
     test "select" do
-      explain = TestRepo.explain(:all, from(p in Post, where: p.title == "explain_test", limit: 1))
+      explain =
+        TestRepo.explain(:all, from(p in Post, where: p.title == "explain_test", limit: 1))
+
       assert explain =~ "| Rows | Executes |"
       assert explain =~ "| Parallel | EstimateExecutions |"
       assert explain =~ "SELECT TOP(1)"
@@ -21,7 +23,9 @@ defmodule Ecto.Integration.ExplainTest do
     end
 
     test "update" do
-      explain = TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+      explain =
+        TestRepo.explain(:update_all, from(p in Post, update: [set: [title: "new title"]]))
+
       assert explain =~ "UPDATE"
       assert explain =~ "p0"
       assert explain =~ "new title"
@@ -31,6 +35,16 @@ defmodule Ecto.Integration.ExplainTest do
       assert_raise(Tds.Error, fn ->
         TestRepo.explain(:all, from(p in "posts", select: p.invalid, where: p.invalid == "title"))
       end)
+    end
+
+    test "explain without rolling back" do
+      {:ok, {:ok, explain}} =
+        TestRepo.transaction(fn ->
+          TestRepo.explain(:delete_all, Post, wrap_in_transaction: false, timeout: 20000)
+        end)
+
+      assert explain =~ "DELETE"
+      assert explain =~ "p0"
     end
   end
 end

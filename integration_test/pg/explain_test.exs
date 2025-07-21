@@ -81,4 +81,22 @@ defmodule Ecto.Integration.ExplainTest do
     assert explain =~ ~r/Node Type:/
     assert explain =~ ~r/Relation Name:/
   end
+
+  test "explain without rolling back" do
+    TestRepo.insert!(%Post{})
+    assert [%Post{}] = TestRepo.all(Post)
+
+    {:ok, {:ok, explain}} =
+      TestRepo.transaction(fn ->
+        TestRepo.explain(:delete_all, Post,
+          analyze: true,
+          wrap_in_transaction: false,
+          timeout: 20000
+        )
+      end)
+
+    assert explain =~ "Delete on posts p0"
+    assert explain =~ "cost="
+    assert TestRepo.all(Post) == []
+  end
 end
