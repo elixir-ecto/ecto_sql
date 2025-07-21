@@ -434,8 +434,8 @@ defmodule Ecto.Adapters.SQL do
 
   Adapter          | Supported opts
   ---------------- | --------------
-  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`, `format`, `plan`
-  MyXQL            | `format`
+  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`, `format`, `plan`, `rollback`
+  MyXQL            | `format`, `rollback`
 
   All options except `format` are boolean valued and default to `false`.
 
@@ -446,6 +446,10 @@ defmodule Ecto.Adapters.SQL do
   The built-in adapters support the following formats:
     * Postgrex: `:map`, `:yaml` and `:text`
     * MyXQL: `:map` and `:text`
+
+  The `rollback` option is a boolean that controls whether the command is run inside of a transaction
+  that is rolled back. This is useful when, for example, you'd like to use `analyze: true` on an update
+  or delete query without modifying data. Defaults to `true`.
 
   The `:plan` option in Postgrex can take the values `:custom` or `:fallback_generic`. When `:custom`
   is specified, the explain plan generated will consider the specific values of the query parameters
@@ -508,10 +512,11 @@ defmodule Ecto.Adapters.SQL do
   def explain(repo, operation, queryable, opts \\ [])
 
   def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
-    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, opts)
+    rollback? = Keyword.get(opts, :rollback, true)
+    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, rollback?, opts)
   end
 
-  def explain(%{repo: repo} = adapter_meta, operation, queryable, opts) do
+  def explain(%{repo: repo} = adapter_meta, operation, queryable, true, opts) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:explain, fn _, _ ->
       {prepared, prepared_params} = to_sql(operation, repo, queryable)
@@ -526,6 +531,11 @@ defmodule Ecto.Adapters.SQL do
       {:error, :explain, error, _} -> raise error
       _ -> raise "unable to execute explain"
     end
+  end
+
+  def explain(%{repo: repo} = adapter_meta, operation, queryable, false, opts) do
+    {prepared, prepared_params} = to_sql(operation, repo, queryable)
+    sql_call(adapter_meta, :explain_query, [prepared], prepared_params, opts)
   end
 
   @doc @disconnect_all_doc
