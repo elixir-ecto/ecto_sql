@@ -88,7 +88,11 @@ defmodule Ecto.Integration.ExplainTest do
 
     {:ok, {:ok, explain}} =
       TestRepo.transaction(fn ->
-        TestRepo.explain(:delete_all, Post, analyze: true, rollback: false, timeout: 20000)
+        TestRepo.explain(:delete_all, Post,
+          analyze: true,
+          wrap_in_transaction: false,
+          timeout: 20000
+        )
       end)
 
     assert explain =~ "Delete on posts p0"

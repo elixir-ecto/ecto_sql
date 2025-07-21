@@ -434,8 +434,8 @@ defmodule Ecto.Adapters.SQL do
 
   Adapter          | Supported opts
   ---------------- | --------------
-  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`, `format`, `plan`, `rollback`
-  MyXQL            | `format`, `rollback`
+  Postgrex         | `analyze`, `verbose`, `costs`, `settings`, `buffers`, `timing`, `summary`, `format`, `plan`, `wrap_in_transaction`
+  MyXQL            | `format`, `wrap_in_transaction`
 
   All options except `format` are boolean valued and default to `false`.
 
@@ -447,9 +447,9 @@ defmodule Ecto.Adapters.SQL do
     * Postgrex: `:map`, `:yaml` and `:text`
     * MyXQL: `:map` and `:text`
 
-  The `rollback` option is a boolean that controls whether the command is run inside of a transaction
-  that is rolled back. This is useful when, for example, you'd like to use `analyze: true` on an update
-  or delete query without modifying data. Defaults to `true`.
+  The `wrap_in_transaction` option is a boolean that controls whether the command is run inside of a
+  transaction that is rolled back. This is useful when, for example, you'd like to use `analyze: true`
+  on an update or delete query without modifying data. Defaults to `true`.
 
   The `:plan` option in Postgrex can take the values `:custom` or `:fallback_generic`. When `:custom`
   is specified, the explain plan generated will consider the specific values of the query parameters
@@ -512,8 +512,8 @@ defmodule Ecto.Adapters.SQL do
   def explain(repo, operation, queryable, opts \\ [])
 
   def explain(repo, operation, queryable, opts) when is_atom(repo) or is_pid(repo) do
-    rollback? = Keyword.get(opts, :rollback, true)
-    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, rollback?, opts)
+    wrap_in_transaction? = Keyword.get(opts, :wrap_in_transaction, true)
+    explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, wrap_in_transaction?, opts)
   end
 
   def explain(%{repo: repo} = adapter_meta, operation, queryable, true, opts) do
