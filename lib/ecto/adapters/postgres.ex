@@ -223,8 +223,16 @@ defmodule Ecto.Adapters.Postgres do
           ~s(CREATE DATABASE "#{database}")
           |> concat_if(encoding, &"ENCODING '#{&1}'")
           |> concat_if(opts[:template], &"TEMPLATE=#{&1}")
+          |> concat_if(opts[:is_template], &"IS_TEMPLATE=#{&1}")
+          |> concat_if(opts[:locale_provider], &"LOCALE_PROVIDER='#{&1}'")
+          # for builtin locale provider
+          |> concat_if(opts[:builtin_locale], &"BUILTIN_LOCALE='#{&1}'")
+          # for clib locale provider
           |> concat_if(opts[:lc_ctype], &"LC_CTYPE='#{&1}'")
           |> concat_if(opts[:lc_collate], &"LC_COLLATE='#{&1}'")
+          # for ICU locale provider
+          |> concat_if(opts[:icu_locale], &"ICU_LOCALE='#{&1}'")
+          |> concat_if(opts[:icu_rules], &"ICU_RULES='#{&1}'")
 
         case run_query(create_command, opts) do
           {:ok, _} ->
