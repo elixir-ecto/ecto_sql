@@ -416,16 +416,18 @@ defmodule Ecto.Adapters.MyXQL do
   def structure_load(default, config) do
     path = config[:dump_path] || Path.join(default, "structure.sql")
 
-    args = [
-      "--execute",
-      "SET FOREIGN_KEY_CHECKS = 0; SOURCE #{path}; SET FOREIGN_KEY_CHECKS = 1",
-      "--database",
-      config[:database]
-    ]
+    with {:ok, contents} <- File.read(path) do
+      args = [
+        "--execute",
+        "SET FOREIGN_KEY_CHECKS = 0; " <> contents <> "; SET FOREIGN_KEY_CHECKS = 1",
+        "--database",
+        config[:database]
+      ]
 
-    case run_with_cmd("mysql", config, args) do
-      {_output, 0} -> {:ok, path}
-      {output, _} -> {:error, output}
+      case run_with_cmd("mysql", config, args) do
+        {_output, 0} -> {:ok, path}
+        {output, _} -> {:error, output}
+      end
     end
   end
 
