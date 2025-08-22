@@ -646,8 +646,11 @@ defmodule Ecto.Adapters.SQL.Sandbox do
     meta
   end
 
-  defp find_repo(repo) when is_atom(repo), do: repo.get_dynamic_repo()
-  defp find_repo(repo), do: repo
+  defp find_repo(repo) do
+    if is_atom(repo) and Code.ensure_loaded?(repo),
+      do: repo.get_dynamic_repo(),
+      else: repo
+  end
 
   defp post_checkout(conn_mod, conn_state, opts) do
     case conn_mod.handle_begin([mode: :transaction] ++ opts, conn_state) do
