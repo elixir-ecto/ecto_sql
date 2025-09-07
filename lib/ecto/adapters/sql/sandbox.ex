@@ -45,7 +45,9 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
         setup do
           # Explicitly get a connection before each test
-          :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+          pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Repo)
+          on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+          :ok
         end
 
         test "create post" do
@@ -102,6 +104,9 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   the parent's connection (i.e. the test process' connection) to
   the task.
 
+  Besides calling `allow/3` allowance can also be provided to processes
+  via [Caller Tracking](`m:Task#module-ancestor-and-caller-tracking`).
+
   Because allowances use an explicit mechanism, their advantage
   is that you can still run your tests in async mode. The downside
   is that you need to explicitly control and allow every single
@@ -148,7 +153,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   There are two mechanisms for explicit ownerships:
 
-    * Using allowances - requires explicit allowances via `allow/3`.
+    * Using allowances - requires explicit allowances.
       Tests may run concurrently.
 
     * Using shared mode - does not require explicit allowances.
