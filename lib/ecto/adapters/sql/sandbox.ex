@@ -54,6 +54,10 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         end
       end
 
+  If you run into issues with processes accessing your db after tests
+  complete – e.g. ones stopped in `on_exit` callbacks – consider using
+  `start_owner!/1` over `checkout/1`.
+
   ## Collaborating processes
 
   The example above is straight-forward because we have only
@@ -102,6 +106,9 @@ defmodule Ecto.Adapters.SQL.Sandbox do
   the parent's connection (i.e. the test process' connection) to
   the task.
 
+  Besides calling `allow/3` allowance can also be provided to processes
+  via [Caller Tracking](`m:Task#module-ancestor-and-caller-tracking`).
+
   Because allowances use an explicit mechanism, their advantage
   is that you can still run your tests in async mode. The downside
   is that you need to explicitly control and allow every single
@@ -148,7 +155,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   There are two mechanisms for explicit ownerships:
 
-    * Using allowances - requires explicit allowances via `allow/3`.
+    * Using allowances - requires explicit allowances.
       Tests may run concurrently.
 
     * Using shared mode - does not require explicit allowances.
