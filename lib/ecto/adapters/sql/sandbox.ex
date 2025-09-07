@@ -45,7 +45,9 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
         setup do
           # Explicitly get a connection before each test
-          :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+          pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Repo)
+          on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+          :ok
         end
 
         test "create post" do
@@ -53,10 +55,6 @@ defmodule Ecto.Adapters.SQL.Sandbox do
           assert %Post{} = Repo.insert!(%Post{})
         end
       end
-
-  If you run into issues with processes accessing your db after tests
-  complete – e.g. ones stopped in `on_exit` callbacks – consider using
-  `start_owner!/1` over `checkout/1`.
 
   ## Collaborating processes
 
