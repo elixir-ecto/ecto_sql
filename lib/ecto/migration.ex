@@ -89,7 +89,7 @@ defmodule Ecto.Migration do
   For the rest of this document, we will cover the migration APIs
   provided by Ecto. For a in-depth discussion of migrations and how
   to use them safely within your application and data, see the
-  [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/).
+  [Safe Ecto Migrations guide](https://github.com/fly-apps/safe-ecto-migrations).
 
   ## Mix tasks
 
@@ -215,7 +215,7 @@ defmodule Ecto.Migration do
   ```
 
   Now, when you run `mix format`, the formatter should apply Ecto's custom rules when formatting
-  your migrations (e.g. no brackets are automatically added when creating columns with `add/3`). 
+  your migrations (e.g. no brackets are automatically added when creating columns with `add/3`).
 
   ## Repo configuration
 
@@ -405,7 +405,7 @@ defmodule Ecto.Migration do
 
   ## Additional resources
 
-    * The [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/)
+    * The [Safe Ecto Migrations guide](https://github.com/fly-apps/safe-ecto-migrations)
 
   """
 
@@ -1627,7 +1627,7 @@ defmodule Ecto.Migration do
     end
   ```
 
-  See the [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/) for an
+  See the [Safe Ecto Migrations guide](https://github.com/fly-apps/safe-ecto-migrations) for an
   in-depth explanation of the benefits of this approach.
   """
   def constraint(table, name, opts \\ [])
