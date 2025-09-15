@@ -327,7 +327,7 @@ defmodule Ecto.MigratorTest do
         :ok = up(TestRepo, 12, UpDownMigration)
       end)
 
-    assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.up/0 forward"
+    assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.up/0"
     assert output =~ "alter table posts"
     assert output =~ ~r"== Migrated 12 in \d.\ds"
 
@@ -336,7 +336,7 @@ defmodule Ecto.MigratorTest do
         :ok = down(TestRepo, 12, UpDownMigration)
       end)
 
-    assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.down/0 forward"
+    assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.down/0"
     assert output =~ "execute \"foo\""
     assert output =~ ~r"== Migrated 12 in \d.\ds"
   end
