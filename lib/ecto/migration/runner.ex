@@ -21,7 +21,9 @@ defmodule Ecto.Migration.Runner do
     {:ok, runner} = DynamicSupervisor.start_child(Ecto.MigratorSupervisor, {__MODULE__, args})
     metadata(runner, opts)
 
-    log(level, "== Running #{version} #{inspect(module)}.#{operation}/0 #{direction}")
+    direction_msg = if operation == :change, do: " #{direction}", else: nil
+
+    log(level, "== Running #{version} #{inspect(module)}.#{operation}/0#{direction_msg}")
     {time, _} = :timer.tc(fn -> perform_operation(repo, module, operation) end)
     log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
   after
