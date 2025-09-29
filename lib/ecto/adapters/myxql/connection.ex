@@ -735,11 +735,11 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr({:fragment, _, parts}, sources, query) do
-      Enum.map(parts, fn
-        {:raw, part} -> part
-        {:expr, expr} -> expr(expr, sources, query)
-      end)
-      |> parens_for_select
+      fragment_expr(parts, sources, query)
+    end
+
+    defp expr({{:fragment, _, parts}, schema}, sources, query) when is_atom(schema) do
+      fragment_expr(parts, sources, query)
     end
 
     defp expr({:values, _, [types, _idx, num_rows]}, _, query) do
@@ -911,6 +911,14 @@ if Code.ensure_loaded?(MyXQL) do
       end)
     end
 
+    defp fragment_expr(parts, sources, query) do
+      Enum.map(parts, fn
+        {:raw, part} -> part
+        {:expr, expr} -> expr(expr, sources, query)
+      end)
+      |> parens_for_select()
+    end
+
     defp interval(count, "millisecond", sources, query) do
       ["INTERVAL (", expr(count, sources, query) | " * 1000) microsecond"]
     end
@@ -948,6 +956,9 @@ if Code.ensure_loaded?(MyXQL) do
       case elem(sources, pos) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
+
+        {{:fragment, _, _}, schema, _} ->
+          {nil, as_prefix ++ [?f | Integer.to_string(pos)], schema}
 
         {:values, _, _} ->
           {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
