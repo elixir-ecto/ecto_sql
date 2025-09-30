@@ -7,7 +7,12 @@ defmodule Ecto.Integration.SQLTest do
   alias Ecto.Integration.Post
   alias Ecto.Integration.CorruptedPk
   alias Ecto.Integration.Tag
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, from: 1]
+
+  test "fragment tuple sources" do
+    query = from f in {fragment("select 1 as num"), Barebone}
+    assert %Barebone{num: 1} = TestRepo.one(query)
+  end
 
   test "fragmented types" do
     datetime = ~N[2014-01-16 20:26:51]

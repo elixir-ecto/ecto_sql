@@ -76,7 +76,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, "~> 3.13.0"}
+      {:ecto, git: "https://github.com/elixir-ecto/ecto.git", branch: "master"}
     end
   end
 
