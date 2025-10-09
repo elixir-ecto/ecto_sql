@@ -10,11 +10,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.17.2
-            otp: 25.0.4
-          - elixir: 1.17.2
-            otp: 27.0.1
+          - elixir: "1.18"
+            otp: "28"
             lint: lint
+          - elixir: "1.14"
+            otp: "24"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
             pool_count: "4"
     steps:
       - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: test ecto_sql
         env:
           POOL_COUNT: ${{ matrix.pool_count || '1' }}
@@ -85,7 +85,7 @@ jobs:
           - "8.0"
     steps:
       - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MYSQL=${{matrix.mysql}} +integration-test-mysql
 
@@ -102,6 +102,6 @@ jobs:
           - "2022"
     steps:
       - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MSSQL=${{matrix.mssql}} +integration-test-mssql
