@@ -17,7 +17,8 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
     repo: [:string, :keep],
     no_compile: :boolean,
     no_deps_check: :boolean,
-    migrations_path: :string
+    migrations_path: :string,
+    generate_ex: :boolean
   ]
 
   @moduledoc """
@@ -48,6 +49,8 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
     * `--no-compile` - does not compile applications before running
     * `--no-deps-check` - does not check dependencies before running
     * `--migrations-path` - the path to run the migrations from, defaults to `priv/repo/migrations`
+    * `--generate-ex` - Whether script files (`.exs`, default migrations) or compiled files
+      (`.ex`, useful for runtime migrations) are generated.
 
   ## Configuration
 
@@ -68,7 +71,8 @@ defmodule Mix.Tasks.Ecto.Gen.Migration do
         {opts, [name]} ->
           ensure_repo(repo, args)
           path = opts[:migrations_path] || Path.join(source_repo_priv(repo), "migrations")
-          base_name = "#{underscore(name)}.exs"
+          extension = if opts[:generate_ex], do: "ex", else: "exs"
+          base_name = "#{underscore(name)}.#{extension}"
           file = Path.join(path, "#{timestamp()}_#{base_name}")
           unless File.dir?(path), do: create_directory(path)
 

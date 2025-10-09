@@ -73,4 +73,10 @@ defmodule Mix.Tasks.Ecto.Gen.MigrationTest do
   test "raises when missing file" do
     assert_raise Mix.Error, fn -> run(["-r", to_string(Repo)]) end
   end
+
+  test "generates a new migration with a .ex extension" do
+    [path] = run(["-r", to_string(Repo), "--generate-ex", "my_compiled_migration"])
+    assert Path.dirname(path) == @migrations_path
+    assert Path.basename(path) =~ ~r/^\d{14}_my_compiled_migration\.ex$/
+  end
 end
