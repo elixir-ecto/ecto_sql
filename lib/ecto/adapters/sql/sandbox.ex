@@ -221,22 +221,32 @@ defmodule Ecto.Adapters.SQL.Sandbox do
         pid = start_supervised!(PeriodicServer)
         Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), pid)
         # assertions
+        stop_supervised!(PeriodicServer)
       end
 
-  By using `start_supervised!/1`, ExUnit guarantees the process finishes
+  By using `start_supervised!/1` and `stop_supervised/1`, ExUnit guarantees the process finishes
   before your test (the connection owner).
 
   In some situations, however, the dynamic processes are directly started
   inside a `DynamicSupervisor` or a `Task.Supervisor`. You can guarantee
-  proper termination in such scenarios by adding an `on_exit` callback
-  that waits until all supervised children terminate:
+  proper termination in such scenarios by waiting until all supervised children terminate
+  before the test ends:
 
-      on_exit(fn ->
+      test "queries in DynamicSupervisor" do
+        # assertions
         for {_, pid, _, _} <- DynamicSupervisor.which_children(MyApp.DynamicSupervisor) do
           ref = Process.monitor(pid)
-          assert_receive {:DOWN, ^ref, _, _, _}, :infinity
+          assert_receive {:DOWN, ^ref, _, _, _}
         end
-      end)
+      end
+
+      test "queries in Task.Supervisor" do
+        # assertions
+        for pid <- Task.Supervisor.children(MyApp.Task.Supervisor) do
+          ref = Process.monitor(pid)
+          assert_receive {:DOWN, ^ref, _, _, _}
+        end
+      end
 
   ### "owner timed out because it owned the connection for longer than Nms"
 
