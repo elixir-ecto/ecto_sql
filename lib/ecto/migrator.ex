@@ -199,6 +199,49 @@ defmodule Ecto.Migrator do
   end
 
   @doc """
+  Gets the migrations paths from a repository configuration.
+
+  This function checks the repository configuration for the `:migrations_paths`
+  option. If found, it returns a list of absolute paths by resolving any relative
+  paths against the application directory. If not found, it returns a single-element
+  list containing the default migrations path.
+
+  Relative paths in the `:migrations_paths` configuration are considered relative
+  to the root of the application (the directory containing `mix.exs`).
+
+  ## Examples
+
+      # In config/config.exs
+      config :my_app, MyApp.Repo,
+        migrations_paths: ["priv/repo/migrations", "priv/repo/tenant_migrations"]
+
+  """
+  @spec migrations_paths(Ecto.Repo.t()) :: [String.t()]
+  def migrations_paths(repo) do
+    config = repo.config()
+
+    case config[:migrations_paths] do
+      nil ->
+        [migrations_path(repo)]
+
+      paths when is_list(paths) ->
+        app = Keyword.fetch!(config, :otp_app)
+
+        Enum.map(paths, fn path ->
+          if Path.type(path) == :absolute do
+            path
+          else
+            Application.app_dir(app, path)
+          end
+        end)
+
+      other ->
+        raise ArgumentError,
+              ":migrations_paths must be a list of paths, got: #{inspect(other)}"
+    end
+  end
+
+  @doc """
   Gets all migrated versions.
 
   This function ensures the migration table exists
@@ -372,13 +415,13 @@ defmodule Ecto.Migrator do
 
   Equivalent to:
 
-      Ecto.Migrator.run(repo, [Ecto.Migrator.migrations_path(repo)], direction, opts)
+      Ecto.Migrator.run(repo, Ecto.Migrator.migrations_paths(repo), direction, opts)
 
   See `run/4` for more information.
   """
   @spec run(Ecto.Repo.t(), atom, Keyword.t()) :: [integer]
   def run(repo, direction, opts) do
-    run(repo, [migrations_path(repo)], direction, opts)
+    run(repo, migrations_paths(repo), direction, opts)
   end
 
   @doc ~S"""
@@ -464,12 +507,12 @@ defmodule Ecto.Migrator do
 
   Equivalent to:
 
-      Ecto.Migrator.migrations(repo, [Ecto.Migrator.migrations_path(repo)])
+      Ecto.Migrator.migrations(repo, Ecto.Migrator.migrations_paths(repo))
 
   """
   @spec migrations(Ecto.Repo.t()) :: [{:up | :down, id :: integer(), name :: String.t()}]
   def migrations(repo) do
-    migrations(repo, [migrations_path(repo)])
+    migrations(repo, migrations_paths(repo))
   end
 
   @doc """
