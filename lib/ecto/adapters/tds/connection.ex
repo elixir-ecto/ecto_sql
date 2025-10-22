@@ -8,6 +8,7 @@ if Code.ensure_loaded?(Tds) do
     require Ecto.Schema
 
     @behaviour Ecto.Adapters.SQL.Connection
+    @behaviour Ecto.Adapters.SQL.Constraint
 
     @impl true
     def child_spec(opts) do

@@ -1,4 +1,6 @@
 defmodule Ecto.Adapters.SQL.Constraint do
+  # TODO - add more docs around setting `:constraint_handler` globally
+
   @moduledoc """
   Specifies the constraint handling API
   """

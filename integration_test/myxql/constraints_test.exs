@@ -5,8 +5,11 @@ defmodule Ecto.Integration.ConstraintsTest do
   alias Ecto.Integration.PoolRepo
 
   defmodule CustomConstraintHandler do
+    @behaviour Ecto.Adapters.SQL.Constraint
+
     @quotes ~w(" ' `)
 
+    @impl Ecto.Adapters.SQL.Constraint
     # An example of a custom handler a user might write
     def to_constraints(%MyXQL.Error{mysql: %{name: :ER_SIGNAL_EXCEPTION}, message: message}, opts) do
       # Assumes this is the only use-case of `ER_SIGNAL_EXCEPTION` the user has implemented custom errors for
@@ -41,7 +44,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     end
   end
 
-  defmodule ConstraintMigration do
+  defmodule CheckConstraintMigration do
     use Ecto.Migration
 
     @table table(:constraints_test)
@@ -52,7 +55,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     end
   end
 
-  defmodule ProcedureEmulatingConstraintMigration do
+  defmodule TriggerEmulatingConstraintMigration do
     use Ecto.Migration
 
     @table_name :constraints_test
@@ -70,11 +73,14 @@ defmodule Ecto.Integration.ConstraintsTest do
       drop_triggers(@table_name)
     end
 
+    # FOR EACH ROW, not a great example performance-wise,
+    # but demonstrates the feature
     defp trigger_sql(table_name, before_type) do
       ~s"""
       CREATE TRIGGER #{table_name}_#{String.downcase(before_type)}_overlap
         BEFORE #{String.upcase(before_type)}
-        ON #{table_name} FOR EACH ROW
+        ON #{table_name}
+        FOR EACH ROW
       BEGIN
         DECLARE v_rowcount INT;
         DECLARE v_msg VARCHAR(200);
@@ -112,7 +118,6 @@ defmodule Ecto.Integration.ConstraintsTest do
     ExUnit.CaptureLog.capture_log(fn ->
       num = @base_migration + System.unique_integer([:positive])
       up(PoolRepo, num, ConstraintTableMigration, log: false)
-      up(PoolRepo, num + 1, ProcedureEmulatingConstraintMigration, log: false)
     end)
 
     :ok
@@ -121,8 +126,9 @@ defmodule Ecto.Integration.ConstraintsTest do
   @tag :create_constraint
   test "check constraint" do
     num = @base_migration + System.unique_integer([:positive])
+
     ExUnit.CaptureLog.capture_log(fn ->
-      :ok = up(PoolRepo, num, ConstraintMigration, log: false)
+      :ok = up(PoolRepo, num, CheckConstraintMigration, log: false)
     end)
 
     # When the changeset doesn't expect the db error
@@ -131,9 +137,7 @@ defmodule Ecto.Integration.ConstraintsTest do
     exception =
       assert_raise Ecto.ConstraintError,
                    ~r/constraint error when attempting to insert struct/,
-                   fn ->
-                     PoolRepo.insert(changeset)
-                   end
+                   fn -> PoolRepo.insert(changeset) end
 
     assert exception.message =~ "\"positive_price\" (check_constraint)"
     assert exception.message =~ "The changeset has not defined any constraint."
@@ -184,7 +188,14 @@ defmodule Ecto.Integration.ConstraintsTest do
     assert is_integer(result.id)
   end
 
+  @tag :constraint_handler
   test "custom handled constraint" do
+    num = @base_migration + System.unique_integer([:positive])
+
+    ExUnit.CaptureLog.capture_log(fn ->
+      :ok = up(PoolRepo, num, TriggerEmulatingConstraintMigration, log: false)
+    end)
+
     changeset = Ecto.Changeset.change(%Constraint{}, from: 0, to: 10)
     {:ok, item} = PoolRepo.insert(changeset)
 
@@ -211,6 +222,7 @@ defmodule Ecto.Integration.ConstraintsTest do
         |> Ecto.Changeset.exclusion_constraint(:from)
         |> PoolRepo.insert()
       end
+
     assert exception.message =~ "\"cannot_overlap\" (exclusion_constraint)"
 
     # When the changeset does expect the db error, but doesn't give a custom message
@@ -218,25 +230,41 @@ defmodule Ecto.Integration.ConstraintsTest do
       overlapping_changeset
       |> Ecto.Changeset.exclusion_constraint(:from, name: :cannot_overlap)
       |> PoolRepo.insert()
-    assert changeset.errors == [from: {"violates an exclusion constraint", [constraint: :exclusion, constraint_name: "cannot_overlap"]}]
+
+    assert changeset.errors == [
+             from:
+               {"violates an exclusion constraint",
+                [constraint: :exclusion, constraint_name: "cannot_overlap"]}
+           ]
+
     assert changeset.data.__meta__.state == :built
 
     # When the changeset does expect the db error and gives a custom message
     {:error, changeset} =
       overlapping_changeset
-      |> Ecto.Changeset.exclusion_constraint(:from, name: :cannot_overlap, message: "must not overlap")
+      |> Ecto.Changeset.exclusion_constraint(:from,
+        name: :cannot_overlap,
+        message: "must not overlap"
+      )
       |> PoolRepo.insert()
-    assert changeset.errors == [from: {"must not overlap", [constraint: :exclusion, constraint_name: "cannot_overlap"]}]
-    assert changeset.data.__meta__.state == :built
 
+    assert changeset.errors == [
+             from:
+               {"must not overlap", [constraint: :exclusion, constraint_name: "cannot_overlap"]}
+           ]
+
+    assert changeset.data.__meta__.state == :built
 
     # When the changeset does expect the db error, but a different handler is used
     exception =
       assert_raise MyXQL.Error, fn ->
         overlapping_changeset
         |> Ecto.Changeset.exclusion_constraint(:from, name: :cannot_overlap)
-        |> PoolRepo.insert(constraint_handler: Ecto.Adapters.MyXQL.Connection)
+        |> PoolRepo.insert(
+          constraint_handler: {Ecto.Adapters.MyXQL.Connection, :to_constraints, []}
+        )
       end
+
     assert exception.message =~ "Overlapping values for key 'constraints_test.cannot_overlap'"
 
     # When custom error is coming from an UPDATE
@@ -244,9 +272,17 @@ defmodule Ecto.Integration.ConstraintsTest do
 
     {:error, changeset} =
       overlapping_update_changeset
-      |> Ecto.Changeset.exclusion_constraint(:from, name: :cannot_overlap, message: "must not overlap")
+      |> Ecto.Changeset.exclusion_constraint(:from,
+        name: :cannot_overlap,
+        message: "must not overlap"
+      )
       |> PoolRepo.insert()
-    assert changeset.errors == [from: {"must not overlap", [constraint: :exclusion, constraint_name: "cannot_overlap"]}]
+
+    assert changeset.errors == [
+             from:
+               {"must not overlap", [constraint: :exclusion, constraint_name: "cannot_overlap"]}
+           ]
+
     assert changeset.data.__meta__.state == :loaded
   end
 end
