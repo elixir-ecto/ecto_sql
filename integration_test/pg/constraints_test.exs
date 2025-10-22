@@ -100,7 +100,7 @@ defmodule Ecto.Integration.ConstraintsTest do
         BEFORE #{String.upcase(before_type)}
         ON #{table_name}
         FOR EACH ROW
-      EXECUTE FUNCTION check_price_limit();
+      EXECUTE PROCEDURE check_price_limit();
       """
     end
 
