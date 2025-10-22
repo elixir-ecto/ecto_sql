@@ -59,7 +59,7 @@ Application.put_env(:ecto_sql, PoolRepo,
   pool_count: String.to_integer(System.get_env("POOL_COUNT", "1")),
   show_sensitive_data_on_connection_error: true,
   # Passes through into adapter_meta
-  constraint_handler: Ecto.Integration.ConstraintsTest.CustomConstraintHandler
+  constraint_handler: {Ecto.Integration.ConstraintsTest.CustomConstraintHandler, :to_constraints, []}
 )
 
 defmodule Ecto.Integration.PoolRepo do
@@ -88,7 +88,7 @@ _ = Ecto.Adapters.MyXQL.storage_down(TestRepo.config())
 {:ok, _pid} = TestRepo.start_link()
 
 # Passes through into adapter_meta, overrides Application config
-# {:ok, _pid} = PoolRepo.start_link([constraint_handler: Ecto.Integration.ConstraintsTest.CustomConstraintHandler])
+# {:ok, _pid} = PoolRepo.start_link([constraint_handler: {Ecto.Integration.ConstraintsTest.CustomConstraintHandler, :to_constraints, []}])
 {:ok, _pid} = PoolRepo.start_link()
 
 %{rows: [[version]]} = TestRepo.query!("SELECT @@version", [])
