@@ -907,6 +907,38 @@ defmodule Ecto.MigratorTest do
       expected = "priv/test_repo/custom"
       assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
     end
+
+    test "works with single migrations_paths configured" do
+      defmodule RepoWithSinglePath do
+        def config do
+          [
+            otp_app: :ecto_sql,
+            migrations_paths: ["priv/repo/migrations"]
+          ]
+        end
+      end
+
+      path = migrations_path(RepoWithSinglePath)
+      app_dir = Application.app_dir(:ecto_sql)
+      assert path == Path.join(app_dir, "priv/repo/migrations")
+    end
+
+    test "raises when multiple migrations_paths are configured" do
+      defmodule RepoWithMultiplePaths do
+        def config do
+          [
+            otp_app: :ecto_sql,
+            migrations_paths: ["priv/repo/migrations", "priv/repo/tenant_migrations"]
+          ]
+        end
+      end
+
+      assert_raise ArgumentError,
+                   ~r/cannot use migrations_path\/1 when multiple migration paths are configured/,
+                   fn ->
+                     migrations_path(RepoWithMultiplePaths)
+                   end
+    end
   end
 
   describe "migrations_paths" do

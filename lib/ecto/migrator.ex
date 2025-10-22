@@ -189,13 +189,30 @@ defmodule Ecto.Migrator do
   This function accepts an optional second parameter to customize the
   migrations directory. This can be used to specify a custom migrations
   path.
+
+  > #### Discouraged {: .warning}
+  >
+  > If your repository is configured with multiple migration paths via
+  > `:migrations_paths`, this function will raise an error. Use
+  > `migrations_paths/1` instead.
+
   """
   @spec migrations_path(Ecto.Repo.t(), String.t()) :: String.t()
   def migrations_path(repo, directory \\ "migrations") do
     config = repo.config()
-    priv = config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}"
-    app = Keyword.fetch!(config, :otp_app)
-    Application.app_dir(app, Path.join(priv, directory))
+
+    case config[:migrations_paths] do
+      [_first, _second | _rest] ->
+        raise ArgumentError, """
+        cannot use migrations_path/1 when multiple migration paths are configured.
+
+        The repository #{inspect(repo)} has #{length(config[:migrations_paths])} migration paths configured
+        via :migrations_paths. Please use migrations_paths/1 instead to get all configured paths.
+        """
+
+      _other ->
+        hd(migrations_paths(repo, directory: directory))
+    end
   end
 
   @doc """
@@ -216,13 +233,18 @@ defmodule Ecto.Migrator do
         migrations_paths: ["priv/repo/migrations", "priv/repo/tenant_migrations"]
 
   """
-  @spec migrations_paths(Ecto.Repo.t()) :: [String.t()]
-  def migrations_paths(repo) do
+  @spec migrations_paths(Ecto.Repo.t(), Keyword.t()) :: [String.t()]
+  def migrations_paths(repo, opts \\ []) do
     config = repo.config()
 
     case config[:migrations_paths] do
       nil ->
-        [migrations_path(repo)]
+        priv =
+          config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}"
+
+        app = Keyword.fetch!(config, :otp_app)
+        directory = Keyword.get(opts, :directory, "migrations")
+        [Application.app_dir(app, Path.join(priv, directory))]
 
       paths when is_list(paths) ->
         app = Keyword.fetch!(config, :otp_app)
