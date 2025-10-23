@@ -347,7 +347,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp distinct(%ByExpr{expr: false}, _sources, _query), do: []
 
     defp distinct(%ByExpr{expr: exprs}, _sources, query) when is_list(exprs) do
-      error!(query, "To apply DISTINCT to multiple columns at once, use distinct: true")
+      error!(query, "to apply DISTINCT to multiple columns in MySQL, use distinct: true")
     end
 
     defp select([], _sources, _query),
