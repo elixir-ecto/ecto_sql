@@ -385,7 +385,7 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT s0.`x`, s0.`y` FROM `schema` AS s0}
 
     assert_raise Ecto.QueryError,
-                 ~r"DISTINCT with multiple columns is not supported by MySQL",
+                 ~r"to apply DISTINCT to multiple columns in MySQL, use distinct: true",
                  fn ->
                    query =
                      Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
@@ -394,7 +394,7 @@ defmodule Ecto.Adapters.MyXQLTest do
                  end
 
     assert_raise Ecto.QueryError,
-                 ~r"DISTINCT with multiple columns is not supported by MySQL",
+                 ~r"to apply DISTINCT to multiple columns in MySQL, use distinct: true",
                  fn ->
                    query =
                      from(row in Schema, as: :r, select: row.x)
