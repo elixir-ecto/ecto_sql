@@ -170,6 +170,17 @@ defmodule EctoSQL.MixProject do
 
   defp docs do
     [
+      search: [
+        %{
+          name: "Latest",
+          help: "Search latest versions of Ecto + Ecto.SQL",
+          packages: [:ecto, :ecto_sql]
+        },
+        %{
+          name: "Current version",
+          help: "Search only this project"
+        }
+      ],
       main: "Ecto.Adapters.SQL",
       source_ref: "v#{@version}",
       canonical: "http://hexdocs.pm/ecto_sql",
