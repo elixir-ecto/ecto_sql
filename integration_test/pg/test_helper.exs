@@ -67,7 +67,16 @@ pool_repo_config = [
   max_seconds: 10
 ]
 
-Application.put_env(:ecto_sql, PoolRepo, pool_repo_config)
+Application.put_env(
+  :ecto_sql,
+  PoolRepo,
+  pool_repo_config ++
+    [
+      # Passes through into adapter_meta
+      constraint_handler:
+        {Ecto.Integration.ConstraintsTest.CustomConstraintHandler, :to_constraints, []}
+    ]
+)
 
 Application.put_env(
   :ecto_sql,
@@ -99,7 +108,11 @@ _ = Ecto.Adapters.Postgres.storage_down(TestRepo.config())
 :ok = Ecto.Adapters.Postgres.storage_up(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
+
+# Passes through into adapter_meta, overrides Application config
+# {:ok, _pid} = PoolRepo.start_link([constraint_handler: {Ecto.Integration.ConstraintsTest.CustomConstraintHandler, :to_constraints, []}])
 {:ok, _pid} = PoolRepo.start_link()
+
 {:ok, _pid} = AdvisoryLockPoolRepo.start_link()
 
 %{rows: [[version]]} = TestRepo.query!("SHOW server_version", [])
