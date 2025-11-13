@@ -450,7 +450,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
     {:ok, pid} =
       Agent.start(fn ->
-        set_label({__MODULE__, :sandbox_owner, %{started_by: parent}})
+        set_label({:sql_sandbox_owner, %{started_by: parent}})
         {shared, opts} = Keyword.pop(opts, :shared, false)
         :ok = checkout(repo, opts)
 
