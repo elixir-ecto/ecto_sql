@@ -450,6 +450,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
     {:ok, pid} =
       Agent.start(fn ->
+        set_label({:sql_sandbox_owner, %{started_by: parent}})
         {shared, opts} = Keyword.pop(opts, :shared, false)
         :ok = checkout(repo, opts)
 
@@ -701,5 +702,13 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   defp pre_checkin(_, Connection, {conn_mod, conn_state, _in_transaction?}, _opts) do
     {:ok, conn_mod, conn_state}
+  end
+
+  defp set_label(label) do
+    if function_exported?(Process, :set_label, 1) do
+      Process.set_label(label)
+    end
+
+    :ok
   end
 end
