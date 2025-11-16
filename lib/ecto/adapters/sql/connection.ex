@@ -52,20 +52,6 @@ defmodule Ecto.Adapters.SQL.Connection do
   @callback stream(connection, statement, params, options :: Keyword.t()) ::
               Enum.t()
 
-  @doc """
-  Receives the exception returned by `c:query/4`.
-
-  The constraints are in the keyword list and must return the
-  constraint type, like `:unique`, and the constraint name as
-  a string, for example:
-
-      [unique: "posts_title_index"]
-
-  Must return an empty list if the error does not come
-  from any constraint.
-  """
-  @callback to_constraints(exception :: Exception.t(), options :: Keyword.t()) :: Keyword.t()
-
   ## Queries
 
   @doc """
