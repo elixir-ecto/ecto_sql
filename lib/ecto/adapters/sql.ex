@@ -890,7 +890,10 @@ defmodule Ecto.Adapters.SQL do
     {name, config} = Keyword.pop(config, :name, config[:repo])
     {pool_count, config} = Keyword.pop(config, :pool_count, 1)
     {pool, config} = pool_config(config)
-    child_spec = connection.child_spec(config)
+
+    connection_config = Keyword.put(config, :label, name)
+
+    child_spec = connection.child_spec(connection_config)
 
     meta = %{
       telemetry: telemetry,
