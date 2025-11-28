@@ -188,6 +188,16 @@ defmodule Ecto.MigratorTest do
     def change, do: flush()
   end
 
+  defmodule CreateTableWithModifiersMigration do
+    use Ecto.Migration
+
+    def change do
+      create table(:sessions, modifiers: "UNLOGGED") do
+        add :id, :id
+      end
+    end
+  end
+
   @moduletag migrated_versions: [{1, nil}, {2, nil}, {3, nil}]
 
   setup context do
@@ -339,6 +349,15 @@ defmodule Ecto.MigratorTest do
     assert output =~ "== Running 12 Ecto.MigratorTest.UpDownMigration.down/0"
     assert output =~ "execute \"foo\""
     assert output =~ ~r"== Migrated 12 in \d.\ds"
+
+    output =
+      capture_log(fn ->
+        :ok = up(TestRepo, 13, CreateTableWithModifiersMigration)
+      end)
+
+    assert output =~ "== Running 13 Ecto.MigratorTest.CreateTableWithModifiersMigration.change/0"
+    assert output =~ "create unlogged table sessions"
+    assert output =~ ~r"== Migrated 13 in \d.\ds"
   end
 
   test "logs ddl notices" do

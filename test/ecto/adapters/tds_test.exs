@@ -1553,6 +1553,15 @@ defmodule Ecto.Adapters.TdsTest do
              ]
   end
 
+  test "create table with modifiers should raise" do
+    create =
+      {:create, table(:posts, modifiers: "UNLOGGED"), [{:add, :id, :serial, [primary_key: true]}]}
+
+    assert_raise ArgumentError,
+                 "MSSQL adapter does not support :modifiers in the create table statement",
+                 fn -> execute_ddl(create) end
+  end
+
   test "create table with composite key" do
     create =
       {:create, table(:posts),

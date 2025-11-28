@@ -1109,6 +1109,10 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def execute_ddl({command, %Table{} = table, columns}) when command in @creates do
+      unless is_nil(table.modifiers) do
+        error!(nil, "MSSQL adapter does not support :modifiers in the create table statement")
+      end
+
       prefix = table.prefix
 
       pk_name =
