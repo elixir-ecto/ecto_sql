@@ -209,8 +209,6 @@ defmodule Ecto.Adapters.Postgres do
     database = Keyword.fetch!(opts, :database)
 
     encoding = if opts[:encoding] == :unspecified, do: nil, else: opts[:encoding] || "UTF8"
-    encoding = if opts[:locale_provider] == :unspecified, do: nil, else: opts[:locale_provider] || "builtin"
-    encoding = if opts[:builtin_locale] == :unspecified, do: nil, else: opts[:builtin_locale] || "PG_UNICODE_FAST"
 
     maintenance_database = Keyword.get(opts, :maintenance_database, @default_maintenance_database)
     opts = Keyword.put(opts, :database, maintenance_database)
