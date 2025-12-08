@@ -1,5 +1,16 @@
 # Changelog for v3.x
 
+## v3.13.3 (2025-12-08)
+
+### Enhancements
+
+  * [sql] Tag generated functions as `:generated`
+  * [sql] Add `:wrap_in_transaction` option to explain
+
+### Bug fixes
+
+  * [mysql] Fix `structure_load/2` for MySQL 9.4+
+
 ## v3.13.2 (2025-06-24)
 
 ### Enhancements
