@@ -1764,7 +1764,13 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp modifiers_expr(nil), do: []
     defp modifiers_expr(modifiers) when is_binary(modifiers), do: [modifiers, ?\s]
-    defp modifiers_expr(other), do: error!(nil, "PostgreSQL adapter expects :modifiers to be a string or nil, got #{inspect(other)}")
+
+    defp modifiers_expr(other),
+      do:
+        error!(
+          nil,
+          "PostgreSQL adapter expects :modifiers to be a string or nil, got #{inspect(other)}"
+        )
 
     defp options_expr(nil),
       do: []

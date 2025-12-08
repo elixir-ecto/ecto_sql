@@ -356,7 +356,7 @@ defmodule Ecto.MigratorTest do
       end)
 
     assert output =~ "== Running 13 Ecto.MigratorTest.CreateTableWithModifiersMigration.change/0"
-    assert output =~ "create unlogged table sessions"
+    assert output =~ ~r/create unlogged table sessions/i
     assert output =~ ~r"== Migrated 13 in \d.\ds"
   end
 

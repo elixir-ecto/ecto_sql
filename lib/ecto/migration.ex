@@ -479,7 +479,13 @@ defmodule Ecto.Migration do
 
     To define a table in a migration, see `Ecto.Migration.table/2`.
     """
-    defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil, modifiers: nil
+    defstruct name: nil,
+              prefix: nil,
+              comment: nil,
+              primary_key: true,
+              engine: nil,
+              options: nil,
+              modifiers: nil
 
     @type t :: %__MODULE__{
             name: String.t(),

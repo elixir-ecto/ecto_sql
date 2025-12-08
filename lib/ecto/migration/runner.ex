@@ -434,14 +434,12 @@ defmodule Ecto.Migration.Runner do
   defp command(ddl) when is_binary(ddl) or is_list(ddl),
     do: "execute #{inspect(ddl)}"
 
-  defp command({:create, %Table{modifiers: <<_::binary>>} = table, _}),
-    do: "create #{render_modifiers(table.modifiers)} table #{quote_name(table.prefix, table.name)}"
-
   defp command({:create, %Table{} = table, _}),
-    do: "create table #{quote_name(table.prefix, table.name)}"
+    do: "create #{table_modifiers(table.modifiers)} #{quote_name(table.prefix, table.name)}"
 
   defp command({:create_if_not_exists, %Table{} = table, _}),
-    do: "create table if not exists #{quote_name(table.prefix, table.name)}"
+    do:
+      "create #{table_modifiers(table.modifiers)} if not exists #{quote_name(table.prefix, table.name)}"
 
   defp command({:alter, %Table{} = table, _}),
     do: "alter table #{quote_name(table.prefix, table.name)}"
@@ -506,5 +504,6 @@ defmodule Ecto.Migration.Runner do
   defp quote_name(name) when is_atom(name), do: quote_name(Atom.to_string(name))
   defp quote_name(name), do: name
 
-  defp render_modifiers(value), do: String.downcase(String.trim(value))
+  defp table_modifiers(value) when is_binary(value), do: "#{value} table"
+  defp table_modifiers(_), do: "table"
 end
