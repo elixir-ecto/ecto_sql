@@ -995,7 +995,9 @@ if Code.ensure_loaded?(MyXQL) do
 
       [
         [
-          "CREATE TABLE ",
+          "CREATE ",
+          modifiers_expr(table.modifiers),
+          "TABLE ",
           if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
           quote_table(table.prefix, table.name),
           table_structure,
@@ -1375,6 +1377,10 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp engine_expr(storage_engine),
       do: [" ENGINE = ", String.upcase(to_string(storage_engine || "INNODB"))]
+
+    defp modifiers_expr(nil), do: []
+    defp modifiers_expr(modifiers) when is_binary(modifiers), do: [modifiers, ?\s]
+    defp modifiers_expr(other), do: error!(nil, "MySQL adapter expects :modifiers to be a string or nil, got #{inspect(other)}")
 
     defp options_expr(nil),
       do: []

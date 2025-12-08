@@ -1824,6 +1824,22 @@ defmodule Ecto.Adapters.MyXQLTest do
              ]
   end
 
+  test "create table with modifiers" do
+    create =
+      {:create, table(:posts, modifiers: "TEMPORARY"),
+       [
+         {:add, :id, :serial, [primary_key: true]},
+         {:add, :created_at, :naive_datetime, []}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TEMPORARY TABLE `posts` (`id` bigint unsigned not null auto_increment, `created_at` datetime, PRIMARY KEY (`id`)) ENGINE = INNODB
+             """
+             |> remove_newlines
+           ]
+  end
+
   test "create table with composite key" do
     create =
       {:create, table(:posts),

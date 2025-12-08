@@ -479,7 +479,7 @@ defmodule Ecto.Migration do
 
     To define a table in a migration, see `Ecto.Migration.table/2`.
     """
-    defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil
+    defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil, modifiers: nil
 
     @type t :: %__MODULE__{
             name: String.t(),
@@ -487,7 +487,8 @@ defmodule Ecto.Migration do
             comment: String.t() | nil,
             primary_key: boolean | keyword(),
             engine: atom,
-            options: String.t()
+            options: String.t(),
+            modifiers: String.t() | nil
           }
   end
 
@@ -824,6 +825,10 @@ defmodule Ecto.Migration do
     * `:options` - provide custom options that will be appended after the generated
       statement. For example, "WITH", "INHERITS", or "ON COMMIT" clauses. "PARTITION BY"
       can be provided for databases that support table partitioning.
+    * `:modifiers` - provide custom modifiers that should be inserted to the
+      table creation statement, between the tokens "CREATE" and "TABLE". For
+      example, "UNLOGGED", "GLOBAL", "TEMPORARY", or "GLOBAL TEMPORARY" in
+      PostgreSQL.
 
   """
   def table(name, opts \\ [])

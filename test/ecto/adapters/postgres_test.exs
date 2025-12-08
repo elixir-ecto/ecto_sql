@@ -2285,6 +2285,22 @@ defmodule Ecto.Adapters.PostgresTest do
              ]
   end
 
+  test "create table with modifiers" do
+    create =
+      {:create, table(:posts, modifiers: "UNLOGGED"),
+       [
+         {:add, :id, :serial, [primary_key: true]},
+         {:add, :created_at, :naive_datetime, []}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE UNLOGGED TABLE "posts" ("id" serial, "created_at" timestamp(0), PRIMARY KEY ("id"))
+             """
+             |> remove_newlines
+           ]
+  end
+
   test "create table with composite key" do
     create =
       {:create, table(:posts),
