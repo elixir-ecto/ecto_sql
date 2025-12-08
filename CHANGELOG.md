@@ -1,5 +1,24 @@
 # Changelog for v3.x
 
+## v3.14.0-dev
+
+### Enhancements
+
+  * [migrations] Allow table modifiers, such as UNLOGGED tables
+  * [sandbox] Label the sandbox owner process
+  * [sql] Allow fragment tuple sources in adapters
+
+## v3.13.3 (2025-12-08)
+
+### Enhancements
+
+  * [sql] Tag generated functions as `:generated`
+  * [sql] Add `:wrap_in_transaction` option to explain
+
+### Bug fixes
+
+  * [mysql] Fix `structure_load/2` for MySQL 9.4+
+
 ## v3.13.2 (2025-06-24)
 
 ### Enhancements
