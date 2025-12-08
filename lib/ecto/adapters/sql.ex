@@ -790,7 +790,7 @@ defmodule Ecto.Adapters.SQL do
     explain_doc = @explain_doc
     disconnect_all_doc = @disconnect_all_doc
 
-    quote do
+    quote generated: true do
       @doc unquote(query_doc)
       @spec query(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
               {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}
