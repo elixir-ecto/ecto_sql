@@ -719,6 +719,12 @@ defmodule Ecto.Adapters.TdsTest do
                  fn ->
                    all(query)
                  end
+
+    query = Schema |> select([r], fragment("CAST(? AS INT)", r.x and r.y)) |> plan()
+    assert all(query) == ~s{SELECT CAST((s0.[x] AND s0.[y]) AS INT) FROM [schema] AS s0}
+
+    query = Schema |> select([r], fragment("CAST(? AS INT)", r.x or r.y)) |> plan()
+    assert all(query) == ~s{SELECT CAST((s0.[x] OR s0.[y]) AS INT) FROM [schema] AS s0}
   end
 
   test "literals" do

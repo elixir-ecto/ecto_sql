@@ -861,6 +861,14 @@ defmodule Ecto.Adapters.PostgresTest do
     assert_raise Ecto.QueryError, fn ->
       all(query)
     end
+
+    query = Schema |> select([r], fragment("?::integer", r.x and r.y)) |> plan()
+    # Boolean operations inside fragments should be wrapped in parentheses
+    # to ensure correct precedence with surrounding SQL
+    assert all(query) == ~s{SELECT (s0."x" AND s0."y")::integer FROM "schema" AS s0}
+
+    query = Schema |> select([r], fragment("?::integer", r.x or r.y)) |> plan()
+    assert all(query) == ~s{SELECT (s0."x" OR s0."y")::integer FROM "schema" AS s0}
   end
 
   test "literals" do
