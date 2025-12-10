@@ -1165,7 +1165,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp fragment_expr(parts, sources, query) do
       Enum.map(parts, fn
         {:raw, part} -> part
-        {:expr, expr} -> expr(expr, sources, query)
+        {:expr, expr} -> maybe_paren(expr, sources, query)
       end)
       |> parens_for_select()
     end
