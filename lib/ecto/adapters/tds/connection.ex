@@ -1010,7 +1010,7 @@ if Code.ensure_loaded?(Tds) do
     defp fragment_expr(parts, sources, query) do
       Enum.map(parts, fn
         {:raw, part} -> part
-        {:expr, expr} -> expr(expr, sources, query)
+        {:expr, expr} -> op_to_binary(expr, sources, query)
       end)
       |> parens_for_select()
     end
