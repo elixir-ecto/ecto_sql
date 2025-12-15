@@ -181,9 +181,10 @@ if Code.ensure_loaded?(MyXQL) do
     @impl true
     def insert(prefix, table, header, rows, on_conflict, [], []) do
       fields = quote_names(header)
+      insert_keyword = insert_keyword(on_conflict)
 
       [
-        "INSERT INTO ",
+        insert_keyword,
         quote_table(prefix, table),
         " (",
         fields,
@@ -191,6 +192,9 @@ if Code.ensure_loaded?(MyXQL) do
         insert_all(rows) | on_conflict(on_conflict, header)
       ]
     end
+
+    defp insert_keyword({:nothing, _, []}), do: "INSERT IGNORE INTO "
+    defp insert_keyword(_), do: "INSERT INTO "
 
     def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, []) do
       error!(nil, ":returning is not supported in insert/insert_all by MySQL")
@@ -208,9 +212,9 @@ if Code.ensure_loaded?(MyXQL) do
       []
     end
 
-    defp on_conflict({:nothing, _, []}, [field | _]) do
-      quoted = quote_name(field)
-      [" ON DUPLICATE KEY UPDATE ", quoted, " = " | quoted]
+    defp on_conflict({:nothing, _, []}, _header) do
+      # Handled by INSERT IGNORE
+      []
     end
 
     defp on_conflict({fields, _, []}, _header) when is_list(fields) do

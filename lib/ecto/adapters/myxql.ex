@@ -330,9 +330,17 @@ defmodule Ecto.Adapters.MyXQL do
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 0}} ->
-        raise "insert operation failed to insert any row in the database. " <>
-                "This may happen if you have trigger or other database conditions rejecting operations. " <>
-                "The emitted SQL was: #{sql}"
+        # With INSERT IGNORE (on_conflict: :nothing), 0 rows means the row was
+        # ignored due to a conflict, which is expected behavior
+        case on_conflict do
+          {:nothing, _, _} ->
+            {:ok, []}
+
+          _ ->
+            raise "insert operation failed to insert any row in the database. " <>
+                    "This may happen if you have trigger or other database conditions rejecting operations. " <>
+                    "The emitted SQL was: #{sql}"
+        end
 
       # We were used to check if num_rows was 1 or 2 (in case of upserts)
       # but MariaDB supports tables with System Versioning, and in those

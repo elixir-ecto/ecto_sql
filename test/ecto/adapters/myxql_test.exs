@@ -1465,11 +1465,10 @@ defmodule Ecto.Adapters.MyXQLTest do
     end
   end
 
-  test "insert with on duplicate key" do
+  test "insert with on conflict" do
+    # Using INSERT IGNORE for :nothing on_conflict
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:nothing, [], []}, [])
-
-    assert query ==
-             ~s{INSERT INTO `schema` (`x`,`y`) VALUES (?,?) ON DUPLICATE KEY UPDATE `x` = `x`}
+    assert query == ~s{INSERT IGNORE INTO `schema` (`x`,`y`) VALUES (?,?)}
 
     update = from("schema", update: [set: [z: "foo"]]) |> plan(:update_all)
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {update, [], []}, [])
