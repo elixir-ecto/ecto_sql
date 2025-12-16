@@ -347,7 +347,7 @@ if Code.ensure_loaded?(MyXQL) do
     defp distinct(%ByExpr{expr: false}, _sources, _query), do: []
 
     defp distinct(%ByExpr{expr: exprs}, _sources, query) when is_list(exprs) do
-      error!(query, "DISTINCT with multiple columns is not supported by MySQL")
+      error!(query, "to apply DISTINCT to multiple columns in MySQL, use distinct: true")
     end
 
     defp select([], _sources, _query),
@@ -735,11 +735,11 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     defp expr({:fragment, _, parts}, sources, query) do
-      Enum.map(parts, fn
-        {:raw, part} -> part
-        {:expr, expr} -> expr(expr, sources, query)
-      end)
-      |> parens_for_select
+      fragment_expr(parts, sources, query)
+    end
+
+    defp expr({{:fragment, _, parts}, schema}, sources, query) when is_atom(schema) do
+      fragment_expr(parts, sources, query)
     end
 
     defp expr({:values, _, [types, _idx, num_rows]}, _, query) do
@@ -911,6 +911,14 @@ if Code.ensure_loaded?(MyXQL) do
       end)
     end
 
+    defp fragment_expr(parts, sources, query) do
+      Enum.map(parts, fn
+        {:raw, part} -> part
+        {:expr, expr} -> op_to_binary(expr, sources, query)
+      end)
+      |> parens_for_select()
+    end
+
     defp interval(count, "millisecond", sources, query) do
       ["INTERVAL (", expr(count, sources, query) | " * 1000) microsecond"]
     end
@@ -949,6 +957,9 @@ if Code.ensure_loaded?(MyXQL) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
+        {{:fragment, _, _}, schema, _} ->
+          {nil, as_prefix ++ [?f | Integer.to_string(pos)], schema}
+
         {:values, _, _} ->
           {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
@@ -984,7 +995,9 @@ if Code.ensure_loaded?(MyXQL) do
 
       [
         [
-          "CREATE TABLE ",
+          "CREATE ",
+          modifiers_expr(table.modifiers),
+          "TABLE ",
           if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
           quote_table(table.prefix, table.name),
           table_structure,
@@ -1364,6 +1377,16 @@ if Code.ensure_loaded?(MyXQL) do
 
     defp engine_expr(storage_engine),
       do: [" ENGINE = ", String.upcase(to_string(storage_engine || "INNODB"))]
+
+    defp modifiers_expr(nil), do: []
+    defp modifiers_expr(modifiers) when is_binary(modifiers), do: [modifiers, ?\s]
+
+    defp modifiers_expr(other),
+      do:
+        error!(
+          nil,
+          "MySQL adapter expects :modifiers to be a string or nil, got #{inspect(other)}"
+        )
 
     defp options_expr(nil),
       do: []

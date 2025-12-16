@@ -861,6 +861,12 @@ defmodule Ecto.Adapters.PostgresTest do
     assert_raise Ecto.QueryError, fn ->
       all(query)
     end
+
+    query = Schema |> select([r], fragment("?::integer", r.x and r.y)) |> plan()
+    assert all(query) == ~s{SELECT (s0."x" AND s0."y")::integer FROM "schema" AS s0}
+
+    query = Schema |> select([r], fragment("?::integer", r.x or r.y)) |> plan()
+    assert all(query) == ~s{SELECT (s0."x" OR s0."y")::integer FROM "schema" AS s0}
   end
 
   test "literals" do
@@ -2283,6 +2289,22 @@ defmodule Ecto.Adapters.PostgresTest do
              [
                ~s|CREATE TABLE "posts" ("id" serial, "created_at" timestamp(0), PRIMARY KEY ("id")) WITH FOO=BAR|
              ]
+  end
+
+  test "create table with modifiers" do
+    create =
+      {:create, table(:posts, modifiers: "UNLOGGED"),
+       [
+         {:add, :id, :serial, [primary_key: true]},
+         {:add, :created_at, :naive_datetime, []}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE UNLOGGED TABLE "posts" ("id" serial, "created_at" timestamp(0), PRIMARY KEY ("id"))
+             """
+             |> remove_newlines
+           ]
   end
 
   test "create table with composite key" do

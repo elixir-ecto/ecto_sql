@@ -89,7 +89,7 @@ defmodule Ecto.Migration do
   For the rest of this document, we will cover the migration APIs
   provided by Ecto. For a in-depth discussion of migrations and how
   to use them safely within your application and data, see the
-  [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/).
+  [Safe Ecto Migrations guide](https://github.com/fly-apps/safe-ecto-migrations).
 
   ## Mix tasks
 
@@ -215,7 +215,7 @@ defmodule Ecto.Migration do
   ```
 
   Now, when you run `mix format`, the formatter should apply Ecto's custom rules when formatting
-  your migrations (e.g. no brackets are automatically added when creating columns with `add/3`). 
+  your migrations (e.g. no brackets are automatically added when creating columns with `add/3`).
 
   ## Repo configuration
 
@@ -405,7 +405,7 @@ defmodule Ecto.Migration do
 
   ## Additional resources
 
-    * The [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/)
+    * The [Safe Ecto Migrations guide](https://github.com/fly-apps/safe-ecto-migrations)
 
   """
 
@@ -479,7 +479,13 @@ defmodule Ecto.Migration do
 
     To define a table in a migration, see `Ecto.Migration.table/2`.
     """
-    defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil
+    defstruct name: nil,
+              prefix: nil,
+              comment: nil,
+              primary_key: true,
+              engine: nil,
+              options: nil,
+              modifiers: nil
 
     @type t :: %__MODULE__{
             name: String.t(),
@@ -487,7 +493,8 @@ defmodule Ecto.Migration do
             comment: String.t() | nil,
             primary_key: boolean | keyword(),
             engine: atom,
-            options: String.t()
+            options: String.t(),
+            modifiers: String.t() | nil
           }
   end
 
@@ -824,6 +831,10 @@ defmodule Ecto.Migration do
     * `:options` - provide custom options that will be appended after the generated
       statement. For example, "WITH", "INHERITS", or "ON COMMIT" clauses. "PARTITION BY"
       can be provided for databases that support table partitioning.
+    * `:modifiers` - provide custom modifiers that should be inserted to the
+      table creation statement, between the tokens "CREATE" and "TABLE". For
+      example, "UNLOGGED", "GLOBAL", "TEMPORARY", or "GLOBAL TEMPORARY" in
+      PostgreSQL.
 
   """
   def table(name, opts \\ [])
@@ -1627,7 +1638,7 @@ defmodule Ecto.Migration do
     end
   ```
 
-  See the [Safe Ecto Migrations guide](https://fly.io/phoenix-files/safe-ecto-migrations/) for an
+  See the [Safe Ecto Migrations guide](https://github.com/fly-apps/safe-ecto-migrations) for an
   in-depth explanation of the benefits of this approach.
   """
   def constraint(table, name, opts \\ [])

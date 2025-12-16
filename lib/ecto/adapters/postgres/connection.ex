@@ -974,11 +974,11 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp expr({:fragment, _, parts}, sources, query) do
-      Enum.map(parts, fn
-        {:raw, part} -> part
-        {:expr, expr} -> expr(expr, sources, query)
-      end)
-      |> parens_for_select
+      fragment_expr(parts, sources, query)
+    end
+
+    defp expr({{:fragment, _, parts}, schema}, sources, query) when is_atom(schema) do
+      fragment_expr(parts, sources, query)
     end
 
     defp expr({:values, _, [types, idx, num_rows]}, _, _query) do
@@ -1162,6 +1162,14 @@ if Code.ensure_loaded?(Postgrex) do
       end)
     end
 
+    defp fragment_expr(parts, sources, query) do
+      Enum.map(parts, fn
+        {:raw, part} -> part
+        {:expr, expr} -> maybe_paren(expr, sources, query)
+      end)
+      |> parens_for_select()
+    end
+
     defp type_unless_typed(%Ecto.Query.Tagged{}, _type), do: []
     defp type_unless_typed(_, type), do: [?:, ?: | type]
 
@@ -1226,6 +1234,9 @@ if Code.ensure_loaded?(Postgrex) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
+        {{:fragment, _, _}, schema, _} ->
+          {nil, as_prefix ++ [?f | Integer.to_string(pos)], schema}
+
         {:values, _, _} ->
           {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
@@ -1258,7 +1269,9 @@ if Code.ensure_loaded?(Postgrex) do
       table_name = quote_name(table.prefix, table.name)
 
       query = [
-        "CREATE TABLE ",
+        "CREATE ",
+        modifiers_expr(table.modifiers),
+        "TABLE ",
         if_do(command == :create_if_not_exists, "IF NOT EXISTS "),
         table_name,
         ?\s,
@@ -1748,6 +1761,16 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp include_expr(literal),
       do: quote_name(literal)
+
+    defp modifiers_expr(nil), do: []
+    defp modifiers_expr(modifiers) when is_binary(modifiers), do: [modifiers, ?\s]
+
+    defp modifiers_expr(other),
+      do:
+        error!(
+          nil,
+          "PostgreSQL adapter expects :modifiers to be a string or nil, got #{inspect(other)}"
+        )
 
     defp options_expr(nil),
       do: []

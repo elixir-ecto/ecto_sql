@@ -39,9 +39,11 @@ defmodule Ecto.Adapters.SQL do
 
   Generally speaking, you must invoke those functions directly from
   your repository, for example: `MyApp.Repo.query("SELECT true")`.
+
   You can also invoke them directly from `Ecto.Adapters.SQL`, but
-  keep in mind that in such cases features such as "dynamic repositories"
-  won't be available.
+  keep in mind that in such cases the "dynamic repository" functionality
+  is not available by default. Instead, you must explicitly call
+  `YouRepo.get_dynamic_repo()` and pass it as first argument.
 
   ## Migrations
 
@@ -319,6 +321,7 @@ defmodule Ecto.Adapters.SQL do
 
   If the query was successful, it will return an `:ok` tuple containing
   a map with at least two keys:
+
     * `:num_rows` - the number of rows affected
     * `:rows` - the result set as a list. `nil` may be returned
       instead of the list if the command does not yield any row
@@ -326,10 +329,12 @@ defmodule Ecto.Adapters.SQL do
       like a `delete` command without returning would)
 
   ## Options
+
     * `:log` - When false, does not log the query
     * `:timeout` - Execute request timeout, accepts: `:infinity` (default: `#{@timeout}`);
 
   ## Examples
+
       iex> MyRepo.query("SELECT $1::integer + $2", [40, 2])
       {:ok, %{rows: [[42]], num_rows: 1}}
 
@@ -790,7 +795,7 @@ defmodule Ecto.Adapters.SQL do
     explain_doc = @explain_doc
     disconnect_all_doc = @disconnect_all_doc
 
-    quote do
+    quote generated: true do
       @doc unquote(query_doc)
       @spec query(iodata(), Ecto.Adapters.SQL.query_params(), Keyword.t()) ::
               {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()}

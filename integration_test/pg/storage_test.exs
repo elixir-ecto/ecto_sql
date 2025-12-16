@@ -130,7 +130,7 @@ defmodule Ecto.Integration.StorageTest do
     {:ok, _} = Postgres.structure_load(tmp_path(), params())
 
     {:ok, _} = Postgres.structure_dump(tmp_path(), [dump_path: dump_path] ++ params())
-    assert dump == File.read!(dump_path)
+    assert redact_hashes(dump) == redact_hashes(File.read!(dump_path))
   after
     drop_database()
   end
@@ -248,11 +248,18 @@ defmodule Ecto.Integration.StorageTest do
     num = @base_migration + System.unique_integer([:positive])
     :ok = Ecto.Migrator.up(PoolRepo, num, Migration, log: false)
 
-    assert {"--\n-- PostgreSQL database dump\n--\n\n--" <> _rest, 0} =
+    assert {"--\n-- PostgreSQL database dump\n--\n\n" <> _rest, 0} =
              Postgres.dump_cmd(
                ["--data-only", "--table", "schema_migrations"],
                [],
                PoolRepo.config()
              )
+  end
+
+  defp redact_hashes(dump_output) do
+    dump_output
+    |> String.replace(~r/\\restrict\s+\S+/, "\\restrict <REDACTED>")
+    |> String.replace(~r/\\unrestrict\s+\S+/, "\\unrestrict <REDACTED>")
+    |> String.trim()
   end
 end

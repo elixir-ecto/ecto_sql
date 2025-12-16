@@ -719,6 +719,12 @@ defmodule Ecto.Adapters.TdsTest do
                  fn ->
                    all(query)
                  end
+
+    query = Schema |> select([r], fragment("CAST(? AS INT)", r.x and r.y)) |> plan()
+    assert all(query) == ~s{SELECT CAST((s0.[x] AND s0.[y]) AS INT) FROM [schema] AS s0}
+
+    query = Schema |> select([r], fragment("CAST(? AS INT)", r.x or r.y)) |> plan()
+    assert all(query) == ~s{SELECT CAST((s0.[x] OR s0.[y]) AS INT) FROM [schema] AS s0}
   end
 
   test "literals" do
@@ -1551,6 +1557,15 @@ defmodule Ecto.Adapters.TdsTest do
                |> remove_newlines
                |> Kernel.<>(" ")
              ]
+  end
+
+  test "create table with modifiers should raise" do
+    create =
+      {:create, table(:posts, modifiers: "UNLOGGED"), [{:add, :id, :serial, [primary_key: true]}]}
+
+    assert_raise ArgumentError,
+                 "MSSQL adapter does not support :modifiers in the create table statement",
+                 fn -> execute_ddl(create) end
   end
 
   test "create table with composite key" do

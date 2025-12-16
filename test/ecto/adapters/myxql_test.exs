@@ -385,7 +385,7 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert all(query) == ~s{SELECT s0.`x`, s0.`y` FROM `schema` AS s0}
 
     assert_raise Ecto.QueryError,
-                 ~r"DISTINCT with multiple columns is not supported by MySQL",
+                 ~r"to apply DISTINCT to multiple columns in MySQL, use distinct: true",
                  fn ->
                    query =
                      Schema |> distinct([r], [r.x, r.y]) |> select([r], {r.x, r.y}) |> plan()
@@ -394,7 +394,7 @@ defmodule Ecto.Adapters.MyXQLTest do
                  end
 
     assert_raise Ecto.QueryError,
-                 ~r"DISTINCT with multiple columns is not supported by MySQL",
+                 ~r"to apply DISTINCT to multiple columns in MySQL, use distinct: true",
                  fn ->
                    query =
                      from(row in Schema, as: :r, select: row.x)
@@ -681,6 +681,12 @@ defmodule Ecto.Adapters.MyXQLTest do
     assert_raise Ecto.QueryError, fn ->
       all(query)
     end
+
+    query = Schema |> select([r], fragment("CAST(? AS INT)", r.x and r.y)) |> plan()
+    assert all(query) == ~s{SELECT CAST((s0.`x` AND s0.`y`) AS INT) FROM `schema` AS s0}
+
+    query = Schema |> select([r], fragment("CAST(? AS INT)", r.x or r.y)) |> plan()
+    assert all(query) == ~s{SELECT CAST((s0.`x` OR s0.`y`) AS INT) FROM `schema` AS s0}
   end
 
   test "literals" do
@@ -1822,6 +1828,22 @@ defmodule Ecto.Adapters.MyXQLTest do
              [
                ~s|CREATE TABLE `posts` (`id` bigint unsigned not null auto_increment, `created_at` datetime, PRIMARY KEY (`id`)) ENGINE = MYISAM WITH FOO=BAR|
              ]
+  end
+
+  test "create table with modifiers" do
+    create =
+      {:create, table(:posts, modifiers: "TEMPORARY"),
+       [
+         {:add, :id, :serial, [primary_key: true]},
+         {:add, :created_at, :naive_datetime, []}
+       ]}
+
+    assert execute_ddl(create) == [
+             """
+             CREATE TEMPORARY TABLE `posts` (`id` bigint unsigned not null auto_increment, `created_at` datetime, PRIMARY KEY (`id`)) ENGINE = INNODB
+             """
+             |> remove_newlines
+           ]
   end
 
   test "create table with composite key" do

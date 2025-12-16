@@ -815,11 +815,11 @@ if Code.ensure_loaded?(Tds) do
     end
 
     defp expr({:fragment, _, parts}, sources, query) do
-      Enum.map(parts, fn
-        {:raw, part} -> part
-        {:expr, expr} -> expr(expr, sources, query)
-      end)
-      |> parens_for_select
+      fragment_expr(parts, sources, query)
+    end
+
+    defp expr({{:fragment, _, parts}, schema}, sources, query) when is_atom(schema) do
+      fragment_expr(parts, sources, query)
     end
 
     defp expr({:values, _, [types, idx, num_rows]}, _, _query) do
@@ -1007,6 +1007,14 @@ if Code.ensure_loaded?(Tds) do
       end)
     end
 
+    defp fragment_expr(parts, sources, query) do
+      Enum.map(parts, fn
+        {:raw, part} -> part
+        {:expr, expr} -> op_to_binary(expr, sources, query)
+      end)
+      |> parens_for_select()
+    end
+
     defp op_to_binary({op, _, [_, _]} = expr, sources, query) when op in @binary_ops do
       paren_expr(expr, sources, query)
     end
@@ -1070,6 +1078,9 @@ if Code.ensure_loaded?(Tds) do
         {:fragment, _, _} ->
           {nil, as_prefix ++ [?f | Integer.to_string(pos)], nil}
 
+        {{:fragment, _, _}, schema, _} ->
+          {nil, as_prefix ++ [?f | Integer.to_string(pos)], schema}
+
         {:values, _, _} ->
           {nil, as_prefix ++ [?v | Integer.to_string(pos)], nil}
 
@@ -1098,6 +1109,10 @@ if Code.ensure_loaded?(Tds) do
 
     @impl true
     def execute_ddl({command, %Table{} = table, columns}) when command in @creates do
+      if table.modifiers do
+        error!(nil, "MSSQL adapter does not support :modifiers in the create table statement")
+      end
+
       prefix = table.prefix
 
       pk_name =

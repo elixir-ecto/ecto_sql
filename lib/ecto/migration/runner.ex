@@ -21,7 +21,9 @@ defmodule Ecto.Migration.Runner do
     {:ok, runner} = DynamicSupervisor.start_child(Ecto.MigratorSupervisor, {__MODULE__, args})
     metadata(runner, opts)
 
-    log(level, "== Running #{version} #{inspect(module)}.#{operation}/0 #{direction}")
+    direction_msg = if operation == :change, do: " #{direction}", else: nil
+
+    log(level, "== Running #{version} #{inspect(module)}.#{operation}/0#{direction_msg}")
     {time, _} = :timer.tc(fn -> perform_operation(repo, module, operation) end)
     log(level, "== Migrated #{version} in #{inspect(div(time, 100_000) / 10)}s")
   after
@@ -433,10 +435,11 @@ defmodule Ecto.Migration.Runner do
     do: "execute #{inspect(ddl)}"
 
   defp command({:create, %Table{} = table, _}),
-    do: "create table #{quote_name(table.prefix, table.name)}"
+    do: "create #{table_modifiers(table.modifiers)} #{quote_name(table.prefix, table.name)}"
 
   defp command({:create_if_not_exists, %Table{} = table, _}),
-    do: "create table if not exists #{quote_name(table.prefix, table.name)}"
+    do:
+      "create #{table_modifiers(table.modifiers)} if not exists #{quote_name(table.prefix, table.name)}"
 
   defp command({:alter, %Table{} = table, _}),
     do: "alter table #{quote_name(table.prefix, table.name)}"
@@ -500,4 +503,7 @@ defmodule Ecto.Migration.Runner do
   defp quote_name(prefix, name), do: quote_name(prefix) <> "." <> quote_name(name)
   defp quote_name(name) when is_atom(name), do: quote_name(Atom.to_string(name))
   defp quote_name(name), do: name
+
+  defp table_modifiers(value) when is_binary(value), do: "#{value} table"
+  defp table_modifiers(_), do: "table"
 end
