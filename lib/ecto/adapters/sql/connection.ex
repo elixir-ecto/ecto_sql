@@ -94,7 +94,8 @@ defmodule Ecto.Adapters.SQL.Connection do
               rows :: [[atom | nil]],
               on_conflict :: Ecto.Adapter.Schema.on_conflict(),
               returning :: [atom],
-              placeholders :: [term]
+              placeholders :: [term],
+              opts :: Keyword.t()
             ) :: iodata
 
   @doc """

@@ -220,7 +220,7 @@ if Code.ensure_loaded?(Tds) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, returning, placeholders) do
+    def insert(prefix, table, header, rows, on_conflict, returning, placeholders, _opts \\ []) do
       counter_offset = length(placeholders) + 1
       [] = on_conflict(on_conflict, header)
       returning = returning(returning, "INSERTED")
