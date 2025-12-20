@@ -589,10 +589,10 @@ defmodule Ecto.Adapters.MyXQL do
         acc = acc <> data
 
         if acc =~ "__ECTO_EOF__" do
-          {acc, 0}
-        else
-          collect_output(port, acc)
+          Port.close(port)
         end
+
+        collect_output(port, acc)
 
       {^port, {:exit_status, status}} ->
         {acc, status}
