@@ -499,12 +499,46 @@ defmodule Ecto.Adapters.MyXQL do
               "please guarantee it is available before running ecto commands"
     end
 
-    {args, cmd_opts} = args_cmd_opts(opts, opt_args, cmd_opts)
+    {args, env} = args_env(opts, opt_args)
+
+    cmd_opts =
+      cmd_opts
+      |> Keyword.put_new(:stderr_to_stdout, true)
+      |> Keyword.update(:env, env, &Enum.concat(env, &1))
 
     System.cmd(cmd, args, cmd_opts)
   end
 
-  defp args_cmd_opts(opts, opt_args, cmd_opts) do
+  defp run_with_port(cmd, opts, opt_args, contents) do
+    abs_cmd = System.find_executable(cmd)
+
+    unless abs_cmd do
+      raise "could not find executable `#{cmd}` in path, " <>
+              "please guarantee it is available before running ecto commands"
+    end
+
+    abs_cmd = String.to_charlist(abs_cmd)
+    {args, env} = args_env(opts, opt_args)
+
+    port_opts = [
+      :use_stdio,
+      :exit_status,
+      :binary,
+      :hide,
+      :stderr_to_stdout,
+      env: validate_env(env),
+      args: args
+    ]
+
+    port = Port.open({:spawn_executable, abs_cmd}, port_opts)
+    Port.command(port, contents)
+    # Use this as a signal to close the port since we cannot
+    # send an exit command to mysql in batch mode
+    Port.command(port, ";SELECT '__ECTO_EOF__';\n")
+    collect_output(port, "")
+  end
+
+  defp args_env(opts, opt_args) do
     env =
       if password = opts[:password] do
         [{"MYSQL_PWD", password}]
@@ -533,60 +567,7 @@ defmodule Ecto.Adapters.MyXQL do
         protocol
       ] ++ user_args ++ opt_args
 
-    cmd_opts =
-      cmd_opts
-      |> Keyword.put_new(:stderr_to_stdout, true)
-      |> Keyword.update(:env, env, &Enum.concat(env, &1))
-
-    {args, cmd_opts}
-  end
-
-  # Ported from Elixir System.cmd implementation with the
-  # intent of using file redirection for passing dumps
-  # into the mysql client so that users don't run into
-  # shell limits when files are too large
-  defp run_with_port(cmd, opts, opt_args, contents, cmd_opts \\ []) do
-    abs_cmd = System.find_executable(cmd)
-
-    unless abs_cmd do
-      raise "could not find executable `#{cmd}` in path, " <>
-              "please guarantee it is available before running ecto commands"
-    end
-
-    abs_cmd = String.to_charlist(abs_cmd)
-    {args, cmd_opts} = args_cmd_opts(opts, opt_args, cmd_opts)
-
-    port_opts = port_opts(cmd_opts, args: args)
-    port = Port.open({:spawn_executable, abs_cmd}, port_opts)
-    Port.command(port, contents)
-    # Use this as a signal to close the port since we cannot
-    # send an exit command to mysql in batch mode
-    Port.command(port, ";SELECT '__ECTO_EOF__';\n")
-
-    {initial, fun} = Collectable.into("")
-
-    try do
-      collect_output(port, initial, fun)
-    catch
-      kind, reason ->
-        fun.(initial, :halt)
-        :erlang.raise(kind, reason, __STACKTRACE__)
-    else
-      {acc, status} -> {fun.(acc, :done), status}
-    end
-  end
-
-  defp port_opts([{:stderr_to_stdout, true} | t], acc),
-    do: port_opts(t, [:stderr_to_stdout | acc])
-
-  defp port_opts([{:stderr_to_stdout, _} | t], acc),
-    do: port_opts(t, acc)
-
-  defp port_opts([{:env, enum} | t], acc),
-    do: port_opts(t, [{:env, validate_env(enum)} | acc])
-
-  defp port_opts([], acc) do
-    [:use_stdio, :exit_status, :binary, :hide] ++ acc
+    {args, env}
   end
 
   defp validate_env(enum) do
@@ -602,13 +583,16 @@ defmodule Ecto.Adapters.MyXQL do
     end)
   end
 
-  defp collect_output(port, acc, fun) do
+  defp collect_output(port, acc) do
     receive do
-      {^port, {:data, "__ECTO_EOF__" <> _rest}} ->
-        {acc, 0}
-
       {^port, {:data, data}} ->
-        collect_output(port, fun.(acc, {:cont, data}), fun)
+        acc = acc <> data
+
+        if acc =~ "__ECTO_EOF__" do
+          {acc, 0}
+        else
+          collect_output(port, acc)
+        end
 
       {^port, {:exit_status, status}} ->
         {acc, status}
