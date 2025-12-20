@@ -419,13 +419,15 @@ defmodule Ecto.Adapters.MyXQL do
     case File.read(path) do
       {:ok, contents} ->
         args = [
-          "--execute",
-          "SET FOREIGN_KEY_CHECKS = 0; " <> contents <> "; SET FOREIGN_KEY_CHECKS = 1",
+          "--silent",
+          "--batch",
+          "--unbuffered",
+          "--init-command=SET FOREIGN_KEY_CHECKS = 0;",
           "--database",
           config[:database]
         ]
 
-        case run_with_cmd("mysql", config, args) do
+        case run_with_port("mysql", config, args, contents) do
           {_output, 0} -> {:ok, path}
           {output, _} -> {:error, output}
         end
@@ -497,6 +499,46 @@ defmodule Ecto.Adapters.MyXQL do
               "please guarantee it is available before running ecto commands"
     end
 
+    {args, env} = args_env(opts, opt_args)
+
+    cmd_opts =
+      cmd_opts
+      |> Keyword.put_new(:stderr_to_stdout, true)
+      |> Keyword.update(:env, env, &Enum.concat(env, &1))
+
+    System.cmd(cmd, args, cmd_opts)
+  end
+
+  defp run_with_port(cmd, opts, opt_args, contents) do
+    abs_cmd = System.find_executable(cmd)
+
+    unless abs_cmd do
+      raise "could not find executable `#{cmd}` in path, " <>
+              "please guarantee it is available before running ecto commands"
+    end
+
+    abs_cmd = String.to_charlist(abs_cmd)
+    {args, env} = args_env(opts, opt_args)
+
+    port_opts = [
+      :use_stdio,
+      :exit_status,
+      :binary,
+      :hide,
+      :stderr_to_stdout,
+      env: validate_env(env),
+      args: args
+    ]
+
+    port = Port.open({:spawn_executable, abs_cmd}, port_opts)
+    Port.command(port, contents)
+    # Use this as a signal to close the port since we cannot
+    # send an exit command to mysql in batch mode
+    Port.command(port, ";SELECT '__ECTO_EOF__';\n")
+    collect_output(port, "")
+  end
+
+  defp args_env(opts, opt_args) do
     env =
       if password = opts[:password] do
         [{"MYSQL_PWD", password}]
@@ -525,11 +567,36 @@ defmodule Ecto.Adapters.MyXQL do
         protocol
       ] ++ user_args ++ opt_args
 
-    cmd_opts =
-      cmd_opts
-      |> Keyword.put_new(:stderr_to_stdout, true)
-      |> Keyword.update(:env, env, &Enum.concat(env, &1))
+    {args, env}
+  end
 
-    System.cmd(cmd, args, cmd_opts)
+  defp validate_env(enum) do
+    Enum.map(enum, fn
+      {k, nil} ->
+        {String.to_charlist(k), false}
+
+      {k, v} ->
+        {String.to_charlist(k), String.to_charlist(v)}
+
+      other ->
+        raise ArgumentError, "invalid environment key-value #{inspect(other)}"
+    end)
+  end
+
+  defp collect_output(port, acc) do
+    receive do
+      {^port, {:data, data}} ->
+        acc = acc <> data
+
+        if acc =~ "__ECTO_EOF__" do
+          Port.close(port)
+          {acc, 0}
+        else
+          collect_output(port, acc)
+        end
+
+      {^port, {:exit_status, status}} ->
+        {acc, status}
+    end
   end
 end
