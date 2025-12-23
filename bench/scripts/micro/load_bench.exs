@@ -30,19 +30,22 @@ inputs = %{
     1..1_000_000 |> Stream.map(fn _ -> %{name: "Alice", email: "email@email.com"} end),
   "4. Time attr" =>
     1..100_000 |> Stream.map(fn _ -> %{name: "Alice", time_attr: ~T[21:25:04.361140]} end),
-  "5. Date attr" => 1..100_000 |> Stream.map(fn _ -> %{name: "Alice", date_attr: ~D[2018-06-20]} end),
+  "5. Date attr" =>
+    1..100_000 |> Stream.map(fn _ -> %{name: "Alice", date_attr: ~D[2018-06-20]} end),
   "6. NaiveDateTime attr" =>
     1..100_000
-    |> Stream.map(fn _ -> %{name: "Alice", naive_datetime_attr: ~N[2019-06-20 21:32:07.424178]} end),
+    |> Stream.map(fn _ ->
+      %{name: "Alice", naive_datetime_attr: ~N[2019-06-20 21:32:07.424178]}
+    end),
   "7. UUID attr" =>
     1..100_000
     |> Stream.map(fn _ -> %{name: "Alice", uuid: Ecto.UUID.bingenerate()} end)
 }
 
 jobs = %{
-  "Control" => fn stream -> stream |> Stream.map(fn _data -> true end) |> Stream.run() end,
-  "Pg Loader" => fn stream -> stream |> Stream.map(&Ecto.Bench.PgRepo.load(User, &1)) |> Stream.run() end,
-  "MyXQL Loader" => fn data -> Enum.map(data, &Ecto.Bench.MyXQLRepo.load(User, &1)) end
+  "Control" => fn stream -> Enum.each(stream, fn _data -> true end) end,
+  "Pg Loader" => fn stream -> Enum.each(stream, &Ecto.Bench.PgRepo.load(User, &1)) end,
+  "MyXQL Loader" => fn stream -> Enum.each(stream, &Ecto.Bench.MyXQLRepo.load(User, &1)) end
 }
 
 Benchee.run(
