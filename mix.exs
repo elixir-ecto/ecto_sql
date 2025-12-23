@@ -62,13 +62,15 @@ defmodule EctoSQL.MixProject do
       tds_dep(),
 
       # Bring something in for JSON during tests
-      {:jason, ">= 0.0.0", only: [:test, :docs]},
+      {:jason, "~> 1.0", only: [:test, :bench, :docs]},
 
       # Docs
       {:ex_doc, "~> 0.21", only: :docs},
 
       # Benchmarks
-      {:benchee, "~> 1.0", only: :bench}
+      {:benchee, "~> 1.0", only: :bench},
+      {:benchee_html, "~> 1.0", only: :bench},
+      {:benchee_json, "~> 1.0", only: :bench}
     ]
   end
 

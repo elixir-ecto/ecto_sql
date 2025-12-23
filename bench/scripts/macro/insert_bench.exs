@@ -29,14 +29,10 @@ jobs = %{
   "MyXQL Insert" => fn entry -> Ecto.Bench.MyXQLRepo.insert!(entry) end
 }
 
-path = System.get_env("BENCHMARKS_OUTPUT_PATH") || "bench/results"
-file = Path.join(path, "insert.json")
-
 Benchee.run(
   jobs,
   inputs: inputs,
-  formatters: [Benchee.Formatters.Console],
-  formatter_options: [json: [file: file]]
+  formatters: Ecto.Bench.Helper.formatters("insert")
 )
 
 # Clean inserted data

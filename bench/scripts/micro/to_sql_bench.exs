@@ -25,26 +25,26 @@ import Ecto.Query
 alias Ecto.Bench.{User, Game}
 
 inputs = %{
-  "Ordinary Select All" => {:all, from(User)},
-  "Ordinary Delete All" => {:delete_all, from(User)},
-  "Ordinary Update All" => {:update_all, from(User, update: [set: [name: "Thor"]])},
-  "Ordinary Where" => {:all, from(User, where: [name: "Thanos", email: "blah@blah"])},
-  "Fetch First Registry" => {:all, first(User)},
-  "Fetch Last Registry" => {:all, last(User)},
-  "Ordinary Order By" => {:all, order_by(User, desc: :name)},
-  "Complex Query 2 Joins" =>
+  "1. Ordinary Select All" => {:all, from(User)},
+  "2. Ordinary Delete All" => {:delete_all, from(User)},
+  "3. Ordinary Update All" => {:update_all, from(User, update: [set: [name: "Thor"]])},
+  "4. Ordinary Where" => {:all, from(User, where: [name: "Thanos", email: "blah@blah"])},
+  "5. Fetch First Registry" => {:all, first(User)},
+  "6. Fetch Last Registry" => {:all, last(User)},
+  "7. Ordinary Order By" => {:all, order_by(User, desc: :name)},
+  "8. Complex Query 2 Joins" =>
     {:all,
      from(User, where: [name: "Thanos"])
      |> join(:left, [u], ux in User, on: u.id == ux.id)
      |> join(:right, [j], uj in User, on: j.id == 1 and j.email == "email@email")
      |> select([u, ux], {u.name, ux.email})},
-  "Complex Query 4 Joins" =>
+  "9. Complex Query 4 Joins" =>
     {:all,
      from(User)
      |> join(:left, [u], g in Game, on: g.name == u.name)
      |> join(:right, [g], u in User, on: g.id == 1 and u.email == "email@email")
-     |> join(:inner, [u], g in fragment("SELECT * from games where game.id = ?", u.id))
-     |> join(:left, [g], u in fragment("SELECT * from users = ?", g.id))
+     |> join(:inner, [u], g in fragment("SELECT * from games where game.id = ?", u.id), on: true)
+     |> join(:left, [g], u in fragment("SELECT * from users = ?", g.id), on: true)
      |> select([u, g], {u.name, g.price})}
 }
 
@@ -53,12 +53,8 @@ jobs = %{
   "MyXQL Query Builder" => fn {type, query} -> Ecto.Bench.MyXQLRepo.to_sql(type, query) end
 }
 
-path = System.get_env("BENCHMARKS_OUTPUT_PATH") || "bench/results"
-file = Path.join(path, "to_sql.json")
-
 Benchee.run(
   jobs,
   inputs: inputs,
-  formatters: [Benchee.Formatters.Console],
-  formatter_options: [json: [file: file]]
+  formatters: Ecto.Bench.Helper.formatters("to_sql")
 )
