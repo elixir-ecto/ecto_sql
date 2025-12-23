@@ -1,8 +1,12 @@
 Code.require_file("repo.exs", __DIR__)
 Code.require_file("migrations.exs", __DIR__)
 Code.require_file("schemas.exs", __DIR__)
+Code.require_file("helper.exs", __DIR__)
+
+File.mkdir_p(Ecto.Bench.Helper.report_dir())
 
 alias Ecto.Bench.{PgRepo, MyXQLRepo, CreateUser}
+alias Ecto.Bench.{PgRepo, CreateUser}
 
 {:ok, _} = Ecto.Adapters.Postgres.ensure_all_started(PgRepo.config(), :temporary)
 {:ok, _} = Ecto.Adapters.MyXQL.ensure_all_started(MyXQLRepo.config(), :temporary)
