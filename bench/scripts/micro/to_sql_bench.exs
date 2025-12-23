@@ -43,8 +43,8 @@ inputs = %{
      from(User)
      |> join(:left, [u], g in Game, on: g.name == u.name)
      |> join(:right, [g], u in User, on: g.id == 1 and u.email == "email@email")
-     |> join(:inner, [u], g in fragment("SELECT * from games where game.id = ?", u.id))
-     |> join(:left, [g], u in fragment("SELECT * from users = ?", g.id))
+     |> join(:inner, [u], g in fragment("SELECT * from games where game.id = ?", u.id), on: true)
+     |> join(:left, [g], u in fragment("SELECT * from users = ?", g.id), on: true)
      |> select([u, g], {u.name, g.price})}
 }
 
