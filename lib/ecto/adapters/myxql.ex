@@ -125,8 +125,8 @@ defmodule Ecto.Adapters.MyXQL do
   behavior. This always reports 1 affected row regardless of whether
   the row was actually inserted or ignored.
 
-  If you need accurate row counts (0 when ignored, 1 when inserted),
-  you can combine `on_conflict: :nothing` with `insert_mode: :ignore_errors`:
+  If you need accurate row counts (0 when ignored, 1 when inserted) at the expense of error handling,
+  you can combine `on_conflict: :nothing` with [`insert_mode: :ignore_errors`](#module-insert-mode):
 
       Repo.insert_all(Post, posts,
         on_conflict: :nothing,
