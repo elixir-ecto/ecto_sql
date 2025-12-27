@@ -56,8 +56,8 @@ defmodule Ecto.Adapters.MyXQLTest do
   defp delete_all(query), do: query |> SQL.delete_all() |> IO.iodata_to_binary()
   defp execute_ddl(query), do: query |> SQL.execute_ddl() |> Enum.map(&IO.iodata_to_binary/1)
 
-  defp insert(prefx, table, header, rows, on_conflict, returning) do
-    IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning, []))
+  defp insert(prefx, table, header, rows, on_conflict, returning, opts \\ []) do
+    IO.iodata_to_binary(SQL.insert(prefx, table, header, rows, on_conflict, returning, [], opts))
   end
 
   defp update(prefx, table, fields, filter, returning) do
@@ -1466,6 +1466,7 @@ defmodule Ecto.Adapters.MyXQLTest do
   end
 
   test "insert with on duplicate key" do
+    # Default :nothing uses ON DUPLICATE KEY UPDATE workaround
     query = insert(nil, "schema", [:x, :y], [[:x, :y]], {:nothing, [], []}, [])
 
     assert query ==
@@ -1497,6 +1498,22 @@ defmodule Ecto.Adapters.MyXQLTest do
 
                    insert(nil, "schema", [:x, :y], [[:x, :y]], {update, [], []}, [])
                  end
+  end
+
+  test "insert with insert_mode: :ignore_errors" do
+    # INSERT IGNORE via insert_mode: :ignore_errors option
+    query =
+      insert(
+        nil,
+        "schema",
+        [:x, :y],
+        [[:x, :y]],
+        {:nothing, [], []},
+        [],
+        insert_mode: :ignore_errors
+      )
+
+    assert query == ~s{INSERT IGNORE INTO `schema` (`x`,`y`) VALUES (?,?)}
   end
 
   test "insert with query" do

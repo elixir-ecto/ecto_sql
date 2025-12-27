@@ -229,7 +229,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, returning, placeholders) do
+    def insert(prefix, table, header, rows, on_conflict, returning, placeholders, _opts \\ []) do
       counter_offset = length(placeholders) + 1
 
       values =

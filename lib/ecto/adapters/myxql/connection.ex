@@ -179,41 +179,61 @@ if Code.ensure_loaded?(MyXQL) do
     end
 
     @impl true
-    def insert(prefix, table, header, rows, on_conflict, [], []) do
+    def insert(prefix, table, header, rows, on_conflict, returning, placeholders, opts \\ [])
+
+    def insert(prefix, table, header, rows, on_conflict, [], [], opts) do
       fields = quote_names(header)
+      insert_mode = Keyword.get(opts, :insert_mode)
+      insert_keyword = insert_keyword(insert_mode)
 
       [
-        "INSERT INTO ",
+        insert_keyword,
         quote_table(prefix, table),
         " (",
         fields,
         ") ",
-        insert_all(rows) | on_conflict(on_conflict, header)
+        insert_all(rows) | on_conflict(on_conflict, header, opts)
       ]
     end
 
-    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, []) do
+    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, [], _opts) do
       error!(nil, ":returning is not supported in insert/insert_all by MySQL")
     end
 
-    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, _placeholders) do
+    def insert(_prefix, _table, _header, _rows, _on_conflict, _returning, _placeholders, _opts) do
       error!(nil, ":placeholders is not supported by MySQL")
     end
 
-    defp on_conflict({_, _, [_ | _]}, _header) do
+    # INSERT IGNORE when insert_mode: :ignore_errors is passed, independent of on_conflict
+    defp insert_keyword(:ignore_errors) do
+      "INSERT IGNORE INTO "
+    end
+
+    defp insert_keyword(_) do
+      "INSERT INTO "
+    end
+
+    defp on_conflict({_, _, [_ | _]}, _header, _opts) do
       error!(nil, ":conflict_target is not supported in insert/insert_all by MySQL")
     end
 
-    defp on_conflict({:raise, _, []}, _header) do
+    defp on_conflict({:raise, _, []}, _header, _opts) do
       []
     end
 
-    defp on_conflict({:nothing, _, []}, [field | _]) do
-      quoted = quote_name(field)
-      [" ON DUPLICATE KEY UPDATE ", quoted, " = " | quoted]
+    # When insert_mode: :ignore_errors is used with on_conflict: :nothing,
+    # INSERT IGNORE already handles conflicts - no ON DUPLICATE KEY UPDATE needed
+    defp on_conflict({:nothing, _, []}, [field | _], opts) do
+      if Keyword.get(opts, :insert_mode) == :ignore_errors do
+        []
+      else
+        # Default :nothing without INSERT IGNORE - uses workaround to simulate "do nothing" behavior
+        quoted = quote_name(field)
+        [" ON DUPLICATE KEY UPDATE ", quoted, " = " | quoted]
+      end
     end
 
-    defp on_conflict({fields, _, []}, _header) when is_list(fields) do
+    defp on_conflict({fields, _, []}, _header, _opts) when is_list(fields) do
       [
         " ON DUPLICATE KEY UPDATE "
         | Enum.map_intersperse(fields, ?,, fn field ->
@@ -223,11 +243,11 @@ if Code.ensure_loaded?(MyXQL) do
       ]
     end
 
-    defp on_conflict({%{wheres: []} = query, _, []}, _header) do
+    defp on_conflict({%{wheres: []} = query, _, []}, _header, _opts) do
       [" ON DUPLICATE KEY " | update_all(query, "UPDATE ")]
     end
 
-    defp on_conflict({_query, _, []}, _header) do
+    defp on_conflict({_query, _, []}, _header, _opts) do
       error!(
         nil,
         "Using a query with :where in combination with the :on_conflict option is not supported by MySQL"

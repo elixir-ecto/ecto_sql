@@ -970,7 +970,7 @@ defmodule Ecto.Adapters.SQL do
         rows -> unzip_inserts(header, rows)
       end
 
-    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders)
+    sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders, opts)
 
     opts =
       if is_nil(Keyword.get(opts, :cache_statement)) do

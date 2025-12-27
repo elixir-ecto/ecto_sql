@@ -103,6 +103,55 @@ defmodule Ecto.Adapters.MyXQL do
   automatically commits after some commands like CREATE TABLE.
   Therefore MySQL migrations does not run inside transactions.
 
+  ### Insert Mode
+
+  The `:insert_mode` option controls the type of INSERT statement generated.
+  When set to `:ignore_errors`, the adapter uses MySQL's `INSERT IGNORE`
+  syntax:
+
+      Repo.insert_all(Post, posts, insert_mode: :ignore_errors)
+
+  With `INSERT IGNORE`, MySQL silently ignores errors that would normally
+  cause the statement to fail, such as duplicate key violations and certain
+  type conversion errors. When a row is ignored, the affected row count
+  will be 0 instead of 1.
+
+  See [MySQL documentation](https://dev.mysql.com/doc/refman/8.4/en/insert.html) for more details.
+
+  ### Upserts
+
+  When using `on_conflict: :nothing`, the adapter uses the
+  `ON DUPLICATE KEY UPDATE x = x` workaround to simulate "do nothing"
+  behavior. This always reports 1 affected row regardless of whether
+  the row was actually inserted or ignored.
+
+  If you need accurate row counts (0 when ignored, 1 when inserted) at the expense of error handling,
+  you can combine `on_conflict: :nothing` with [`insert_mode: :ignore_errors`](#module-insert-mode):
+
+      Repo.insert_all(Post, posts,
+        on_conflict: :nothing,
+        insert_mode: :ignore_errors)
+
+  When both options are used together, `INSERT IGNORE` handles the conflict
+  resolution and the `ON DUPLICATE KEY UPDATE` clause is omitted.
+
+  Examples:
+
+  ```elixir
+  Repo.insert_all(Post, posts,
+    on_conflict: :nothing)
+
+  # SQL: INSERT INTO `posts` (`title`, `uuid`) VALUES (?,?) ON DUPLICATE KEY UPDATE `id` = VALUES(`id`)
+  ```
+
+  ```elixir
+  Repo.insert_all(Post, posts,
+    on_conflict: :nothing,
+    insert_mode: :ignore_errors)
+
+  # SQL: INSERT IGNORE INTO `posts` (`title`, `uuid`) VALUES (?,?)
+  ```
+
   ## Old MySQL versions
 
   ### JSON support
@@ -319,7 +368,10 @@ defmodule Ecto.Adapters.MyXQL do
 
     key = primary_key!(schema_meta, returning)
     {fields, values} = :lists.unzip(params)
-    sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [], [])
+
+    # Extract insert_mode and pass it to the connection's insert function
+    insert_opts = if opts[:insert_mode], do: [insert_mode: opts[:insert_mode]], else: []
+    sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [], [], insert_opts)
 
     opts =
       if is_nil(Keyword.get(opts, :cache_statement)) do
@@ -330,9 +382,15 @@ defmodule Ecto.Adapters.MyXQL do
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 0}} ->
-        raise "insert operation failed to insert any row in the database. " <>
-                "This may happen if you have trigger or other database conditions rejecting operations. " <>
-                "The emitted SQL was: #{sql}"
+        # With INSERT IGNORE (insert_mode: :ignore_errors), 0 rows means the row
+        # was ignored due to a conflict, which is expected behavior
+        if opts[:insert_mode] == :ignore_errors do
+          {:ok, []}
+        else
+          raise "insert operation failed to insert any row in the database. " <>
+                  "This may happen if you have trigger or other database conditions rejecting operations. " <>
+                  "The emitted SQL was: #{sql}"
+        end
 
       # We were used to check if num_rows was 1 or 2 (in case of upserts)
       # but MariaDB supports tables with System Versioning, and in those
