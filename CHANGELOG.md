@@ -5,8 +5,15 @@
 ### Enhancements
 
   * [migrations] Allow table modifiers, such as UNLOGGED tables
+  * [mysql] Support `insert_mode: :ignore`
   * [sandbox] Label the sandbox owner process
   * [sql] Allow fragment tuple sources in adapters
+
+## v3.13.4 (2025-12-27)
+
+### Bug fixes
+
+  * [mysql] Do not crash `mix ecto.load` with large dumped databases
 
 ## v3.13.3 (2025-12-08)
 
