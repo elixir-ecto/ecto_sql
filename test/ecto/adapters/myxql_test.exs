@@ -1500,8 +1500,7 @@ defmodule Ecto.Adapters.MyXQLTest do
                  end
   end
 
-  test "insert with insert_mode: :ignore_errors" do
-    # INSERT IGNORE via insert_mode: :ignore_errors option
+  test "insert with insert_mode: :ignore" do
     query =
       insert(
         nil,
@@ -1510,7 +1509,7 @@ defmodule Ecto.Adapters.MyXQLTest do
         [[:x, :y]],
         {:nothing, [], []},
         [],
-        insert_mode: :ignore_errors
+        insert_mode: :ignore
       )
 
     assert query == ~s{INSERT IGNORE INTO `schema` (`x`,`y`) VALUES (?,?)}

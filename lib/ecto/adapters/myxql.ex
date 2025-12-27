@@ -106,10 +106,10 @@ defmodule Ecto.Adapters.MyXQL do
   ### Insert Mode
 
   The `:insert_mode` option controls the type of INSERT statement generated.
-  When set to `:ignore_errors`, the adapter uses MySQL's `INSERT IGNORE`
+  When set to `:ignore`, the adapter uses MySQL's `INSERT IGNORE`
   syntax:
 
-      Repo.insert_all(Post, posts, insert_mode: :ignore_errors)
+      Repo.insert_all(Post, posts, insert_mode: :ignore)
 
   With `INSERT IGNORE`, MySQL silently ignores errors that would normally
   cause the statement to fail, such as duplicate key violations and certain
@@ -126,11 +126,11 @@ defmodule Ecto.Adapters.MyXQL do
   the row was actually inserted or ignored.
 
   If you need accurate row counts (0 when ignored, 1 when inserted) at the expense of error handling,
-  you can combine `on_conflict: :nothing` with [`insert_mode: :ignore_errors`](#module-insert-mode):
+  you can combine `on_conflict: :nothing` with [`insert_mode: :ignore`](#module-insert-mode):
 
       Repo.insert_all(Post, posts,
         on_conflict: :nothing,
-        insert_mode: :ignore_errors)
+        insert_mode: :ignore)
 
   When both options are used together, `INSERT IGNORE` handles the conflict
   resolution and the `ON DUPLICATE KEY UPDATE` clause is omitted.
@@ -147,7 +147,7 @@ defmodule Ecto.Adapters.MyXQL do
   ```elixir
   Repo.insert_all(Post, posts,
     on_conflict: :nothing,
-    insert_mode: :ignore_errors)
+    insert_mode: :ignore)
 
   # SQL: INSERT IGNORE INTO `posts` (`title`, `uuid`) VALUES (?,?)
   ```
@@ -382,9 +382,9 @@ defmodule Ecto.Adapters.MyXQL do
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 0}} ->
-        # With INSERT IGNORE (insert_mode: :ignore_errors), 0 rows means the row
+        # With INSERT IGNORE (insert_mode: :ignore), 0 rows means the row
         # was ignored due to a conflict, which is expected behavior
-        if opts[:insert_mode] == :ignore_errors do
+        if opts[:insert_mode] == :ignore do
           {:ok, []}
         else
           raise "insert operation failed to insert any row in the database. " <>

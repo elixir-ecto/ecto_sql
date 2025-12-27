@@ -204,8 +204,8 @@ if Code.ensure_loaded?(MyXQL) do
       error!(nil, ":placeholders is not supported by MySQL")
     end
 
-    # INSERT IGNORE when insert_mode: :ignore_errors is passed, independent of on_conflict
-    defp insert_keyword(:ignore_errors) do
+    # INSERT IGNORE when insert_mode: :ignore is passed, independent of on_conflict
+    defp insert_keyword(:ignore) do
       "INSERT IGNORE INTO "
     end
 
@@ -221,10 +221,10 @@ if Code.ensure_loaded?(MyXQL) do
       []
     end
 
-    # When insert_mode: :ignore_errors is used with on_conflict: :nothing,
+    # When insert_mode: :ignore is used with on_conflict: :nothing,
     # INSERT IGNORE already handles conflicts - no ON DUPLICATE KEY UPDATE needed
     defp on_conflict({:nothing, _, []}, [field | _], opts) do
-      if Keyword.get(opts, :insert_mode) == :ignore_errors do
+      if Keyword.get(opts, :insert_mode) == :ignore do
         []
       else
         # Default :nothing without INSERT IGNORE - uses workaround to simulate "do nothing" behavior
