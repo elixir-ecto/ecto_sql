@@ -1,5 +1,11 @@
 # Changelog for v3.x
 
+## v3.13.4 (2025-12-27)
+
+### Bug fixes
+
+  * [mysql] Do not crash `mix ecto.load` with large dumped databases
+
 ## v3.13.3 (2025-12-08)
 
 ### Enhancements
