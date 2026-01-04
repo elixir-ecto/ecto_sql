@@ -778,8 +778,8 @@ if Code.ensure_loaded?(MyXQL) do
       [to_string(literal)]
     end
 
-    defp expr({:splice, _, [{:^, _, [_, length]}]}, _sources, _query) do
-      Enum.intersperse(List.duplicate(??, length), ?,)
+    defp expr({:splice, _, splice_exprs}, sources, query) do
+      Enum.map_intersperse(splice_exprs, ",", &expr(&1, sources, query))
     end
 
     defp expr({:selected_as, _, [name]}, _sources, _query) do

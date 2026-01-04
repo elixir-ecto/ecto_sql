@@ -852,6 +852,13 @@ defmodule Ecto.Adapters.PostgresTest do
 
     assert all(query) == ~s{SELECT s0."x" FROM "schema" AS s0 WHERE (s0."x" in ($1,$2,$3,$4,$5))}
 
+    query =
+      Schema
+      |> select([_], fragment("concat_ws(?,?)", ".", splice(^["public", dynamic([r], r.x)])))
+      |> plan()
+
+    assert all(query) == ~s{SELECT concat_ws('.',$1,s0."x") FROM "schema" AS s0}
+
     value = 13
     query = Schema |> select([r], fragment("downcase(?, ?)", r.x, ^value)) |> plan()
     assert all(query) == ~s{SELECT downcase(s0."x", $1) FROM "schema" AS s0}

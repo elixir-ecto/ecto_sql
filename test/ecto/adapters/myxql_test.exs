@@ -672,6 +672,13 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert all(query) == ~s{SELECT s0.`x` FROM `schema` AS s0 WHERE (s0.`x` in (?,?,?,?,?))}
 
+    query =
+      Schema
+      |> select([_], fragment("concat_ws(?,?)", ".", splice(^["public", dynamic([r], r.x)])))
+      |> plan()
+
+    assert all(query) == ~s{SELECT concat_ws('.',?,s0.`x`) FROM `schema` AS s0}
+
     value = 13
     query = Schema |> select([r], fragment("lcase(?, ?)", r.x, ^value)) |> plan()
     assert all(query) == ~s{SELECT lcase(s0.`x`, ?) FROM `schema` AS s0}

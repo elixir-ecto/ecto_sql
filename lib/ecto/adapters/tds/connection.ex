@@ -838,8 +838,8 @@ if Code.ensure_loaded?(Tds) do
       [to_string(literal)]
     end
 
-    defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
-      list_param_to_args(idx, length)
+    defp expr({:splice, _, splice_exprs}, sources, query) do
+      Enum.map_intersperse(splice_exprs, ",", &expr(&1, sources, query))
     end
 
     defp expr({:selected_as, _, [name]}, _sources, _query) do
