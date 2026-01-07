@@ -509,7 +509,7 @@ defmodule Ecto.Adapters.SQL do
 
   @doc @explain_doc
   @spec explain(
-          pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          pid() | Ecto.Repo.t(),
           :all | :update_all | :delete_all,
           Ecto.Queryable.t(),
           opts :: Keyword.t()
@@ -521,7 +521,7 @@ defmodule Ecto.Adapters.SQL do
     explain(Ecto.Adapter.lookup_meta(repo), operation, queryable, wrap_in_transaction?, opts)
   end
 
-  def explain(%{repo: repo} = adapter_meta, operation, queryable, true, opts) do
+  defp explain(%{repo: repo} = adapter_meta, operation, queryable, true, opts) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:explain, fn _, _ ->
       {prepared, prepared_params} = to_sql(operation, repo, queryable)
@@ -538,7 +538,7 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
-  def explain(%{repo: repo} = adapter_meta, operation, queryable, false, opts) do
+  defp explain(%{repo: repo} = adapter_meta, operation, queryable, false, opts) do
     {prepared, prepared_params} = to_sql(operation, repo, queryable)
     sql_call(adapter_meta, :explain_query, [prepared], prepared_params, opts)
   end
