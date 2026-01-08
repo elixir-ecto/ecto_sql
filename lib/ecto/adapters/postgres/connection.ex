@@ -29,6 +29,12 @@ if Code.ensure_loaded?(Postgrex) do
         do: [foreign_key: constraint]
 
     def to_constraints(
+          %Postgrex.Error{postgres: %{code: :restrict_violation, constraint: constraint}},
+          _opts
+        ),
+        do: [foreign_key: constraint]
+
+    def to_constraints(
           %Postgrex.Error{postgres: %{code: :exclusion_violation, constraint: constraint}},
           _opts
         ),
