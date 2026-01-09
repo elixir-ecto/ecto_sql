@@ -698,7 +698,7 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) == ~s{SELECT TOP(1) s0.[x] FROM [schema] AS s0}
 
     query = Schema |> select(fragment("?", constant(^"let's escape"))) |> plan()
-    assert all(query) == ~s{SELECT 'let''s escape' FROM [schema] AS s0}
+    assert all(query) == ~s{SELECT N'let''s escape' FROM [schema] AS s0}
 
     query =
       Schema
