@@ -995,10 +995,6 @@ if Code.ensure_loaded?(Postgrex) do
       quote_name(literal)
     end
 
-    defp expr({:splice, _, [{:^, _, [idx, length]}]}, _sources, _query) do
-      Enum.map_join(1..length, ",", &"$#{idx + &1}")
-    end
-
     defp expr({:selected_as, _, [name]}, _sources, _query) do
       [quote_name(name)]
     end
