@@ -1011,7 +1011,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert_raise ArgumentError, ":select is not supported in update_all by MySQL", fn ->
       query = from(e in Schema, where: e.x == 123, select: e.x)
-      update_all(query)
+      update_all(Process.get(:unused, query))
     end
   end
 
@@ -1066,7 +1066,7 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     assert_raise ArgumentError, ":select is not supported in delete_all by MySQL", fn ->
       query = from(e in Schema, where: e.x == 123, select: e.x)
-      delete_all(query)
+      delete_all(Process.get(:unused, query))
     end
   end
 
