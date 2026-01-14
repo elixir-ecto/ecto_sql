@@ -12,6 +12,7 @@ defmodule EctoSQL.MixProject do
       elixir: "~> 1.15",
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
+      test_ignore_filters: [&String.starts_with?(&1, "test/support/")],
       xref: [
         exclude: [
           MyXQL,
