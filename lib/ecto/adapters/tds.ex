@@ -136,9 +136,6 @@ defmodule Ecto.Adapters.Tds do
   use Ecto.Adapters.SQL,
     driver: :tds
 
-  require Logger
-  require Ecto.Query
-
   @behaviour Ecto.Adapter.Storage
 
   @doc false

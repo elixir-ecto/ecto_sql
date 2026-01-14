@@ -1,11 +1,9 @@
 if Code.ensure_loaded?(Tds) do
   defmodule Ecto.Adapters.Tds.Connection do
     @moduledoc false
-    require Logger
     alias Tds.Query
     alias Ecto.Query.Tagged
     alias Ecto.Adapters.SQL
-    require Ecto.Schema
 
     @behaviour Ecto.Adapters.SQL.Connection
 

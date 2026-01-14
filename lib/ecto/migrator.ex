@@ -104,7 +104,6 @@ defmodule Ecto.Migrator do
   """
 
   require Logger
-  require Ecto.Query
 
   alias Ecto.Migration.Runner
   alias Ecto.Migration.SchemaMigration
