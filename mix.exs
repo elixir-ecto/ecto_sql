@@ -30,7 +30,6 @@ defmodule EctoSQL.MixProject do
         "test.adapters": &test_adapters/1,
         "test.as_a_dep": &test_as_a_dep/1
       ],
-      preferred_cli_env: ["test.all": :test, "test.adapters": :test],
 
       # Hex
       description: "SQL-based adapters for Ecto and database migrations",
@@ -48,6 +47,10 @@ defmodule EctoSQL.MixProject do
       env: [postgres_map_type: "jsonb"],
       mod: {Ecto.Adapters.SQL.Application, []}
     ]
+  end
+
+  def cli do
+    [preferred_envs: ["test.all": :test, "test.adapters": :test]]
   end
 
   defp deps do
