@@ -41,12 +41,7 @@ integration-test-postgres:
     FROM +setup-base
     ARG POSTGRES="11.11"
 
-    IF [ "$POSTGRES" = "9.5-alpine" ]
-        # for 9.5 we require a downgraded version of pg_dump;
-        # and in the 3.4 version, it is not included in postgresql-client but rather in postgresql
-        RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.4/main' >> /etc/apk/repositories
-        RUN apk add postgresql=9.5.13-r0
-    ELSE IF [ "$POSTGRES" = "16.2-alpine" ]
+    IF [ "$POSTGRES" = "16.2-alpine" ]
         # for 16 we need an upgraded version of pg_dump;
         # alpine 3.16 does not come with the postgres 16 client by default;
         # we must first update the public keys for the packages because they

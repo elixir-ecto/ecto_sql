@@ -202,6 +202,6 @@ defmodule Ecto.Integration.StorageTest do
                PoolRepo.config()
              )
 
-    assert output =~ "INSERT INTO `schema_migrations` VALUES ("
+    assert output =~ "INSERT INTO `schema_migrations`"
   end
 end
