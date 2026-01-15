@@ -73,7 +73,7 @@ integration-test-postgres:
 
 integration-test-mysql:
     FROM +setup-base
-    RUN apk del mariadb-client && apk add mysql-client
+    RUN apk add mysql-client
 
     DO +COMMON_SETUP_AND_MIX
 
