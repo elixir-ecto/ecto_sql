@@ -250,58 +250,6 @@ end
 >
 > Be aware that these callbacks are not called when `@disable_ddl_transaction true` is configured because they rely on the transaction being present.
 
-## Inspecting Locks In a Query
-
-Before we dive into safer migration practices, we should cover how to check if a migration could potentially block your application. In Postgres, there is a `pg_locks` table that we can query that reveals the locks in the system. Let's query that table alongside our changes from the migration, but return the locks so we can see what locks were obtained from the changes.
-
-```sql
-BEGIN;
-  -- Put your actions in here. For example, validating a constraint
-  ALTER TABLE addresses VALIDATE CONSTRAINT "my_table_locking_constraint";
-
-  -- end your transaction with a SELECT on pg_locks so you can see the locks
-  -- that occurred during the transaction
-  SELECT locktype, relation::regclass, mode, transactionid AS tid, virtualtransaction AS vtid, pid, granted FROM pg_locks;
-COMMIT;
-```
-
-The result from this SQL command should return the locks obtained during the database transaction. Let's see an example: We'll add a unique index without concurrency so we can see the locks it obtains:
-
-```sql
-BEGIN;
-  LOCK TABLE "schema_migrations" IN SHARE UPDATE EXCLUSIVE MODE;
-  -- we are going to squash the embedded transaction here for simplicity
-  CREATE UNIQUE INDEX IF NOT EXISTS "weather_city_index" ON "weather" ("city");
-  INSERT INTO "schema_migrations" ("version","inserted_at") VALUES ('20210718210952',NOW());
-  SELECT locktype, relation::regclass, mode, transactionid AS tid, virtualtransaction AS vtid, pid, granted FROM pg_locks;
-COMMIT;
-
---    locktype    |      relation      |           mode           |  tid   | vtid  | pid | granted
--- ---------------+--------------------+--------------------------+--------+-------+-----+---------
---  relation      | pg_locks           | AccessShareLock          |        | 2/321 | 253 | t
---  relation      | schema_migrations  | RowExclusiveLock         |        | 2/321 | 253 | t
---  virtualxid    |                    | ExclusiveLock            |        | 2/321 | 253 | t
---  relation      | weather_city_index | AccessExclusiveLock      |        | 2/321 | 253 | t
---  relation      | schema_migrations  | ShareUpdateExclusiveLock |        | 2/321 | 253 | t
---  transactionid |                    | ExclusiveLock            | 283863 | 2/321 | 253 | t
---  relation      | weather            | ShareLock                |        | 2/321 | 253 | t
--- (7 rows)
-```
-
-Let's go through each of these:
-
-1. `relation | pg_locks | AccessShareLock` - This is us querying the `"pg_locks"` table in the transaction so we can see which locks are taken. It has the weakest lock which only conflicts with `AccessExclusive` which should never happen on the internal `"pg_locks"` table itself.
-1. `relation | schema_migrations | RowExclusiveLock` - This is because we're inserting a row into the `"schema_migrations"` table. Reads are still allowed, but mutation on this table is blocked until the transaction is done.
-1. `virtualxid | _ | ExlusiveLock` - Querying `pg_locks` created a virtual transaction on the `SELECT` query. We can ignore this.
-1. `relation | weather_city_index | AccessExclusiveLock` - We're creating the index, so this new index will be completely locked to any reads and writes until this transaction is complete.
-1. `relation | schema_migrations | ShareUpdateExclusiveLock` - This lock is acquired by Ecto to ensure that only one mutable operation is happening on the table. This is what allows multiple nodes able to run migrations at the same time safely. Other processes can still read the `"schema_migrations"` table, but you cannot write to it.
-1. `transactionid | _ | ExclusiveLock` - This lock is on a transaction that is happening; in this case, it has an `ExclusiveLock` on itself; meaning that if another transaction occurring at the same time conflicts with this transaction, the other transaction will acquire a lock on this transaction so it knows when it's done. I call this "lockception".
-1. `relation | weather | ShareLock` - Finally, the reason why we're here. Remember, we're creating a unique index on the `"weather"` table without concurrency. This lock is our red flag. Notice it acquires a ShareLock on the table. This means it blocks writes! That's not good if we deploy this and have processes or web requests that regularly write to this table. `UPDATE`, `DELETE`, and `INSERT` acquire a `RowExclusiveLock` which conflicts with the ShareLock.
-
-To avoid this lock, we change the command to `CREATE INDEX CONCURRENTLY ...`; when using `CONCURRENTLY`, it prevents us from using database transactions which is unfortunate because now we cannot easily see the locks the command obtains. We know this will be safer however because `CREATE INDEX CONCURRENTLY` acquires a `ShareUpdateExclusiveLock` which does not conflict with `RowExclusiveLock` (See Reference Material in the [Safe Migrations guide](safe_migrations.html)).
-
-This scenario is revisited later in [Safe Migrations](safe_migrations.html).
-
 ## Safeguards in the database
 
 It's a good idea to add safeguards so no developer on the team accidentally locks up the database for too long. Even if you know all about databases and locks, you might have a forgetful day and try to add an index non-concurrently and bring down production. Safeguards are good.
@@ -332,7 +280,7 @@ There are two ways to apply this lock:
 
 Let's go through those options:
 
-####  Transaction lock_timeout
+#### Transaction `lock_timeout`
 
 In SQL:
 
@@ -421,7 +369,7 @@ ALTER ROLE myuser SET lock_timeout = '10s';
 
 If you have a different user that runs migrations, this could be a good option for that migration-specific Postgres user. The trade-off is that Elixir developers won't see this timeout as they write migrations and explore the call stack since database role settings are in the database which developers don't usually monitor.
 
-#### Statement Timeout
+### Statement Timeout
 
 Another way to ensure safety is to configure your Postgres database with statement timeouts. These timeouts apply to all statements, including migrations and the locks they obtain.
 
@@ -440,22 +388,6 @@ ALTER ROLE myuser SET statement_timeout = '10m';
 Now any statement automatically times out if it runs for more than 10 minutes; opposed to running indefinitely. This can help if you accidentally run a query that runs the database CPU hot, slowing everything else down; now the unoptimized query will be limited to 10 minutes or else it will fail and be canceled.
 
 Setting this `statement_timeout` requires discipline from the team; if there are runaway queries that fail (for example) at 10 minutes, an exception will likely occur somewhere. You will want to equip your application with sufficient logging, tracing, and reporting so you can replicate the query and the parameters it took to hit the timeout, and ultimately optimize the query. Without this discipline, you risk creating a culture that ignores exceptions.
-
-#### Timeouts for Non-Transactional Migrations
-
-When `@disable_ddl_transaction true` is set, the `after_begin/0` callback is not called, so you cannot rely on it to set timeouts. Instead, set the timeout directly in your migration:
-
-```elixir
-@disable_ddl_transaction true
-@disable_migration_lock true
-
-def change do
-  execute "SET lock_timeout TO '5s'"
-  create index("posts", [:slug], concurrently: true)
-end
-```
-
-Note that `SET` without `LOCAL` sets the timeout for the session. Since there's no transaction, `SET LOCAL` would have no effect.
 
 ### Handling Failed Concurrent Operations
 
@@ -488,37 +420,6 @@ end
 > #### Caution {: .warning}
 >
 > Always check for invalid indexes after a failed concurrent migration. They won't go away on their own and can silently degrade write performance.
-
-### Monitoring Locks During Migrations
-
-When running migrations, especially on large tables, it's helpful to monitor for lock contention. You can run this query in a separate session to see blocked queries:
-
-```sql
-SELECT
-  blocked.pid AS blocked_pid,
-  blocked.query AS blocked_query,
-  blocked.wait_event_type,
-  blocking.pid AS blocking_pid,
-  blocking.query AS blocking_query,
-  now() - blocked.query_start AS blocked_duration
-FROM pg_stat_activity blocked
-JOIN pg_locks blocked_locks ON blocked.pid = blocked_locks.pid AND NOT blocked_locks.granted
-JOIN pg_locks blocking_locks ON blocking_locks.locktype = blocked_locks.locktype
-  AND blocking_locks.database IS NOT DISTINCT FROM blocked_locks.database
-  AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
-  AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page
-  AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple
-  AND blocking_locks.virtualxid IS NOT DISTINCT FROM blocked_locks.virtualxid
-  AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid
-  AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid
-  AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid
-  AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid
-  AND blocking_locks.pid != blocked_locks.pid
-JOIN pg_stat_activity blocking ON blocking_locks.pid = blocking.pid
-WHERE blocked.wait_event_type = 'Lock';
-```
-
-This shows you which queries are waiting for locks and what's blocking them. If you see your migration blocking many queries, you may want to cancel it and use a safer approach.
 
 ---
 
