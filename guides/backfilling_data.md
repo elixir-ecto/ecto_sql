@@ -145,7 +145,7 @@ defmodule MyApp.Repo.DataMigrations.BackfillPosts do
       [set: [approved: true]],
       log: :info
     )
-    not_updated = MapSet.difference(MapSet.new(batch_of_ids), MapSet.new(results)) |> MapSet.to_list()
+    not_updated = batch_of_ids -- results
     Enum.each(not_updated, &handle_non_update/1)
     Enum.sort(results)
   end

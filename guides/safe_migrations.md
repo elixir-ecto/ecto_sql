@@ -899,39 +899,3 @@ Created and written by David Bernheisel with recipes heavily inspired from Andre
 Special thanks for sponsorship: Fly.io
 
 Special thanks for the reviewers.
-
-## Reference Material
-
-[Postgres Lock Conflicts](https://www.postgresql.org/docs/12/explicit-locking.html)
-
-|  |  **Current Lock** | | | | | | | |
-|---------------------|-------------------|-|-|-|-|-|-|-|
-| **Requested Lock** | ACCESS SHARE | ROW SHARE | ROW EXCLUSIVE | SHARE UPDATE EXCLUSIVE | SHARE | SHARE ROW EXCLUSIVE | EXCLUSIVE | ACCESS EXCLUSIVE |
-| ACCESS SHARE           |   |   |   |   |   |   |   | X |
-| ROW SHARE              |   |   |   |   |   |   | X | X |
-| ROW EXCLUSIVE          |   |   |   |   | X | X | X | X |
-| SHARE UPDATE EXCLUSIVE |   |   |   | X | X | X | X | X |
-| SHARE                  |   |   | X | X |   | X | X | X |
-| SHARE ROW EXCLUSIVE    |   |   | X | X | X | X | X | X |
-| EXCLUSIVE              |   | X | X | X | X | X | X | X |
-| ACCESS EXCLUSIVE       | X | X | X | X | X | X | X | X |
-
-- `SELECT` acquires a `ACCESS SHARE` lock
-- `SELECT FOR UPDATE` acquires a `ROW SHARE` lock
-- `UPDATE`, `DELETE`, and `INSERT` will acquire a `ROW EXCLUSIVE` lock
-- `CREATE INDEX CONCURRENTLY` and `VALIDATE CONSTRAINT` acquires `SHARE UPDATE EXCLUSIVE`
-- `CREATE INDEX` acquires `SHARE` lock
-
-Reframed by operations:
-
-|  |  **Current Operation** | | | | | | | |
-|---------------------|-------------------|-|-|-|-|-|-|-|
-| **Blocks Operation** | `SELECT` | `SELECT FOR UPDATE` | `UPDATE` `DELETE` `INSERT` | `CREATE INDEX CONCURRENTLY`  `VALIDATE CONSTRAINT` | `CREATE INDEX` | SHARE ROW EXCLUSIVE | EXCLUSIVE | `ALTER TABLE` `DROP TABLE` `TRUNCATE` `REINDEX` `CLUSTER` `VACUUM FULL` |
-| `SELECT` |   |   |   |   |   |   |   | X |
-| `SELECT FOR UPDATE` |   |   |   |   |   |   | X | X |
-| `UPDATE` `DELETE` `INSERT` |   |   |   |   | X | X | X | X |
-| `CREATE INDEX CONCURRENTLY` `VALIDATE CONSTRAINT` |   |   |   | X | X | X | X | X |
-| `CREATE INDEX` |   |   | X | X |   | X | X | X |
-| SHARE ROW EXCLUSIVE |   |   | X | X | X | X | X | X |
-| EXCLUSIVE |   | X | X | X | X | X | X | X |
-| `ALTER TABLE` `DROP TABLE` `TRUNCATE` `REINDEX` `CLUSTER` `VACUUM FULL` | X | X | X | X | X | X | X | X |
