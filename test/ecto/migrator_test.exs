@@ -926,6 +926,237 @@ defmodule Ecto.MigratorTest do
       expected = "priv/test_repo/custom"
       assert path == Application.app_dir(TestRepo.config()[:otp_app], expected)
     end
+
+    test "works with single migrations_paths configured" do
+      defmodule RepoWithSinglePath do
+        def config do
+          [
+            otp_app: :ecto_sql,
+            migrations_paths: ["priv/repo/migrations"]
+          ]
+        end
+      end
+
+      path = migrations_path(RepoWithSinglePath)
+      app_dir = Application.app_dir(:ecto_sql)
+      assert path == Path.join(app_dir, "priv/repo/migrations")
+    end
+
+    test "raises when multiple migrations_paths are configured" do
+      defmodule RepoWithMultiplePaths do
+        def config do
+          [
+            otp_app: :ecto_sql,
+            migrations_paths: ["priv/repo/migrations", "priv/repo/tenant_migrations"]
+          ]
+        end
+      end
+
+      assert_raise ArgumentError,
+                   ~r/cannot use migrations_path\/1 when multiple migration paths are configured/,
+                   fn ->
+                     migrations_path(RepoWithMultiplePaths)
+                   end
+    end
+  end
+
+  describe "migrations_paths" do
+    defmodule RepoWithMigrationsPaths do
+      def config do
+        [
+          otp_app: :ecto_sql,
+          migrations_paths: ["priv/repo/migrations", "priv/repo/tenant_migrations"]
+        ]
+      end
+    end
+
+    defmodule RepoWithAbsoluteMigrationsPaths do
+      def config do
+        [
+          otp_app: :ecto_sql,
+          migrations_paths: ["/absolute/path/migrations", "relative/path/migrations"]
+        ]
+      end
+    end
+
+    defmodule RepoWithInvalidMigrationsPaths do
+      def config do
+        [
+          otp_app: :ecto_sql,
+          migrations_paths: "not_a_list"
+        ]
+      end
+    end
+
+    test "returns default path when migrations_paths is not configured" do
+      paths = migrations_paths(TestRepo)
+      expected = [migrations_path(TestRepo)]
+      assert paths == expected
+    end
+
+    test "returns configured paths with relative paths resolved" do
+      paths = migrations_paths(RepoWithMigrationsPaths)
+      app_dir = Application.app_dir(:ecto_sql)
+
+      assert paths == [
+               Path.join(app_dir, "priv/repo/migrations"),
+               Path.join(app_dir, "priv/repo/tenant_migrations")
+             ]
+    end
+
+    test "handles absolute paths correctly" do
+      paths = migrations_paths(RepoWithAbsoluteMigrationsPaths)
+      app_dir = Application.app_dir(:ecto_sql)
+
+      assert paths == [
+               "/absolute/path/migrations",
+               Path.join(app_dir, "relative/path/migrations")
+             ]
+    end
+
+    test "raises error when migrations_paths is not a list" do
+      assert_raise ArgumentError,
+                   ":migrations_paths must be a list of paths, got: \"not_a_list\"",
+                   fn ->
+                     migrations_paths(RepoWithInvalidMigrationsPaths)
+                   end
+    end
+  end
+
+  describe "migrations with migrations_paths set" do
+    @describetag migrated_versions: []
+
+    test "runs migrations from multiple configured paths in order" do
+      in_tmp(fn path ->
+        # Create two migration directories
+        File.mkdir_p!("migrations_a")
+        File.mkdir_p!("migrations_b")
+
+        # Create migrations in different directories
+        create_migration("migrations_a/15_migration_a.exs")
+        create_migration("migrations_b/16_migration_b.exs")
+        create_migration("migrations_a/17_migration_c.exs")
+
+        # Use explicit paths since we're in a tmp directory
+        paths = [
+          Path.join(path, "migrations_a"),
+          Path.join(path, "migrations_b")
+        ]
+
+        # Run all migrations
+        assert run(TestRepo, paths, :up, all: true, log: false) == [15, 16, 17]
+      end)
+    end
+
+    test "migrations/1 reports status from multiple configured paths" do
+      in_tmp(fn path ->
+        File.mkdir_p!("migrations_a")
+        File.mkdir_p!("migrations_b")
+
+        create_migration("migrations_a/18_migration_a.exs")
+        create_migration("migrations_b/19_migration_b.exs")
+        create_migration("migrations_a/20_migration_c.exs")
+
+        paths = [
+          Path.join(path, "migrations_a"),
+          Path.join(path, "migrations_b")
+        ]
+
+        # All should be pending (down)
+        expected = [
+          {:down, 18, "migration_a"},
+          {:down, 19, "migration_b"},
+          {:down, 20, "migration_c"}
+        ]
+
+        assert migrations(TestRepo, paths) == expected
+      end)
+    end
+
+    test "can rollback migrations from multiple paths" do
+      in_tmp(fn path ->
+        File.mkdir_p!("migrations_a")
+        File.mkdir_p!("migrations_b")
+
+        create_migration("migrations_a/21_migration_a.exs")
+        create_migration("migrations_b/22_migration_b.exs")
+        create_migration("migrations_a/23_migration_c.exs")
+
+        paths = [
+          Path.join(path, "migrations_a"),
+          Path.join(path, "migrations_b")
+        ]
+
+        # Run all migrations
+        assert run(TestRepo, paths, :up, all: true, log: false) == [21, 22, 23]
+
+        # Rollback step by step
+        capture_io(:stderr, fn ->
+          assert run(TestRepo, paths, :down, step: 1, log: false) == [23]
+          assert run(TestRepo, paths, :down, step: 2, log: false) == [22, 21]
+        end)
+      end)
+    end
+
+    test "migrations from multiple paths are sorted by version" do
+      in_tmp(fn path ->
+        File.mkdir_p!("migrations_a")
+        File.mkdir_p!("migrations_b")
+
+        # Create migrations with versions that would be out of order if grouped by directory
+        create_migration("migrations_b/24_first.exs")
+        create_migration("migrations_a/25_second.exs")
+        create_migration("migrations_b/26_third.exs")
+        create_migration("migrations_a/27_fourth.exs")
+
+        paths = [
+          Path.join(path, "migrations_a"),
+          Path.join(path, "migrations_b")
+        ]
+
+        # They should run in version order, not directory order
+        assert run(TestRepo, paths, :up, all: true, log: false) == [24, 25, 26, 27]
+
+        # Verify migrations status is also in correct order
+        expected = [
+          {:up, 24, "first"},
+          {:up, 25, "second"},
+          {:up, 26, "third"},
+          {:up, 27, "fourth"}
+        ]
+
+        assert migrations(TestRepo, paths) == expected
+      end)
+    end
+
+    test "handles missing migration files from one path" do
+      in_tmp(fn path ->
+        File.mkdir_p!("migrations_a")
+        File.mkdir_p!("migrations_b")
+
+        create_migration("migrations_a/28_migration_a.exs")
+        create_migration("migrations_b/29_migration_b.exs")
+
+        paths = [
+          Path.join(path, "migrations_a"),
+          Path.join(path, "migrations_b")
+        ]
+
+        # Run migrations
+        assert run(TestRepo, paths, :up, all: true, log: false) == [28, 29]
+
+        # Delete a migration file from one directory
+        File.rm("migrations_b/29_migration_b.exs")
+
+        # Should show file not found for the deleted migration
+        expected = [
+          {:up, 28, "migration_a"},
+          {:up, 29, "** FILE NOT FOUND **"}
+        ]
+
+        assert migrations(TestRepo, paths) == expected
+      end)
+    end
   end
 
   describe "with_repo" do
