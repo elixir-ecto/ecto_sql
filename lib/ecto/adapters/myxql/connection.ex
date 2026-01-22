@@ -4,6 +4,7 @@ if Code.ensure_loaded?(MyXQL) do
     alias Ecto.Adapters.SQL
 
     @behaviour Ecto.Adapters.SQL.Connection
+    @behaviour Ecto.Adapters.SQL.Constraint
 
     ## Connection
 

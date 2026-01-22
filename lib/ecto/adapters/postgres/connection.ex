@@ -4,6 +4,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     @default_port 5432
     @behaviour Ecto.Adapters.SQL.Connection
+    @behaviour Ecto.Adapters.SQL.Constraint
     @explain_prepared_statement_name "ecto_explain_statement"
 
     ## Module and Options
