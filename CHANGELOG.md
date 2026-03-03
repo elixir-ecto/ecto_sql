@@ -1,5 +1,9 @@
 # Changelog for v3.x
 
+## v3.13.5 (2026-03-03)
+
+  * [postgrex] Map `:restrict_violation` to `:foreign_key` constraint (required by PostgreSQL 18)
+
 ## v3.13.4 (2025-12-27)
 
 ### Bug fixes
