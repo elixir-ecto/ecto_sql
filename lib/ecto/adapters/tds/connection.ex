@@ -1027,6 +1027,9 @@ if Code.ensure_loaded?(Tds) do
 
     defp returning([], _verb), do: []
 
+    defp returning({:unsafe_fragment, fragment}, _verb),
+      do: [" OUTPUT ", fragment]
+
     defp returning(returning, verb) when is_list(returning) do
       [" OUTPUT ", Enum.map_intersperse(returning, ", ", &[verb, ?., quote_name(&1)])]
     end
