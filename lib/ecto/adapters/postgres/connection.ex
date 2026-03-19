@@ -1204,6 +1204,9 @@ if Code.ensure_loaded?(Postgrex) do
     defp returning([]),
       do: []
 
+    defp returning({:unsafe_fragment, fragment}),
+      do: [" RETURNING ", fragment]
+
     defp returning(returning),
       do: [" RETURNING " | quote_names(returning)]
 
