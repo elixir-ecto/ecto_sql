@@ -1877,6 +1877,13 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = insert("prefix", "schema", [], [[]], {:raise, [], []}, [])
     assert query == ~s{INSERT INTO "prefix"."schema" VALUES (DEFAULT)}
+
+    # With unsafe_fragment in returning
+    fragment = ~s{"id", ("x" = "y") AS "was_equal"}
+    query = insert("prefix", "schema", [], [[]], {:raise, [], []}, {:unsafe_fragment, fragment})
+
+    assert query ==
+             ~s{INSERT INTO "prefix"."schema" VALUES (DEFAULT) RETURNING #{fragment}}
   end
 
   test "insert with on conflict" do
