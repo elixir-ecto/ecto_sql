@@ -9,14 +9,14 @@ A guide on common migration recipes and how to avoid trouble.
 | Add index | Blocks writes | Use `concurrently: true` and disable transactions |
 | Drop index | Blocks writes | Use `concurrently: true`  and disable transactions |
 | Add foreign key | Blocks writes on both tables | Use `validate: false`, then validate separately |
-| Add column with default | Table rewrite (pre-PG11) | Add column first, then set default |
+| Add column with default | Table rewrite (volatile defaults) | Add column first, then set default |
 | Add NOT NULL | Full table scan | Use check constraint, validate, then add NOT NULL |
 | Add check constraint | Full table scan | Create with `validate: false`, then validate separately |
 | Change column type | Table rewrite | Create new column, migrate data, swap reads, drop old column |
 | Remove column | Query failures | Remove from schema first, then drop column |
 | Rename column | Query failures | Use `source:` option in schema instead |
 | Rename table | Query failures | Rename schema module instead |
-| Add enum value | Transaction error (pre-PG12) | disable transactions |
+| Add enum value | Transaction error | disable transactions |
 | Add extension | Transaction error | disable transactions |
 
 ## All Scenarios
@@ -92,7 +92,7 @@ def change do
 end
 ```
 
-If you're using Phoenix and PhoenixEcto, you will likely appreciate disabling
+If you're using Phoenix, you will likely need to disable
 the migration lock in the CheckRepoStatus plug during dev to avoid hitting and
 waiting on the advisory lock with concurrent web processes. You can do this by
 adding `migration_lock: false` to the CheckRepoStatus plug in your
@@ -273,8 +273,7 @@ end
 ```
 
 Note: we cannot use `Ecto.Migration.modify/3` as it will include updating the column type as
-well unnecessarily, causing Postgres to rewrite the table. For more information,
-[see this example](https://github.com/fly-apps/safe-ecto-migrations/issues/10).
+well unnecessarily, causing Postgres to rewrite the table.
 
 Schema change to read the new column:
 
@@ -308,8 +307,7 @@ end
 ```
 
 The issue is that we cannot use `Ecto.Migration.modify/3` as it will include updating the column type as
-well unnecessarily, causing Postgres to rewrite the table. For more information,
-[see this example](https://github.com/fly-apps/safe-ecto-migrations/issues/10).
+well unnecessarily, causing Postgres to rewrite the table.
 
 ### Good
 
@@ -638,7 +636,7 @@ def change do
 end
 ```
 
-If you're using Postgres 12+, you can add the NOT NULL to the column after validating the constraint. From the Postgres 12 docs:
+You can then add the NOT NULL to the column after validating the constraint. From the Postgres docs:
 
 > SET NOT NULL may only be applied to a column provided
 > none of the records in the table contain a NULL value
@@ -649,11 +647,9 @@ If you're using Postgres 12+, you can add the NOT NULL to the column after valid
 
 **However** we cannot use `Ecto.Migration.modify/3`
 as it will include updating the column type as well unnecessarily, causing
-Postgres to rewrite the table. For more information, [see this example](https://github.com/fly-apps/safe-ecto-migrations/issues/10).
+Postgres to rewrite the table.
 
 ```elixir
-# **Postgres 12+ only**
-
 def change do
   execute "ALTER TABLE products VALIDATE CONSTRAINT active_not_null",
           ""
@@ -695,18 +691,7 @@ end
 
 ## Adding a value to a PostgreSQL enum
 
-Adding enum values inside a transaction fails in PostgreSQL < 12.
-
-### Bad
-
-```elixir
-def change do
-  # Fails in PostgreSQL < 12: cannot run inside a transaction
-  execute "ALTER TYPE status ADD VALUE 'archived'"
-end
-```
-
-### Good
+Adding enum values inside a transaction can be done since PostgreSQL 12. However, if you need to support older versions or want to be safe, disable the DDL transaction.
 
 ```elixir
 @disable_ddl_transaction true

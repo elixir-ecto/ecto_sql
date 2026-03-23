@@ -1,6 +1,6 @@
 # Backfilling Data
 
-When I say "backfilling data", I mean that as any attempt to change data in bulk. This can happen in code through migrations, application code, UIs that allow multiple selections and updates, or in a console connected to a running application. Since bulk changes affect a lot of data, it's always a good idea to have the code reviewed before it runs. You also want to check that it runs efficiently and does not overwhelm the database. Ideally, it's nice when the code is written to be safe to re-run. For these reasons, please don't change data in bulk through a console!
+Backfilling data refers to any attempt to change data in bulk. This can happen in code through migrations, application code, UIs that allow multiple selections and updates, or in a console connected to a running application. Since bulk changes affect a lot of data, it's always a good idea to have the code reviewed before it runs. You also want to check that it runs efficiently and does not overwhelm the database. Ideally, it's nice when the code is written to be safe to re-run. For these reasons, please don't change data in bulk through a console!
 
 We're going to focus on bulk changes executed though Ecto migrations, but the same principles are applicable to any case where bulk changes are being made. Typical scenarios where you might need to run data migrations is when you need to fill in data for records that already exist (hence, backfilling data). This usually comes up when table structures are changed in the database.
 
@@ -288,12 +288,7 @@ defmodule MyApp.Repo.DataMigrations.BackfillWeather do
       )
       results = results |> Enum.map(& &1.id) |> Enum.sort()
 
-      not_updated =
-        mutations
-        |> Enum.map(& &1[:id])
-        |> MapSet.new()
-        |> MapSet.difference(MapSet.new(results))
-        |> MapSet.to_list()
+      not_updated = Enum.map(mutations, & &1[:id]) -- results
 
       Enum.each(not_updated, &handle_non_update/1)
       repo().delete_all(from(r in @temp_table_name, where: r.id in ^results))
