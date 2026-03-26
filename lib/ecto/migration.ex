@@ -1747,8 +1747,6 @@ defmodule Ecto.Migration do
     end
   end
 
-  defp validate_index_opts!(opts), do: opts
-
   defp validate_precision_opts!(opts, column) when is_list(opts) do
     if opts[:scale] && !opts[:precision] do
       raise ArgumentError, "column #{Atom.to_string(column)} is missing precision option"
