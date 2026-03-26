@@ -228,7 +228,7 @@ defmodule Ecto.Adapters.Postgres do
 
         case run_query(create_command, opts) do
           {:ok, _} ->
-            :ok
+            storage_up_timestamp(database, opts)
 
           {:error, %{postgres: %{code: :duplicate_database}}} ->
             {:error, :already_up}
@@ -236,6 +236,21 @@ defmodule Ecto.Adapters.Postgres do
           {:error, error} ->
             {:error, Exception.message(error)}
         end
+    end
+  end
+
+  defp storage_up_timestamp(database, opts) do
+    timestamp = Keyword.get(opts, :timestamp, "Etc/UTC")
+
+    if timestamp do
+      alter_command = ~s(ALTER DATABASE "#{database}" SET timezone TO '#{timestamp}')
+
+      case run_query(alter_command, opts) do
+        {:ok, _} -> :ok
+        {:error, error} -> {:error, Exception.message(error)}
+      end
+    else
+      :ok
     end
   end
 

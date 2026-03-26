@@ -78,6 +78,22 @@ defmodule Ecto.Integration.StorageTest do
     drop_database()
   end
 
+  test "storage up sets timezone to UTC by default" do
+    assert Postgres.storage_up(params()) == :ok
+    {output, _} = run_psql("SHOW timezone;", [params()[:database]])
+    assert output =~ "Etc/UTC"
+  after
+    drop_database()
+  end
+
+  test "storage up with custom timestamp timezone" do
+    assert Postgres.storage_up([timestamp: "America/New_York"] ++ params()) == :ok
+    {output, _} = run_psql("SHOW timezone;", [params()[:database]])
+    assert output =~ "America/New_York"
+  after
+    drop_database()
+  end
+
   test "storage down (twice in a row)" do
     create_database()
     assert Postgres.storage_down(params()) == :ok
