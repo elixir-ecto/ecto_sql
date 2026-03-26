@@ -302,6 +302,8 @@ defmodule Ecto.Migration do
             updated_at: :changed_at
           ]
 
+      See `timestamps/1` for all supported options.
+
     * `:migration_default_prefix` - Ecto defaults to `nil` for the database prefix for
       migrations, but you can configure it via:
 
@@ -1347,6 +1349,19 @@ defmodule Ecto.Migration do
     * `:null` - determines whether the column accepts null values. Defaults to
       `false`.
 
+  ## Timezones
+
+  When using `type: :utc_datetime` or `type: :utc_datetime_usec`, Ecto already
+  guarantees that all input data must be in UTC format, regardless of your
+  database's timezone. For this reason, Ecto defaults to `timestamp`, even in
+  PostgreSQL.
+
+  If you chose to use `type: :timestamptz`, then you must ensure that your
+  database is configured to "Etc/UTC", otherwise Ecto and PostgreSQL will be
+  out of sync. `mix ecto.create` will create databases in Etc/UTC from
+  Ecto v3.14.0, but it is still your responsibility to configure your production
+  database accordingly. If you use `:timestamptz` and do not configure the
+  timezone, it may lead to incorrect behaviour or Ecto refusing to load data.
   """
   def timestamps(opts \\ []) when is_list(opts) do
     opts = Keyword.merge(Runner.repo_config(:migration_timestamps, []), opts)
