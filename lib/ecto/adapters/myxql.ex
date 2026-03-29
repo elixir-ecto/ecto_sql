@@ -589,7 +589,7 @@ defmodule Ecto.Adapters.MyXQL do
     ]
 
     # Trap exits in case mysql dies in the middle of execution so that we can surface the error
-    Process.flag(:trap_exit, true)
+  #  Process.flag(:trap_exit, true)
     port = Port.open({:spawn_executable, abs_cmd}, port_opts)
     Port.command(port, contents)
     # Use this as a signal to close the port since we cannot
