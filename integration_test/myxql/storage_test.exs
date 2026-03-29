@@ -122,6 +122,7 @@ defmodule Ecto.Integration.StorageTest do
   end
 
   test "structure load will fail on SQL errors" do
+    create_database()
     File.mkdir_p!(tmp_path())
     error_path = Path.join(tmp_path(), "error.sql")
     File.write!(error_path, "SELECT 1; SELECKT 1; SELECT 2;")
@@ -130,6 +131,8 @@ defmodule Ecto.Integration.StorageTest do
       Ecto.Adapters.MyXQL.structure_load(tmp_path(), [dump_path: error_path] ++ params())
 
     assert message =~ ~r/ERROR.*SELECKT/
+  after
+    drop_database()
   end
 
   test "storage status is up when database is created" do
