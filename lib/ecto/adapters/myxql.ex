@@ -594,6 +594,7 @@ defmodule Ecto.Adapters.MyXQL do
     Port.command(port, contents)
     # Use this as a signal to close the port since we cannot
     # send an exit command to mysql in batch mode
+    Process.sleep(10000)
     Port.command(port, ";SELECT '__ECTO_EOF__';\n")
     collect_output(port, "")
   end
