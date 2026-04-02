@@ -589,10 +589,8 @@ defmodule Ecto.Adapters.MyXQL do
     ]
 
     port = Port.open({:spawn_executable, abs_cmd}, port_opts)
-
-    port ! {self(), {:command, contents}}
-    port ! {self(), {:command, ";SELECT '__ECTO_EOF__';\n"}}
-
+    send(port, {self(), {:command, contents}})
+    send(port, {self(), {:command, ";SELECT '__ECTO_EOF__';\n"}})
     collect_output(port, "")
   end
 
