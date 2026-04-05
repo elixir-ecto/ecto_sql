@@ -492,10 +492,16 @@ defmodule Ecto.Adapters.SQL do
   """
 
   @doc @to_sql_doc
-  @spec to_sql(:all | :update_all | :delete_all, Ecto.Repo.t(), Ecto.Queryable.t()) ::
+  @spec to_sql(:all | :update_all | :delete_all, Ecto.Repo.t(), Ecto.Queryable.t(), Keyword.t()) ::
           {String.t(), query_params}
-  def to_sql(kind, repo, queryable) do
-    case Ecto.Adapter.Queryable.prepare_query(kind, repo, queryable) do
+  def to_sql(kind, repo, queryable, opts \\ []) do
+    prepare_opts =
+      case Keyword.fetch(opts, :counter) do
+        {:ok, counter} -> [counter: counter]
+        :error -> []
+      end
+
+    case Ecto.Adapter.Queryable.prepare_query(kind, repo, queryable, prepare_opts) do
       {{:cached, _update, _reset, {_id, cached}}, params} ->
         {String.Chars.to_string(cached), params}
 
@@ -825,10 +831,10 @@ defmodule Ecto.Adapters.SQL do
       end
 
       @doc unquote(to_sql_doc)
-      @spec to_sql(:all | :update_all | :delete_all, Ecto.Queryable.t()) ::
+      @spec to_sql(:all | :update_all | :delete_all, Ecto.Queryable.t(), Keyword.t()) ::
               {String.t(), Ecto.Adapters.SQL.query_params()}
-      def to_sql(operation, queryable) do
-        Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
+      def to_sql(operation, queryable, opts \\ []) do
+        Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable, opts)
       end
 
       @doc unquote(explain_doc)
