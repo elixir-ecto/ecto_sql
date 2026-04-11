@@ -126,9 +126,7 @@ Application.put_env(
   PoolRepo,
   url: "#{Application.get_env(:ecto_sql, :tds_test_url)}/ecto_test",
   pool_size: 10,
-  set_allow_snapshot_isolation: :on,
-  # Passes through into adapter_meta
-  constraint_handler: {Ecto.Integration.ConstraintsTest.CustomConstraintHandler, :to_constraints, []}
+  set_allow_snapshot_isolation: :on
 )
 
 defmodule Ecto.Integration.PoolRepo do

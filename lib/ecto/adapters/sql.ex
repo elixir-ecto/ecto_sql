@@ -401,10 +401,9 @@ defmodule Ecto.Adapters.SQL do
       {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
   """
 
-  # TODO - add docs here and/or somewhere for how to pass `constraint_handler` per call
   @to_constraints_doc """
   Handles adapter-specific exceptions, converting them to
-  the corresponding contraint errors.
+  the corresponding constraint errors.
 
   The constraints are in the keyword list and must return the
   constraint type, like `:unique`, and the constraint name as
@@ -417,27 +416,31 @@ defmodule Ecto.Adapters.SQL do
   exception handling path (i.e. raise or further handling).
 
   ## Options
-    * `:constraint_handler` - A module, function, and list of arguments (`mfargs`)
 
-  The `:constraint_handler` option defaults to the adapter's connection module.
-  For the built-in adapters this would be:
+    * `:constraint_handler` - a function that receives the exception and
+      error options and returns a keyword list of constraints. Defaults to
+      the adapter connection module's `to_constraints/2`.
 
-    * `Ecto.Adapters.Postgres.Connection.to_constraints/2`
-    * `Ecto.Adapters.MyXQL.Connection.to_constraints/2`
-    * `Ecto.Adapters.Tds.Connection.to_constraints/2`
-
-  See `Ecto.Adapters.SQL.Constraint` if you need to fully
-  customize the handling of constraints for all operations.
+      The `:constraint_handler` option can be set per operation or globally
+      via `c:Ecto.Repo.default_options/1` or `c:Ecto.Repo.prepare_options/2`.
 
   ## Examples
 
       # Postgres
-      iex> MyRepo.to_constraints(%Postgrex.Error{code: :unique, constraint: "posts_title_index"}, [])
+      iex> MyRepo.to_constraints(%Postgrex.Error{code: :unique, constraint: "posts_title_index"}, [], [])
       [unique: "posts_title_index"]
 
       # MySQL
-      iex> MyRepo.to_constraints(%MyXQL.Error{mysql: %{name: :ER_CHECK_CONSTRAINT_VIOLATED}, message: "Check constraint 'positive_price' is violated."}, [])
+      iex> MyRepo.to_constraints(%MyXQL.Error{mysql: %{name: :ER_CHECK_CONSTRAINT_VIOLATED}, message: "Check constraint 'positive_price' is violated."}, [], [])
       [check: "positive_price"]
+
+      # Custom handler per operation
+      MyRepo.insert(changeset, constraint_handler: fn
+        %Postgrex.Error{postgres: %{pg_code: "ZZ001", constraint: name}}, _opts ->
+          [check: name]
+        err, opts ->
+          Ecto.Adapters.Postgres.Connection.to_constraints(err, opts)
+      end)
   """
 
   @explain_doc """
@@ -727,10 +730,14 @@ defmodule Ecto.Adapters.SQL do
   end
 
   def to_constraints(adapter_meta, err, opts, err_opts) do
-    %{constraint_handler: constraint_handler} = adapter_meta
-    {constraint_mod, fun, args} = Keyword.get(opts, :constraint_handler) || constraint_handler
-    args = [err, err_opts | args]
-    apply(constraint_mod, fun, args)
+    case Keyword.get(opts, :constraint_handler) do
+      handler when is_function(handler, 2) ->
+        handler.(err, err_opts)
+
+      nil ->
+        %{sql: connection} = adapter_meta
+        connection.to_constraints(err, err_opts)
+    end
   end
 
   defp sql_call(adapter_meta, callback, args, params, opts) do
@@ -959,9 +966,6 @@ defmodule Ecto.Adapters.SQL do
       """
     end
 
-    constraint_handler =
-      Keyword.get(config, :constraint_handler, {connection, :to_constraints, []})
-
     stacktrace = Keyword.get(config, :stacktrace)
     telemetry_prefix = Keyword.fetch!(config, :telemetry_prefix)
     telemetry = {config[:repo], log, telemetry_prefix ++ [:query]}
@@ -974,7 +978,6 @@ defmodule Ecto.Adapters.SQL do
     meta = %{
       telemetry: telemetry,
       sql: connection,
-      constraint_handler: constraint_handler,
       stacktrace: stacktrace,
       log_stacktrace_mfa: log_stacktrace_mfa,
       opts: Keyword.take(config, @pool_opts)

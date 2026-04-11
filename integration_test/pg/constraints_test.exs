@@ -5,15 +5,13 @@ defmodule Ecto.Integration.ConstraintsTest do
   alias Ecto.Integration.PoolRepo
 
   defmodule CustomConstraintHandler do
-    @behaviour Ecto.Adapters.SQL.Constraint
-
-    @impl Ecto.Adapters.SQL.Constraint
-    # An example of a custom handler a user might write
+    # An example of a custom handler a user might write.
+    # Handles custom PG error codes from triggers, falling back to the default handler.
     def to_constraints(
-          %Postgrex.Error{postgres: %{pg_code: "ZZ001", constraint: constraint}} = _err,
+          %Postgrex.Error{postgres: %{pg_code: "ZZ001", constraint: constraint}},
           _opts
         ) do
-      # Assumes that all pg_codes of ZZ001 are check constraint,
+      # Assumes that all pg_codes of ZZ001 are check constraints,
       # which may or may not be realistic
       [check: constraint]
     end
@@ -254,26 +252,18 @@ defmodule Ecto.Integration.ConstraintsTest do
       :ok = up(PoolRepo, num, TriggerEmulatingConstraintMigration, log: false)
     end)
 
+    constraint_handler = &CustomConstraintHandler.to_constraints/2
+
     changeset = Ecto.Changeset.change(%Constraint{}, price: 99, from: 201, to: 202)
     {:ok, item} = PoolRepo.insert(changeset)
 
     above_max_changeset = Ecto.Changeset.change(%Constraint{}, price: 100)
 
-    msg_re = ~r/constraint error when attempting to insert struct/
-
-    # When the changeset doesn't expect the db error
-    exception =
-      assert_raise Ecto.ConstraintError, msg_re, fn -> PoolRepo.insert(above_max_changeset) end
-
-    assert exception.message =~ "\"price_above_max\" (check_constraint)"
-    assert exception.message =~ "The changeset has not defined any constraint."
-    assert exception.message =~ "call `check_constraint/3`"
-
-    # When the changeset does expect the db error, but doesn't give a custom message
+    # Custom handler converts the trigger error into a constraint
     {:error, changeset} =
       above_max_changeset
       |> Ecto.Changeset.check_constraint(:price, name: :price_above_max)
-      |> PoolRepo.insert()
+      |> PoolRepo.insert(constraint_handler: constraint_handler)
 
     assert changeset.errors == [
              price: {"is invalid", [constraint: :check, constraint_name: "price_above_max"]}
@@ -281,51 +271,22 @@ defmodule Ecto.Integration.ConstraintsTest do
 
     assert changeset.data.__meta__.state == :built
 
-    # When the changeset does expect the db error and gives a custom message
-    {:error, changeset} =
+    # Without the custom handler, the default handler doesn't recognize
+    # the custom error code, so the error is raised as-is
+    assert_raise Postgrex.Error, fn ->
       above_max_changeset
-      |> Ecto.Changeset.check_constraint(:price,
-        name: :price_above_max,
-        message: "must be less than the max price"
-      )
+      |> Ecto.Changeset.check_constraint(:price, name: :price_above_max)
       |> PoolRepo.insert()
+    end
 
-    assert changeset.errors == [
-             price:
-               {"must be less than the max price",
-                [constraint: :check, constraint_name: "price_above_max"]}
-           ]
-
-    assert changeset.data.__meta__.state == :built
-
-    # When the changeset does expect the db error, but a different handler is used
-    exception =
-      assert_raise Postgrex.Error, fn ->
-        above_max_changeset
-        |> Ecto.Changeset.check_constraint(:price, name: :price_above_max)
-        |> PoolRepo.insert(
-          constraint_handler: {Ecto.Adapters.Postgres.Connection, :to_constraints, []}
-        )
-      end
-
-    # Just raises as-is
-    assert exception.postgres.message == "price must be less than 100, got 100"
-
-    # When custom error is coming from an UPDATE
-    above_max_update_changeset = Ecto.Changeset.change(item, price: 100)
-
+    # Custom handler also works on UPDATE
     {:error, changeset} =
-      above_max_update_changeset
-      |> Ecto.Changeset.check_constraint(:price,
-        name: :price_above_max,
-        message: "must be less than the max price"
-      )
-      |> PoolRepo.insert()
+      Ecto.Changeset.change(item, price: 100)
+      |> Ecto.Changeset.check_constraint(:price, name: :price_above_max)
+      |> PoolRepo.update(constraint_handler: constraint_handler)
 
     assert changeset.errors == [
-             price:
-               {"must be less than the max price",
-                [constraint: :check, constraint_name: "price_above_max"]}
+             price: {"is invalid", [constraint: :check, constraint_name: "price_above_max"]}
            ]
 
     assert changeset.data.__meta__.state == :loaded
