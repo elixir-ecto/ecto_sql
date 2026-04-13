@@ -84,6 +84,7 @@ _ = Ecto.Adapters.MyXQL.storage_down(TestRepo.config())
 :ok = Ecto.Adapters.MyXQL.storage_up(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
+
 {:ok, _pid} = PoolRepo.start_link()
 
 %{rows: [[version]]} = TestRepo.query!("SELECT @@version", [])
