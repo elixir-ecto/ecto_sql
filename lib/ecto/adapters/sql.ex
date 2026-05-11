@@ -37,9 +37,6 @@ defmodule Ecto.Adapters.SQL do
     * `to_sql(type, query)` -
        shortcut for `Ecto.Adapters.SQL.to_sql/3`
 
-    * `to_constraints(exception, opts, error_opts)` -
-       shortcut for `Ecto.Adapters.SQL.to_constraints/4`
-
   Generally speaking, you must invoke those functions directly from
   your repository, for example: `MyApp.Repo.query("SELECT true")`.
 
@@ -426,18 +423,11 @@ defmodule Ecto.Adapters.SQL do
 
   ## Examples
 
-      # Postgres
-      iex> MyRepo.to_constraints(%Postgrex.Error{code: :unique, constraint: "posts_title_index"}, [], [])
-      [unique: "posts_title_index"]
-
-      # MySQL
-      iex> MyRepo.to_constraints(%MyXQL.Error{mysql: %{name: :ER_CHECK_CONSTRAINT_VIOLATED}, message: "Check constraint 'positive_price' is violated."}, [], [])
-      [check: "positive_price"]
-
       # Custom handler per operation
       MyRepo.insert(changeset, constraint_handler: fn
         %Postgrex.Error{postgres: %{pg_code: "ZZ001", constraint: name}}, _opts ->
           [check: name]
+
         err, opts ->
           Ecto.Adapters.Postgres.Connection.to_constraints(err, opts)
       end)
@@ -859,7 +849,6 @@ defmodule Ecto.Adapters.SQL do
     query_many_doc = @query_many_doc
     query_many_bang_doc = @query_many_bang_doc
     to_sql_doc = @to_sql_doc
-    to_constraints_doc = @to_constraints_doc
     explain_doc = @explain_doc
     disconnect_all_doc = @disconnect_all_doc
 
@@ -897,16 +886,6 @@ defmodule Ecto.Adapters.SQL do
               {String.t(), Ecto.Adapters.SQL.query_params()}
       def to_sql(operation, queryable) do
         Ecto.Adapters.SQL.to_sql(operation, get_dynamic_repo(), queryable)
-      end
-
-      @doc unquote(to_constraints_doc)
-      @spec to_constraints(
-              exception :: Exception.t(),
-              options :: Keyword.t(),
-              error_options :: Keyword.t()
-            ) :: Keyword.t()
-      def to_constraints(err, opts, err_opts) do
-        Ecto.Adapters.SQL.to_constraints(get_dynamic_repo(), err, opts, err_opts)
       end
 
       @doc unquote(explain_doc)

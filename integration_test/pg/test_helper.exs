@@ -99,9 +99,7 @@ _ = Ecto.Adapters.Postgres.storage_down(TestRepo.config())
 :ok = Ecto.Adapters.Postgres.storage_up(TestRepo.config())
 
 {:ok, _pid} = TestRepo.start_link()
-
 {:ok, _pid} = PoolRepo.start_link()
-
 {:ok, _pid} = AdvisoryLockPoolRepo.start_link()
 
 %{rows: [[version]]} = TestRepo.query!("SHOW server_version", [])
