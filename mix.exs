@@ -66,8 +66,8 @@ defmodule EctoSQL.MixProject do
       {:jason, "~> 1.0", only: [:test, :bench, :docs]},
 
       # Docs
-      {:ex_doc, "~> 0.21", only: :doc, runtime: false, warn_if_outdated: true},
-      {:makeup_sql, ">= 0.1.3", only: :doc, runtime: false},
+      {:ex_doc, "~> 0.21", only: :docs, runtime: false, warn_if_outdated: true},
+      {:makeup_sql, ">= 0.1.3", only: :docs, runtime: false},
 
       # Benchmarks
       {:benchee, "~> 1.0", only: :bench},
