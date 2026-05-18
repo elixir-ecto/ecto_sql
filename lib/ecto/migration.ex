@@ -89,7 +89,7 @@ defmodule Ecto.Migration do
   For the rest of this document, we will cover the migration APIs
   provided by Ecto. For a in-depth discussion of migrations and how
   to use them safely within your application and data, see the
-  [Safe Ecto Migrations guide](safe_migrations.html).
+  [Safe Ecto Migrations guide](safe_migrations.md).
 
   ## Mix tasks
 
@@ -407,7 +407,7 @@ defmodule Ecto.Migration do
 
   ## Additional resources
 
-    * The [Safe Ecto Migrations guide](safe_migrations.html)
+    * The [Safe Ecto Migrations guide](safe_migrations.md)
 
   """
 

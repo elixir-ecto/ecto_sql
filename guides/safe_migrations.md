@@ -6,18 +6,20 @@ A guide on common migration recipes and how to avoid trouble.
 
 | Operation | Risk | Safe Approach |
 |-----------|------|---------------|
-| Add index | Blocks writes | Use `concurrently: true` and disable transactions |
-| Drop index | Blocks writes | Use `concurrently: true`  and disable transactions |
-| Add foreign key | Blocks writes on both tables | Use `validate: false`, then validate separately |
-| Add column with default | Table rewrite (volatile defaults) | Add column first, then set default |
-| Add NOT NULL | Full table scan | Use check constraint, validate, then add NOT NULL |
-| Add check constraint | Full table scan | Create with `validate: false`, then validate separately |
-| Change column type | Table rewrite | Create new column, migrate data, swap reads, drop old column |
-| Remove column | Query failures | Remove from schema first, then drop column |
-| Rename column | Query failures | Use `source:` option in schema instead |
-| Rename table | Query failures | Rename schema module instead |
-| Add enum value | Transaction error | disable transactions |
-| Add extension | Transaction error | disable transactions |
+| [Adding an index](#adding-an-index) | Blocks writes | Use `concurrently: true` and disable transactions |
+| [Dropping an index](#dropping-an-index) | Postgres blocks reads and writes | Use `concurrently: true` in Postgres; recent MySQL keeps the table available |
+| [Adding a reference or foreign key](#adding-a-reference-or-foreign-key) | Blocks writes on both tables | Use `validate: false`, then validate separately |
+| [Adding a column with a default value](#adding-a-column-with-a-default-value) | Volatile or expression defaults may rewrite the table | Constant defaults are fast on recent Postgres/MySQL; otherwise add the column first, then set the default |
+| [Changing a column's default value](#changing-a-columns-default-value) | Using `modify/3` can force an unnecessary type change | Use raw SQL to change only the default |
+| [Changing the type of a column](#changing-the-type-of-a-column) | Table rewrite | Create a new column, migrate data, swap reads, drop the old column |
+| [Removing a column](#removing-a-column) | Query failures | Remove it from the schema first, then drop it |
+| [Renaming a column](#renaming-a-column) | Query failures | Prefer renaming the schema field and using `source:` |
+| [Renaming a table](#renaming-a-table) | Query failures | Prefer renaming the schema module instead |
+| [Adding a check constraint](#adding-a-check-constraint) | Full table scan | Create with `validate: false`, then validate separately |
+| [Setting NOT NULL on an existing column](#setting-not-null-on-an-existing-column) | Postgres requires a full table scan | Use a check constraint, validate it, then add `NOT NULL` |
+| [Adding a JSON column](#adding-a-json-column) | `SELECT DISTINCT` errors in Postgres | Use `:jsonb` instead of `:json` |
+| [Removing or replacing a PostgreSQL enum value](#removing-or-replacing-a-postgresql-enum-value) | Removing a value requires replacing the type | Rename directly with `RENAME VALUE` when renaming; otherwise phase app changes, backfill, then replace the type |
+| [Adding a PostgreSQL extension](#adding-a-postgresql-extension) | Privilege or extension-specific install requirements | Use `IF NOT EXISTS`; disable transactions only if the extension requires it |
 
 ## All Scenarios
 
@@ -29,30 +31,11 @@ felt and cause timeouts. Therefore, err on the side of safety, but
 **always benchmark for your own database**. Also consider the hardware the
 database is running: for example, a Raspberry Pi 2B on a microSD will run much slower.
 
-## Table of Contents
-
-- [Adding an index](#adding-an-index)
-- [Dropping an index](#dropping-an-index)
-- [Adding a reference or foreign key](#adding-a-reference-or-foreign-key)
-- [Adding a column with a default value](#adding-a-column-with-a-default-value)
-- [Changing a column's default value](#changing-a-columns-default-value)
-- [Changing the type of a column](#changing-the-type-of-a-column)
-- [Removing a column](#removing-a-column)
-- [Renaming a column](#renaming-a-column)
-- [Renaming a table](#renaming-a-table)
-- [Adding a check constraint](#adding-a-check-constraint)
-- [Setting NOT NULL on an existing column](#setting-not-null-on-an-existing-column)
-- [Adding a JSON column](#adding-a-json-column)
-- [Adding a value to a PostgreSQL enum](#adding-a-value-to-a-postgresql-enum)
-- [Removing or replacing a PostgreSQL enum value](#removing-or-replacing-a-postgresql-enum-value)
-- [Adding a PostgreSQL extension](#adding-a-postgresql-extension)
-- [Squashing migrations](#squashing-migrations)
-
 ## Adding an index
 
-Creating an index will [block writes](https://www.postgresql.org/docs/8.2/sql-createindex.html) to the table in Postgres.
+Creating an index will [block writes](https://www.postgresql.org/docs/current/sql-createindex.html) to the table in Postgres unless you use `CONCURRENTLY`.
 
-MySQL is concurrent by default since [5.6](https://downloads.mysql.com/docs/mysql-5.6-relnotes-en.pdf) unless using `SPATIAL` or `FULLTEXT` indexes, which then it [blocks reads and writes](https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html#online-ddl-index-syntax-notes).
+In recent MySQL/InnoDB versions, adding a secondary index is an [online DDL operation](https://dev.mysql.com/doc/refman/8.4/en/innodb-online-ddl-operations.html) that permits concurrent DML. `FULLTEXT` and `SPATIAL` indexes have additional caveats.
 
 ### Bad
 
@@ -112,7 +95,9 @@ For either option chosen, the migration may still take a while to run, but reads
 
 ## Dropping an index
 
-Dropping an index blocks reads and writes while acquiring an `ACCESS EXCLUSIVE` lock.
+In Postgres, dropping an index blocks reads and writes while acquiring an `ACCESS EXCLUSIVE` lock.
+
+In recent MySQL/InnoDB versions, dropping a secondary index is an online operation that keeps the table available for reads and writes.
 
 ### Bad
 
@@ -211,24 +196,24 @@ of safety and separate constraint validation from referenced column creation whe
 
 ## Adding a column with a default value
 
-Adding a column with a default value to an existing table may cause the table to be rewritten. During this time, reads and writes are blocked in Postgres, and writes are blocked in MySQL and MariaDB. If the default column is an expression (volatile value) it will remain unsafe.
+On PostgreSQL 11+ and recent MySQL/InnoDB versions, adding a column with a constant or literal default is usually a fast metadata change. The main remaining hazards are volatile or expression defaults in Postgres, and MySQL cases where the table cannot use its online DDL fast path.
 
-### Bad
+### Caveats
 
-Note: This becomes safe for non-volatile (static) defaults in:
+Note: A constant default is generally safe in:
 
 - [Postgres 11+](https://www.postgresql.org/docs/release/11.0/). Default applies to INSERT since 7.x, and UPDATE since 9.3.
 - MySQL 8.0.12+
 - MariaDB 10.3.2+
 
+The volatile-expression example below remains unsafe in Postgres.
+
 ```elixir
 def change do
   alter table("comments") do
     add :approved, :boolean, default: false
-    # This took 10 minutes for 100 million rows with no fkeys,
-
-    # Obtained an AccessExclusiveLock on the table, which blocks reads and
-    # writes.
+    # Safe on recent PostgreSQL/MySQL when the database can use its fast path,
+    # but older PostgreSQL versions and some table layouts may still rewrite.
   end
 end
 ```
@@ -244,7 +229,7 @@ end
 
 ### Good
 
-Add the column first, then alter it to include the default.
+If you need a conservative approach that also works for older PostgreSQL versions, or you are using a volatile default, add the column first and then alter it to include the default.
 
 First migration:
 
@@ -267,7 +252,7 @@ def change do
 end
 ```
 
-Note: we cannot use `Ecto.Migration.modify/3` as it will include updating the column type as
+Note: we cannot use `Ecto.Migration.modify/3` here as it will include updating the column type as
 well unnecessarily, causing Postgres to rewrite the table.
 
 Schema change to read the new column:
@@ -280,11 +265,11 @@ end
 
 > #### Note {: .info}
 >
-> The safe method will not materialize the default value on the column for existing rows because the default was not set when adding the column (avoiding a potential table lock so it can re-write it to _write_ the default). This may affect your queries where you'd expect the value to now be set to your default but is actually `null`. However, the next `UPDATE` operation on the row will materialize the default, additionally Ecto will apply the default on the application side when reading the record. If you want to materialize the value, then you will need to consider [backfilling](backfilling_data.html).
+> The safe method will not materialize the default value on the column for existing rows because the default was not set when adding the column (avoiding a potential table lock so it can re-write it to _write_ the default). This may affect your queries where you'd expect the value to now be set to your default but is actually `null`. However, the next `UPDATE` operation on the row will materialize the default, additionally Ecto will apply the default on the application side when reading the record. If you want to materialize the value, then you will need to consider [backfilling](backfilling_data.md).
 
 ## Changing a column's default value
 
-Changing an existing column's default may risk rewriting the table.
+Changing only a column's default is typically a metadata change in PostgreSQL and MySQL. The real risk in Ecto is using `Ecto.Migration.modify/3`, which also restates the type.
 
 ### Bad
 
@@ -293,10 +278,7 @@ def change do
   alter table("comments") do
     # Previously, the default was `true`
     modify :approved, :boolean, default: false
-    # This took 10 minutes for 100 million rows with no fkeys,
-
-    # Obtained an AccessExclusiveLock on the table, which blocks reads and
-    # writes.
+    # This also restates the type, which can trigger unnecessary work.
   end
 end
 ```
@@ -320,7 +302,7 @@ end
 >
 > This will not update the values of rows previously-set by the old default. This value has been materialized at the time of insert/update and therefore has no distinction between whether it was set by the column `DEFAULT` or set by the original operation.
 >
-> If you want to update the default of already-written rows, you must distinguish them somehow and modify them with a [backfill](backfilling_data.html)
+> If you want to update the default of already-written rows, you must distinguish them somehow and modify them with a [backfill](backfilling_data.md)
 
 ## Changing the type of a column
 
@@ -588,7 +570,9 @@ These can be in the same deployment, but ensure there are 2 separate migrations.
 
 ## Setting NOT NULL on an existing column
 
-Setting NOT NULL on an existing column blocks reads and writes while every row is checked.  Just like the Adding a check constraint scenario, there are two operations occurring:
+In Postgres, setting NOT NULL on an existing column requires scanning the table and can block concurrent updates while every row is checked. Recent MySQL/InnoDB versions permit concurrent DML for many NOT NULL changes, though the operation may still rebuild the table.
+
+Just like the Adding a check constraint scenario, there are two operations occurring:
 
 1. Creating a new constraint for new or updating records
 1. Validating the new constraint for existing records
@@ -684,27 +668,21 @@ def change do
 end
 ```
 
-## Adding a value to a PostgreSQL enum
+## Removing or replacing a PostgreSQL enum value
 
-Adding enum values inside a transaction can be done since PostgreSQL 12. However, if you need to support older versions or want to be safe, disable the DDL transaction.
+PostgreSQL does not support removing enum values or changing their sort order directly. However, it does support renaming an enum value with `ALTER TYPE ... RENAME VALUE`.
+
+If you only need to rename a value, you can do that directly:
 
 ```elixir
-@disable_ddl_transaction true
-@disable_migration_lock true
-
 def up do
-  execute "ALTER TYPE status ADD VALUE IF NOT EXISTS 'archived'"
-end
-
-def down do
-  # PostgreSQL does not support removing enum values
-  :ok
+  execute "ALTER TYPE status RENAME VALUE 'obsolete' TO 'draft'"
 end
 ```
 
-## Removing or replacing a PostgreSQL enum value
+For multi-node deployments, still coordinate that rename with application code changes just like any other application-visible rename.
 
-PostgreSQL does not support removing or modifying enum values directly. Like renaming columns or tables, this requires coordinating application code changes with database changes.
+If you need to remove a value, or otherwise replace the enum definition, coordinate application code changes with database changes.
 
 ### Bad
 
@@ -720,7 +698,7 @@ end
 Take a phased approach:
 
 1. **Deploy application code** that handles both old and new enum values (stops writing the value to be removed, reads both old and new values)
-2. **Backfill data** to migrate rows from old value to new value (see [backfilling guide](backfilling_data.html))
+2. **Backfill data** to migrate rows from old value to new value (see [backfilling guide](backfilling_data.md))
 3. **Deploy migration** to replace the enum type
 4. **Deploy application code** to remove handling of old value
 
@@ -750,7 +728,7 @@ def up do
 end
 ```
 
-For large tables, batch this operation. See [backfilling data](backfilling_data.html) for safe approaches.
+For large tables, batch this operation. See [backfilling data](backfilling_data.md) for safe approaches.
 
 Third deployment (replace the enum type):
 
@@ -769,13 +747,12 @@ end
 
 ## Adding a PostgreSQL extension
 
-Extensions cannot be created inside a transaction.
+`CREATE EXTENSION` can usually run inside a transaction. The main concerns are privileges, extension availability, and whether the extension's installation script depends on commands that cannot run inside a transaction block.
 
-### Bad
+### Example
 
 ```elixir
 def change do
-  # Fails: CREATE EXTENSION cannot run inside a transaction block
   execute "CREATE EXTENSION \"uuid-ossp\""
 end
 ```
@@ -783,9 +760,6 @@ end
 ### Good
 
 ```elixir
-@disable_ddl_transaction true
-@disable_migration_lock true
-
 def change do
   execute "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"",
           "DROP EXTENSION IF EXISTS \"uuid-ossp\""
@@ -795,6 +769,8 @@ end
 > #### Note {: .info}
 >
 > Creating extensions typically requires superuser privileges. In managed database services (AWS RDS, Heroku), some extensions may not be available.
+>
+> If an extension complains that it cannot run inside a transaction block, then disable the DDL transaction for that specific migration.
 
 ## Credits
 
