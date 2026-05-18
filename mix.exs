@@ -65,7 +65,8 @@ defmodule EctoSQL.MixProject do
       {:jason, "~> 1.0", only: [:test, :bench, :docs]},
 
       # Docs
-      {:ex_doc, "~> 0.21", only: :docs},
+      {:ex_doc, "~> 0.21", only: :doc, runtime: false, warn_if_outdated: true},
+      {:makeup_sql, ">= 0.1.3", only: :doc, runtime: false},
 
       # Benchmarks
       {:benchee, "~> 1.0", only: :bench},
@@ -187,7 +188,19 @@ defmodule EctoSQL.MixProject do
       source_ref: "v#{@version}",
       canonical: "http://hexdocs.pm/ecto_sql",
       source_url: @source_url,
-      extras: ["CHANGELOG.md"],
+      extras: [
+        "CHANGELOG.md",
+        "guides/safe_migrations.md",
+        "guides/migration_anatomy.md",
+        "guides/backfilling_data.md"
+      ],
+      groups_for_extras: [
+        Guides: [
+          "guides/safe_migrations.md",
+          "guides/migration_anatomy.md",
+          "guides/backfilling_data.md"
+        ]
+      ],
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       groups_for_modules: [
         # Ecto.Adapters.SQL,
