@@ -191,14 +191,16 @@ defmodule EctoSQL.MixProject do
       source_url: @source_url,
       extras: [
         "CHANGELOG.md",
-        "guides/safe_migrations.md",
         "guides/migration_anatomy.md",
+        "guides/safe_migrations.md",
+        "guides/squashing_migrations.md",
         "guides/backfilling_data.md"
       ],
       groups_for_extras: [
-        Guides: [
-          "guides/safe_migrations.md",
+        "Migration Guides": [
           "guides/migration_anatomy.md",
+          "guides/safe_migrations.md",
+          "guides/squashing_migrations.md",
           "guides/backfilling_data.md"
         ]
       ],

@@ -38,27 +38,27 @@ defmodule MyApp.Repo.DataMigrations.BackfillPosts do
 end
 ```
 
-The problem is the code and schema may change over time. However, migrations are using a snapshot of your schemas at the time it's written. In the future, many assumptions may no longer be true. For example, the new_data column may not be present anymore in the schema causing the query to fail if this migration is run months later.
+The problem is the code and schema may change over time. However, migrations are using a snapshot of your schemas at the time it's written. In the future, many assumptions may no longer be true. For example, the `new_data` column may not be present anymore in the schema causing the query to fail if this migration is run months later.
 
-Additionally, in your development environment, you might have 10 records to migrate; in staging, you might have 100; in production, you might have 1 billion to migrate. Scaling your approach matters.
+Additionally, in your development environment, you might have 10 records to migrate. In staging, you might have 100. In production, you might have 1 billion to migrate. Scaling your approach matters.
 
 Ultimately, there are several bad practices here:
 
 1. The Ecto schema in the query may change after this migration was written.
-1. If you try to backfill the data all at once, it may exhaust the database memory and/or CPU if it's changing a large data set.
-1. Backfilling data inside a transaction for the migration locks row updates for the duration of the migration, even if you are updating in batches.
-1. Disabling the transaction for the migration and only batching updates may still spike the database CPU to 100%, causing other concurrent reads or writes to time out.
+2. If you try to backfill the data all at once, it may exhaust the database memory and/or CPU if it's changing a large data set.
+3. Backfilling data inside a transaction for the migration locks row updates for the duration of the migration, even if you are updating in batches.
+4. Disabling the transaction for the migration and only batching updates may still spike the database CPU to 100%, causing other concurrent reads or writes to time out.
 
 ##  Good
 
 There are four keys to backfilling safely:
 
 1. running outside a transaction
-1. batching
-1. throttling
-1. resiliency
+2. batching
+3. throttling
+4. resiliency
 
-As we've learned in this guide, it's straight-forward to disable the migration transactions. Add these options to the migration:
+To disable the migration transactions, add these options to the top of your migration:
 
 ```elixir
 @disable_ddl_transaction true
@@ -72,7 +72,8 @@ We'll start with how do we paginate efficiently: `LIMIT`/`OFFSET` by itself is a
 For querying and updating the data, there are two ways to "snapshot" your schema at the time of the migration. We'll use both options below in the examples:
 
 1. Execute raw SQL that represents the table at that moment. Do not use Ecto schemas. Prefer this approach when you can. Your application's Ecto schemas will change over time, but your migration should not, therefore it's not a true snapshot of the data at the time.
-1. Write a small Ecto schema module inside the migration that only uses what you need. Then use that in your data migration. This is helpful if you prefer the Ecto API and decouples from your application's Ecto schemas as it evolves separately.
+
+2. Write a small Ecto schema module inside the migration that only uses what you need. Then use that in your data migration. This is helpful if you prefer the Ecto API and decouples from your application's Ecto schemas as it evolves separately.
 
 For throttling, we can simply add a `Process.sleep(@throttle)` for each page.
 
@@ -81,9 +82,9 @@ For resiliency, we need to ensure that we handle errors without losing our progr
 Finally, to manage these data migrations separately, we need to:
 
 1. Store data migrations separately from your schema migrations.
-1. Run the data migrations manually.
+2. Run the data migrations manually.
 
-To achieve this, be inspired by [Ecto's documentation on creating a Release module](`Ecto.Migrator`), and extend your release module to allow options to pass into `Ecto.Migrator` that specifies the version to migrate and the data migrations' file path, for example:
+If you have `mix` available in production, you can use `mix ecto.migrate --migrations-path "priv/repo/data_migrations"`. However, most applications use releases in production, so you need extend your release module (see [Ecto's documentation on creating a Release module](`Ecto.Migrator`)). The idea is to provide a `migrate_data` function that specifies the version to migrate and the data migrations' file path, for example:
 
 ```elixir
 defmodule MyApp.Release do
@@ -108,20 +109,14 @@ If the data can be queried with a condition that is removed after update then yo
 Here's how we can manage the backfill:
 
 1. Disable migration transactions.
-1. Use keyset pagination: Order the data, find rows greater than the last mutated row and limit by batch size.
-1. For each page, mutate the records.
-1. Check for failed updates and handle it appropriately.
-1. Use the last mutated record's ID as the starting point for the next page. This helps with resiliency and prevents looping on the same record over and over again.
-1. Arbitrarily sleep to throttle and prevent exhausting the database.
-1. Rinse and repeat until there are no more records
+2. Use keyset pagination: Order the data, find rows greater than the last mutated row and limit by batch size.
+3. For each page, mutate the records.
+4. Check for failed updates and handle it appropriately.
+5. Use the last mutated record's ID as the starting point for the next page. This helps with resiliency and prevents looping on the same record over and over again.
+6. Arbitrarily sleep to throttle and prevent exhausting the database.
+7. Rinse and repeat until there are no more records
 
 For example:
-
-```bash
-mix ecto.gen.migration --migrations-path=priv/repo/data_migrations backfill_posts
-```
-
-And modify the migration:
 
 ```elixir
 defmodule MyApp.Repo.DataMigrations.BackfillPosts do
@@ -184,6 +179,12 @@ defmodule MyApp.Repo.DataMigrations.BackfillPosts do
 end
 ```
 
+To test it in development/test environments:
+
+```bash
+mix ecto.gen.migration --migrations-path=priv/repo/data_migrations backfill_posts
+```
+
 ## Batching Arbitrary Data
 
 If the data being updated does not indicate it's already been updated, then we need to take a snapshot of the current data and store it temporarily. For example, if all rows should increment a column's value by 10, how would you know if a record was already updated? You could load a list of IDs into the application during the migration, but what if the process crashes? Instead we're going to keep the data we need in the database.
@@ -193,23 +194,26 @@ To do this, it works well if we can pick a specific point in time where all reco
 Here's how we'll manage the backfill:
 
 1. Create a "temporary" table. In this example, we're creating a real table that we'll drop at the end of the data migration. In Postgres, there are [actual temporary tables](https://www.postgresql.org/docs/12/sql-createtable.html) that are discarded after the session is over; we're not using those because we need resiliency in case the data migration encounters an error. The error would cause the session to be over, and therefore the temporary table tracking progress would be lost. Real tables don't have this problem. Likewise, we don't want to store IDs in application memory during the migration for the same reason.
-1. Populate that temporary table with IDs of records that need to update. This query only requires a read of the current records, so there are no consequential locks occurring when populating, but be aware this could be a lengthy query. Populating this table can occur at creation or afterwards; in this example we'll populate it at table creation.
-1. Ensure there's an index on the temporary table so it's fast to delete IDs from it. I use an index instead of a primary key because it's easier to re-run the migration in case there's an error. There isn't a straight-forward way to `CREATE IF NOT EXIST` on a primary key; but you can do that easily with an index.
-1. Use keyset pagination to pull batches of IDs from the temporary table. Do this inside a database transaction and lock records for updates. Each batch should read and update within milliseconds, so this should have little impact on concurrent reads and writes.
-1. For each batch of records, determine the data changes that need to happen. This can happen for each record.
-1. [Upsert](https://wiki.postgresql.org/wiki/UPSERT) those changes to the real table. This insert will include the ID of the record that already exists and a list of attributes to change for that record. Since these insertions will conflict with existing records, we'll instruct Postgres to replace certain fields on conflicts.
-1. Delete those IDs from the temporary table since they're updated on the real table. Close the database transaction for that batch.
-1. Throttle so we don't overwhelm the database, and also give opportunity to other concurrent processes to work.
-1. Rinse and repeat until the temporary table is empty.
-1. Finally, drop the temporary table when empty.
+
+2. Populate that temporary table with IDs of records that need to update. This query only requires a read of the current records, so there are no consequential locks occurring when populating, but be aware this could be a lengthy query. Populating this table can occur at creation or afterwards; in this example we'll populate it at table creation.
+
+3. Ensure there's an index on the temporary table so it's fast to delete IDs from it. I use an index instead of a primary key because it's easier to re-run the migration in case there's an error. There isn't a straight-forward way to `CREATE IF NOT EXIST` on a primary key; but you can do that easily with an index.
+
+4. Use keyset pagination to pull batches of IDs from the temporary table. Do this inside a database transaction and lock records for updates. Each batch should read and update within milliseconds, so this should have little impact on concurrent reads and writes.
+
+5. For each batch of records, determine the data changes that need to happen. This can happen for each record.
+
+6. [Upsert](https://wiki.postgresql.org/wiki/UPSERT) those changes to the real table. This insert will include the ID of the record that already exists and a list of attributes to change for that record. Since these insertions will conflict with existing records, we'll instruct Postgres to replace certain fields on conflicts.
+
+7. Delete those IDs from the temporary table since they're updated on the real table. Close the database transaction for that batch.
+
+8. Throttle so we don't overwhelm the database, and also give opportunity to other concurrent processes to work.
+
+9. Rinse and repeat until the temporary table is empty.
+
+10. Finally, drop the temporary table when empty.
 
 Let's see how this can work:
-
-```bash
-mix ecto.gen.migration --migrations-path=priv/repo/data_migrations backfill_weather
-```
-
-Modify the migration:
 
 ```elixir
 # Both of these modules are in the same migration file
@@ -355,6 +359,12 @@ defmodule MyApp.Repo.DataMigrations.BackfillWeather do
 end
 ```
 
+And to test in development/test environments:
+
+```bash
+mix ecto.gen.migration --migrations-path=priv/repo/data_migrations backfill_weather
+```
+
 ---
 
-This guide was originally published on [Fly.io Phoenix Files](https://fly.io/phoenix-files/backfilling-data/).
+This guide was originally published on [Fly.io Phoenix Files](https://fly.io/phoenix-files/backfilling-data/). See [Automatic and Manual Ecto Migrations by Wojtek Mach](https://dashbit.co/blog/automatic-and-manual-ecto-migrations) for more examples on running Ecto migrations.
