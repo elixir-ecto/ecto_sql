@@ -1991,7 +1991,7 @@ if Code.ensure_loaded?(Postgrex) do
 
     defp bitstring_literal(value) do
       size = bit_size(value)
-      <<val::size(size)>> = value
+      <<val::size(^size)>> = value
 
       [?b, ?', val |> Integer.to_string(2) |> String.pad_leading(size, ["0"]), ?']
     end
