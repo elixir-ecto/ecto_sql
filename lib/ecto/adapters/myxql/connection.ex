@@ -1493,9 +1493,6 @@ if Code.ensure_loaded?(MyXQL) do
     defp drop_constraint_if_exists_expr(%Reference{} = ref, table, name),
       do: ["DROP FOREIGN KEY IF EXISTS ", reference_name(ref, table, name), ", "]
 
-    defp drop_constraint_if_exists_expr(_, _, _),
-      do: []
-
     defp reference_name(%Reference{name: nil}, table, column),
       do: quote_name("#{table.name}_#{column}_fkey")
 
