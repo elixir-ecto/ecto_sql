@@ -2,7 +2,7 @@ defmodule EctoSQL.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/elixir-ecto/ecto_sql"
-  @version "3.13.2"
+  @version "3.14.0"
   @adapters ~w(pg myxql tds)
 
   def project do
@@ -13,8 +13,8 @@ defmodule EctoSQL.MixProject do
       deps: deps(),
       test_paths: test_paths(System.get_env("ECTO_ADAPTER")),
       test_ignore_filters: [&String.starts_with?(&1, "test/support/")],
-      xref: [
-        exclude: [
+      elixirc_options: [
+        no_warn_undefined: [
           MyXQL,
           Ecto.Adapters.MyXQL.Connection,
           Postgrex,
@@ -84,7 +84,7 @@ defmodule EctoSQL.MixProject do
     if path = System.get_env("ECTO_PATH") do
       {:ecto, path: path}
     else
-      {:ecto, git: "https://github.com/elixir-ecto/ecto.git", branch: "master"}
+      {:ecto, "~> 3.14.0"}
     end
   end
 
@@ -118,7 +118,7 @@ defmodule EctoSQL.MixProject do
 
   defp package do
     [
-      maintainers: ["Eric Meadows-Jönsson", "José Valim", "James Fish", "Michał Muskała"],
+      maintainers: ["José Valim", "Greg Rychlewski", "Eric Meadows-Jönsson"],
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @source_url},
       files:

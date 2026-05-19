@@ -1,13 +1,18 @@
 # Changelog for v3.x
 
-## v3.14.0-dev
+## v3.14.0 (2026-05-19)
 
 ### Enhancements
 
-  * [migrations] Allow table modifiers, such as UNLOGGED tables
+  * [migrations] Allow table modifiers such as UNLOGGED tables
+  * [migrations] Add Safe Ecto Migration guides
   * [mysql] Support `insert_mode: :ignore`
+  * [postgres] Set a default timezone on `mix ecto.create`
   * [sandbox] Label the sandbox owner process
   * [sql] Allow fragment tuple sources in adapters
+  * [sql] Allow pid repos in Ecto.Adapters.SQL.table_exists?
+  * [sql] Accept counter option in `to_sql/4`
+  * [sql] Support `{:unsafe_fragment, ...}` support to RETURNING clause
 
 ## v3.13.5 (2026-03-03)
 
