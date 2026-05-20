@@ -60,7 +60,7 @@ Disable the DDL transaction in the migration to avoid a database transaction whi
 
 ```elixir
 # in config/config.exs
-config MyApp.Repo, migration_lock: :pg_advisory_lock
+config :my_app, MyApp.Repo, migration_lock: :pg_advisory_lock
 
 # in the migration
 @disable_ddl_transaction true
