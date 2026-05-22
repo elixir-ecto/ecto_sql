@@ -112,4 +112,22 @@ defmodule Ecto.Integration.ConstraintsTest do
       |> PoolRepo.insert()
     assert is_integer(changeset.id)
   end
+
+  test "custom :constraint_handler option" do
+    parent = self()
+    custom_handler = fn _err, _opts ->
+      send(parent, :custom_handler_called)
+      [exclusion: "positive_price"]
+    end
+
+    changeset =
+      %Constraint{}
+      |> Ecto.Changeset.change(price: -10)
+      |> Ecto.Changeset.exclusion_constraint(:price, name: :positive_price)
+
+    {:error, changeset} = PoolRepo.insert(changeset, constraint_handler: custom_handler)
+    assert_received :custom_handler_called
+    assert changeset.errors == [price: {"violates an exclusion constraint", [constraint: :exclusion, constraint_name: "positive_price"]}]
+    assert changeset.data.__meta__.state == :built
+  end
 end
