@@ -188,13 +188,78 @@ defmodule Ecto.Migrator do
   This function accepts an optional second parameter to customize the
   migrations directory. This can be used to specify a custom migrations
   path.
+
+  > #### Discouraged {: .warning}
+  >
+  > If your repository is configured with multiple migration paths via
+  > `:migrations_paths`, this function will raise an error. Use
+  > `migrations_paths/1` instead.
+
   """
   @spec migrations_path(Ecto.Repo.t(), String.t()) :: String.t()
   def migrations_path(repo, directory \\ "migrations") do
     config = repo.config()
-    priv = config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}"
-    app = Keyword.fetch!(config, :otp_app)
-    Application.app_dir(app, Path.join(priv, directory))
+
+    case config[:migrations_paths] do
+      [_first, _second | _rest] ->
+        raise ArgumentError, """
+        cannot use migrations_path/1 when multiple migration paths are configured.
+
+        The repository #{inspect(repo)} has #{length(config[:migrations_paths])} migration paths configured
+        via :migrations_paths. Please use migrations_paths/1 instead to get all configured paths.
+        """
+
+      _other ->
+        hd(migrations_paths(repo, directory: directory))
+    end
+  end
+
+  @doc """
+  Gets the migrations paths from a repository configuration.
+
+  This function checks the repository configuration for the `:migrations_paths`
+  option. If found, it returns a list of absolute paths by resolving any relative
+  paths against the application directory. If not found, it returns a single-element
+  list containing the default migrations path.
+
+  Relative paths in the `:migrations_paths` configuration are considered relative
+  to the root of the application (the directory containing `mix.exs`).
+
+  ## Examples
+
+      # In config/config.exs
+      config :my_app, MyApp.Repo,
+        migrations_paths: ["priv/repo/migrations", "priv/repo/tenant_migrations"]
+
+  """
+  @spec migrations_paths(Ecto.Repo.t(), Keyword.t()) :: [String.t()]
+  def migrations_paths(repo, opts \\ []) do
+    config = repo.config()
+
+    case config[:migrations_paths] do
+      nil ->
+        priv =
+          config[:priv] || "priv/#{repo |> Module.split() |> List.last() |> Macro.underscore()}"
+
+        app = Keyword.fetch!(config, :otp_app)
+        directory = Keyword.get(opts, :directory, "migrations")
+        [Application.app_dir(app, Path.join(priv, directory))]
+
+      paths when is_list(paths) ->
+        app = Keyword.fetch!(config, :otp_app)
+
+        Enum.map(paths, fn path ->
+          if Path.type(path) == :absolute do
+            path
+          else
+            Application.app_dir(app, path)
+          end
+        end)
+
+      other ->
+        raise ArgumentError,
+              ":migrations_paths must be a list of paths, got: #{inspect(other)}"
+    end
   end
 
   @doc """
@@ -371,13 +436,13 @@ defmodule Ecto.Migrator do
 
   Equivalent to:
 
-      Ecto.Migrator.run(repo, [Ecto.Migrator.migrations_path(repo)], direction, opts)
+      Ecto.Migrator.run(repo, Ecto.Migrator.migrations_paths(repo), direction, opts)
 
   See `run/4` for more information.
   """
   @spec run(Ecto.Repo.t(), atom, Keyword.t()) :: [integer]
   def run(repo, direction, opts) do
-    run(repo, [migrations_path(repo)], direction, opts)
+    run(repo, migrations_paths(repo), direction, opts)
   end
 
   @doc ~S"""
@@ -463,12 +528,12 @@ defmodule Ecto.Migrator do
 
   Equivalent to:
 
-      Ecto.Migrator.migrations(repo, [Ecto.Migrator.migrations_path(repo)])
+      Ecto.Migrator.migrations(repo, Ecto.Migrator.migrations_paths(repo))
 
   """
   @spec migrations(Ecto.Repo.t()) :: [{:up | :down, id :: integer(), name :: String.t()}]
   def migrations(repo) do
-    migrations(repo, [migrations_path(repo)])
+    migrations(repo, migrations_paths(repo))
   end
 
   @doc """
