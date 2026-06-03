@@ -380,6 +380,10 @@ defmodule Ecto.Adapters.MyXQL do
         opts
       end
 
+    # This adapter overrides insert/6 instead of going through
+    # Ecto.Adapters.SQL.struct/10, so prepend the `:label` comment here too.
+    {sql, opts} = Ecto.Adapters.SQL.prepend_label(sql, opts)
+
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 0}} ->
         # With INSERT IGNORE (insert_mode: :ignore), 0 rows means the row
