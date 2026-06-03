@@ -191,8 +191,10 @@ if Code.ensure_loaded?(Postgrex) do
       limit = limit(query, sources)
       offset = offset(query, sources)
       lock = lock(query, sources)
+      label = label(query)
 
       [
+        label,
         cte,
         select,
         from,
@@ -213,13 +215,13 @@ if Code.ensure_loaded?(Postgrex) do
       sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, source)
-
+      label = label(query)
       prefix = prefix || ["UPDATE ", from, " AS ", name | " SET "]
       fields = update_fields(query, sources)
       {join, wheres} = using_join(query, :update_all, "FROM", sources)
       where = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      [cte, prefix, fields, join, where | returning(query, sources)]
+      [label, cte, prefix, fields, join, where | returning(query, sources)]
     end
 
     @impl true
@@ -227,11 +229,11 @@ if Code.ensure_loaded?(Postgrex) do
       sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, from)
-
+      label = label(query)
       {join, wheres} = using_join(query, :delete_all, "USING", sources)
       where = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      [cte, "DELETE FROM ", from, " AS ", name, join, where | returning(query, sources)]
+      [label, cte, "DELETE FROM ", from, " AS ", name, join, where | returning(query, sources)]
     end
 
     @impl true
@@ -879,6 +881,9 @@ if Code.ensure_loaded?(Postgrex) do
         {:intersect_all, query} -> [" INTERSECT ALL (", all(query, as_prefix), ")"]
       end)
     end
+
+    defp label(%{label: nil}), do: []
+    defp label(%{label: label}), do: ["/* ", label, " */ "]
 
     defp lock(%{lock: nil}, _sources), do: []
     defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | binary]

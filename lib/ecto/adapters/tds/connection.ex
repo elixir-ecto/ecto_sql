@@ -170,11 +170,12 @@ if Code.ensure_loaded?(Tds) do
       # limit = is handled in select (TOP X)
       offset = offset(query, sources)
       lock = lock(query, sources)
+      label = label(query)
 
       if query.offset != nil and query.order_bys == [],
         do: error!(query, "ORDER BY is mandatory when OFFSET is set")
 
-      [cte, select, from, join, where, group_by, having, combinations, order_by, lock | offset]
+      [label, cte, select, from, join, where, group_by, having, combinations, order_by, lock | offset]
     end
 
     @impl true
@@ -188,8 +189,10 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
       lock = lock(query, sources)
+      label = label(query)
 
       [
+        label,
         cte,
         "UPDATE ",
         name,
@@ -213,8 +216,9 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
       lock = lock(query, sources)
+      label = label(query)
 
-      [cte, delete, returning(query, 0, "DELETED"), from, join, where | lock]
+      [label, cte, delete, returning(query, 0, "DELETED"), from, join, where | lock]
     end
 
     @impl true
@@ -655,6 +659,9 @@ if Code.ensure_loaded?(Tds) do
 
     defp hints([_ | _] = hints), do: [" WITH (", Enum.intersperse(hints, ", "), ?)]
     defp hints([]), do: []
+
+    defp label(%{label: nil}), do: []
+    defp label(%{label: label}), do: ["/* ", label, " */ "]
 
     defp lock(%{lock: nil}, _sources), do: []
     defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [" OPTION (", binary, ?)]

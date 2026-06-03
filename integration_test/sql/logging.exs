@@ -178,6 +178,36 @@ defmodule Ecto.Integration.LoggingTest do
     end
   end
 
+  describe ":label option" do
+    test "prepends a leading comment to insert/update/delete/insert_all" do
+      assert capture_log(fn ->
+               TestRepo.insert!(%Post{title: "1"}, label: "insert_create_post_q", log: :error)
+             end) =~ "/* insert_create_post_q */ INSERT INTO"
+
+      post = TestRepo.insert!(%Post{title: "x"})
+
+      assert capture_log(fn ->
+               post
+               |> Ecto.Changeset.change(title: "y")
+               |> TestRepo.update!(label: "update_post_q", log: :error)
+             end) =~ "/* update_post_q */ UPDATE"
+
+      assert capture_log(fn ->
+               TestRepo.delete!(post, label: "delete_post_q", log: :error)
+             end) =~ "/* delete_post_q */ DELETE"
+
+      assert capture_log(fn ->
+               TestRepo.insert_all(Post, [%{title: "a"}], label: "bulk_insert_posts_q", log: :error)
+             end) =~ "/* bulk_insert_posts_q */ INSERT INTO"
+    end
+
+    test "rejects a label that could break out of the comment block" do
+      assert_raise ArgumentError, ~r/cannot contain/, fn ->
+        TestRepo.insert!(%Post{title: "1"}, label: "evil */ DROP TABLE posts")
+      end
+    end
+  end
+
   describe "parameter logging" do
     @describetag :parameter_logging
 
