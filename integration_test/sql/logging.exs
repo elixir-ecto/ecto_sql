@@ -179,6 +179,20 @@ defmodule Ecto.Integration.LoggingTest do
   end
 
   describe ":label option" do
+    test "prepends a leading comment to query operations" do
+      assert capture_log(fn ->
+               TestRepo.all(Post, label: "list_posts_q", log: :error)
+             end) =~ "/* list_posts_q */ SELECT"
+
+      assert capture_log(fn ->
+               TestRepo.update_all(Post, [set: [visits: 0]], label: "reset_visits_q", log: :error)
+             end) =~ "/* reset_visits_q */ UPDATE"
+
+      assert capture_log(fn ->
+               TestRepo.delete_all(Post, label: "purge_posts_q", log: :error)
+             end) =~ "/* purge_posts_q */ DELETE"
+    end
+
     test "prepends a leading comment to insert/update/delete/insert_all" do
       assert capture_log(fn ->
                TestRepo.insert!(%Post{title: "1"}, label: "insert_create_post_q", log: :error)

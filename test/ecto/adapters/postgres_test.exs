@@ -784,14 +784,14 @@ defmodule Ecto.Adapters.PostgresTest do
   end
 
   test "label" do
-    query = Schema |> label("myquery") |> select([], true) |> plan()
-    assert all(query) == ~s{/* myquery */ SELECT TRUE FROM "schema" AS s0}
+    query = Schema |> select([], true) |> plan()
+    assert all(%{query | label: "myquery"}) == ~s{/* myquery */ SELECT TRUE FROM "schema" AS s0}
 
-    query = Schema |> label("upd_q") |> update([], set: [x: 0]) |> plan(:update_all)
-    assert update_all(query) == ~s{/* upd_q */ UPDATE "schema" AS s0 SET "x" = 0}
+    query = Schema |> update([], set: [x: 0]) |> plan(:update_all)
+    assert update_all(%{query | label: "upd_q"}) == ~s{/* upd_q */ UPDATE "schema" AS s0 SET "x" = 0}
 
-    query = Schema |> label("del_q") |> plan(:delete_all)
-    assert delete_all(query) == ~s{/* del_q */ DELETE FROM "schema" AS s0}
+    query = Schema |> plan(:delete_all)
+    assert delete_all(%{query | label: "del_q"}) == ~s{/* del_q */ DELETE FROM "schema" AS s0}
   end
 
   test "string escape" do
