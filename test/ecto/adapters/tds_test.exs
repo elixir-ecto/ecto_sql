@@ -641,6 +641,17 @@ defmodule Ecto.Adapters.TdsTest do
     assert all(query) == ~s{SELECT CAST(1 as bit) FROM [schema] AS s0 OPTION (UPDATE on s0)}
   end
 
+  test "label" do
+    query = Schema |> label("myquery") |> select([], true) |> plan()
+    assert all(query) == ~s{/* myquery */ SELECT CAST(1 as bit) FROM [schema] AS s0}
+
+    query = Schema |> label("upd_q") |> update([], set: [x: 0]) |> plan(:update_all)
+    assert update_all(query) == ~s{/* upd_q */ UPDATE s0 SET s0.[x] = 0 FROM [schema] AS s0}
+
+    query = Schema |> label("del_q") |> plan(:delete_all)
+    assert delete_all(query) == ~s{/* del_q */ DELETE s0 FROM [schema] AS s0}
+  end
+
   test "string escape" do
     query = "schema" |> where(foo: "\'--  ") |> select([], true) |> plan()
 

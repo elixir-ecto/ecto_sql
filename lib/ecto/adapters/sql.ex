@@ -987,6 +987,8 @@ defmodule Ecto.Adapters.SQL do
         opts
       end
 
+    {sql, opts} = prepend_label(sql, opts)
+
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
 
     %{num_rows: num, rows: rows} = query!(adapter_meta, sql, all_params, [source: source] ++ opts)
@@ -1167,6 +1169,31 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
+  def prepend_label(sql, opts) do
+    case Keyword.get(opts, :label) do
+      nil ->
+        {sql, opts}
+
+      label ->
+        label = validate_label!(label)
+        {["/* ", label, " */ ", sql], opts}
+    end
+  end
+
+  defp validate_label!(label) when is_binary(label) do
+    if String.contains?(label, ["/*", "*/", <<0>>]) do
+      raise ArgumentError,
+            "a label cannot contain `/*`, `*/`, or null bytes, got: #{inspect(label)}. "
+    end
+
+    label
+  end
+
+  defp validate_label!(other) do
+    raise ArgumentError, "a label must be a string, got: #{inspect(other)}"
+  end
+
+  @doc false
   def struct(
         adapter_meta,
         conn,
@@ -1185,6 +1212,8 @@ defmodule Ecto.Adapters.SQL do
       else
         opts
       end
+
+    {sql, opts} = prepend_label(sql, opts)
 
     case query(adapter_meta, sql, values, [source: source] ++ opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->
