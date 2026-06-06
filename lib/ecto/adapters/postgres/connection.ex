@@ -1445,7 +1445,7 @@ if Code.ensure_loaded?(Postgrex) do
     defp ddl_log_level("LOG"), do: :info
     defp ddl_log_level("INFO"), do: :info
     defp ddl_log_level("NOTICE"), do: :info
-    defp ddl_log_level("WARNING"), do: :warn
+    defp ddl_log_level("WARNING"), do: :warning
     defp ddl_log_level("ERROR"), do: :error
     defp ddl_log_level("FATAL"), do: :error
     defp ddl_log_level("PANIC"), do: :error
