@@ -398,6 +398,41 @@ defmodule Ecto.Adapters.SQL do
       {"SELECT p.id, p.title, p.inserted_at, p.created_at FROM posts as p", []}
   """
 
+  @to_constraints_doc """
+  Handles adapter-specific exceptions, converting them to
+  the corresponding constraint errors.
+
+  The constraints are in the keyword list and must return the
+  constraint type, like `:unique`, and the constraint name as
+  a string, for example:
+
+      [unique: "posts_title_index"]
+
+  Returning an empty list signifies the error does not come
+  from any constraint, and should continue with the default
+  exception handling path (i.e. raise or further handling).
+
+  ## Options
+
+    * `:constraint_handler` - a function that receives the exception and
+      error options and returns a keyword list of constraints. Defaults to
+      the adapter connection module's `to_constraints/2`.
+
+      The `:constraint_handler` option can be set per operation or globally
+      via `c:Ecto.Repo.default_options/1` or `c:Ecto.Repo.prepare_options/2`.
+
+  ## Examples
+
+      # Custom handler per operation
+      MyRepo.insert(changeset, constraint_handler: fn
+        %Postgrex.Error{postgres: %{pg_code: "ZZ001", constraint: name}}, _opts ->
+          [check: name]
+
+        err, opts ->
+          Ecto.Adapters.Postgres.Connection.to_constraints(err, opts)
+      end)
+  """
+
   @explain_doc """
   Executes an EXPLAIN statement or similar for the given query according to its kind and the
   adapter in the given repository.
@@ -679,6 +714,28 @@ defmodule Ecto.Adapters.SQL do
 
   def query_many(adapter_meta, sql, params, opts) do
     sql_call(adapter_meta, :query_many, [sql], params, opts)
+  end
+
+  @doc @to_constraints_doc
+  @spec to_constraints(
+          pid() | Ecto.Repo.t() | Ecto.Adapter.adapter_meta(),
+          exception :: Exception.t(),
+          options :: Keyword.t(),
+          error_options :: Keyword.t()
+        ) :: Keyword.t()
+  def to_constraints(repo, err, opts, err_opts) when is_atom(repo) or is_pid(repo) do
+    to_constraints(Ecto.Adapter.lookup_meta(repo), err, opts, err_opts)
+  end
+
+  def to_constraints(adapter_meta, err, opts, err_opts) do
+    case Keyword.get(opts, :constraint_handler) do
+      handler when is_function(handler, 2) ->
+        handler.(err, err_opts)
+
+      nil ->
+        %{sql: connection} = adapter_meta
+        connection.to_constraints(err, err_opts)
+    end
   end
 
   defp sql_call(adapter_meta, callback, args, params, opts) do
@@ -1169,7 +1226,7 @@ defmodule Ecto.Adapters.SQL do
   @doc false
   def struct(
         adapter_meta,
-        conn,
+        _conn,
         sql,
         operation,
         source,
@@ -1204,7 +1261,7 @@ defmodule Ecto.Adapters.SQL do
           operation: operation
 
       {:error, err} ->
-        case conn.to_constraints(err, source: source) do
+        case to_constraints(adapter_meta, err, opts, source: source) do
           [] -> raise_sql_call_error(err)
           constraints -> {:invalid, constraints}
         end
