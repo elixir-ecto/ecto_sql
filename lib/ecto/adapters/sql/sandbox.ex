@@ -341,9 +341,7 @@ defmodule Ecto.Adapters.SQL.Sandbox do
 
   defmodule Connection do
     @moduledoc false
-    if Code.ensure_loaded?(DBConnection) do
-      @behaviour DBConnection
-    end
+    @behaviour DBConnection
 
     def connect(_opts) do
       raise "should never be invoked"
