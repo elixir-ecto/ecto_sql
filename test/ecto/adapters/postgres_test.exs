@@ -3092,7 +3092,7 @@ defmodule Ecto.Adapters.PostgresTest do
     assert SQL.ddl_logs(result) == [{:info, ~s(table "foo" exists, skipping), []}]
 
     result = make_result("WARNING")
-    assert SQL.ddl_logs(result) == [{:warn, ~s(table "foo" exists, skipping), []}]
+    assert SQL.ddl_logs(result) == [{:warning, ~s(table "foo" exists, skipping), []}]
 
     result = make_result("ERROR")
     assert SQL.ddl_logs(result) == [{:error, ~s(table "foo" exists, skipping), []}]
