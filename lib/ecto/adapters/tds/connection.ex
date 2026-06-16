@@ -170,12 +170,12 @@ if Code.ensure_loaded?(Tds) do
       # limit = is handled in select (TOP X)
       offset = offset(query, sources)
       lock = lock(query, sources)
-      label = label(query)
+      {pre_comments, post_comments} = SQL.comments(query.comments)
 
       if query.offset != nil and query.order_bys == [],
         do: error!(query, "ORDER BY is mandatory when OFFSET is set")
 
-      [label, cte, select, from, join, where, group_by, having, combinations, order_by, lock | offset]
+      [pre_comments, cte, select, from, join, where, group_by, having, combinations, order_by, lock, offset | post_comments]
     end
 
     @impl true
@@ -189,10 +189,10 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
       lock = lock(query, sources)
-      label = label(query)
+      {pre_comments, post_comments} = SQL.comments(query.comments)
 
       [
-        label,
+        pre_comments,
         cte,
         "UPDATE ",
         name,
@@ -201,7 +201,8 @@ if Code.ensure_loaded?(Tds) do
         returning(query, 0, "INSERTED"),
         from,
         join,
-        where | lock
+        where,
+        lock | post_comments
       ]
     end
 
@@ -216,9 +217,9 @@ if Code.ensure_loaded?(Tds) do
       join = join(query, sources)
       where = where(query, sources)
       lock = lock(query, sources)
-      label = label(query)
+      {pre_comments, post_comments} = SQL.comments(query.comments)
 
-      [label, cte, delete, returning(query, 0, "DELETED"), from, join, where | lock]
+      [pre_comments, cte, delete, returning(query, 0, "DELETED"), from, join, where, lock | post_comments]
     end
 
     @impl true
@@ -659,9 +660,6 @@ if Code.ensure_loaded?(Tds) do
 
     defp hints([_ | _] = hints), do: [" WITH (", Enum.intersperse(hints, ", "), ?)]
     defp hints([]), do: []
-
-    defp label(%{label: nil}), do: []
-    defp label(%{label: label}), do: ["/* ", label, " */ "]
 
     defp lock(%{lock: nil}, _sources), do: []
     defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [" OPTION (", binary, ?)]

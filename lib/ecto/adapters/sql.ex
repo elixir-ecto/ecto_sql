@@ -987,7 +987,7 @@ defmodule Ecto.Adapters.SQL do
         opts
       end
 
-    {sql, opts} = prepend_label(sql, opts)
+    sql = wrap_comments(sql, opts)
 
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
 
@@ -1169,28 +1169,39 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
-  def prepend_label(sql, opts) do
-    case Keyword.get(opts, :label) do
-      nil ->
-        {sql, opts}
-
-      label ->
-        label = validate_label!(label)
-        {["/* ", label, " */ ", sql], opts}
-    end
+  def wrap_comments(sql, opts) do
+    {pre, post} = comments(Keyword.get(opts, :comments, []))
+    [pre, sql | post]
   end
 
-  defp validate_label!(label) when is_binary(label) do
-    if String.contains?(label, ["/*", "*/", <<0>>]) do
+  @doc false
+  def comments(comments) when is_list(comments) do
+    {pre, post} =
+      Enum.reduce(comments, {[], []}, fn
+        {:pre, c}, {pre, post} -> {[["/* ", escape_comment!(c), " */ "] | pre], post}
+        {:post, c}, {pre, post} -> {pre, [[" /* ", escape_comment!(c), " */"] | post]}
+        other, _ -> raise ArgumentError, "expected {:pre, string} or {:post, string}, got: #{inspect(other)}"
+      end)
+
+    {Enum.reverse(pre), Enum.reverse(post)}
+  end
+
+  def comments(other) do
+    raise ArgumentError,
+          "comments must be a keyword list of [pre: string, post: string], got: #{inspect(other)}"
+  end
+
+  defp escape_comment!(comment) when is_binary(comment) do
+    if String.contains?(comment, ["/*", "*/", <<0>>]) do
       raise ArgumentError,
-            "a label cannot contain `/*`, `*/`, or null bytes, got: #{inspect(label)}. "
+            "a comment cannot contain `/*`, `*/`, or null bytes, got: #{inspect(comment)}. "
     end
 
-    label
+    comment
   end
 
-  defp validate_label!(other) do
-    raise ArgumentError, "a label must be a string, got: #{inspect(other)}"
+  defp escape_comment!(other) do
+    raise ArgumentError, "a comment must be a string, got: #{inspect(other)}"
   end
 
   @doc false
@@ -1213,7 +1224,7 @@ defmodule Ecto.Adapters.SQL do
         opts
       end
 
-    {sql, opts} = prepend_label(sql, opts)
+    sql = wrap_comments(sql, opts)
 
     case query(adapter_meta, sql, values, [source: source] ++ opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->

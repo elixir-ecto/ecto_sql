@@ -118,10 +118,10 @@ if Code.ensure_loaded?(MyXQL) do
       limit = limit(query, sources)
       offset = offset(query, sources)
       lock = lock(query, sources)
-      label = label(query)
+      {pre_comments, post_comments} = SQL.comments(query.comments)
 
       [
-        label,
+        pre_comments,
         cte,
         select,
         from,
@@ -133,7 +133,8 @@ if Code.ensure_loaded?(MyXQL) do
         combinations,
         order_by,
         limit,
-        offset | lock
+        offset,
+        lock | post_comments
       ]
     end
 
@@ -147,7 +148,7 @@ if Code.ensure_loaded?(MyXQL) do
 
       sources = create_names(query, [])
       cte = cte(query, sources)
-      label = label(query)
+      {pre_comments, post_comments} = SQL.comments(query.comments)
       {from, name} = get_source(query, sources, 0, source)
 
       fields =
@@ -161,7 +162,7 @@ if Code.ensure_loaded?(MyXQL) do
       prefix = prefix || ["UPDATE ", from, " AS ", name, join, " SET "]
       where = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      [label, cte, prefix, fields | where]
+      [pre_comments, cte, prefix, fields, where | post_comments]
     end
 
     @impl true
@@ -174,12 +175,12 @@ if Code.ensure_loaded?(MyXQL) do
       cte = cte(query, sources)
       {_, name, _} = elem(sources, 0)
 
-      label = label(query)
+      {pre_comments, post_comments} = SQL.comments(query.comments)
       from = from(query, sources)
       join = join(query, sources)
       where = where(query, sources)
 
-      [label, cte, "DELETE ", name, ".*", from, join | where]
+      [pre_comments, cte, "DELETE ", name, ".*", from, join, where | post_comments]
     end
 
     @impl true
@@ -639,9 +640,6 @@ if Code.ensure_loaded?(MyXQL) do
         {:intersect_all, query} -> [" INTERSECT ALL (", all(query, as_prefix), ")"]
       end)
     end
-
-    defp label(%{label: nil}), do: []
-    defp label(%{label: label}), do: ["/* ", label, " */ "]
 
     defp lock(%{lock: nil}, _sources), do: []
     defp lock(%{lock: binary}, _sources) when is_binary(binary), do: [?\s | binary]
