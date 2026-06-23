@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Ecto.Query do
   use Mix.Task
+  import Inspect.Algebra
   import Mix.Ecto
 
   @shortdoc "Runs a query against the repository"
@@ -19,8 +20,9 @@ defmodule Mix.Tasks.Ecto.Query do
   @moduledoc """
   Runs the given query against the repository.
 
-  The query is evaluated as Elixir code after loading the current
-  `.iex.exs` file, if one exists, and importing `Ecto.Query`.
+  The query is evaluated as Elixir code after importing `Ecto.Query`.
+  If a local `.iex.exs` file exists, only aliases from the file are made
+  available to the query.
 
   The query runs inside a read-only transaction.
 
@@ -98,12 +100,17 @@ defmodule Mix.Tasks.Ecto.Query do
   end
 
   defp eval_query(query) do
-    code = [dot_iex(), "\nimport Ecto.Query\n", query]
+    query = Code.string_to_quoted!(query, file: "ecto.query")
 
-    {queryable, _binding} =
-      code
-      |> IO.iodata_to_binary()
-      |> Code.eval_string([], file: "ecto.query")
+    code =
+      {:__block__, [],
+       dot_iex_aliases() ++
+         [
+           quote(do: import(Ecto.Query)),
+           query
+         ]}
+
+    {queryable, _binding} = Code.eval_quoted(code, [], file: "ecto.query")
 
     to_query!(queryable)
   end
@@ -117,13 +124,51 @@ defmodule Mix.Tasks.Ecto.Query do
       )
   end
 
-  defp dot_iex do
-    if File.regular?(".iex.exs") do
-      [File.read!(".iex.exs"), "\n"]
+  defp dot_iex_aliases do
+    with true <- File.regular?(".iex.exs"),
+         {:ok, quoted} <- ".iex.exs" |> File.read!() |> Code.string_to_quoted(file: ".iex.exs") do
+      collect_aliases(quoted)
     else
-      []
+      _ -> []
     end
   end
+
+  defp collect_aliases({:__block__, _, expressions}) do
+    Enum.filter(expressions, &alias?/1)
+  end
+
+  defp collect_aliases(expression) do
+    if alias?(expression), do: [expression], else: []
+  end
+
+  defp alias?({:alias, _, [aliases]}) do
+    aliases?(aliases)
+  end
+
+  defp alias?({:alias, _, [aliases, opts]}) when is_list(opts) do
+    aliases?(aliases) and alias_opts?(opts)
+  end
+
+  defp alias?(_), do: false
+
+  defp aliases?({:__aliases__, _, parts}) do
+    Enum.all?(parts, &is_atom/1)
+  end
+
+  defp aliases?({{:., _, [prefix, :{}]}, _, aliases}) do
+    aliases?(prefix) and Enum.all?(aliases, &aliases?/1)
+  end
+
+  defp aliases?(_), do: false
+
+  defp alias_opts?(opts) do
+    Keyword.keyword?(opts) and Enum.all?(opts, &alias_opt?/1)
+  end
+
+  defp alias_opt?({:as, false}), do: true
+  defp alias_opt?({:as, aliases}), do: aliases?(aliases)
+  defp alias_opt?({:warn, value}), do: is_boolean(value)
+  defp alias_opt?(_), do: false
 
   defp read_only_transaction(repo, fun) do
     do_read_only_transaction(repo.__adapter__(), repo, fun)
@@ -169,19 +214,15 @@ defmodule Mix.Tasks.Ecto.Query do
   defp inspect_entries(entries) do
     previous_fun = Inspect.Opts.default_inspect_fun()
 
-    Inspect.Opts.default_inspect_fun(fn
+    inspect_fun = fn
       %{__struct__: schema, __meta__: %Ecto.Schema.Metadata{}} = struct, opts ->
         inspect_schema(struct, schema, opts)
 
       term, opts ->
         previous_fun.(term, opts)
-    end)
-
-    try do
-      inspect(entries, limit: :infinity, pretty: true)
-    after
-      Inspect.Opts.default_inspect_fun(previous_fun)
     end
+
+    inspect(entries, limit: :infinity, pretty: true, inspect_fun: inspect_fun)
   end
 
   defp inspect_schema(struct, schema, opts) do
@@ -193,7 +234,21 @@ defmodule Mix.Tasks.Ecto.Query do
           field not in [:__struct__, :__exception__ | drop_fields],
           do: info
 
-    Inspect.Map.inspect(struct, Macro.inspect_atom(:literal, schema), infos, opts)
+    inspect_map(struct, Macro.inspect_atom(:literal, schema), infos, opts)
+  end
+
+  defp inspect_map(map, name, infos, opts) do
+    fun = fn %{field: field}, opts -> inspect_keyword({field, Map.get(map, field)}, opts) end
+    open = color("%" <> name <> "{", :map, opts)
+    sep = color(",", :map, opts)
+    close = color("}", :map, opts)
+
+    container_doc(open, infos, close, opts, fun, separator: sep, break: :strict)
+  end
+
+  defp inspect_keyword({key, value}, opts) do
+    key = color(Macro.inspect_atom(:key, key), :atom, opts)
+    concat(key, concat(" ", to_doc(value, opts)))
   end
 
   defp unloaded_associations(schema, struct) do

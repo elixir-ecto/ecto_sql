@@ -41,16 +41,6 @@ defmodule Mix.Tasks.Ecto.QueryTest do
     end
   end
 
-  setup do
-    Application.put_env(:ecto_sql, :ecto_repos, [__MODULE__.PostgresRepo])
-
-    on_exit(fn ->
-      Application.delete_env(:ecto_sql, :ecto_repos)
-    end)
-
-    :ok
-  end
-
   test "runs a query against the repo in a read-only transaction" do
     Process.put(:test_repo_all_results, [
       [1, "first", "hunter2"],
@@ -78,6 +68,9 @@ defmodule Mix.Tasks.Ecto.QueryTest do
   end
 
   test "uses the configured default repo" do
+    Application.put_env(:ecto_sql, :ecto_repos, [__MODULE__.PostgresRepo])
+    on_exit(fn -> Application.delete_env(:ecto_sql, :ecto_repos) end)
+
     Process.put(:test_repo_all_results, [[1, "first", "hunter2"]])
 
     in_tmp("default_repo", fn ->
@@ -86,6 +79,22 @@ defmodule Mix.Tasks.Ecto.QueryTest do
       run(["from(p in Post)"])
 
       assert_received {:query!, "SET TRANSACTION READ ONLY", [], _opts}
+    end)
+  end
+
+  test "uses only aliases from .iex.exs" do
+    Process.put(:test_repo_all_results, [[1, "first", "hunter2"]])
+
+    in_tmp("dot_iex_aliases", fn ->
+      File.write!(".iex.exs", """
+      alias #{inspect(__MODULE__)}.{Post, Comment}
+      Process.put(:dot_iex_was_evaluated, true)
+      """)
+
+      run(["-r", to_string(__MODULE__.PostgresRepo), "from(p in Post)"])
+
+      refute Process.get(:dot_iex_was_evaluated)
+      assert_received {:all, %Ecto.Query{}}
     end)
   end
 
@@ -160,7 +169,7 @@ defmodule Mix.Tasks.Ecto.QueryTest do
     assert output =~ ~s(name: "elixir")
   end
 
-  test "restores the default inspect function" do
+  test "does not change the default inspect function" do
     previous_fun = Inspect.Opts.default_inspect_fun()
     Process.put(:test_repo_all_results, [[1, "first", "hunter2"]])
 
