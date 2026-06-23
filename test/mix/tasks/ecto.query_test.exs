@@ -42,8 +42,6 @@ defmodule Mix.Tasks.Ecto.QueryTest do
   end
 
   setup do
-    Process.delete(:test_repo_all_results)
-    Process.delete(:test_repo_to_sql)
     Application.put_env(:ecto_sql, :ecto_repos, [__MODULE__.PostgresRepo])
 
     on_exit(fn ->
