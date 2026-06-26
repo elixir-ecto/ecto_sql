@@ -987,6 +987,8 @@ defmodule Ecto.Adapters.SQL do
         opts
       end
 
+    sql = wrap_comments(sql, opts)
+
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
 
     %{num_rows: num, rows: rows} = query!(adapter_meta, sql, all_params, [source: source] ++ opts)
@@ -1167,6 +1169,42 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
+  def wrap_comments(sql, opts) do
+    {pre, post} = comments(Keyword.get(opts, :comments, []))
+    [pre, sql | post]
+  end
+
+  @doc false
+  def comments(comments) when is_list(comments) do
+    {pre, post} =
+      Enum.reduce(comments, {[], []}, fn
+        {:pre, c}, {pre, post} -> {[["/* ", escape_comment!(c), " */ "] | pre], post}
+        {:post, c}, {pre, post} -> {pre, [[" /* ", escape_comment!(c), " */"] | post]}
+        other, _ -> raise ArgumentError, "expected {:pre, string} or {:post, string}, got: #{inspect(other)}"
+      end)
+
+    {Enum.reverse(pre), Enum.reverse(post)}
+  end
+
+  def comments(other) do
+    raise ArgumentError,
+          "comments must be a keyword list of [pre: string, post: string], got: #{inspect(other)}"
+  end
+
+  defp escape_comment!(comment) when is_binary(comment) do
+    if String.contains?(comment, ["/*", "*/", <<0>>]) do
+      raise ArgumentError,
+            "a comment cannot contain `/*`, `*/`, or null bytes, got: #{inspect(comment)}. "
+    end
+
+    comment
+  end
+
+  defp escape_comment!(other) do
+    raise ArgumentError, "a comment must be a string, got: #{inspect(other)}"
+  end
+
+  @doc false
   def struct(
         adapter_meta,
         conn,
@@ -1185,6 +1223,8 @@ defmodule Ecto.Adapters.SQL do
       else
         opts
       end
+
+    sql = wrap_comments(sql, opts)
 
     case query(adapter_meta, sql, values, [source: source] ++ opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->

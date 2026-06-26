@@ -191,8 +191,10 @@ if Code.ensure_loaded?(Postgrex) do
       limit = limit(query, sources)
       offset = offset(query, sources)
       lock = lock(query, sources)
+      {pre_comments, post_comments} = Ecto.Adapters.SQL.comments(query.comments)
 
       [
+        pre_comments,
         cte,
         select,
         from,
@@ -204,7 +206,8 @@ if Code.ensure_loaded?(Postgrex) do
         combinations,
         order_by,
         limit,
-        offset | lock
+        offset,
+        lock | post_comments
       ]
     end
 
@@ -213,13 +216,13 @@ if Code.ensure_loaded?(Postgrex) do
       sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, source)
-
+      {pre_comments, post_comments} = Ecto.Adapters.SQL.comments(query.comments)
       prefix = prefix || ["UPDATE ", from, " AS ", name | " SET "]
       fields = update_fields(query, sources)
       {join, wheres} = using_join(query, :update_all, "FROM", sources)
       where = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      [cte, prefix, fields, join, where | returning(query, sources)]
+      [pre_comments, cte, prefix, fields, join, where, returning(query, sources) | post_comments]
     end
 
     @impl true
@@ -227,11 +230,11 @@ if Code.ensure_loaded?(Postgrex) do
       sources = create_names(query, [])
       cte = cte(query, sources)
       {from, name} = get_source(query, sources, 0, from)
-
+      {pre_comments, post_comments} = Ecto.Adapters.SQL.comments(query.comments)
       {join, wheres} = using_join(query, :delete_all, "USING", sources)
       where = where(%{query | wheres: wheres ++ query.wheres}, sources)
 
-      [cte, "DELETE FROM ", from, " AS ", name, join, where | returning(query, sources)]
+      [pre_comments, cte, "DELETE FROM ", from, " AS ", name, join, where, returning(query, sources) | post_comments]
     end
 
     @impl true

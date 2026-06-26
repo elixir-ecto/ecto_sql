@@ -380,6 +380,10 @@ defmodule Ecto.Adapters.MyXQL do
         opts
       end
 
+    # This adapter overrides insert/6 instead of going through
+    # Ecto.Adapters.SQL.struct/10, so wrap the `:comments` here too.
+    sql = Ecto.Adapters.SQL.wrap_comments(sql, opts)
+
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do
       {:ok, %{num_rows: 0}} ->
         # With INSERT IGNORE (insert_mode: :ignore), 0 rows means the row

@@ -783,6 +783,21 @@ defmodule Ecto.Adapters.PostgresTest do
     assert all(query) == ~s{SELECT TRUE FROM "schema" AS s0 UPDATE on s0}
   end
 
+  test "comments" do
+    query = Schema |> select([], true) |> plan()
+    assert all(%{query | comments: [pre: "q"]}) == ~s{/* q */ SELECT TRUE FROM "schema" AS s0}
+    assert all(%{query | comments: [post: "q"]}) == ~s{SELECT TRUE FROM "schema" AS s0 /* q */}
+
+    assert all(%{query | comments: [pre: "a", post: "b"]}) ==
+             ~s{/* a */ SELECT TRUE FROM "schema" AS s0 /* b */}
+
+    query = Schema |> update([], set: [x: 0]) |> plan(:update_all)
+    assert update_all(%{query | comments: [pre: "upd_q"]}) == ~s{/* upd_q */ UPDATE "schema" AS s0 SET "x" = 0}
+
+    query = Schema |> plan(:delete_all)
+    assert delete_all(%{query | comments: [pre: "del_q"]}) == ~s{/* del_q */ DELETE FROM "schema" AS s0}
+  end
+
   test "string escape" do
     query = "schema" |> where(foo: "'\\  ") |> select([], true) |> plan()
     assert all(query) == ~s{SELECT TRUE FROM \"schema\" AS s0 WHERE (s0.\"foo\" = '''\\  ')}
