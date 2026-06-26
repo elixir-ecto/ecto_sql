@@ -141,34 +141,9 @@ defmodule Mix.Tasks.Ecto.Query do
     if alias?(expression), do: [expression], else: []
   end
 
-  defp alias?({:alias, _, [aliases]}) do
-    aliases?(aliases)
-  end
-
-  defp alias?({:alias, _, [aliases, opts]}) when is_list(opts) do
-    aliases?(aliases) and alias_opts?(opts)
-  end
-
+  defp alias?({:alias, _, [_aliases]}), do: true
+  defp alias?({:alias, _, [_aliases, _opts]}), do: true
   defp alias?(_), do: false
-
-  defp aliases?({:__aliases__, _, parts}) do
-    Enum.all?(parts, &is_atom/1)
-  end
-
-  defp aliases?({{:., _, [prefix, :{}]}, _, aliases}) do
-    aliases?(prefix) and Enum.all?(aliases, &aliases?/1)
-  end
-
-  defp aliases?(_), do: false
-
-  defp alias_opts?(opts) do
-    Keyword.keyword?(opts) and Enum.all?(opts, &alias_opt?/1)
-  end
-
-  defp alias_opt?({:as, false}), do: true
-  defp alias_opt?({:as, aliases}), do: aliases?(aliases)
-  defp alias_opt?({:warn, value}), do: is_boolean(value)
-  defp alias_opt?(_), do: false
 
   defp read_only_transaction(repo, fun) do
     do_read_only_transaction(repo.__adapter__(), repo, fun)
