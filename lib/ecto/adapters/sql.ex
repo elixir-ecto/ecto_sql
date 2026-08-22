@@ -987,7 +987,7 @@ defmodule Ecto.Adapters.SQL do
 
     opts =
       if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
+        [{:cache_statement, cache_statement_name("ecto_insert_all_", source)} | opts]
       else
         opts
       end
@@ -1171,6 +1171,36 @@ defmodule Ecto.Adapters.SQL do
     end
   end
 
+  # PostgreSQL silently truncates prepared statement names to NAMEDATALEN - 1
+  # (63 bytes). Two sources that only differ after that point would share one
+  # server-side statement while the driver caches them under distinct client
+  # names, so the next cached execution binds against the other statement and
+  # fails with "bind message supplies N parameters, but prepared statement
+  # requires M". Keep names within the limit, using a hash to tell them apart.
+  @max_cache_statement_name_size 63
+
+  @doc false
+  def cache_statement_name(prefix, source, suffix \\ "") do
+    source = to_string(source)
+    name = prefix <> source <> suffix
+
+    if byte_size(name) <= @max_cache_statement_name_size do
+      name
+    else
+      hash = source |> :erlang.phash2(4_294_967_296) |> Integer.to_string(36)
+      budget = @max_cache_statement_name_size - byte_size(prefix <> suffix <> hash) - 1
+      kept = source |> truncate_utf8(max(budget, 0)) |> String.trim_trailing("_")
+      prefix <> kept <> "_" <> hash <> suffix
+    end
+  end
+
+  defp truncate_utf8(string, size) when byte_size(string) <= size, do: string
+
+  defp truncate_utf8(string, size) do
+    truncated = binary_part(string, 0, size)
+    if String.valid?(truncated), do: truncated, else: truncate_utf8(string, size - 1)
+  end
+
   @doc false
   def struct(
         adapter_meta,
@@ -1186,7 +1216,8 @@ defmodule Ecto.Adapters.SQL do
       ) do
     opts =
       if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_#{operation}_#{source}_#{length(params)}"} | opts]
+        name = cache_statement_name("ecto_#{operation}_", source, "_#{length(params)}")
+        [{:cache_statement, name} | opts]
       else
         opts
       end
