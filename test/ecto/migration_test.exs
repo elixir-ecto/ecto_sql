@@ -228,7 +228,7 @@ defmodule Ecto.MigrationTest do
     end
   end
 
-  test "chokes on unknown column options" do
+  test "raises on unknown column options" do
     assert_raise ArgumentError, "unknown option :required given to add/3", fn ->
       add(:hello, :string, required: true)
     end
