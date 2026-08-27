@@ -1176,6 +1176,24 @@ defmodule Ecto.Migration do
     Runner.prefix()
   end
 
+  @add_remove_column_opts [
+    :primary_key,
+    :default,
+    :null,
+    :size,
+    :precision,
+    :scale,
+    :comment,
+    :collation,
+    :after,
+    :generated,
+    :start_value,
+    :increment,
+    :fields
+  ]
+
+  @modify_column_opts [:from | @add_remove_column_opts]
+
   @doc """
   Adds a column when creating or altering a table.
 
@@ -1250,6 +1268,7 @@ defmodule Ecto.Migration do
 
   """
   def add(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
+    validate_column_opts!(opts, @add_remove_column_opts, "add/3")
     validate_precision_opts!(opts, column)
     validate_type!(type)
     Runner.subcommand({:add, column, type, opts})
@@ -1272,6 +1291,7 @@ defmodule Ecto.Migration do
 
   """
   def add_if_not_exists(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
+    validate_column_opts!(opts, @add_remove_column_opts, "add_if_not_exists/3")
     validate_precision_opts!(opts, column)
     validate_type!(type)
     Runner.subcommand({:add_if_not_exists, column, type, opts})
@@ -1433,6 +1453,7 @@ defmodule Ecto.Migration do
     * `:collation` - the collation of the text type.
   """
   def modify(column, type, opts \\ []) when is_atom(column) and is_list(opts) do
+    validate_column_opts!(opts, @modify_column_opts, "modify/3")
     validate_precision_opts!(opts, column)
     validate_type!(type)
     Runner.subcommand({:modify, column, type, opts})
@@ -1471,6 +1492,7 @@ defmodule Ecto.Migration do
 
   """
   def remove(column, type, opts \\ []) when is_atom(column) do
+    validate_column_opts!(opts, @add_remove_column_opts, "remove/3")
     validate_type!(type)
     Runner.subcommand({:remove, column, type, opts})
   end
@@ -1743,6 +1765,16 @@ defmodule Ecto.Migration do
                 "To specify multiple conditions, write a single WHERE clause using AND between them"
 
       _ ->
+        :ok
+    end
+  end
+
+  defp validate_column_opts!(opts, allowed, fun) when is_list(opts) do
+    case Enum.find(opts, fn {key, _} -> key not in allowed end) do
+      {key, _} ->
+        raise ArgumentError, "unknown option #{inspect(key)} given to #{fun}"
+
+      nil ->
         :ok
     end
   end

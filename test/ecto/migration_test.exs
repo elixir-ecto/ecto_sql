@@ -228,6 +228,24 @@ defmodule Ecto.MigrationTest do
     end
   end
 
+  test "chokes on unknown column options" do
+    assert_raise ArgumentError, "unknown option :required given to add/3", fn ->
+      add(:hello, :string, required: true)
+    end
+
+    assert_raise ArgumentError, "unknown option :required given to add_if_not_exists/3", fn ->
+      add_if_not_exists(:hello, :string, required: true)
+    end
+
+    assert_raise ArgumentError, "unknown option :required given to modify/3", fn ->
+      modify(:hello, :string, required: true)
+    end
+
+    assert_raise ArgumentError, "unknown option :required given to remove/3", fn ->
+      remove(:hello, :string, required: true)
+    end
+  end
+
   test "flush clears out commands", %{runner: runner} do
     execute "TEST"
     commands = Agent.get(runner, & &1.commands)
