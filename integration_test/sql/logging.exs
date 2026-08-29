@@ -199,10 +199,16 @@ defmodule Ecto.Integration.LoggingTest do
              end) =~ ~r{/\* before_q \*/ SELECT.* /\* after_q \*/}
     end
 
-    test "renders with query_cache: false (the escape hatch for dynamic comments)" do
+    test "dynamic comments render and skip the query cache by default" do
       assert capture_log(fn ->
-               TestRepo.all(Post, comments: [pre: "dyn_#{System.unique_integer()}"], query_cache: false, log: :error)
+               TestRepo.all(Post, comments: [pre: "dyn_#{System.unique_integer()}"], log: :error)
              end) =~ ~r{/\* dyn_-?\d+ \*/ SELECT}
+    end
+
+    test "query_cache: true opts back into caching for static comments" do
+      assert capture_log(fn ->
+               TestRepo.all(Post, comments: [pre: "static_q"], query_cache: true, log: :error)
+             end) =~ "/* static_q */ SELECT"
     end
 
     test "comments insert/update/delete/insert_all" do

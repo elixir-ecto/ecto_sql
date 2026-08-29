@@ -985,13 +985,7 @@ defmodule Ecto.Adapters.SQL do
 
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders, opts)
 
-    opts =
-      if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
-      else
-        opts
-      end
-
+    opts = put_default_cache_statement(opts, "ecto_insert_all_#{source}")
     sql = wrap_comments(sql, opts)
 
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
@@ -1179,6 +1173,20 @@ defmodule Ecto.Adapters.SQL do
     [pre, sql | post]
   end
 
+  # Comments become part of the statement text, so a varying comment under a
+  # fixed cache name would make the driver close and re-prepare the statement
+  # on every call (drivers compare the cached text). Skip the default statement
+  # cache whenever comments are given; an explicit :cache_statement still wins,
+  # which keeps caching available for callers with static comments.
+  @doc false
+  def put_default_cache_statement(opts, name) do
+    if is_nil(Keyword.get(opts, :cache_statement)) and Keyword.get(opts, :comments, []) == [] do
+      [{:cache_statement, name} | opts]
+    else
+      opts
+    end
+  end
+
   @doc false
   def comments(comments) when is_list(comments) do
     {pre, post} =
@@ -1222,13 +1230,7 @@ defmodule Ecto.Adapters.SQL do
         returning,
         opts
       ) do
-    opts =
-      if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_#{operation}_#{source}_#{length(params)}"} | opts]
-      else
-        opts
-      end
-
+    opts = put_default_cache_statement(opts, "ecto_#{operation}_#{source}_#{length(params)}")
     sql = wrap_comments(sql, opts)
 
     case query(adapter_meta, sql, values, [source: source] ++ opts) do

@@ -373,15 +373,9 @@ defmodule Ecto.Adapters.MyXQL do
     insert_opts = if opts[:insert_mode], do: [insert_mode: opts[:insert_mode]], else: []
     sql = @conn.insert(prefix, source, fields, [fields], on_conflict, [], [], insert_opts)
 
-    opts =
-      if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_insert_#{source}_#{length(fields)}"} | opts]
-      else
-        opts
-      end
-
     # This adapter overrides insert/6 instead of going through
     # Ecto.Adapters.SQL.struct/10, so wrap the `:comments` here too.
+    opts = Ecto.Adapters.SQL.put_default_cache_statement(opts, "ecto_insert_#{source}_#{length(fields)}")
     sql = Ecto.Adapters.SQL.wrap_comments(sql, opts)
 
     case Ecto.Adapters.SQL.query(adapter_meta, sql, values ++ query_params, opts) do

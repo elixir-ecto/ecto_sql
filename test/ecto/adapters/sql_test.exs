@@ -54,4 +54,41 @@ defmodule Ecto.Adapters.SQLTest do
       assert wrap("INSERT INTO posts ...", timeout: 5000) == "INSERT INTO posts ..."
     end
   end
+
+  describe "put_default_cache_statement/2" do
+    test "sets the default name" do
+      opts = Ecto.Adapters.SQL.put_default_cache_statement([timeout: 5000], "ecto_insert_posts")
+      assert Keyword.get(opts, :cache_statement) == "ecto_insert_posts"
+    end
+
+    test "honors an explicit :cache_statement" do
+      opts = Ecto.Adapters.SQL.put_default_cache_statement([cache_statement: "mine"], "default")
+      assert Keyword.get(opts, :cache_statement) == "mine"
+    end
+
+    test "skips the default when comments are given" do
+      opts =
+        Ecto.Adapters.SQL.put_default_cache_statement(
+          [comments: [pre: "dyn_123"]],
+          "ecto_insert_posts"
+        )
+
+      assert Keyword.get(opts, :cache_statement) == nil
+    end
+
+    test "an explicit :cache_statement wins even with comments" do
+      opts =
+        Ecto.Adapters.SQL.put_default_cache_statement(
+          [comments: [pre: "static_tag"], cache_statement: "mine"],
+          "default"
+        )
+
+      assert Keyword.get(opts, :cache_statement) == "mine"
+    end
+
+    test "an empty :comments list still gets the default" do
+      opts = Ecto.Adapters.SQL.put_default_cache_statement([comments: []], "ecto_insert_posts")
+      assert Keyword.get(opts, :cache_statement) == "ecto_insert_posts"
+    end
+  end
 end
