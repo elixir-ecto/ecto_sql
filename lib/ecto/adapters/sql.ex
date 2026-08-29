@@ -1189,6 +1189,10 @@ defmodule Ecto.Adapters.SQL do
 
   @doc false
   def comments(comments) when is_list(comments) do
+    # The space after `/*` is load-bearing: MySQL executable comments (`/*!`),
+    # MariaDB executable comments (`/*M!`), and optimizer hints (`/*+`) only
+    # take effect when the marker immediately follows `/*`. Keep the space even
+    # though escape_comment!/1 also rejects those prefixes (defense in depth).
     {pre, post} =
       Enum.reduce(comments, {[], []}, fn
         {:pre, c}, {pre, post} -> {[["/* ", escape_comment!(c), " */ "] | pre], post}
@@ -1207,7 +1211,16 @@ defmodule Ecto.Adapters.SQL do
   defp escape_comment!(comment) when is_binary(comment) do
     if String.contains?(comment, ["/*", "*/", <<0>>]) do
       raise ArgumentError,
-            "a comment cannot contain `/*`, `*/`, or null bytes, got: #{inspect(comment)}. "
+            "a comment cannot contain `/*`, `*/`, or null bytes, got: #{inspect(comment)}"
+    end
+
+    # Placed right after `/*`, these prefixes would form MySQL/MariaDB
+    # executable comments (`/*!...*/`, `/*M!...*/`) or optimizer hints
+    # (`/*+...*/`), turning the comment into SQL that executes.
+    if String.starts_with?(comment, ["!", "+", "M!"]) do
+      raise ArgumentError,
+            "a comment cannot start with `!`, `+`, or `M!`, as MySQL and MariaDB " <>
+              "treat such comments as executable SQL or optimizer hints, got: #{inspect(comment)}"
     end
 
     comment

@@ -238,6 +238,12 @@ defmodule Ecto.Integration.LoggingTest do
         TestRepo.insert!(%Post{title: "1"}, comments: [pre: "evil */ DROP TABLE posts"])
       end
     end
+
+    test "rejects a comment that MySQL/MariaDB would treat as executable" do
+      assert_raise ArgumentError, ~r/cannot start with/, fn ->
+        TestRepo.insert!(%Post{title: "1"}, comments: [pre: "!40000 DROP TABLE posts"])
+      end
+    end
   end
 
   describe "parameter logging" do

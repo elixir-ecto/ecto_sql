@@ -33,6 +33,30 @@ defmodule Ecto.Adapters.SQLTest do
       end
     end
 
+    test "rejects prefixes that MySQL/MariaDB treat as executable comments or hints" do
+      for bad <- ["!40000 DROP TABLE posts", "+MAX_EXECUTION_TIME(1)", "M!100000 DROP"] do
+        assert_raise ArgumentError, ~r/cannot start with/, fn ->
+          Ecto.Adapters.SQL.comments(pre: bad)
+        end
+
+        assert_raise ArgumentError, ~r/cannot start with/, fn ->
+          Ecto.Adapters.SQL.comments(post: bad)
+        end
+      end
+    end
+
+    # Regression: the space after `/*` is load-bearing. MySQL/MariaDB executable
+    # comments (`/*!`, `/*M!`) and optimizer hints (`/*+`) only take effect when
+    # the marker immediately follows `/*`, so the rendered form must always keep
+    # a space between the delimiter and the comment text.
+    test "always renders a space between /* and the comment text" do
+      {pre, post} = comments(pre: "tag", post: "tag")
+      assert pre == "/* tag */ "
+      assert post == " /* tag */"
+      refute pre =~ "/*t"
+      refute post =~ "/*t"
+    end
+
     test "rejects bad shapes" do
       assert_raise ArgumentError, ~r/expected \{:pre/, fn ->
         Ecto.Adapters.SQL.comments(foo: "bar")
