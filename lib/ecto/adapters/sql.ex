@@ -1192,11 +1192,11 @@ defmodule Ecto.Adapters.SQL do
     # The space after `/*` is load-bearing: MySQL executable comments (`/*!`),
     # MariaDB executable comments (`/*M!`), and optimizer hints (`/*+`) only
     # take effect when the marker immediately follows `/*`. Keep the space even
-    # though escape_comment!/1 also rejects those prefixes (defense in depth).
+    # though validate_comment!/1 also rejects those prefixes (defense in depth).
     {pre, post} =
       Enum.reduce(comments, {[], []}, fn
-        {:pre, c}, {pre, post} -> {[["/* ", escape_comment!(c), " */ "] | pre], post}
-        {:post, c}, {pre, post} -> {pre, [[" /* ", escape_comment!(c), " */"] | post]}
+        {:pre, c}, {pre, post} -> {[["/* ", validate_comment!(c), " */ "] | pre], post}
+        {:post, c}, {pre, post} -> {pre, [[" /* ", validate_comment!(c), " */"] | post]}
         other, _ -> raise ArgumentError, "expected {:pre, string} or {:post, string}, got: #{inspect(other)}"
       end)
 
@@ -1208,7 +1208,7 @@ defmodule Ecto.Adapters.SQL do
           "comments must be a keyword list of [pre: string, post: string], got: #{inspect(other)}"
   end
 
-  defp escape_comment!(comment) when is_binary(comment) do
+  defp validate_comment!(comment) when is_binary(comment) do
     if String.contains?(comment, ["/*", "*/", <<0>>]) do
       raise ArgumentError,
             "a comment cannot contain `/*`, `*/`, or null bytes, got: #{inspect(comment)}"
@@ -1226,7 +1226,7 @@ defmodule Ecto.Adapters.SQL do
     comment
   end
 
-  defp escape_comment!(other) do
+  defp validate_comment!(other) do
     raise ArgumentError, "a comment must be a string, got: #{inspect(other)}"
   end
 
