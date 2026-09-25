@@ -1532,7 +1532,7 @@ if Code.ensure_loaded?(Postgrex) do
       [
         quote_name(name),
         ?\s,
-        reference_column_type(ref.type, opts),
+        add_reference_column_type(ref.type, opts),
         column_options(ref.type, opts),
         ", ",
         reference_expr(ref, table, name)
@@ -1540,7 +1540,7 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_definition(_table, {:add, name, type, opts}) do
-      [quote_name(name), ?\s, column_type(type, opts), column_options(type, opts)]
+      [quote_name(name), ?\s, add_column_type(type, opts), column_options(type, opts)]
     end
 
     defp column_changes(table, columns) do
@@ -1552,7 +1552,7 @@ if Code.ensure_loaded?(Postgrex) do
         "ADD COLUMN ",
         quote_name(name),
         ?\s,
-        reference_column_type(ref.type, opts),
+        add_reference_column_type(ref.type, opts),
         column_options(ref.type, opts),
         ", ADD ",
         reference_expr(ref, table, name)
@@ -1560,7 +1560,13 @@ if Code.ensure_loaded?(Postgrex) do
     end
 
     defp column_change(_table, {:add, name, type, opts}) do
-      ["ADD COLUMN ", quote_name(name), ?\s, column_type(type, opts), column_options(type, opts)]
+      [
+        "ADD COLUMN ",
+        quote_name(name),
+        ?\s,
+        add_column_type(type, opts),
+        column_options(type, opts)
+      ]
     end
 
     defp column_change(table, {:add_if_not_exists, name, %Reference{} = ref, opts}) do
@@ -1568,7 +1574,7 @@ if Code.ensure_loaded?(Postgrex) do
         "ADD COLUMN IF NOT EXISTS ",
         quote_name(name),
         ?\s,
-        reference_column_type(ref.type, opts),
+        add_reference_column_type(ref.type, opts),
         column_options(ref.type, opts),
         ", ADD ",
         reference_expr(ref, table, name)
@@ -1580,7 +1586,7 @@ if Code.ensure_loaded?(Postgrex) do
         "ADD COLUMN IF NOT EXISTS ",
         quote_name(name),
         ?\s,
-        column_type(type, opts),
+        add_column_type(type, opts),
         column_options(type, opts)
       ]
     end
@@ -1594,11 +1600,11 @@ if Code.ensure_loaded?(Postgrex) do
         quote_name(name),
         " TYPE ",
         reference_column_type(ref.type, opts),
+        collation_expr(collation),
         ", ADD ",
         reference_expr(ref, table, name),
         modify_null(name, opts),
-        modify_default(name, ref.type, opts),
-        collation_expr(collation)
+        modify_default(name, ref.type, opts)
       ]
     end
 
@@ -1611,9 +1617,9 @@ if Code.ensure_loaded?(Postgrex) do
         quote_name(name),
         " TYPE ",
         modify_column_type(type, opts),
+        collation_expr(collation),
         modify_null(name, opts),
         modify_default(name, type, opts),
-        collation_expr(collation),
         modify_identity(name, type, opts)
       ]
     end
@@ -1675,17 +1681,22 @@ if Code.ensure_loaded?(Postgrex) do
     defp column_options(type, opts) do
       default = Keyword.fetch(opts, :default)
       null = Keyword.get(opts, :null)
-      collation = Keyword.fetch(opts, :collation)
 
-      [default_expr(default, type), null_expr(null), collation_expr(collation)]
+      [default_expr(default, type), null_expr(null)]
     end
 
     defp null_expr(false), do: " NOT NULL"
     defp null_expr(true), do: " NULL"
     defp null_expr(_), do: []
 
-    defp collation_expr({:ok, collation_name}), do: " COLLATE \"#{collation_name}\""
+    defp collation_expr({:ok, name}), do: [" COLLATE ", quote_collation_name(name)]
     defp collation_expr(_), do: []
+
+    defp quote_collation_name(name) when is_atom(name),
+      do: quote_collation_name(Atom.to_string(name))
+
+    defp quote_collation_name(name) when is_binary(name),
+      do: [?", String.replace(name, "\"", "\"\""), ?"]
 
     defp new_constraint_expr(%Constraint{check: check} = constraint) when is_binary(check) do
       [
@@ -1815,18 +1826,28 @@ if Code.ensure_loaded?(Postgrex) do
     defp options_expr(options),
       do: [?\s, options]
 
-    defp column_type(type, opts) do
+    defp add_column_type(type, opts) do
+      column_type(type, opts, collation_expr(Keyword.fetch(opts, :collation)))
+    end
+
+    defp add_reference_column_type(type, opts) when type in [:serial, :bigserial, :identity] do
+      [reference_column_type(type, opts), collation_expr(Keyword.fetch(opts, :collation))]
+    end
+
+    defp add_reference_column_type(type, opts), do: add_column_type(type, opts)
+
+    defp column_type(type, opts, collation \\ []) do
       type_name = column_type_name(type, opts)
 
       case Keyword.get(opts, :generated) do
         nil when type == :identity ->
-          [type_name, identity_generated_expr(opts)]
+          [type_name, collation, identity_generated_expr(opts)]
 
         nil ->
-          type_name
+          [type_name, collation]
 
         expr when is_binary(expr) ->
-          [type_name, " GENERATED ", expr]
+          [type_name, collation, " GENERATED ", expr]
 
         other ->
           raise ArgumentError,

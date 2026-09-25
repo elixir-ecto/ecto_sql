@@ -2799,6 +2799,75 @@ defmodule Ecto.Adapters.PostgresTest do
            ]
   end
 
+  test "alter column collation stays with the type when modifying null or default" do
+    assert execute_ddl(
+             {:alter, table(:posts), [{:modify, :name, :text, collation: "C", null: false}]}
+           ) ==
+             [
+               ~s|ALTER TABLE "posts" ALTER COLUMN "name" TYPE text COLLATE "C", ALTER COLUMN "name" SET NOT NULL|
+             ]
+
+    assert execute_ddl(
+             {:alter, table(:posts), [{:modify, :name, :text, collation: "C", default: "x"}]}
+           ) ==
+             [
+               ~s|ALTER TABLE "posts" ALTER COLUMN "name" TYPE text COLLATE "C", ALTER COLUMN "name" SET DEFAULT 'x'|
+             ]
+
+    assert execute_ddl(
+             {:alter, table(:posts),
+              [
+                {:modify, :name, %Reference{table: :names, type: :text},
+                 collation: "C", null: false, default: "x"}
+              ]}
+           ) ==
+             [
+               ~s|ALTER TABLE "posts" ALTER COLUMN "name" TYPE text COLLATE "C", ADD CONSTRAINT "posts_name_fkey" FOREIGN KEY ("name") REFERENCES "names"("id"), ALTER COLUMN "name" SET NOT NULL, ALTER COLUMN "name" SET DEFAULT 'x'|
+             ]
+  end
+
+  test "column collation precedes defaults and constraints when adding columns" do
+    opts = [collation: "C", default: "x", null: false]
+
+    assert execute_ddl({:create, table(:posts), [{:add, :name, :text, opts}]}) == [
+             ~s|CREATE TABLE "posts" ("name" text COLLATE "C" DEFAULT 'x' NOT NULL)|
+           ]
+
+    assert execute_ddl({:alter, table(:posts), [{:add, :name, :text, opts}]}) == [
+             ~s|ALTER TABLE "posts" ADD COLUMN "name" text COLLATE "C" DEFAULT 'x' NOT NULL|
+           ]
+
+    assert execute_ddl({:alter, table(:posts), [{:add_if_not_exists, :name, :text, opts}]}) == [
+             ~s|ALTER TABLE "posts" ADD COLUMN IF NOT EXISTS "name" text COLLATE "C" DEFAULT 'x' NOT NULL|
+           ]
+
+    assert execute_ddl(
+             {:alter, table(:posts),
+              [{:add, :name, %Reference{table: :names, type: :text}, opts}]}
+           ) ==
+             [
+               ~s|ALTER TABLE "posts" ADD COLUMN "name" text COLLATE "C" DEFAULT 'x' NOT NULL, ADD CONSTRAINT "posts_name_fkey" FOREIGN KEY ("name") REFERENCES "names"("id")|
+             ]
+
+    assert execute_ddl(
+             {:alter, table(:posts),
+              [{:add, :computed, :text, collation: "C", generated: "ALWAYS AS (name) STORED"}]}
+           ) ==
+             [
+               ~s|ALTER TABLE "posts" ADD COLUMN "computed" text COLLATE "C" GENERATED ALWAYS AS (name) STORED|
+             ]
+  end
+
+  test "collation strings are quoted as single identifiers" do
+    assert execute_ddl({:alter, table(:posts), [{:modify, :name, :text, collation: "odd\"name"}]}) ==
+             [~s|ALTER TABLE "posts" ALTER COLUMN "name" TYPE text COLLATE "odd""name"|]
+
+    assert execute_ddl(
+             {:alter, table(:posts), [{:add, :name, :text, collation: "name.with.dot"}]}
+           ) ==
+             [~s|ALTER TABLE "posts" ADD COLUMN "name" text COLLATE "name.with.dot"|]
+  end
+
   test "alter table with comments on table and columns" do
     alter =
       {:alter, table(:posts, comment: "table comment"),
