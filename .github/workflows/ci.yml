@@ -17,14 +17,14 @@ jobs:
             lint: lint
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Elixir and Erlang
         uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.otp }}
       - name: Restore deps and _build cache
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: |
             deps
@@ -65,7 +65,7 @@ jobs:
             pool_count: "4"
     steps:
       - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: test ecto_sql
         env:
           POOL_COUNT: ${{ matrix.pool_count || '1' }}
@@ -84,7 +84,7 @@ jobs:
           - "8.0"
     steps:
       - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MYSQL=${{matrix.mysql}} +integration-test-mysql
 
@@ -101,6 +101,6 @@ jobs:
           - "2022"
     steps:
       - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: test ecto_sql
         run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MSSQL=${{matrix.mssql}} +integration-test-mssql
