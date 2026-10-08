@@ -353,13 +353,38 @@ defmodule Ecto.Migrator do
          not repo.__adapter__().supports_ddl_transaction?() do
       fun.()
     else
-      {:ok, result} = repo.transaction(fun, log: migrator_log(opts), timeout: :infinity)
-
-      result
+      run_in_transaction(repo, module, fun, opts)
     end
   catch
     kind, reason ->
       {kind, reason, __STACKTRACE__}
+  end
+
+  defp run_in_transaction(repo, module, fun, opts) do
+    transaction = fn ->
+      {:ok, result} = repo.transaction(fun, log: migrator_log(opts), timeout: :infinity)
+      result
+    end
+
+    if function_exported?(module, :before_transaction, 1) or
+         function_exported?(module, :after_transaction, 1) do
+      repo.checkout(
+        fn ->
+          try do
+            if function_exported?(module, :before_transaction, 1),
+              do: module.before_transaction(repo)
+
+            transaction.()
+          after
+            if function_exported?(module, :after_transaction, 1),
+              do: module.after_transaction(repo)
+          end
+        end,
+        timeout: :infinity
+      )
+    else
+      transaction.()
+    end
   end
 
   defp attempt(repo, config, version, module, direction, operation, reference, opts) do

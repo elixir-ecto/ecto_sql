@@ -33,8 +33,6 @@ defmodule EctoSQL.TestAdapter do
     {:ok, child_spec, %{meta: :meta}}
   end
 
-  def checkout(_, _, _), do: raise("not implemented")
-  def checked_out?(_), do: raise("not implemented")
   def delete(_, _, _, _, _), do: raise("not implemented")
   def insert_all(_, _, _, _, _, _, _, _), do: raise("not implemented")
   def rollback(_, _), do: raise("not implemented")
@@ -73,6 +71,15 @@ defmodule EctoSQL.TestAdapter do
     version = Keyword.fetch!(val, :version)
     MigrationsAgent.up(version, opts)
     {:ok, []}
+  end
+
+  def checked_out?(_), do: Process.get(:checked_out?) || false
+
+  def checkout(_, _opts, fun) do
+    Process.put(:checked_out?, true)
+    fun.()
+  after
+    Process.put(:checked_out?, false)
   end
 
   def in_transaction?(_), do: Process.get(:in_transaction?) || false
