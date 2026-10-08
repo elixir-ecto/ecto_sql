@@ -130,6 +130,77 @@ defmodule Ecto.MigratorTest do
     end
   end
 
+  defmodule Events do
+    def record(name, repo \\ nil) do
+      notify(
+        {:migration_event, {name, repo, TestRepo.in_transaction?(), TestRepo.checked_out?()}}
+      )
+    end
+
+    def notify(message) do
+      config = Application.get_env(:ecto_sql, EctoSQL.TestAdapter, [])
+      send(Keyword.fetch!(config, :test_process), message)
+    end
+  end
+
+  defmodule MigrationWithBeforeAndAfterTransaction do
+    use Ecto.Migration
+
+    def before_transaction(repo), do: Events.record(:before_transaction, repo)
+    def after_begin, do: Events.record(:after_begin)
+    def up, do: Events.record(:up)
+    def down, do: Events.record(:down)
+    def before_commit, do: Events.record(:before_commit)
+    def after_transaction(repo), do: Events.record(:after_transaction, repo)
+  end
+
+  defmodule MigrationWithBeforeAndAfterTransactionAndNoTransaction do
+    use Ecto.Migration
+
+    @disable_ddl_transaction true
+
+    def before_transaction(repo), do: Events.record(:before_transaction, repo)
+    def up, do: Events.record(:up)
+    def after_transaction(repo), do: Events.record(:after_transaction, repo)
+  end
+
+  defmodule MigrationWithoutBeforeAndAfterTransaction do
+    use Ecto.Migration
+
+    def up, do: Events.record(:up)
+  end
+
+  defmodule MigrationWithAfterTransactionOnly do
+    use Ecto.Migration
+
+    def up, do: Events.record(:up)
+    def after_transaction(repo), do: Events.record(:after_transaction, repo)
+  end
+
+  defmodule MigrationWithFailingUp do
+    use Ecto.Migration
+
+    def before_transaction(repo), do: Events.record(:before_transaction, repo)
+    def up, do: raise("up failed")
+    def after_transaction(repo), do: Events.record(:after_transaction, repo)
+  end
+
+  defmodule MigrationWithFailingBeforeTransaction do
+    use Ecto.Migration
+
+    def before_transaction(_repo), do: raise("before_transaction failed")
+    def up, do: Events.record(:up)
+    def after_transaction(repo), do: Events.record(:after_transaction, repo)
+  end
+
+  defmodule MigrationWithDynamicRepoCallbacks do
+    use Ecto.Migration
+
+    def before_transaction(repo), do: Events.notify({:dynamic_repo, repo.get_dynamic_repo()})
+
+    def up, do: :ok
+  end
+
   defmodule ExecuteOneAnonymousFunctionMigration do
     use Ecto.Migration
 
@@ -917,6 +988,107 @@ defmodule Ecto.MigratorTest do
 
       refute log =~ "after_begin"
       refute log =~ "before_commit"
+    end
+  end
+
+  describe "migration callbacks around the transaction" do
+    setup do
+      put_test_adapter_config(supports_ddl_transaction?: true, test_process: self())
+    end
+
+    defp events(acc \\ []) do
+      receive do
+        {:migration_event, event} -> events([event | acc])
+      after
+        0 -> Enum.reverse(acc)
+      end
+    end
+
+    test "run around the transaction, on a checked out connection, going up" do
+      assert up(TestRepo, 10, MigrationWithBeforeAndAfterTransaction, log: false) == :ok
+
+      assert events() == [
+               {:before_transaction, TestRepo, false, true},
+               {:after_begin, nil, true, true},
+               {:up, nil, true, true},
+               {:before_commit, nil, true, true},
+               {:after_transaction, TestRepo, false, true}
+             ]
+
+      assert {10, nil} in MigrationsAgent.get()
+    end
+
+    test "run around the transaction, on a checked out connection, going down" do
+      assert up(TestRepo, 10, MigrationWithBeforeAndAfterTransaction, log: false) == :ok
+      events()
+
+      assert down(TestRepo, 10, MigrationWithBeforeAndAfterTransaction, log: false) == :ok
+
+      assert events() == [
+               {:before_transaction, TestRepo, false, true},
+               {:after_begin, nil, true, true},
+               {:down, nil, true, true},
+               {:before_commit, nil, true, true},
+               {:after_transaction, TestRepo, false, true}
+             ]
+
+      refute {10, nil} in MigrationsAgent.get()
+    end
+
+    test "run for the dynamic repo" do
+      assert up(TestRepo, 10, MigrationWithDynamicRepoCallbacks,
+               log: false,
+               dynamic_repo: :tenant_db
+             ) == :ok
+
+      assert_received {:dynamic_repo, :tenant_db}
+    end
+
+    test "do not check out a connection when there are none" do
+      assert up(TestRepo, 10, MigrationWithoutBeforeAndAfterTransaction, log: false) == :ok
+      assert events() == [{:up, nil, true, false}]
+    end
+
+    test "run when only after_transaction is defined" do
+      assert up(TestRepo, 10, MigrationWithAfterTransactionOnly, log: false) == :ok
+
+      assert events() == [
+               {:up, nil, true, true},
+               {:after_transaction, TestRepo, false, true}
+             ]
+    end
+
+    test "are not run when the transaction is disabled" do
+      assert up(TestRepo, 10, MigrationWithBeforeAndAfterTransactionAndNoTransaction, log: false) ==
+               :ok
+
+      assert events() == [{:up, nil, false, false}]
+    end
+
+    test "are not run when the adapter does not support transactions" do
+      put_test_adapter_config(supports_ddl_transaction?: false, test_process: self())
+
+      assert up(TestRepo, 10, MigrationWithBeforeAndAfterTransaction, log: false) == :ok
+      assert events() == [{:up, nil, false, false}]
+    end
+
+    test "still run after_transaction when the migration fails" do
+      assert_raise RuntimeError, "up failed", fn ->
+        up(TestRepo, 10, MigrationWithFailingUp, log: false)
+      end
+
+      assert events() == [
+               {:before_transaction, TestRepo, false, true},
+               {:after_transaction, TestRepo, false, true}
+             ]
+    end
+
+    test "run after_transaction but not the migration when before_transaction fails" do
+      assert_raise RuntimeError, "before_transaction failed", fn ->
+        up(TestRepo, 10, MigrationWithFailingBeforeTransaction, log: false)
+      end
+
+      assert events() == [{:after_transaction, TestRepo, false, true}]
     end
   end
 

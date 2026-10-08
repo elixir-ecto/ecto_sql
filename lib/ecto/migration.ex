@@ -405,6 +405,37 @@ defmodule Ecto.Migration do
   Then in your migrations you can `use MyApp.Migration` to share this behavior
   among all your migrations.
 
+  ### Before and after the transaction
+
+  Some commands only work outside of a transaction. For example, SQLite
+  ignores `PRAGMA foreign_keys` inside one, but its
+  [procedure for changing a table](https://sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes)
+  requires it to be off. `c:before_transaction/1` and `c:after_transaction/1`
+  run around the migration transaction, on the same connection, so a setting
+  made in the first applies to the transaction and the second can restore it:
+
+      defmodule MyApp.Migration do
+        defmacro __using__(_) do
+          quote do
+            use Ecto.Migration
+
+            def before_transaction(repo) do
+              repo.query!("PRAGMA foreign_keys = OFF")
+            end
+
+            def after_transaction(repo) do
+              # Restore the configured value, do not turn it on unconditionally
+              if Keyword.get(repo.config(), :foreign_keys, :on) == :on do
+                repo.query!("PRAGMA foreign_keys = ON")
+              end
+            end
+          end
+        end
+      end
+
+  Like `c:after_begin/0` and `c:before_commit/0`, they are not run when the
+  migration does not run in a transaction.
+
   ## Additional resources
 
     * The [Safe Ecto Migrations guide](safe_migrations.md)
@@ -426,7 +457,30 @@ defmodule Ecto.Migration do
   consider both the up *and* down cases of the migration.
   """
   @callback before_commit() :: term
-  @optional_callbacks after_begin: 0, before_commit: 0
+
+  @doc """
+  Code to run before the migration transaction is opened.
+
+  It runs on the same connection as the transaction and receives the repo.
+  `repo/0`, `prefix/0`, `direction/0`, `execute/1` and `flush/0` are not
+  available.
+  """
+  @callback before_transaction(repo :: Ecto.Repo.t()) :: term
+
+  @doc """
+  Code to run after the migration transaction is closed.
+
+  It runs on the same connection as the transaction, whether the transaction
+  was committed or rolled back and even if `c:before_transaction/1` raised,
+  so that what it changed can always be restored. `repo/0`, `prefix/0`,
+  `direction/0`, `execute/1` and `flush/0` are not available.
+  """
+  @callback after_transaction(repo :: Ecto.Repo.t()) :: term
+
+  @optional_callbacks after_begin: 0,
+                      before_commit: 0,
+                      before_transaction: 1,
+                      after_transaction: 1
 
   defmodule Index do
     @moduledoc """
