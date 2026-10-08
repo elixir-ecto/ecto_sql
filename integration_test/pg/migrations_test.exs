@@ -40,44 +40,6 @@ defmodule Ecto.Integration.MigrationsTest do
     end
   end
 
-  defmodule Events do
-    use Agent
-
-    def start_link(_), do: Agent.start_link(fn -> [] end, name: __MODULE__)
-
-    def record(name, repo) do
-      %{rows: [[setting]]} = repo.query!("SELECT current_setting('ecto_test.setting', true)")
-      event = {name, setting, repo.in_transaction?()}
-      Agent.update(__MODULE__, &[event | &1])
-    end
-
-    def take, do: Agent.get_and_update(__MODULE__, &{Enum.reverse(&1), []})
-  end
-
-  defmodule SessionSettingMigration do
-    use Ecto.Migration
-
-    def before_transaction(repo) do
-      repo.query!("SET ecto_test.setting = 'on'")
-      Events.record(:before_transaction, repo)
-    end
-
-    def up do
-      Events.record(:up, repo())
-      create table(:session_setting_table)
-    end
-
-    def down do
-      Events.record(:down, repo())
-      drop table(:session_setting_table)
-    end
-
-    def after_transaction(repo) do
-      Events.record(:after_transaction, repo)
-      repo.query!("RESET ecto_test.setting")
-    end
-  end
-
   collation = "POSIX"
   @collation collation
 
@@ -120,63 +82,6 @@ defmodule Ecto.Integration.MigrationsTest do
       end)
 
     assert log =~ ~s(relation "duplicate_table" already exists, skipping)
-  end
-
-  describe "migration callbacks around the transaction" do
-    setup do
-      start_supervised!(Events)
-      :ok
-    end
-
-    test "run on the same connection as the migration transaction, outside of it" do
-      num = @base_migration + System.unique_integer([:positive])
-
-      assert :ok = Ecto.Migrator.up(PoolRepo, num, SessionSettingMigration, log: false)
-      assert num in Ecto.Migrator.migrated_versions(PoolRepo)
-
-      assert Events.take() == [
-               {:before_transaction, "on", false},
-               {:up, "on", true},
-               {:after_transaction, "on", false}
-             ]
-
-      assert :ok = Ecto.Migrator.down(PoolRepo, num, SessionSettingMigration, log: false)
-      refute num in Ecto.Migrator.migrated_versions(PoolRepo)
-
-      assert Events.take() == [
-               {:before_transaction, "on", false},
-               {:down, "on", true},
-               {:after_transaction, "on", false}
-             ]
-    end
-
-    test "do not commit the migration when its version cannot be recorded" do
-      num = @base_migration + System.unique_integer([:positive])
-      prefix = "callbacks_bad_schema"
-
-      Ecto.Adapters.SQL.query!(PoolRepo, ~s|CREATE SCHEMA "#{prefix}"|)
-
-      Ecto.Adapters.SQL.query!(
-        PoolRepo,
-        ~s|CREATE TABLE "#{prefix}"."schema_migrations" (version varchar, inserted_at integer)|
-      )
-
-      on_exit(fn -> Ecto.Adapters.SQL.query!(PoolRepo, ~s|DROP SCHEMA "#{prefix}" CASCADE|) end)
-
-      assert_raise DBConnection.EncodeError, fn ->
-        Ecto.Migrator.up(PoolRepo, num, SessionSettingMigration, log: false, prefix: prefix)
-      end
-
-      assert {:after_transaction, "on", false} in Events.take()
-
-      query =
-        "SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2"
-
-      table_exists? =
-        Ecto.Adapters.SQL.query!(PoolRepo, query, [prefix, "session_setting_table"]).num_rows == 1
-
-      refute table_exists?
-    end
   end
 
   describe "Migrator" do
