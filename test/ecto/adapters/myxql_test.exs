@@ -854,7 +854,13 @@ defmodule Ecto.Adapters.MyXQLTest do
     query = Schema |> select([e], e.x == ^0 or e.x in ^[1, 2, 3] or e.x == ^4) |> plan()
 
     assert all(query) ==
-             ~s{SELECT ((s0.`x` = ?) OR s0.`x` IN (?,?,?)) OR (s0.`x` = ?) FROM `schema` AS s0}
+             ~s{SELECT ((s0.`x` = ?) OR (s0.`x` IN (?,?,?))) OR (s0.`x` = ?) FROM `schema` AS s0}
+
+    query = "schema" |> select([e], e.x in [1, 2] in [true]) |> plan()
+    assert all(query) == ~s{SELECT (s0.`x` IN (1,2)) IN (TRUE) FROM `schema` AS s0}
+
+    query = "schema" |> select([e], e.x in ^[1, 2] in [true]) |> plan()
+    assert all(query) == ~s{SELECT (s0.`x` IN (?,?)) IN (TRUE) FROM `schema` AS s0}
   end
 
   test "in subquery" do
