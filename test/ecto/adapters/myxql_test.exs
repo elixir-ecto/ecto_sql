@@ -824,6 +824,12 @@ defmodule Ecto.Adapters.MyXQLTest do
 
     query = Schema |> select([s], json_extract_path(s.meta, ["\"a"])) |> plan()
     assert all(query) == ~s{SELECT json_extract(s0.`meta`, '$."\\\\"a"') FROM `schema` AS s0}
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["a\\b"])) |> plan()
+    assert all(query) == ~S{SELECT json_extract(s0.`meta`, '$."a\\\\b"') FROM `schema` AS s0}
+
+    query = Schema |> select([s], json_extract_path(s.meta, ["a\\"])) |> plan()
+    assert all(query) == ~S{SELECT json_extract(s0.`meta`, '$."a\\\\"') FROM `schema` AS s0}
   end
 
   test "nested expressions" do
