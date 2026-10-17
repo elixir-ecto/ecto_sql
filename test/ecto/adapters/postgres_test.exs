@@ -1123,7 +1123,7 @@ defmodule Ecto.Adapters.PostgresTest do
     query = Schema |> select([e], e.x == ^0 or e.x in ^[1, 2, 3] or e.x == ^4) |> plan()
 
     assert all(query) ==
-             ~s{SELECT ((s0."x" = $1) OR s0."x" = ANY($2)) OR (s0."x" = $3) FROM "schema" AS s0}
+             ~s{SELECT ((s0."x" = $1) OR (s0."x" = ANY($2))) OR (s0."x" = $3) FROM "schema" AS s0}
 
     query = "schema" |> select([e], (not e.x) in [true, false]) |> plan()
     assert all(query) == ~s{SELECT (NOT (s0."x")) IN (TRUE,FALSE) FROM "schema" AS s0}
@@ -1133,6 +1133,15 @@ defmodule Ecto.Adapters.PostgresTest do
 
     query = "schema" |> select([e], (not e.x) in e.w) |> plan()
     assert all(query) == ~s{SELECT (NOT (s0."x")) = ANY(s0."w") FROM "schema" AS s0}
+
+    query = "schema" |> select([e], e.x == e.y in ^[1, 2]) |> plan()
+    assert all(query) == ~s{SELECT s0."x" = (s0."y" = ANY($1)) FROM "schema" AS s0}
+
+    query = "schema" |> select([e], e.x == e.y in e.w) |> plan()
+    assert all(query) == ~s{SELECT s0."x" = (s0."y" = ANY(s0."w")) FROM "schema" AS s0}
+
+    query = "schema" |> select([e], e.x in [1, 2] in [true]) |> plan()
+    assert all(query) == ~s{SELECT (s0."x" IN (1,2)) IN (TRUE) FROM "schema" AS s0}
   end
 
   test "in subquery" do

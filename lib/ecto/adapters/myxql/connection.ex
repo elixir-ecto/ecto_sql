@@ -950,6 +950,9 @@ if Code.ensure_loaded?(MyXQL) do
     defp op_to_binary({:not, _, [_]} = expr, sources, query),
       do: paren_expr(expr, sources, query)
 
+    defp op_to_binary({:in, _, [_, _]} = expr, sources, query),
+      do: paren_expr(expr, sources, query)
+
     defp op_to_binary(expr, sources, query),
       do: expr(expr, sources, query)
 
