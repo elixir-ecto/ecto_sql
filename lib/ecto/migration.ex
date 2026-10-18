@@ -260,6 +260,19 @@ defmodule Ecto.Migration do
       such as migrations. For a repository named `MyApp.FooRepo`, `:priv` defaults to
       "priv/foo_repo" and migrations should be placed at "priv/foo_repo/migrations"
 
+    * `:migrations_paths` - a list of paths where migrations are located. This option
+      allows you to specify multiple migration directories that will all be used when
+      running migrations. Relative paths are considered relative to the application root
+      (the directory containing `mix.exs`). If this option is not set, the default path
+      is derived from the `:priv` configuration. For example:
+
+          config :app, App.Repo,
+            migrations_paths: ["priv/repo/migrations", "priv/repo/tenant_migrations"]
+
+      When using this option, all specified paths will be checked for migrations, and
+      migrations will be sorted by version across all directories as if they were in
+      a single directory.
+
     * `:start_apps_before_migration` - A list of applications to be started before
       running migrations. Used by `Ecto.Migrator.with_repo/3` and the migration tasks:
 
