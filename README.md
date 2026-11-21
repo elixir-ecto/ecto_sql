@@ -39,23 +39,19 @@ You may also run `mix test.all` to run the unit tests and all integration tests.
 
     $ ECTO_PATH=../ecto mix test.all
 
-### Running containerized tests
+### Running databases with Docker
 
-It is also possible to run the integration tests under a containerized environment using [earthly](https://earthly.dev/get-earthly). You will also need Docker installed on your system. Then you can run:
+You can also run all databases with Docker:
 
-    $ earthly -P +all
+    $ docker run --name pg -d -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres postgres:16.2-alpine
+    $ docker run --name mysql -d -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root mysql:8.0 --sql_mode="ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ANSI_QUOTES" --default-authentication-plugin=mysql_native_password
+    $ docker run --name mssql -d -p 1433:1433 -e ACCEPT_EULA=Y -e 'MSSQL_SA_PASSWORD=some!Password' mcr.microsoft.com/mssql/server:2022-latest
 
-You can also use this to interactively debug any failing integration tests using the corresponding commands:
+And then point the tests to them:
 
-    $ earthly -P -i --build-arg ELIXIR_BASE=1.8.2-erlang-20.3.8.26-alpine-3.11.6 --build-arg MYSQL=5.7 +integration-test-mysql
-    $ earthly -P -i --build-arg ELIXIR_BASE=1.8.2-erlang-20.3.8.26-alpine-3.11.6 --build-arg MSSQL=2019  +integration-test-mssql
-    $ earthly -P -i --build-arg ELIXIR_BASE=1.8.2-erlang-20.3.8.26-alpine-3.11.6 --build-arg POSTGRES=11.11 +integration-test-postgres
+    $ PG_URL=postgres:postgres@127.0.0.1 MYSQL_URL=root:root@127.0.0.1 MSSQL_URL='sa:some!Password@127.0.0.1' mix test.all
 
-Then once you enter the containerized shell, you can inspect the underlying databases with the respective commands:
-
-    PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres ecto_test
-    MYSQL_PASSWORD=root mysql -h 127.0.0.1 -uroot -proot ecto_test
-    sqlcmd -U sa -P 'some!Password'
+The `pg` and `myxql` integration tests also require the `pg_dump`/`psql` and `mysqldump`/`mysql` clients, respectively.
 
 ## License
 

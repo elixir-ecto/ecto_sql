@@ -48,59 +48,175 @@ jobs:
   test-postgres:
     name: postgres integration test
     runs-on: ubuntu-24.04
+    env:
+      MIX_ENV: test
+      ELIXIR_ASSERT_TIMEOUT: 10000
+      ECTO_ADAPTER: pg
+      PG_URL: postgres:postgres@127.0.0.1
+      POOL_COUNT: ${{ matrix.pool_count }}
     strategy:
       fail-fast: false
       matrix:
-        elixirbase:
-          - "1.15.6-erlang-25.3.2.6-alpine-3.18.4"
+        elixir: ["1.15.6"]
+        otp: ["25.3.2.6"]
         postgres:
           - "16.2-alpine"
           - "11.11-alpine"
           - "9.6-alpine"
-        pool_count:
-          - "1"
+        pool_count: ["1"]
         include:
-          - elixirbase: "1.15.6-erlang-25.3.2.6-alpine-3.18.4"
+          - elixir: "1.15.6"
+            otp: "25.3.2.6"
             postgres: "16.2-alpine"
             pool_count: "4"
-    steps:
-      - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v7
-      - name: test ecto_sql
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
         env:
-          POOL_COUNT: ${{ matrix.pool_count || '1' }}
-        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg POSTGRES=${{matrix.postgres}} +integration-test-postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install Elixir and Erlang
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - name: Restore deps and _build cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Run tests
+        run: mix test
 
   test-mysql:
     name: mysql integration test
     runs-on: ubuntu-24.04
+    env:
+      MIX_ENV: test
+      ELIXIR_ASSERT_TIMEOUT: 10000
+      ECTO_ADAPTER: myxql
+      MYSQL_URL: root:root@127.0.0.1
     strategy:
       fail-fast: false
       matrix:
-        elixirbase:
-          - "1.15.6-erlang-25.3.2.6-alpine-3.18.4"
+        elixir: ["1.15.6"]
+        otp: ["25.3.2.6"]
         mysql:
           - "5.7"
           - "8.0"
     steps:
-      - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v7
-      - name: test ecto_sql
-        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MYSQL=${{matrix.mysql}} +integration-test-mysql
+      - name: Start mysql
+        run: |
+          # The default authentication plugin for MySQL 8 is sha 256 but it
+          # doesn't come with the docker image, so we fall back to the 5.7 way
+          docker run --name mysql -d -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root "mysql:${{ matrix.mysql }}" \
+            --sql_mode="ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ANSI_QUOTES" \
+            --default-authentication-plugin=mysql_native_password
+          # The mysqldump 8 client on the runner queries column statistics,
+          # which do not exist in MySQL 5.7
+          printf '[mysqldump]\ncolumn-statistics=0\n' > ~/.my.cnf
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install Elixir and Erlang
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - name: Restore deps and _build cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Wait for mysql
+        run: |
+          for i in $(seq 1 60); do
+            mysqladmin ping --host=127.0.0.1 --port=3306 --protocol=TCP --silent && exit 0
+            echo "waiting for mysql"
+            sleep 2
+          done
+          echo "timed out waiting for mysql"
+          exit 1
+      - name: Run tests
+        run: mix test
 
   test-mssql:
     name: mssql integration test
     runs-on: ubuntu-24.04
+    env:
+      MIX_ENV: test
+      ELIXIR_ASSERT_TIMEOUT: 10000
+      ECTO_ADAPTER: tds
+      MSSQL_URL: sa:some!Password@127.0.0.1
     strategy:
       fail-fast: false
       matrix:
-        elixirbase:
-          - "1.15.6-erlang-25.3.2.6-alpine-3.18.4"
+        elixir: ["1.15.6"]
+        otp: ["25.3.2.6"]
         mssql:
           - "2019"
           - "2022"
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:${{ matrix.mssql }}-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: some!Password
+        ports:
+          - 1433:1433
     steps:
-      - uses: earthly/actions-setup@v1
-      - uses: actions/checkout@v7
-      - name: test ecto_sql
-        run: earthly -P --ci --build-arg ELIXIR_BASE=${{matrix.elixirbase}} --build-arg MSSQL=${{matrix.mssql}} +integration-test-mssql
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install Elixir and Erlang
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - name: Restore deps and _build cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Wait for mssql
+        run: |
+          for i in $(seq 1 60); do
+            for sqlcmd in /opt/mssql-tools18/bin/sqlcmd /opt/mssql-tools/bin/sqlcmd; do
+              if docker exec ${{ job.services.mssql.id }} $sqlcmd -C -S localhost -U sa -P 'some!Password' -Q "SELECT 1" >/dev/null 2>&1; then
+                exit 0
+              fi
+            done
+            echo "waiting for mssql"
+            sleep 2
+          done
+          echo "timed out waiting for mssql"
+          exit 1
+      - name: Run tests
+        run: mix test
