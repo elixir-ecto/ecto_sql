@@ -120,4 +120,86 @@ defmodule Mix.Tasks.Ecto.RollbackTest do
 
     assert Process.get(:started)
   end
+
+  describe "migrations_paths config" do
+    defmodule RepoWithMigrationsPaths do
+      def start_link(_) do
+        Process.put(:started, true)
+
+        Task.start_link(fn ->
+          Process.flag(:trap_exit, true)
+
+          receive do
+            {:EXIT, _, :normal} -> :ok
+          end
+        end)
+      end
+
+      def stop do
+        :ok
+      end
+
+      def __adapter__ do
+        EctoSQL.TestAdapter
+      end
+
+      def config do
+        migrations_path_1 =
+          Path.join([tmp_path(), inspect(Ecto.Migrate), "configured_migrations_1"])
+
+        migrations_path_2 =
+          Path.join([tmp_path(), inspect(Ecto.Migrate), "configured_migrations_2"])
+
+        [
+          priv: "tmp/#{inspect(Ecto.Migrate)}",
+          otp_app: :ecto_sql,
+          migrations_paths: [
+            Path.relative_to(migrations_path_1, File.cwd!()),
+            Path.relative_to(migrations_path_2, File.cwd!())
+          ]
+        ]
+      end
+    end
+
+    setup do
+      path1 = Path.join([tmp_path(), inspect(Ecto.Migrate), "configured_migrations_1"])
+      path2 = Path.join([tmp_path(), inspect(Ecto.Migrate), "configured_migrations_2"])
+      File.mkdir_p!(path1)
+      File.mkdir_p!(path2)
+      :ok
+    end
+
+    test "uses migrations_paths from repo config when no --migrations-path flag" do
+      path1 = Path.join([tmp_path(), inspect(Ecto.Migrate), "configured_migrations_1"])
+      path2 = Path.join([tmp_path(), inspect(Ecto.Migrate), "configured_migrations_2"])
+
+      run(["-r", to_string(RepoWithMigrationsPaths)], fn repo, paths, direction, _opts ->
+        assert repo == RepoWithMigrationsPaths
+        assert length(paths) == 2
+        assert Path.expand(Enum.at(paths, 0)) == Path.expand(path1)
+        assert Path.expand(Enum.at(paths, 1)) == Path.expand(path2)
+        assert direction == :down
+        []
+      end)
+
+      assert Process.get(:started)
+    end
+
+    test "command-line --migrations-path takes precedence over repo config" do
+      custom_path = Path.join([tmp_path(), inspect(Ecto.Migrate), "cli_migrations"])
+      File.mkdir_p!(custom_path)
+
+      run(
+        ["-r", to_string(RepoWithMigrationsPaths), "--migrations-path", custom_path],
+        fn repo, [path], direction, _opts ->
+          assert repo == RepoWithMigrationsPaths
+          assert path == custom_path
+          assert direction == :down
+          []
+        end
+      )
+
+      assert Process.get(:started)
+    end
+  end
 end

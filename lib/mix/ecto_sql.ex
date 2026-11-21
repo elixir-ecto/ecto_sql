@@ -3,11 +3,45 @@ defmodule Mix.EctoSQL do
 
   @doc """
   Ensures the given repository's migrations paths exists on the file system.
+
+  This function checks for migrations paths in the following order:
+  1. Command-line options (`--migrations_path`)
+  2. Repository configuration (`:migrations_paths`)
+  3. Default path based on `:priv` configuration or "priv/repo/migrations"
   """
   @spec ensure_migrations_paths(Ecto.Repo.t(), Keyword.t()) :: [String.t()]
   def ensure_migrations_paths(repo, opts) do
     paths = Keyword.get_values(opts, :migrations_path)
-    paths = if paths == [], do: [Path.join(source_repo_priv(repo), "migrations")], else: paths
+
+    paths =
+      if paths == [] do
+        # Use repo config if available, otherwise fall back to default
+        config = repo.config()
+
+        case config[:migrations_paths] do
+          nil ->
+            [Path.join(source_repo_priv(repo), "migrations")]
+
+          config_paths when is_list(config_paths) ->
+            app = Keyword.fetch!(config, :otp_app)
+            # In Mix context, we use deps_paths or cwd for path resolution
+            base_dir = Mix.Project.deps_paths()[app] || File.cwd!()
+
+            Enum.map(config_paths, fn path ->
+              if Path.type(path) == :absolute do
+                path
+              else
+                Path.join(base_dir, path)
+              end
+            end)
+
+          other ->
+            raise ArgumentError,
+                  ":migrations_paths must be a list of paths, got: #{inspect(other)}"
+        end
+      else
+        paths
+      end
 
     if not Mix.Project.umbrella?() do
       for path <- paths, not File.dir?(path) do
