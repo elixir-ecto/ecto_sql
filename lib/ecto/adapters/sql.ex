@@ -985,12 +985,8 @@ defmodule Ecto.Adapters.SQL do
 
     sql = conn.insert(prefix, source, header, rows, on_conflict, returning, placeholders, opts)
 
-    opts =
-      if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_insert_all_#{source}"} | opts]
-      else
-        opts
-      end
+    opts = put_default_cache_statement(opts, "ecto_insert_all_#{source}")
+    sql = wrap_comments(sql, opts)
 
     all_params = placeholders ++ Enum.reverse(params, conflict_params)
 
@@ -1172,6 +1168,69 @@ defmodule Ecto.Adapters.SQL do
   end
 
   @doc false
+  def wrap_comments(sql, opts) do
+    {pre, post} = comments(Keyword.get(opts, :comments, []))
+    [pre, sql | post]
+  end
+
+  # Comments become part of the statement text, so a varying comment under a
+  # fixed cache name would make the driver close and re-prepare the statement
+  # on every call (drivers compare the cached text). Skip the default statement
+  # cache whenever comments are given; an explicit :cache_statement still wins,
+  # which keeps caching available for callers with static comments.
+  @doc false
+  def put_default_cache_statement(opts, name) do
+    if is_nil(Keyword.get(opts, :cache_statement)) and Keyword.get(opts, :comments, []) == [] do
+      [{:cache_statement, name} | opts]
+    else
+      opts
+    end
+  end
+
+  @doc false
+  def comments(comments) when is_list(comments) do
+    # The space after `/*` is load-bearing: MySQL executable comments (`/*!`),
+    # MariaDB executable comments (`/*M!`), and optimizer hints (`/*+`) only
+    # take effect when the marker immediately follows `/*`. Keep the space even
+    # though validate_comment!/1 also rejects those prefixes (defense in depth).
+    {pre, post} =
+      Enum.reduce(comments, {[], []}, fn
+        {:pre, c}, {pre, post} -> {[["/* ", validate_comment!(c), " */ "] | pre], post}
+        {:post, c}, {pre, post} -> {pre, [[" /* ", validate_comment!(c), " */"] | post]}
+        other, _ -> raise ArgumentError, "expected {:pre, string} or {:post, string}, got: #{inspect(other)}"
+      end)
+
+    {Enum.reverse(pre), Enum.reverse(post)}
+  end
+
+  def comments(other) do
+    raise ArgumentError,
+          "comments must be a keyword list of [pre: string, post: string], got: #{inspect(other)}"
+  end
+
+  defp validate_comment!(comment) when is_binary(comment) do
+    if String.contains?(comment, ["/*", "*/", <<0>>]) do
+      raise ArgumentError,
+            "a comment cannot contain `/*`, `*/`, or null bytes, got: #{inspect(comment)}"
+    end
+
+    # Placed right after `/*`, these prefixes would form MySQL/MariaDB
+    # executable comments (`/*!...*/`, `/*M!...*/`) or optimizer hints
+    # (`/*+...*/`), turning the comment into SQL that executes.
+    if String.starts_with?(comment, ["!", "+", "M!"]) do
+      raise ArgumentError,
+            "a comment cannot start with `!`, `+`, or `M!`, as MySQL and MariaDB " <>
+              "treat such comments as executable SQL or optimizer hints, got: #{inspect(comment)}"
+    end
+
+    comment
+  end
+
+  defp validate_comment!(other) do
+    raise ArgumentError, "a comment must be a string, got: #{inspect(other)}"
+  end
+
+  @doc false
   def struct(
         adapter_meta,
         conn,
@@ -1184,12 +1243,8 @@ defmodule Ecto.Adapters.SQL do
         returning,
         opts
       ) do
-    opts =
-      if is_nil(Keyword.get(opts, :cache_statement)) do
-        [{:cache_statement, "ecto_#{operation}_#{source}_#{length(params)}"} | opts]
-      else
-        opts
-      end
+    opts = put_default_cache_statement(opts, "ecto_#{operation}_#{source}_#{length(params)}")
+    sql = wrap_comments(sql, opts)
 
     case query(adapter_meta, sql, values, [source: source] ++ opts) do
       {:ok, %{rows: nil, num_rows: 1}} ->

@@ -178,6 +178,74 @@ defmodule Ecto.Integration.LoggingTest do
     end
   end
 
+  describe ":comments option" do
+    test "comments query operations" do
+      assert capture_log(fn ->
+               TestRepo.all(Post, comments: [pre: "list_posts_q"], log: :error)
+             end) =~ "/* list_posts_q */ SELECT"
+
+      assert capture_log(fn ->
+               TestRepo.update_all(Post, [set: [visits: 0]], comments: [pre: "reset_visits_q"], log: :error)
+             end) =~ "/* reset_visits_q */ UPDATE"
+
+      assert capture_log(fn ->
+               TestRepo.delete_all(Post, comments: [pre: "purge_posts_q"], log: :error)
+             end) =~ "/* purge_posts_q */ DELETE"
+    end
+
+    test "supports both :pre and :post" do
+      assert capture_log(fn ->
+               TestRepo.all(Post, comments: [pre: "before_q", post: "after_q"], log: :error)
+             end) =~ ~r{/\* before_q \*/ SELECT.* /\* after_q \*/}
+    end
+
+    test "dynamic comments render and skip the query cache by default" do
+      assert capture_log(fn ->
+               TestRepo.all(Post, comments: [pre: "dyn_#{System.unique_integer()}"], log: :error)
+             end) =~ ~r{/\* dyn_-?\d+ \*/ SELECT}
+    end
+
+    test "query_cache: true opts back into caching for static comments" do
+      assert capture_log(fn ->
+               TestRepo.all(Post, comments: [pre: "static_q"], query_cache: true, log: :error)
+             end) =~ "/* static_q */ SELECT"
+    end
+
+    test "comments insert/update/delete/insert_all" do
+      assert capture_log(fn ->
+               TestRepo.insert!(%Post{title: "1"}, comments: [pre: "insert_create_post_q"], log: :error)
+             end) =~ "/* insert_create_post_q */ INSERT INTO"
+
+      post = TestRepo.insert!(%Post{title: "x"})
+
+      assert capture_log(fn ->
+               post
+               |> Ecto.Changeset.change(title: "y")
+               |> TestRepo.update!(comments: [pre: "update_post_q"], log: :error)
+             end) =~ "/* update_post_q */ UPDATE"
+
+      assert capture_log(fn ->
+               TestRepo.delete!(post, comments: [pre: "delete_post_q"], log: :error)
+             end) =~ "/* delete_post_q */ DELETE"
+
+      assert capture_log(fn ->
+               TestRepo.insert_all(Post, [%{title: "a"}], comments: [pre: "bulk_insert_posts_q"], log: :error)
+             end) =~ "/* bulk_insert_posts_q */ INSERT INTO"
+    end
+
+    test "rejects a comment that could break out of the comment block" do
+      assert_raise ArgumentError, ~r/cannot contain/, fn ->
+        TestRepo.insert!(%Post{title: "1"}, comments: [pre: "evil */ DROP TABLE posts"])
+      end
+    end
+
+    test "rejects a comment that MySQL/MariaDB would treat as executable" do
+      assert_raise ArgumentError, ~r/cannot start with/, fn ->
+        TestRepo.insert!(%Post{title: "1"}, comments: [pre: "!40000 DROP TABLE posts"])
+      end
+    end
+  end
+
   describe "parameter logging" do
     @describetag :parameter_logging
 
